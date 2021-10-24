@@ -8,31 +8,32 @@ LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
 
 void main(void)
 {
-	struct zcan_frame frame = {
-		.id_type = CAN_STANDARD_IDENTIFIER,
-		.rtr = CAN_DATAFRAME,
-		.id = 0x123,
-		.dlc = 8,
-		.data = {1,2,3,4,5,6,7,8}
-	};
-	const struct device *can_dev;
-	int ret;
+        struct zcan_frame frame = {
+                .id_type = CAN_STANDARD_IDENTIFIER,
+                .rtr = CAN_DATAFRAME,
+                .id = 0x123,
+                .dlc = 8,
+                .data = {1, 2, 3, 4, 5, 6, 7, 8}
+        };
 
-	can_dev = device_get_binding("CAN_1");
+        const struct device *can_dev;
+        int ret;
 
-	while (!device_is_ready(can_dev)) {
-		printk("CAN: Device %s not ready.\n", can_dev->name);
-		k_sleep(K_SECONDS(1));
-	}
+        can_dev = device_get_binding("CAN_1");
 
-	for (;;) {
-		ret = can_send(can_dev, &frame, K_MSEC(100), NULL, NULL);
-		if (ret != CAN_TX_OK) {
-			LOG_ERR("Sending failed [%d]", ret);
-		}
-		
-		k_sleep(K_SECONDS(5));
-	}
+        while (!device_is_ready(can_dev)) {
+                printk("CAN: Device %s not ready.\n", can_dev->name);
+                k_sleep(K_SECONDS(1));
+        }
 
-	k_sleep(K_FOREVER);
+        for (;;) {
+                ret = can_send(can_dev, &frame, K_MSEC(100), NULL, NULL);
+                if (ret != CAN_TX_OK) {
+                        LOG_ERR("Sending failed [%d]", ret);
+                }
+
+                k_sleep(K_SECONDS(5));
+        }
+
+        k_sleep(K_FOREVER);
 }
