@@ -44,3 +44,4 @@ A solution would be to use another mcp2515 via SPI
 
 - [devicetree - st,stm32-can](https://docs.zephyrproject.org/latest/reference/devicetree/bindings/can/st%2Cstm32-can.html)
 - GitHub Issue : *zephyrproject-rtos / zephyrdrivers*: [can: stm32fd: can2 does not work](https://github.com/zephyrproject-rtos/zephyr/issues/36075)
+- [stm32 can drviers](https://github.com/zephyrproject-rtos/zephyr/blob/main/drivers/can/can_stm32.c)
