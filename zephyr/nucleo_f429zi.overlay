@@ -1,0 +1,14 @@
+&can1 {
+        status = "okay";
+        pinctrl-0 = <&can1_rx_pd0 &can1_tx_pd1>;
+        bus-speed = < 500000 >;
+        
+        sample-point = <875>; /* recommanded value */
+        sjw = < 0x1 >;
+};
+
+/* Second can bus isn't supported yet */
+// &can2 {
+//         status = "okay";
+//         bus-speed = < 500000 >;
+// };
