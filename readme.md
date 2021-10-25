@@ -1,5 +1,9 @@
 # caniot-controller (stm32F429zi w/ Zephyr RTOS)
 
+## Links
+
+[zephyr.dts](.pio/build/nucleo_f429zi/zephyr/zephyr.dts)
+
 ## MCU
 
 [STM32F429ZI](https://www.st.com/en/microcontrollers-microprocessors/stm32f429zi.html)
@@ -25,6 +29,7 @@
 
 - https://docs.platformio.org/en/latest/frameworks/zephyr.html
 - Tutoriel [Enabling PlatformIO and Zephyr on custom hardware](https://piolabs.com/blog/engineering/platformio-zephyr-custom-hardware.html)
+- https://docs.platformio.org/en/latest/boards/ststm32/nucleo_f429zi.html
 
 ## `stm32f429zi` (`nucleo_f429zi`) :
 

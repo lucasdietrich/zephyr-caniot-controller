@@ -16,6 +16,10 @@
 
 - [Manual page 77 - Table 6. Flash module - 2 Mbyte dual bank organization (STM32F42xxx and STM32F43xxx)](https://www.st.com/resource/en/reference_manual/dm00031020-stm32f405-415-stm32f407-417-stm32f427-437-and-stm32f429-439-advanced-arm-based-32-bit-mcus-stmicroelectronics.pdf#page=77)
 
+## Partitions
+
+[CONFIG_USE_DT_CODE_PARTITION](https://docs.zephyrproject.org/latest/reference/kconfig/CONFIG_USE_DT_CODE_PARTITION.html)
+
 Idea : 
 - Bootloader : 64KB (4*16KB)
 - Application : 1MB - 64 KB
@@ -81,3 +85,14 @@ CONFIG_FLASH_PAGE_LAYOUT=y
 
 - [Flash Map](https://docs.zephyrproject.org/latest/reference/storage/flash_map/flash_map.html)
 - [Flash Pages](https://docs.zephyrproject.org/latest/reference/peripherals/flash.html)
+
+## Known Issues
+
+- PlatformIO doesn't show the correct memory usage when use a custom partition for the Zephyr application :
+
+```
+RAM:   [          ]   3.4% (used 6644 bytes from 196608 bytes)
+Flash: [          ]   1.0% (used 21088 bytes from 2097152 bytes)
+```
+
+Which is wrong, real flash % use is 21088 / 1792KB = 1.1%, see [zephyr/nucleo_f429zi.overlay](../zephyr/nucleo_f429zi.overlay)
