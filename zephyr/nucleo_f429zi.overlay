@@ -1,11 +1,54 @@
 &can1 {
         status = "okay";
         pinctrl-0 = <&can1_rx_pd0 &can1_tx_pd1>;
-        bus-speed = < 500000 >;
-        
-        sample-point = <875>; /* recommanded value */
-        sjw = < 0x1 >;
+        bus-speed = <500000>;
+
+        sample-point = <875>; /* recommended value */
+        sjw = <0x1>;
 };
+
+/*
+&flash0 {
+        // flash size is 0x200000
+        partitions {
+                compatible = "fixed-partitions";
+                #address-cells = <0x1>;
+                #size-cells = <0x1>;
+                boot_partition: partition@0 {
+                        label = "mcuboot";
+                        reg = <0x0 DT_SIZE_K(64)>;
+                        read-only;
+                };
+                storage_partition: partition@10000 {
+                        label = "storage";
+                        reg = <0x10000 DT_SIZE_K(256)>;
+                };
+                slot0_partition: partition@50000 {
+                        label = "image-0";
+                        reg = <0x50000 DT_SIZE_K(2048 - 256 - 64)>;
+                };
+        };
+};
+*/
+
+/*
+&flash0 {
+        // flash size is 0x200000
+        partitions {
+                storage_partition: partition@10000 {
+                        label = "storage";
+                        reg = <0x10000 DT_SIZE_K(256)>;
+                };
+        };
+};
+
+/ {
+        chosen {
+                zephyr,code-partition = &slot0_partition;
+        };
+};
+
+*/
 
 /* Second can bus isn't supported yet */
 // &can2 {

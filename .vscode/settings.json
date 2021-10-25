@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "*.asm": "avr",
+        "zephyr.h": "c",
+        "flash_map.h": "c",
+        "disk_access.h": "c",
+        "flash.h": "c"
+    }
+}
