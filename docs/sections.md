@@ -1,8 +1,9 @@
 # Sections (& partitions)
 
-Putting code in a specific section :
-
-- Check for file [`include\linker\section_tags.h`](https://github.com/nrfconnect/sdk-zephyr/blob/master/include/linker/section_tags.h)
+- [Code And Data Relocation](https://docs.zephyrproject.org/latest/guides/code-relocation.html)
+- [Iterable Sections](https://docs.zephyrproject.org/latest/reference/iterable_sections/index.html)
+- Putting code in a specific sections :
+  - [`include\linker\section_tags.h`](https://github.com/nrfconnect/sdk-zephyr/blob/master/include/linker/section_tags.h)
 
 Examples :
 

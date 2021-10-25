@@ -5,6 +5,7 @@
 **Zephyr RTOS 2.6**
 - [GitHub](https://github.com/zephyrproject-rtos/zephyr/tree/v2.6-branch)
 - [All Configuration Options](https://docs.zephyrproject.org/2.6.0/reference/kconfig/index-all.html)
+- [Guides](https://docs.zephyrproject.org/latest/guides/index.html)
 
 **Board**
 - [hal_stm32/dts/st/f4/stm32f429zitx-pinctrl.dtsi](https://github.com/zephyrproject-rtos/hal_stm32/blob/main/dts/st/f4/stm32f429zitx-pinctrl.dtsi)
@@ -12,7 +13,7 @@
 - [ST Nucleo F429ZI](https://github.com/zephyrproject-rtos/zephyr/blob/main/boards/arm/nucleo_f429zi/doc/index.rst#st-nucleo-f429zi)
 
 
-**Projects**
+**Project**
 - Configuration
   - [prj.conf](./zephyr/prj.conf)
   - [nucleo_f429zi.overlay](./zephyr/nucleo_f429zi.overlay)
@@ -20,6 +21,12 @@
 - Build:
   - [zephyr.dts](.pio/build/nucleo_f429zi/zephyr/zephyr.dts)
   - [autoconf.h](.pio/build/nucleo_f429zi/zephyr/include/generated/autoconf.h)
+
+**Zephyr Samples**
+- [code_relocation](https://github.com/zephyrproject-rtos/zephyr/tree/v2.6-branch/samples/application_development/code_relocation)
+- [application_development/external_lib](https://github.com/zephyrproject-rtos/zephyr/tree/v2.6-branch/samples/application_development/external_lib)
+- [out_of_tree_driver](https://github.com/zephyrproject-rtos/zephyr/tree/v2.6-branch/samples/application_development/out_of_tree_driver)
+
 
 ---
 
@@ -39,6 +46,7 @@
 ## Questions/Open Points
 
 - How to show correct Memory usage after linker in PlatformIO with custom partitions ?
+- Find a way to link certificates in the dedicated `certificates` partition (from a text file ?)
 
 ## Objectives
 - Be able to build/debug the project at the same time using PlatformIO and CMake/Zephyr env
