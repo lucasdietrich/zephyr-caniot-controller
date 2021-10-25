@@ -2,17 +2,48 @@
 
 ## Links
 
-[zephyr.dts](.pio/build/nucleo_f429zi/zephyr/zephyr.dts)
+**Zephyr RTOS 2.6**
+- [GitHub](https://github.com/zephyrproject-rtos/zephyr/tree/v2.6-branch)
+- [All Configuration Options](https://docs.zephyrproject.org/2.6.0/reference/kconfig/index-all.html)
 
-## MCU
+**Board**
+- [hal_stm32/dts/st/f4/stm32f429zitx-pinctrl.dtsi](https://github.com/zephyrproject-rtos/hal_stm32/blob/main/dts/st/f4/stm32f429zitx-pinctrl.dtsi)
 
-[STM32F429ZI](https://www.st.com/en/microcontrollers-microprocessors/stm32f429zi.html)
-- 2MB Flash
-- 180MHz
-- 192kB SRAM
-- 64kB CCM
+- [ST Nucleo F429ZI](https://github.com/zephyrproject-rtos/zephyr/blob/main/boards/arm/nucleo_f429zi/doc/index.rst#st-nucleo-f429zi)
 
-![](https://www.st.com/content/ccc/fragment/product_related/rpn_information/product_circuit_diagram/group0/8d/9e/28/ab/4a/5b/45/ca/bd_stm32f429xi_2m/files/bd_stm32f429xi_2m.jpg/jcr:content/translations/en.bd_stm32f429xi_2m.jpg)
+
+**Projects**
+- Configuration
+  - [prj.conf](./zephyr/prj.conf)
+  - [nucleo_f429zi.overlay](./zephyr/nucleo_f429zi.overlay)
+  - [CMakeLists.txt](./zephyr/CMakeLists.txt)
+- Build:
+  - [zephyr.dts](.pio/build/nucleo_f429zi/zephyr/zephyr.dts)
+  - [autoconf.h](.pio/build/nucleo_f429zi/zephyr/include/generated/autoconf.h)
+
+---
+
+## Next steps
+
+- MBEDTLS : 
+  - setup simple http server and tcp client
+  - elliptic curves ECDSA better than RSA ?
+
+- Starting to specify the application
+
+- SD card :
+  - Drivers
+  - Interrupt
+  - Connect/Read/Write/Disconnect model
+
+## Questions/Open Points
+
+- How to show correct Memory usage after linker in PlatformIO with custom partitions ?
+
+## Objectives
+- Be able to build/debug the project at the same time using PlatformIO and CMake/Zephyr env
+
+---
 
 ## Zephyr RTOS 2.6 (current)
 
@@ -31,11 +62,6 @@
 - Tutoriel [Enabling PlatformIO and Zephyr on custom hardware](https://piolabs.com/blog/engineering/platformio-zephyr-custom-hardware.html)
 - https://docs.platformio.org/en/latest/boards/ststm32/nucleo_f429zi.html
 
-## `stm32f429zi` (`nucleo_f429zi`) :
-
-- [hal_stm32/dts/st/f4/stm32f429zitx-pinctrl.dtsi](https://github.com/zephyrproject-rtos/hal_stm32/blob/main/dts/st/f4/stm32f429zitx-pinctrl.dtsi)
-- [ST Nucleo F429ZI](https://github.com/zephyrproject-rtos/zephyr/blob/main/boards/arm/nucleo_f429zi/doc/index.rst#st-nucleo-f429zi)
-
 ## Modules
 
 Will be required when using zephyr 2.7 without PlatformIO
@@ -46,7 +72,7 @@ Will be required when using zephyr 2.7 without PlatformIO
 
 ## Build
 
-
+*PlatformIO*
 
 ## Flash
 
