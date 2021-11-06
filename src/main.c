@@ -1,73 +1,42 @@
 #include <zephyr.h>
-#include <devicetree.h>
 
-#include <logging/log.h>
-LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
-
-#include <storage/flash_map.h>
-#include <string.h>
-#define STORAGE_FLASH_ID                FLASH_AREA_ID(storage)
-
-#include <drivers/flash.h>
 #include <device.h>
-#define STORAGE_NODE                    DT_NODE_BY_FIXED_PARTITION_LABEL(storage)
-#define FLASH_NODE                      DT_MTD_FROM_FIXED_PARTITION(STORAGE_NODE)
+#include <devicetree.h>
+#include <drivers/gpio.h>
 
-const struct flash_area *fa;
+#define LEDGREEN_NODE DT_ALIAS(led0)
 
-static char buffer[0x400];
-static char mystring[] = "It's me, Lucas !!!";
+#if DT_NODE_HAS_STATUS(LEDGREEN_NODE, okay)
+#define LED0	DT_GPIO_LABEL(LEDGREEN_NODE, gpios)
+#define PIN	DT_GPIO_PIN(LEDGREEN_NODE, gpios)
+#define FLAGS	DT_GPIO_FLAGS(LEDGREEN_NODE, gpios)
+#else
+/* A build error here means your board isn't set up to blink an LED. */
+#error "Unsupported board: led0 devicetree alias is not defined"
+#define LED0	""
+#define PIN	0
+#define FLAGS	0
+#endif
 
 void main(void)
 {
-        int ret;
+	const struct device *dev;
+	bool led_is_on = true;
+	int ret;
 
-        /* drivers API */
-        const struct device *flash_dev = DEVICE_DT_GET(FLASH_NODE);
+	dev = device_get_binding(LED0);
+	if (dev == NULL) {
+		return;
+	}
 
-        size_t pages = flash_get_page_count(flash_dev);
-        LOG_INF("flash_get_page_count(0x%x) = %d sectors (pages)",
-                (uint32_t)flash_dev, pages);
+	ret = gpio_pin_configure(dev, PIN, GPIO_OUTPUT_ACTIVE | FLAGS);
+	if (ret < 0) {
+		return;
+	}
 
-        struct flash_pages_info page_info;
-        for (uint_fast8_t i = 0; i < pages; i++) {
-                ret = flash_get_page_info_by_idx(flash_dev, i, &page_info);
-                LOG_DBG("flash_get_page_info_by_idx(%x, %d, *) = %d",
-                        (uint32_t)flash_dev, i, ret);
-                LOG_INF("index=%d size=0x%x start_offset=0x%x",
-                        page_info.index, page_info.size, page_info.start_offset);
-        }
-        
-        /* application API */
-        ret = flash_area_open(STORAGE_FLASH_ID, &fa);
-        LOG_INF("flash_area_open(0x%x, *) = %d", STORAGE_FLASH_ID, ret);
-
-        if (ret == 0) {
-                ret = flash_area_read(fa, 0, buffer, sizeof(buffer));
-                LOG_DBG("flash_area_read() = %d", ret);
-
-                LOG_HEXDUMP_INF(buffer, (uint32_t) sizeof(buffer), "content");
-
-                if (strncmp(buffer, mystring, sizeof(mystring)) != 0) {
-                        LOG_INF("String not found in flash, writing ... (%d)", 0);
-
-                        ret = flash_area_erase(fa, 0, fa->fa_size);
-                        LOG_DBG("flash_area_erase(*, *, 0x%x) = %d", fa->fa_size, ret);
-
-                        if (ret == 0) {
-                                ret = flash_area_write(fa, 0x00,
-                                        mystring, sizeof(mystring));
-                                LOG_DBG("flash_area_write() = %d", ret);
-
-                                ret = flash_area_read(fa, 0, buffer, sizeof(buffer));
-                                LOG_DBG("flash_area_read() = %d", ret);
-
-                                LOG_HEXDUMP_INF(buffer, (uint32_t) sizeof(buffer), "content");
-                        }
-                }
-
-                flash_area_close(fa);
-        }
-
-        k_sleep(K_FOREVER);
+	while (1) {
+		gpio_pin_set(dev, PIN, (int)led_is_on);
+		led_is_on = !led_is_on;
+		k_msleep(1000);
+	}
 }
