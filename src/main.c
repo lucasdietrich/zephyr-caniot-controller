@@ -12,7 +12,7 @@ void main(void)
 {
         net_interface_init();
         user_io_init();
-        udp_discovery_init();
+        discovery_init();
 
         for (;;) {
                 net_time_show();

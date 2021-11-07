@@ -15,6 +15,7 @@
         "net_interface.h": "c",
         "time.h": "c",
         "*.tcc": "c",
-        "udp_discovery.h": "c"
+        "udp_discovery.h": "c",
+        "net_core.h": "c"
     }
 }

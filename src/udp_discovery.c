@@ -11,7 +11,7 @@
 #include "utils.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(discovery, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(discovery, LOG_LEVEL_INF);
 
 #define DISCOVERY_PORT          5000
 #define SEARCH_STRING           "Search caniot-controller"
@@ -19,16 +19,27 @@ LOG_MODULE_REGISTER(discovery, LOG_LEVEL_DBG);
 
 static int fd;
 
-static void discovery_thread(void *_a, void *_b, void *_c);
+static __noinit char buffer[0x20];
 
 K_THREAD_DEFINE(discovery, 0x300, discovery_thread, NULL, NULL, NULL,
                 K_PRIO_PREEMPT(8), 0, SYS_FOREVER_MS);
 
-static int setup_socket(void)
+int discovery_init(void)
 {
         int ret;
+        
+        ret = discovery_setup_socket();
+        if (ret >= 0) {
+                k_thread_start(discovery);
+        }
 
-        struct sockaddr_in addr = {
+        return ret;
+}
+
+int discovery_setup_socket(void)
+{
+        int ret;
+        const struct sockaddr_in addr = {
                 .sin_family = AF_INET,
                 .sin_port = htons(DISCOVERY_PORT),
                 .sin_addr = {
@@ -62,7 +73,7 @@ exit:
         return ret;
 }
 
-static int prepare_reponse(struct discovery_response *resp, size_t len)
+int discovery_prepare_reponse(struct discovery_response *resp, size_t len)
 {
         const size_t resp_len = sizeof(struct discovery_response);
         if (len < resp_len) {
@@ -79,10 +90,8 @@ static int prepare_reponse(struct discovery_response *resp, size_t len)
         return resp_len;
 }
 
-static char buffer[0x20];
-
 /* addr support for IPV6 */
-static void discovery_thread(void *_a, void *_b, void *_c)
+void discovery_thread(void *_a, void *_b, void *_c)
 {
         ARG_UNUSED(_a);
         ARG_UNUSED(_b);
@@ -118,7 +127,7 @@ static void discovery_thread(void *_a, void *_b, void *_c)
                         continue;
                 }
 
-                size_t tosend = prepare_reponse(
+                size_t tosend = discovery_prepare_reponse(
                         (struct discovery_response *)buffer, sizeof(buffer));
                 if (tosend <= 0) {
                         continue;
@@ -133,16 +142,4 @@ static void discovery_thread(void *_a, void *_b, void *_c)
 
                 LOG_HEXDUMP_DBG(buffer, tosend, "UDP response sent");
         }
-}
-
-int udp_discovery_init(void)
-{
-        int ret;
-        
-        ret = setup_socket();
-        if (ret >= 0) {
-                k_thread_start(discovery);
-        }
-
-        return ret;
 }
