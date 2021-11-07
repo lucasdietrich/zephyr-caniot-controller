@@ -8,6 +8,10 @@
         "log.h": "c",
         "interface.h": "c",
         "net_config.h": "c",
-        "net_if.h": "c"
+        "net_if.h": "c",
+        "sntp.h": "c",
+        "limits": "cpp",
+        "type_traits": "cpp",
+        "net_interface.h": "c"
     }
 }

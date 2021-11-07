@@ -12,6 +12,8 @@
 #ifndef _NET_TIME_H_
 #define _NET_TIME_H_
 
-void net_time_ini(void);
+void net_time_sync(void);
+
+void net_time_show(void);
 
 #endif
