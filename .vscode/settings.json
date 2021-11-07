@@ -12,6 +12,9 @@
         "sntp.h": "c",
         "limits": "cpp",
         "type_traits": "cpp",
-        "net_interface.h": "c"
+        "net_interface.h": "c",
+        "time.h": "c",
+        "*.tcc": "c",
+        "udp_discovery.h": "c"
     }
 }

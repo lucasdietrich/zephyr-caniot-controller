@@ -8,7 +8,7 @@
  */
 void net_interface_init(void);
 
-/* TODO add function to get ethernet interface directly without using net_if_get_default() */
+/* TODO add function to get the ethernet interface directly without using net_if_get_default() */
 
 
 #endif
