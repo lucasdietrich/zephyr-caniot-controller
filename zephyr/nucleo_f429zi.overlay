@@ -7,6 +7,15 @@
         sjw = <0x1>;
 };
 
+/ {
+        aliases {
+                led-net = &green_led_1;
+                led-thread = &red_led_1;
+                led-can = &blue_led_1;
+                sw0 = &user_button;
+        };
+};
+
 /* order matters */
 /delete-node/ &boot_partition;
 /delete-node/ &storage_partition;

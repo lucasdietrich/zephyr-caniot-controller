@@ -1,4 +1,15 @@
-#include "interface.h"
+#include "net_interface.h"
+
+#include <net/net_if.h>
+#include <net/net_core.h>
+#include <net/net_context.h>
+#include <net/net_mgmt.h>
+#include <net/net_config.h>
+#include <net/ethernet_mgmt.h>
+#include <net/net_config.h>
+#include <net/sntp.h>
+
+#include "user_io.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(ethernet_if, LOG_LEVEL_INF);
@@ -54,18 +65,20 @@ static void net_event_handler(struct net_mgmt_event_callback *cb,
         case NET_EVENT_IF_UP:
         {
                 LOG_DBG("NET_EVENT_IF_UP (%u)", mgmt_event);
+                led_set_mode(&leds.net, BLINKING_5Hz);
                 break;
         }
         case NET_EVENT_IF_DOWN:
         {
                 LOG_DBG("NET_EVENT_IF_DOWN (%u)", mgmt_event);
+                led_set_mode(&leds.net, OFF);
                 break;
         }
         case NET_EVENT_IPV4_ADDR_ADD:
         {
-                show_ipv4();
-
                 LOG_DBG("NET_EVENT_IPV4_ADDR_ADD (%u)", mgmt_event);
+                led_set_mode(&leds.net, STEADY);
+                show_ipv4();
                 break;
         }
         case NET_EVENT_IPV4_ADDR_DEL:
@@ -76,6 +89,7 @@ static void net_event_handler(struct net_mgmt_event_callback *cb,
                 break;
         case NET_EVENT_IPV4_DHCP_BOUND:
                 LOG_DBG("NET_EVENT_IPV4_DHCP_BOUND (%u)", mgmt_event);
+                led_set_mode(&leds.net, STEADY);
                 break;
         case NET_EVENT_IPV4_DHCP_STOP:
                 LOG_DBG("NET_EVENT_IPV4_DHCP_STOP (%u)", mgmt_event);
@@ -85,7 +99,7 @@ static void net_event_handler(struct net_mgmt_event_callback *cb,
         }
 }
 
-void net_init(void)
+void net_interface_init(void)
 {
         struct net_if *iface = net_if_get_default();
 
