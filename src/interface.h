@@ -6,12 +6,14 @@
 #include <net/net_context.h>
 #include <net/net_mgmt.h>
 #include <net/net_config.h>
+#include <net/ethernet_mgmt.h>
+#include <net/net_config.h>
 
+/**
+ * @brief Initialize network management events (Ethernet, interface, DHCP)
+ * 
+ * https://docs.zephyrproject.org/latest/reference/networking/net_mgmt.html#listening-to-network-events
+ */
 void net_init(void);
-
-static inline bool net_is_if_up(void)
-{
-        return net_if_up(net_if_get_default()) == 0;
-}
 
 #endif

@@ -4,6 +4,9 @@
         "zephyr.h": "c",
         "flash_map.h": "c",
         "disk_access.h": "c",
-        "flash.h": "c"
+        "flash.h": "c",
+        "log.h": "c",
+        "interface.h": "c",
+        "net_config.h": "c"
     }
 }
