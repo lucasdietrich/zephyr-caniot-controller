@@ -8,8 +8,6 @@ struct discovery_response {
         char str_ip[NET_IPV4_ADDR_LEN];
 } __attribute__((__packed__));
 
-int discovery_init(void);
-
 int discovery_setup_socket(void);
 
 int discovery_prepare_reponse(struct discovery_response *resp, size_t len);

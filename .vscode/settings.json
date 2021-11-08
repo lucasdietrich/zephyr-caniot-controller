@@ -16,6 +16,7 @@
         "time.h": "c",
         "*.tcc": "c",
         "udp_discovery.h": "c",
-        "net_core.h": "c"
+        "net_core.h": "c",
+        "http_client.h": "c"
     }
 }

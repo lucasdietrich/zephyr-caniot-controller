@@ -22,19 +22,7 @@ static int fd;
 static __noinit char buffer[0x20];
 
 K_THREAD_DEFINE(discovery, 0x300, discovery_thread, NULL, NULL, NULL,
-                K_PRIO_PREEMPT(8), 0, SYS_FOREVER_MS);
-
-int discovery_init(void)
-{
-        int ret;
-        
-        ret = discovery_setup_socket();
-        if (ret >= 0) {
-                k_thread_start(discovery);
-        }
-
-        return ret;
-}
+                K_PRIO_PREEMPT(8), 0, 0);
 
 int discovery_setup_socket(void)
 {
@@ -97,9 +85,12 @@ void discovery_thread(void *_a, void *_b, void *_c)
         ARG_UNUSED(_b);
         ARG_UNUSED(_c);
 
+        int ret;
         ssize_t rc;
         struct sockaddr_in client;
         socklen_t addrlen = sizeof(struct sockaddr_in);
+
+        ret = discovery_setup_socket();
 
         for(;;) {
                 /* recv */

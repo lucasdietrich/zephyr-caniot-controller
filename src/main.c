@@ -12,11 +12,10 @@ void main(void)
 {
         net_interface_init();
         user_io_init();
-        discovery_init();
-
+        
         for (;;) {
                 net_time_show();
 
-                k_msleep(10000);
+                k_msleep(60000);
         }
 }

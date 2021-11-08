@@ -20,19 +20,23 @@
 
 #include <poll.h>
 
+#include <net/http_parser.h>
+#include <net/http_client.h>
+
 struct connection
 {
-        
+        /* struct sockaddr_in addr; */
+        struct http_parser parser;
 };
 
-int http_server_init(void);
+int http_srv_setup_sockets(void);
 
-int http_server_setup_sockets(void);
+void http_srv_thread(void *_a, void *_b, void *_c);
 
-void http_server_thread(void *_a, void *_b, void *_c);
+int http_srv_accept(int serv_sock);
 
-int http_server_accept_connection(struct pollfd *pfd, struct connection *conn);
+int http_srv_handle_conn(int sock, struct connection *conn);
 
-int http_server_handle_connection(struct pollfd *pfd, struct connection *conn);
+// int http_srv_handle_conn(struct pollfd *pfd, struct connection *conn);
 
 #endif
