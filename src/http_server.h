@@ -25,8 +25,18 @@
 
 struct connection
 {
+        /* REQUEST RELATED */
+
         /* struct sockaddr_in addr; */
         struct http_parser parser;
+
+        uint8_t complete: 1;
+        uint8_t keep_alive: 1;
+
+        /* RESPONSE RELATED */
+        uint16_t status_code;
+
+        uint16_t response_len;
 };
 
 int http_srv_setup_sockets(void);
@@ -37,6 +47,6 @@ int http_srv_accept(int serv_sock);
 
 int http_srv_handle_conn(int sock, struct connection *conn);
 
-// int http_srv_handle_conn(struct pollfd *pfd, struct connection *conn);
+int http_srv_process_request(int sock, struct connection *conn);
 
 #endif

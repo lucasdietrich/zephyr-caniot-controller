@@ -1,0 +1,9 @@
+GET http://{{host}}/info
+Connection: close
+Content-Type: application/json
+
+{
+         "user": "Lucas"
+}
+
+###

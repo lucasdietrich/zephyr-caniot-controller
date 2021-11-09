@@ -8,8 +8,18 @@
 
 #include <net/http_parser.h>
 
+#include <stdio.h>
+
+#include "http_utils.h"
+
 #include <logging/log.h>
-LOG_MODULE_REGISTER(http_server, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF);
+
+/*___________________________________________________________________________*/
+
+#define CONNECTION_OF_PARSER(p_parser) \
+        ((struct connection *) \
+        CONTAINER_OF(p_parser, struct connection, parser))
 
 /*___________________________________________________________________________*/
 
@@ -25,66 +35,68 @@ K_THREAD_DEFINE(http_server, 0x1000, http_srv_thread,
 
 int on_message_begin(struct http_parser *parser)
 {
-        LOG_INF("on_message_begin (%d)", 0);
+        LOG_DBG("on_message_begin (%d)", 0);
         return 0;
 }
 
 int on_url(struct http_parser *parser, const char *at, size_t length)
 {
-        LOG_INF("on_url at=%p len=%u", at, length);
+        LOG_DBG("on_url at=%p len=%u", at, length);
         LOG_HEXDUMP_DBG(at, length, "");
         return 0;
 }
 
 int on_status(struct http_parser *parser, const char *at, size_t length)
 {
-        LOG_INF("on_status at=%p len=%u", at, length);
+        LOG_DBG("on_status at=%p len=%u", at, length);
         LOG_HEXDUMP_DBG(at, length, "");
         return 0;
 }
 
 int on_header_field(struct http_parser *parser, const char *at, size_t length)
 {
-        LOG_INF("on_header_field at=%p len=%u", at, length);
+        LOG_DBG("on_header_field at=%p len=%u", at, length);
         LOG_HEXDUMP_DBG(at, length, "");
         return 0;
 }
 
 int on_header_value(struct http_parser *parser, const char *at, size_t length)
 {
-        LOG_INF("on_header_value at=%p len=%u", at, length);
+        LOG_DBG("on_header_value at=%p len=%u", at, length);
         LOG_HEXDUMP_DBG(at, length, "");
         return 0;
 }
 
 int on_headers_complete(struct http_parser *parser)
 {
-        LOG_INF("on_headers_complete (%d)", 0);
+        LOG_DBG("on_headers_complete (%d)", 0);
         return 0;
 }
 
 int on_body(struct http_parser *parser, const char *at, size_t length)
 {
-        LOG_INF("on_body at=%p len=%u", at, length);
+        LOG_DBG("on_body at=%p len=%u", at, length);
         LOG_HEXDUMP_DBG(at, length, "");
         return 0;
 }
 
 int on_message_complete(struct http_parser *parser)
 {
-        LOG_INF("on_message_complete (%d)", 0);
+        CONNECTION_OF_PARSER(parser)->complete = 1;
+
+        LOG_DBG("on_message_complete (%d)", 0);
         return 0;
 }
 
 int on_chunk_header(struct http_parser *parser)
 {
-        LOG_INF("on_chunk_header (%d)", 0);
+        LOG_DBG("on_chunk_header (%d)", 0);
         return 0;
 }
 
 int on_chunk_complete(struct http_parser *parser)
 {
-        LOG_INF("on_chunk_complete (%d)", 0);
+        LOG_DBG("on_chunk_complete (%d)", 0);
         return 0;
 }
 
@@ -106,18 +118,23 @@ const struct http_parser_settings settings = {
 
 #define MAX_CONNECTIONS   3
 
-/**
- * @brief 
- * - 1 TCP socket for HTTP
- * - 1 TLS socket for HTTPS
- * - 3 client sockets
- */
 int conns_count;
-static struct pollfd fds[1 + MAX_CONNECTIONS];
 
 struct connection connections[MAX_CONNECTIONS];
 
-uint8_t buffer[0x1000];
+inline uint16_t get_conn_method(struct connection *conn) { return conn->parser.method; }
+
+/* We use the same buffer for all connections,
+ * each HTTP request should be parsed and processed immediately.
+ */
+union {
+        char request[0x1000];
+        struct {
+                char internal[0x200];
+                char payload[0x800];
+        } response;
+} buffer;
+
 
 struct connection *get_connection(int index)
 {
@@ -131,13 +148,24 @@ inline int conn_get_index(struct connection *conn)
         return conn - connections;
 }
 
+static void clear_conn(struct connection *conn)
+{
+        http_parser_init(&conn->parser, HTTP_REQUEST);
+        
+        conn->keep_alive = 0;
+        conn->complete = 0;
+}
+
 struct connection *alloc_connection(void)
 {
+        struct connection *conn =  NULL;
+        
         if (conns_count < MAX_CONNECTIONS) {
-                return &connections[conns_count++];
+                conn =  &connections[conns_count++];
+                clear_conn(conn);
         }
 
-        return NULL;
+        return conn;
 }
 
 void free_connection(struct connection *conn)
@@ -154,14 +182,18 @@ void free_connection(struct connection *conn)
                         move_count);
         }
         conns_count--;
-}
-
-static void reset_conn(struct connection *conn)
-{
-        memset(conn, 0x00, sizeof(struct connection));
+        clear_conn(conn);
 }
 
 /*___________________________________________________________________________*/
+
+/**
+ * @brief 
+ * - 1 TCP socket for HTTP
+ * - 1 TLS socket for HTTPS
+ * - 3 client sockets
+ */
+static struct pollfd fds[1 + MAX_CONNECTIONS];
 
 int http_srv_setup_sockets(void)
 {
@@ -214,9 +246,9 @@ void http_srv_thread(void *_a, void *_b, void *_c)
         ret = http_srv_setup_sockets();
 
         for (;;) {
-                LOG_INF("polling %d events", conns_count + 1);
+                LOG_DBG("polling %d events", conns_count + 1);
                 ret = poll(fds, conns_count + 1, SYS_FOREVER_MS);
-                LOG_INF("poll returned = %d", ret);
+                LOG_DBG("poll returned = %d", ret);
                 if (ret > 0) {
                         if (fds[HTTP_FD_INDEX].revents & POLLIN) {
                                 http_srv_accept(fds[HTTP_FD_INDEX].fd);
@@ -265,10 +297,8 @@ int http_srv_accept(int serv_sock)
                 ret = -1;
                 goto exit;
         } else {
-                LOG_INF("Connection accepted from %s:%d",
+                LOG_INF("(%d) Connection accepted from %s:%d", sock,
                         log_strdup(ipv4_str), htons(addr.sin_port));
-                
-                http_parser_init(&conn->parser, HTTP_REQUEST);
 
                 const int index = conn_get_index(conn);
                 fds[index + 1].fd = sock;
@@ -280,7 +310,7 @@ exit:
         return ret;
 }
 
-int http_srv_handle_conn(int sock, struct connection *conn)
+static int recv_request(int sock, struct connection *conn)
 {
         size_t parsed;
         ssize_t rc;
@@ -289,7 +319,7 @@ int http_srv_handle_conn(int sock, struct connection *conn)
 
         for (;;)
         {
-                rc = zsock_recv(sock, buffer, buf_len - received, 0);
+                rc = zsock_recv(sock, &buffer.request, buf_len - received, 0);
                 LOG_DBG("recv(%d,,%d,) = %d", sock, buf_len - received, rc);
                 if (rc < 0) {
                         if (rc == -EAGAIN) {
@@ -304,24 +334,103 @@ int http_srv_handle_conn(int sock, struct connection *conn)
                         goto exit;
                 } else {
                         parsed = http_parser_execute(&conn->parser, &settings,
-                                                     &buffer[received], rc);
-                        LOG_INF("http_parser_execute(,,received=%d, len=%d) = %d (parsed)", 
+                                                     &buffer.request[received], rc);
+                        LOG_DBG("http_parser_execute(,,received=%d, len=%d) = %d (parsed)", 
                                 received, rc, parsed);
 
                         received += rc;
+
+                        if (conn->complete) {
+                                break;
+                        }
                 }
         }
 
         return received;
 exit:
-        zsock_close (sock);
-        free_connection(conn);
         return rc;
 }
 
-// int http_srv_handle_conn(struct pollfd *pfd, struct connection *conn)
-// {
-//         return 0;
-// }
+static int sendall(int sock, char *buf, size_t len)
+{
+        int ret;
+        size_t sent = 0;
+
+        while (sent < len) {
+                ret = zsock_send(sock, buf, len - sent, 0);
+                if (ret < 0) {
+                        if (ret == -EAGAIN) {
+                                LOG_DBG("-EAGAIN");
+                                continue;
+
+                                goto exit;
+                        }
+                } else if (ret > 0) {
+                        sent += ret;
+                } else {
+                        LOG_ERR("ret == %d ???", 0);
+                        goto exit;
+                }
+        }
+
+        return sent;
+
+exit:
+        return ret;
+}
+
+int http_srv_handle_conn(int sock, struct connection *conn)
+{
+        int ret;
+
+        ret = recv_request(sock, conn);
+        if (ret <= 0) {
+                goto exit;
+        }
+
+        ret = http_srv_process_request(sock, conn);
+        if (ret < 0) {
+                goto exit;
+        }
+
+        if (conn->keep_alive) {
+                LOG_INF("(%d) keeping connection %p alive", sock, conn);
+                return ret;
+        }
+
+exit:
+        LOG_INF("Closing sock (%d) conn %p", sock, conn);
+        zsock_close(sock);
+        free_connection(conn);
+        return ret;
+}
+
+int http_srv_process_request(int sock, struct connection *conn)
+{
+        int ret;
+
+        /*******************************************/
+        /* parse url, dispatch, process, prepare reponse and send */
+        /*******************************************/
+
+        conn->status_code = 200;
+        conn->response_len = 0;
+
+        /*******************************************/
+
+        ret = encode_status_code(buffer.response.internal, conn->status_code);
+        if (ret < 0) {
+                goto exit;
+        }
+
+        ret = sendall(sock, buffer.response.internal, ret);
+        if (ret < 0) {
+                goto exit;
+        }
+
+        return 0;
+exit:
+        return ret;
+}
 
 /*___________________________________________________________________________*/

@@ -1,22 +1,41 @@
 {
-    "files.associations": {
-        "*.asm": "avr",
-        "zephyr.h": "c",
-        "flash_map.h": "c",
-        "disk_access.h": "c",
-        "flash.h": "c",
-        "log.h": "c",
-        "interface.h": "c",
-        "net_config.h": "c",
-        "net_if.h": "c",
-        "sntp.h": "c",
-        "limits": "cpp",
-        "type_traits": "cpp",
-        "net_interface.h": "c",
-        "time.h": "c",
-        "*.tcc": "c",
-        "udp_discovery.h": "c",
-        "net_core.h": "c",
-        "http_client.h": "c"
-    }
+        "rest-client.enableCustomVariableReferencesCodeLens": false,
+        "rest-client.enableSendRequestCodeLens": true,
+        "rest-client.logLevel": "verbose",
+        "rest-client.showResponseInDifferentTab": false,
+        "rest-client.timeoutinmilliseconds": 10000,
+        "rest-client.defaultHeaders": {
+                // "User-Agent": "vscode-restclient",
+                // "Content-Type": "application/json",
+                // "Connection": "close",
+                // "Authorization": "Basic Lucas bff0f240"
+        },
+        "rest-client.environmentVariables": {
+                "$shared": {
+                        "port": "80",
+                        "host": "192.168.10.240",
+                },
+        },
+
+        "files.associations": {
+                "*.asm": "avr",
+                "zephyr.h": "c",
+                "flash_map.h": "c",
+                "disk_access.h": "c",
+                "flash.h": "c",
+                "log.h": "c",
+                "interface.h": "c",
+                "net_config.h": "c",
+                "net_if.h": "c",
+                "sntp.h": "c",
+                "limits": "cpp",
+                "type_traits": "cpp",
+                "net_interface.h": "c",
+                "time.h": "c",
+                "*.tcc": "c",
+                "udp_discovery.h": "c",
+                "net_core.h": "c",
+                "http_client.h": "c",
+                "http_utils.h": "c"
+        }
 }
