@@ -319,7 +319,7 @@ static int recv_request(int sock, struct connection *conn)
 
         for (;;)
         {
-                rc = zsock_recv(sock, &buffer.request, buf_len - received, 0);
+                rc = zsock_recv(sock, buffer.request, buf_len - received, 0);
                 LOG_DBG("recv(%d,,%d,) = %d", sock, buf_len - received, rc);
                 if (rc < 0) {
                         if (rc == -EAGAIN) {
