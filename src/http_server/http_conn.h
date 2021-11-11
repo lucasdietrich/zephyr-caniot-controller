@@ -5,28 +5,33 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#include <net/net_ip.h>
 #include <net/http_parser.h>
+
+#include "http_request.h"
 
 #define MAX_CONNECTIONS   3
 
 struct connection
 {
         /* INTERNAL */
-
-        int sock;
-
-        /* REQUEST RELATED */
+        struct sockaddr addr;
 
         /* struct sockaddr_in addr; */
         struct http_parser parser;
 
-        uint8_t complete: 1;
-        uint8_t keep_alive: 1;
+        enum {
+                HEADER_NONE = 0,
+                HEADER_CONNECTION,
+                HEADER_AUTH,
+        } parsing_header;
 
-        /* RESPONSE RELATED */
-        uint16_t status_code;
+        
+        uint8_t complete : 1;
+        uint8_t keep_alive : 1;
 
-        uint16_t response_len;
+        struct http_request *req;
+        struct http_response *resp;
 };
 
 inline uint16_t get_conn_method(struct connection *conn)

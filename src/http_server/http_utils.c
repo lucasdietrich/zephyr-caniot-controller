@@ -1,11 +1,12 @@
-#include "http_utils.h"
-
+#include <stdio.h>
 #include <kernel.h>
 
-#include <stdio.h>
+#include "http_utils.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(http_utils, LOG_LEVEL_DBG);
+
+/*___________________________________________________________________________*/
 
 struct code_str
 {
@@ -44,6 +45,10 @@ int encode_status_code(char *buf, uint16_t status_code)
                 return -1;
         }
 
-        return sprintf(buf, "HTTP/1.1 %d %s\r\nConnection: close\r\n\r\n", 
+        return sprintf(buf, "HTTP/1.1 %d %s\r\n"
+                        /* content-length header is important to 
+                         * tell the client that the response is finished */
+                       "Content-Length: 0\r\n"  
+                       "Connection: keep-alive\r\n\r\n",
                        status_code, code_str);
 }

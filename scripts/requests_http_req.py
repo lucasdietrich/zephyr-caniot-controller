@@ -9,7 +9,7 @@ req = {
         "method": "GET",
         "url": f"http://{ip}/path/2",
         "headers": {
-                "Connection": "close"
+                # "Connection": "close"
         },
         "json": {
                 "user": "Lucas"
@@ -17,9 +17,13 @@ req = {
         "auth": HTTPBasicAuth("lucas", "password!"),
         "verify": False
 }
-
 a = time.time()
-resp = requests.request(**req)
+with requests.session() as sess:
+        resp = sess.request(**req)
+        print(resp)
+        resp = sess.request(**req)
+        print(resp)
+
 b = time.time()
 
-print(resp, f"{b - a: .3f} s")
+print(f"{b - a: .3f} s")
