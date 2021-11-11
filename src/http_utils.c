@@ -44,5 +44,6 @@ int encode_status_code(char *buf, uint16_t status_code)
                 return -1;
         }
 
-        return sprintf(buf, "HTTP/1.1 %d %s\r\n\r\n", status_code, code_str);
+        return sprintf(buf, "HTTP/1.1 %d %s\r\nConnection: close\r\n\r\n", 
+                       status_code, code_str);
 }

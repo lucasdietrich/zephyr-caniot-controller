@@ -36,6 +36,7 @@
                 "udp_discovery.h": "c",
                 "net_core.h": "c",
                 "http_client.h": "c",
-                "http_utils.h": "c"
+                "http_utils.h": "c",
+                "http_conn.h": "c"
         }
 }

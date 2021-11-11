@@ -7,13 +7,15 @@
 #include <net/net_config.h>
 
 #include <net/http_parser.h>
+#include <net/http_client.h>
 
 #include <stdio.h>
 
 #include "http_utils.h"
+#include "http_conn.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(http_server, LOG_LEVEL_DBG);
 
 /*___________________________________________________________________________*/
 
@@ -116,13 +118,6 @@ const struct http_parser_settings settings = {
 
 /*___________________________________________________________________________*/
 
-#define MAX_CONNECTIONS   3
-
-int conns_count;
-
-struct connection connections[MAX_CONNECTIONS];
-
-inline uint16_t get_conn_method(struct connection *conn) { return conn->parser.method; }
 
 /* We use the same buffer for all connections,
  * each HTTP request should be parsed and processed immediately.
@@ -135,65 +130,34 @@ union {
         } response;
 } buffer;
 
-
-struct connection *get_connection(int index)
-{
-        __ASSERT((0 <= index) && (index < MAX_CONNECTIONS), "index out of range");
-
-        return &connections[index];
-}
-
-inline int conn_get_index(struct connection *conn)
-{
-        return conn - connections;
-}
-
-static void clear_conn(struct connection *conn)
-{
-        http_parser_init(&conn->parser, HTTP_REQUEST);
-        
-        conn->keep_alive = 0;
-        conn->complete = 0;
-}
-
-struct connection *alloc_connection(void)
-{
-        struct connection *conn =  NULL;
-        
-        if (conns_count < MAX_CONNECTIONS) {
-                conn =  &connections[conns_count++];
-                clear_conn(conn);
-        }
-
-        return conn;
-}
-
-void free_connection(struct connection *conn)
-{
-        if (conn == NULL) {
-                return;
-        }
-
-        int index = conn_get_index(conn);
-        int move_count = conns_count - index - 1;
-        if (move_count > 0) {
-                memmove(&connections[index],
-                        &connections[index + 1],
-                        move_count);
-        }
-        conns_count--;
-        clear_conn(conn);
-}
-
-/*___________________________________________________________________________*/
-
 /**
  * @brief 
  * - 1 TCP socket for HTTP
  * - 1 TLS socket for HTTPS
  * - 3 client sockets
  */
-static struct pollfd fds[1 + MAX_CONNECTIONS];
+static union
+{
+        struct pollfd array[MAX_CONNECTIONS + 1];
+        struct {
+                struct pollfd srv[1];
+                struct pollfd cli[MAX_CONNECTIONS];
+        };
+} fds;
+
+extern int conns_count;
+
+struct pollfd *conn_get_pfd(struct connection *conn)
+{
+        return &fds.cli[conn_get_index(conn)];
+}
+
+int conn_get_sock(struct connection *conn)
+{
+        return conn_get_pfd(conn)->fd;
+}
+
+/*___________________________________________________________________________*/
 
 int http_srv_setup_sockets(void)
 {
@@ -227,12 +191,26 @@ int http_srv_setup_sockets(void)
                 goto exit;
         }
 
-        fds[HTTP_FD_INDEX].fd = sock;
-        fds[HTTP_FD_INDEX].events = POLLIN;
+        fds.srv->fd = sock;
+        fds.srv->events = POLLIN;
+
         conns_count = 0;
 
 exit:
         return ret;
+}
+
+static void compress_fds(uint_fast8_t index)
+{
+        if (index >= MAX_CONNECTIONS) {
+                return;
+        }
+        int move_count = conns_count - index - 1;
+        if (move_count > 0) {
+                memmove(&fds.cli[index],
+                        &fds.cli[index + 1],
+                        move_count * sizeof(struct pollfd));
+        }
 }
 
 void http_srv_thread(void *_a, void *_b, void *_c)
@@ -241,33 +219,45 @@ void http_srv_thread(void *_a, void *_b, void *_c)
         ARG_UNUSED(_b);
         ARG_UNUSED(_c);
 
-        int rc, ret;
+        int ret;
 
         ret = http_srv_setup_sockets();
 
         for (;;) {
-                LOG_DBG("polling %d events", conns_count + 1);
-                ret = poll(fds, conns_count + 1, SYS_FOREVER_MS);
-                LOG_DBG("poll returned = %d", ret);
+                ret = poll(fds.array, conns_count + 1, SYS_FOREVER_MS);
                 if (ret > 0) {
-                        if (fds[HTTP_FD_INDEX].revents & POLLIN) {
-                                http_srv_accept(fds[HTTP_FD_INDEX].fd);
-                        }
+                        if (fds.srv->revents & POLLIN) {
+                                http_srv_accept(fds.srv->fd);
 
-                        for (uint_fast8_t i = 0; i < conns_count; i++) {
-                                LOG_DBG("fds[%d].fd = %d", i, fds[i].fd);
-                                if (fds[i + 1].revents & POLLIN) {
-                                        rc = http_srv_handle_conn(fds[i + 1].fd,
-                                                                  &connections[i]);
+                                /* if poll returned for 1 event 
+                                 * and conn accept, go to poll
+                                 */
+                                if (ret == 1) {
+                                        continue;
                                 }
+                        }
+                        
+                        uint_fast8_t idx = 0;
+                        while (idx < conns_count) {
+                                if (fds.cli[idx].revents & POLLIN) {
+                                        struct connection *conn = get_connection(idx);
+
+                                        ret = http_srv_handle_conn(conn);
+
+                                        if(conn_is_closed(conn)) {
+                                                compress_fds(idx);
+                                                continue;
+                                        }
+                                }
+                                idx++;
                         }
                 } else {
                         LOG_ERR("unexpected poll(%p, %d, %d) return value",
-                                fds, conns_count + 1, SYS_FOREVER_MS);
+                                &fds, conns_count + 1, SYS_FOREVER_MS);
                 }
         }
 
-        zsock_close(fds[0].fd);
+        zsock_close(fds.srv->fd);
 }
 
 int http_srv_accept(int serv_sock)
@@ -276,6 +266,8 @@ int http_srv_accept(int serv_sock)
         struct sockaddr_in addr;
         struct connection *conn;
         socklen_t len = sizeof(struct sockaddr_in);
+
+        uint32_t a = k_uptime_get();
 
         sock = zsock_accept(serv_sock, (struct sockaddr *)&addr, &len);
         if (sock < 0) {
@@ -300,27 +292,33 @@ int http_srv_accept(int serv_sock)
                 LOG_INF("(%d) Connection accepted from %s:%d", sock,
                         log_strdup(ipv4_str), htons(addr.sin_port));
 
-                const int index = conn_get_index(conn);
-                fds[index + 1].fd = sock;
-                fds[index + 1].events = POLLIN;
+
+                conn_get_pfd(conn)->fd = sock;
+                conn_get_pfd(conn)->events = POLLIN;
         }
+
+        uint32_t b = k_uptime_get();
+
+        LOG_DBG("accept delay %u ms", b - a);
 
         return 0;
 exit:
         return ret;
 }
 
-static int recv_request(int sock, struct connection *conn)
+static int recv_request(struct connection *conn)
 {
         size_t parsed;
         ssize_t rc;
+        
+        ssize_t total = 0;
         const size_t buf_len = sizeof(buffer);
-        ssize_t received = 0;
+        int sock = conn_get_sock(conn);
 
         for (;;)
         {
-                rc = zsock_recv(sock, buffer.request, buf_len - received, 0);
-                LOG_DBG("recv(%d,,%d,) = %d", sock, buf_len - received, rc);
+                rc = zsock_recv(sock, buffer.request, buf_len - total, 0);
+                // LOG_INF("recv(%d,,%d,) = %d", sock, buf_len - total, rc);
                 if (rc < 0) {
                         if (rc == -EAGAIN) {
                                 LOG_WRN("-EAGAIN = %d", -EAGAIN);
@@ -334,11 +332,9 @@ static int recv_request(int sock, struct connection *conn)
                         goto exit;
                 } else {
                         parsed = http_parser_execute(&conn->parser, &settings,
-                                                     &buffer.request[received], rc);
-                        LOG_DBG("http_parser_execute(,,received=%d, len=%d) = %d (parsed)", 
-                                received, rc, parsed);
+                                                     &buffer.request[total], rc);
 
-                        received += rc;
+                        total += rc;
 
                         if (conn->complete) {
                                 break;
@@ -346,7 +342,7 @@ static int recv_request(int sock, struct connection *conn)
                 }
         }
 
-        return received;
+        return total;
 exit:
         return rc;
 }
@@ -360,7 +356,7 @@ static int sendall(int sock, char *buf, size_t len)
                 ret = zsock_send(sock, buf, len - sent, 0);
                 if (ret < 0) {
                         if (ret == -EAGAIN) {
-                                LOG_DBG("-EAGAIN");
+                                LOG_INF("-EAGAIN (%d)", sock);
                                 continue;
 
                                 goto exit;
@@ -379,33 +375,38 @@ exit:
         return ret;
 }
 
-int http_srv_handle_conn(int sock, struct connection *conn)
+int http_srv_handle_conn(struct connection *conn)
 {
         int ret;
+        const int sock = conn_get_sock(conn);
 
-        ret = recv_request(sock, conn);
+        uint32_t a = k_uptime_get();
+
+        ret = recv_request(conn);
         if (ret <= 0) {
-                goto exit;
+                goto close;
         }
 
-        ret = http_srv_process_request(sock, conn);
+        ret = http_srv_process_request(conn);
         if (ret < 0) {
-                goto exit;
+                goto close;
         }
+
+        uint32_t b = k_uptime_get_32();
+        LOG_DBG("recv/send overall delay %u ms", b - a);
 
         if (conn->keep_alive) {
                 LOG_INF("(%d) keeping connection %p alive", sock, conn);
                 return ret;
         }
-
-exit:
-        LOG_INF("Closing sock (%d) conn %p", sock, conn);
+close:
         zsock_close(sock);
         free_connection(conn);
+        LOG_INF("Closing sock (%d) conn %p", sock, conn);
         return ret;
 }
 
-int http_srv_process_request(int sock, struct connection *conn)
+int http_srv_process_request(struct connection *conn)
 {
         int ret;
 
@@ -423,7 +424,7 @@ int http_srv_process_request(int sock, struct connection *conn)
                 goto exit;
         }
 
-        ret = sendall(sock, buffer.response.internal, ret);
+        ret = sendall(conn_get_sock(conn), buffer.response.internal, ret);
         if (ret < 0) {
                 goto exit;
         }

@@ -1,7 +1,9 @@
 import socket
+import time
 
-req = b"""
-GET /path/2 HTTP/1.1
+n = 2
+
+req = b"""GET /path/2 HTTP/1.1
 Host: 192.168.10.240
 User-Agent: python-requests/2.26.0
 Accept-Encoding: gzip, deflate
@@ -11,20 +13,37 @@ Content-Length: 17
 Content-Type: application/json
 Authorization: Basic bHVjYXM6cGFzc3dvcmQh
 
+{"user": "Lucas"}"""
 
-{"user": "Lucas"}
-"""
+req.replace(b"\n", b"\r\n")
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+a = time.time()
 
-sock.settimeout(5.0)
+sock = [0] * n
 
-sock.connect(("192.168.10.240", 80))
+for i in range(n):
+        sock[i] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock[i].settimeout(5.0)
+        sock[i].connect(("192.168.10.240", 80))
 
-sock.send(req)
+b = time.time()
 
-data = sock.recv(1024)
+time.sleep(10.0)
 
-print(f"[{len(data)}] {data}")
+sock = list(reversed(sock))
 
-sock.close()
+for i in range(n):
+        sock[i].send(req)
+        data = sock[i].recv(1024)
+        print(f"[{len(data)}] {data}")
+
+        time.sleep(3.0)
+
+c = time.time()
+
+for i in range(n):
+        sock[i].close()
+
+d = time.time()
+
+print(f"d - a = {d - a: .3f} s / {b - a: .3f} / {c - b: .3f} / {d - c: .3f}")
