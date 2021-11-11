@@ -12,7 +12,7 @@ req = {
                 # "Connection": "close"
         },
         "json": {
-                "user": "Lucas"
+                "user": "L"*2000
         },
         "auth": HTTPBasicAuth("lucas", "password!"),
         "verify": False

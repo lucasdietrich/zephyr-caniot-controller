@@ -1,7 +1,8 @@
 import socket
 import time
+from random import shuffle
 
-n = 2
+n = 3
 
 req = b"""GET /path/2 HTTP/1.1
 Host: 192.168.10.240
@@ -28,9 +29,9 @@ for i in range(n):
 
 b = time.time()
 
-time.sleep(10.0)
+time.sleep(5.0)
 
-sock = list(reversed(sock))
+shuffle(sock)
 
 for i in range(n):
         sock[i].send(req)

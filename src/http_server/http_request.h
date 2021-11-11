@@ -13,8 +13,17 @@ struct http_request
                 char password[16];
         };
 
-        const char *payload;
+        struct {
+                char* buf;
+                size_t size;
+        } buffer;
+
         size_t len;
+
+        struct {
+                const char *loc;
+                size_t len;
+        } payload;
 };
 
 struct http_response

@@ -14,7 +14,7 @@
 #include "http_conn.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(http_server, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF);
 
 /*___________________________________________________________________________*/
 
@@ -31,6 +31,8 @@ K_THREAD_DEFINE(http_server, 0x1000, http_srv_thread,
 
 /* We use the same buffer for all connections,
  * each HTTP request should be parsed and processed immediately.
+ *
+ * Same buffer for RX and TX
  */
 union {
         char request[0x1000];
@@ -152,11 +154,12 @@ void http_srv_thread(void *_a, void *_b, void *_c)
                         uint_fast8_t idx = 0;
                         while (idx < conns_count) {
                                 if (fds.cli[idx].revents & POLLIN) {
-                                        struct connection *conn = get_connection(idx);
+                                        struct connection *conn =
+                                                get_connection(idx);
 
                                         http_srv_handle_conn(conn);
 
-                                        if(conn_is_closed(conn)) {
+                                        if (conn_is_closed(conn)) {
                                                 compress_fds(idx);
                                                 continue;
                                         }
@@ -222,14 +225,23 @@ static int recv_request(struct connection *conn)
 {
         size_t parsed;
         ssize_t rc;
-        
-        ssize_t total = 0;
-        const size_t buf_len = sizeof(buffer);
         int sock = conn_get_sock(conn);
+        struct http_request *req = conn->req;
+
+        req->len = 0;
 
         for (;;)
         {
-                rc = zsock_recv(sock, buffer.request, buf_len - total, 0);
+                int remaining = req->buffer.size - req->len;
+                if (remaining <= 0) {
+                        LOG_WRN("(%d) Recv buffer full, closing connection ...", 
+                                sock);
+                        rc = -ENOMEM;
+                        goto exit;
+                }
+
+                rc = zsock_recv(sock, &req->buffer.buf[req->len],
+                                remaining, 0);
                 if (rc < 0) {
                         if (rc == -EAGAIN) {
                                 LOG_WRN("-EAGAIN = %d", -EAGAIN);
@@ -239,13 +251,15 @@ static int recv_request(struct connection *conn)
                         LOG_ERR("recv failed = %d", rc);
                         goto exit;
                 } else if (rc == 0) {
-                        LOG_INF("(%d) Connection closed", sock);
+                        LOG_INF("(%d) Connection closed by peer", sock);
                         goto exit;
                 } else {
-                        parsed = http_parser_execute(&conn->parser, &settings,
-                                                     &buffer.request[total], rc);
+                        parsed = http_parser_execute(&conn->parser,
+                                                     &settings,
+                                                     &req->buffer.buf[req->len],
+                                                     rc);
 
-                        total += rc;
+                        req->len += rc;
 
                         if (conn->complete) {
                                 break;
@@ -253,7 +267,7 @@ static int recv_request(struct connection *conn)
                 }
         }
 
-        return total;
+        return req->len;
 exit:
         return rc;
 }
@@ -288,16 +302,28 @@ exit:
 
 void http_srv_handle_conn(struct connection *conn)
 {
-        const int sock = conn_get_sock(conn);
-        static struct http_request req;
+        /* initialized one time only !*/
+        static struct http_request req = {
+                .buffer = {
+                        .buf = buffer.request,
+                        .size = sizeof(buffer.request)
+                }
+        };
         static struct http_response resp = {
                 .buf = buffer.response.payload,
-                .len = 0,
-                .status_code = 200
         };
+
+        const int sock = conn_get_sock(conn);
 
         conn->req = &req;
         conn->resp = &resp;
+
+        /* reset req and resp values */
+        conn->req->payload.loc = NULL;
+        conn->req->payload.len = 0;
+
+        conn->resp->len = 0,
+        conn->resp->status_code = 200;
 
         conn->keep_alive = 0;
         conn->complete = 0;
@@ -357,7 +383,9 @@ exit:
 int http_srv_process_request(struct http_request *req,
                              struct http_response *resp)
 {
-        LOG_HEXDUMP_DBG(req->payload, req->len, "Payload : ");
+        LOG_INF("loc = %p len = %u", req->payload.loc, req->payload.len);
+        
+        // LOG_HEXDUMP_INF(req->payload.loc, req->payload.len, "Payload : ");
         
         resp->len = 0;
         resp->status_code = 200;

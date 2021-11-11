@@ -19,7 +19,8 @@ static struct connection *alloc[MAX_CONNECTIONS] = {
 
 struct connection *get_connection(int index)
 {
-        __ASSERT((0 <= index) && (index < ARRAY_SIZE(pool)), "index out of range");
+        __ASSERT((0 <= index) && (index < ARRAY_SIZE(pool)),
+                 "index out of range");
 
         return alloc[index];
 }
@@ -59,7 +60,7 @@ void free_connection(struct connection *conn)
                         &alloc[index + 1],
                         move_count * sizeof(struct connection *));
 
-                        /* put the freed connection at the end of the list */
+                /* put the freed connection at the end of the list */
                 alloc[MAX_CONNECTIONS - 1] = conn; 
         }
         conns_count--;
@@ -147,11 +148,17 @@ int on_headers_complete(struct http_parser *parser)
 
 int on_body(struct http_parser *parser, const char *at, size_t length)
 {
-        CONNECTION_FROM_PARSER(parser)->req->payload = at;
-        CONNECTION_FROM_PARSER(parser)->req->len = parser->content_length;
+        /* can be called several times */
+        struct http_request *req = CONNECTION_FROM_PARSER(parser)->req;
+        if (req->payload.loc == NULL) {
+                req->payload.loc = at;
+                req->payload.len = 0;
+        } else {
+                req->payload.len += length;
+        }
         
-        LOG_DBG("on_body at=%p len=%u (content-len = %llu)", at, length, parser->content_length);
-        LOG_HEXDUMP_DBG(at, length, "");
+        LOG_DBG("on_body at=%p len=%u (content-len = %llu)",
+                at, length, parser->content_length);
         return 0;
 }
 
