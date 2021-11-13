@@ -39,6 +39,9 @@
                 "http_utils.h": "c",
                 "http_conn.h": "c",
                 "rest_server.h": "c",
-                "http_request.h": "c"
+                "http_request.h": "c",
+                "http_parser.h": "c",
+                "http_parser_state.h": "c",
+                "cctype": "c"
         }
 }

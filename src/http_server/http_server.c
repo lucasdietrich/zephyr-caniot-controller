@@ -12,6 +12,7 @@
 
 #include "http_utils.h"
 #include "http_conn.h"
+#include "rest_server.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF);
@@ -312,6 +313,7 @@ void http_srv_handle_conn(struct connection *conn)
         };
         static struct http_response resp = {
                 .buf = buffer.response.payload,
+                .buf_size = sizeof(buffer.response.payload)
         };
 
         const int sock = conn_get_sock(conn);
@@ -323,7 +325,7 @@ void http_srv_handle_conn(struct connection *conn)
         conn->req->payload.loc = NULL;
         conn->req->payload.len = 0;
 
-        conn->resp->len = 0,
+        conn->resp->content_len = 0,
         conn->resp->status_code = 200;
 
         conn->keep_alive = 0;
@@ -355,28 +357,50 @@ close:
 int http_srv_send_response(struct connection *conn,
                            struct http_response *resp)
 {
-        int ret;
+        int ret, sent;
+        char *b = buffer.response.internal;
+        const size_t buf_size = sizeof(buffer.response.internal);
+        int encoded = 0;
+
         int sock = conn_get_sock(conn);
 
-        ret = encode_status_code(buffer.response.internal, 
+        ret = http_encode_status(b + encoded, buf_size - encoded,
                                  resp->status_code);
+
+        encoded += ret;
+        ret = http_encode_header_content_length(b + encoded, buf_size - encoded,
+                                                resp->content_len);
+
+        encoded += ret;
+        ret = http_encode_header_connection(b + encoded, buf_size - encoded,
+                                            conn->keep_alive);
+
+        encoded += ret;
+        ret = http_encode_header_end(b + encoded, buf_size - encoded);
+
+        encoded += ret;
+
+        /* send headers */
+        ret = sendall(sock, b, encoded);
         if (ret < 0) {
                 goto exit;
         }
 
-        ret = sendall(sock, buffer.response.internal, ret);
-        if (ret < 0) {
-                goto exit;
+        sent = ret;
+
+        /* send body */
+        if (http_code_has_payload(resp->status_code)) {
+                ret = sendall(sock, resp->buf, resp->content_len);
+                if (ret < 0) {
+                        goto exit;
+                }
+                sent += ret;
+        } else if (resp->content_len) {
+                LOG_WRN("Trying to send a content for invalid response "
+                        "code (%d != 200)", resp->status_code);
         }
 
-        /*
-        ret = sendall(sock, resp->buf, resp->len);
-        if (ret < 0) {
-                goto exit;
-        }
-        */
-
-        return 0;
+        return sent;
 exit:
         return ret;
 }
@@ -384,14 +408,18 @@ exit:
 int http_srv_process_request(struct http_request *req,
                              struct http_response *resp)
 {
-        LOG_INF("loc = %p len = %u", req->payload.loc, req->payload.len);
-        
-        // LOG_HEXDUMP_INF(req->payload.loc, req->payload.len, "Payload : ");
-        
-        resp->len = 0;
-        resp->status_code = 200;
+        int ret = 0;
 
-        return 0;
+        rest_handler_t handler = rest_resolve(req);
+        if (handler != NULL) {
+                ret = handler(req, resp);
+        } else {
+                /* encoded HTTP 404 response */
+                resp->status_code = 404;
+        }
+
+        /* post check on payload to send */
+        return ret;
 }
 
 /*___________________________________________________________________________*/

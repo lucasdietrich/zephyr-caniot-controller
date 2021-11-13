@@ -1,4 +1,4 @@
-GET http://{{host}}/info
+GET http://{{host}}/
 Connection: close
 Content-Type: application/json
 

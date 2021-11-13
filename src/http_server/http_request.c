@@ -1,9 +1,11 @@
 #include "http_request.h"
 
+#include "utils.h"
+
 #include "http_conn.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(http_req, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(http_req, LOG_LEVEL_INF);
 
 /* parsing */
 
@@ -32,6 +34,9 @@ int on_url(struct http_parser *parser, const char *at, size_t length)
 
         memcpy(conn->req->url, at, length);
         conn->req->url[length] = '\0';
+        conn->req->url_len = length;
+
+        conn->req->method = parser->method;
                 
         return 0;
 }
@@ -39,9 +44,9 @@ int on_url(struct http_parser *parser, const char *at, size_t length)
 int on_header_field(struct http_parser *parser, const char *at, size_t length)
 {
         struct connection *conn = CONNECTION_FROM_PARSER(parser);
-        if (strncmp(at, "Connection", length) == 0) {
+        if (strncicmp(at, "Connection", length) == 0) {
                 conn->parsing_header = HEADER_CONNECTION;
-        } else if (strncmp(at, "Connection", length) == 0) {
+        } else if (strncicmp(at, "Authorization", length) == 0) {
                 conn->parsing_header = HEADER_AUTH;
         } else {
                 conn->parsing_header = HEADER_NONE;
@@ -54,7 +59,7 @@ int on_header_value(struct http_parser *parser, const char *at, size_t length)
         struct connection *conn = CONNECTION_FROM_PARSER(parser);
 
         if ((conn->parsing_header == HEADER_CONNECTION) &&
-            (strncmp(at, "keep-alive", length) == 0)) {
+            (strncicmp(at, "keep-alive", length) == 0)) {
                 LOG_INF("(%p) Header Keep-alive found !", conn);
                 conn->keep_alive = 1;
         }

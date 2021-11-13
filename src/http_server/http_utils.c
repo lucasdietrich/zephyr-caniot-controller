@@ -26,7 +26,7 @@ static const struct code_str status[] = {
         {501, "Not Implemented"}
 };
 
-const char *get_status_code_str(uint16_t status_code)
+static const char *get_status_code_str(uint16_t status_code)
 {
         for (const struct code_str *p = status;
              p <= &status[ARRAY_SIZE(status) - 1]; p++) {
@@ -37,7 +37,7 @@ const char *get_status_code_str(uint16_t status_code)
         return NULL;
 }
 
-int encode_status_code(char *buf, uint16_t status_code)
+int http_encode_status(char *buf, size_t len, uint16_t status_code)
 {
         const char *code_str = get_status_code_str(status_code);
         if (code_str == NULL) {
@@ -45,10 +45,31 @@ int encode_status_code(char *buf, uint16_t status_code)
                 return -1;
         }
 
-        return sprintf(buf, "HTTP/1.1 %d %s\r\n"
-                        /* content-length header is important to 
-                         * tell the client that the response is finished */
-                       "Content-Length: 0\r\n"  
-                       "Connection: keep-alive\r\n\r\n",
-                       status_code, code_str);
+        return snprintf(buf, len, "HTTP/1.1 %d %s\r\n", status_code, code_str);
+}
+
+int http_encode_header_content_length(char *buf, size_t len, size_t content_length)
+{
+        return snprintf(buf, len, "Content-Length: %u\r\n", content_length);
+}
+
+int http_encode_header_connection(char *buf, size_t len, bool keep_alive)
+{
+        static const char *connection_str[] = {
+                "close",
+                "keep-alive"
+        };
+
+        return snprintf(buf, len, "Connection: %s\r\n",
+                        keep_alive ? connection_str[1] : connection_str[0]);
+}
+
+int http_encode_header_end(char *buf, size_t len)
+{
+        return snprintf(buf, len, "\r\n");
+}
+
+bool http_code_has_payload(uint16_t status_code)
+{
+        return (status_code == 200);
 }

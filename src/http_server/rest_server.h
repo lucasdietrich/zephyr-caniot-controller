@@ -3,4 +3,33 @@
 
 #include <stdint.h>
 
+#include <net/http_parser.h>
+
+#include "http_request.h"
+
+typedef int (*rest_handler_t) (struct http_request *req,
+                               struct http_response *resp);
+
+struct rest_ressource
+{
+        const char *route;
+        size_t route_len;
+
+        enum http_method method;
+        rest_handler_t handler;
+};
+
+#define REST_RESSOURCE(m, r, h) \
+{ \
+        .route = r, \
+        .route_len = sizeof(r) - 1, \
+        .method = m, \
+        .handler = h, \
+}
+
+rest_handler_t rest_resolve(struct http_request *req);
+
+int rest_index(struct http_request *req,
+               struct http_response *resp);
+                 
 #endif
