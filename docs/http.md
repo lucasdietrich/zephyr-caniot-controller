@@ -4,6 +4,7 @@
 ## Todo
 
 - Add timer to close sockets with no activity
+- Bug : Cannot have chrome keep-alive (2 sockets) + VS CODE REST request at the same time
 
 ## Done
 

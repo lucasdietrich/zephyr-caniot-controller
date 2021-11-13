@@ -1,4 +1,11 @@
-# CAN 
+# CAN
+
+- `canip` ?
+
+
+---
+
+# POC 
 
 The solution was to properly define following devicetree properties in the `.overlay file` by selecting the desired [stm32f429zi pins](https://github.com/zephyrproject-rtos/hal_stm32/blob/5c8275071ec1cf160bfe8c18bbd9330a7d714dc8/dts/st/f4/stm32f429zitx-pinctrl.dtsi#L207-L254) see [ST Nucleo F429ZI - Connections and IOs](https://github.com/zephyrproject-rtos/zephyr/blob/main/boards/arm/nucleo_f429zi/doc/index.rst#available-pins).
 

@@ -3,3 +3,7 @@ GET http://{{host}}/
 ###
 
 GET http://{{host}}/info
+
+###
+
+GET http://{{host}}/404

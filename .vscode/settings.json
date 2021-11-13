@@ -47,6 +47,7 @@
                 "net_time.h": "c",
                 "json.h": "c",
                 "string.h": "c",
-                "kernel.h": "c"
+                "kernel.h": "c",
+                "can.h": "c"
         }
 }
