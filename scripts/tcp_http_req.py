@@ -9,7 +9,7 @@ Host: 192.168.10.240
 User-Agent: python-requests/2.26.0
 Accept-Encoding: gzip, deflate
 Accept: */*
-Connection: close
+Connection: keep-alive
 Content-Length: 17
 Content-Type: application/json
 Authorization: Basic bHVjYXM6cGFzc3dvcmQh
@@ -29,16 +29,17 @@ for i in range(n):
 
 b = time.time()
 
-time.sleep(5.0)
+time.sleep(2.0)
 
 shuffle(sock)
 
-for i in range(n):
-        sock[i].send(req)
-        data = sock[i].recv(1024)
-        print(f"[{len(data)}] {data}")
+for j in range(3):
+        for i in range(n):
+                sock[i].send(req)
+                data = sock[i].recv(1024)
+                print(f"[{len(data)}] {data}")
 
-        time.sleep(3.0)
+                time.sleep(1.0)
 
 c = time.time()
 

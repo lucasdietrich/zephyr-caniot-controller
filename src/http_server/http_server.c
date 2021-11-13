@@ -119,7 +119,7 @@ static void compress_fds(uint_fast8_t index)
         if (index >= MAX_CONNECTIONS) {
                 return;
         }
-        int move_count = conns_count - index - 1;
+        int move_count = conns_count - index;
         if (move_count > 0) {
                 memmove(&fds.cli[index],
                         &fds.cli[index + 1],
@@ -227,12 +227,12 @@ static int recv_request(struct connection *conn)
         ssize_t rc;
         int sock = conn_get_sock(conn);
         struct http_request *req = conn->req;
+        int remaining = req->buffer.size;
 
         req->len = 0;
 
         for (;;)
         {
-                int remaining = req->buffer.size - req->len;
                 if (remaining <= 0) {
                         LOG_WRN("(%d) Recv buffer full, closing connection ...", 
                                 sock);
@@ -260,6 +260,7 @@ static int recv_request(struct connection *conn)
                                                      rc);
 
                         req->len += rc;
+                        remaining -= rc;
 
                         if (conn->complete) {
                                 break;
@@ -332,7 +333,7 @@ void http_srv_handle_conn(struct connection *conn)
                 goto close;
         }
 
-        if (http_srv_process_request(&req, &resp) < 0) {
+        if (http_srv_process_request(&req, &resp) != 0) {
                 goto close;
         }
 
