@@ -36,7 +36,7 @@ K_THREAD_DEFINE(http_server, 0x1000, http_srv_thread,
  * Same buffer for RX and TX
  */
 union {
-        char request[0x1000];
+        char request[0xA00];
         struct {
                 char internal[0x200];
                 char payload[0x800];
@@ -368,12 +368,16 @@ int http_srv_send_response(struct connection *conn,
                                  resp->status_code);
 
         encoded += ret;
-        ret = http_encode_header_content_length(b + encoded, buf_size - encoded,
-                                                resp->content_len);
-
-        encoded += ret;
         ret = http_encode_header_connection(b + encoded, buf_size - encoded,
                                             conn->keep_alive);
+
+        encoded += ret;
+        ret = http_encode_header_content_type(b + encoded, buf_size - encoded
+                                              /*, resp->content_type */);
+
+        encoded += ret;
+        ret = http_encode_header_content_length(b + encoded, buf_size - encoded,
+                                                resp->content_len);
 
         encoded += ret;
         ret = http_encode_header_end(b + encoded, buf_size - encoded);
@@ -408,18 +412,19 @@ exit:
 int http_srv_process_request(struct http_request *req,
                              struct http_response *resp)
 {
-        int ret = 0;
-
         rest_handler_t handler = rest_resolve(req);
         if (handler != NULL) {
-                ret = handler(req, resp);
+                if (handler(req, resp)) {
+                        /* encode HTTP internal server error */
+                        resp->status_code = 500;
+                }
         } else {
                 /* encoded HTTP 404 response */
                 resp->status_code = 404;
         }
 
         /* post check on payload to send */
-        return ret;
+        return 0;
 }
 
 /*___________________________________________________________________________*/

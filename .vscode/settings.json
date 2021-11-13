@@ -5,9 +5,9 @@
         "rest-client.showResponseInDifferentTab": false,
         "rest-client.timeoutinmilliseconds": 10000,
         "rest-client.defaultHeaders": {
-                // "User-Agent": "vscode-restclient",
-                // "Content-Type": "application/json",
-                // "Connection": "close",
+                "User-Agent": "vscode-restclient",
+                "Content-Type": "application/json",
+                "Connection": "close",
                 // "Authorization": "Basic Lucas bff0f240"
         },
         "rest-client.environmentVariables": {
@@ -42,6 +42,11 @@
                 "http_request.h": "c",
                 "http_parser.h": "c",
                 "http_parser_state.h": "c",
-                "cctype": "c"
+                "cctype": "c",
+                "jwt.h": "c",
+                "net_time.h": "c",
+                "json.h": "c",
+                "string.h": "c",
+                "kernel.h": "c"
         }
 }

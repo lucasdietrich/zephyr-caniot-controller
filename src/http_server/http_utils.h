@@ -10,6 +10,8 @@ int http_encode_header_content_length(char *buf, size_t len, size_t content_leng
 
 int http_encode_header_connection(char *buf, size_t len, bool keep_alive);
 
+int http_encode_header_content_type(char *buf, size_t len /*, enum content_type type */);
+
 int http_encode_header_end(char *buf, size_t len);
 
 bool http_code_has_payload(uint16_t status_code);

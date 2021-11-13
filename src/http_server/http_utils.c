@@ -64,6 +64,11 @@ int http_encode_header_connection(char *buf, size_t len, bool keep_alive)
                         keep_alive ? connection_str[1] : connection_str[0]);
 }
 
+int http_encode_header_content_type(char *buf, size_t len)
+{
+        return snprintf(buf, len, "Content-type: application/json\r\n");
+}
+
 int http_encode_header_end(char *buf, size_t len)
 {
         return snprintf(buf, len, "\r\n");
