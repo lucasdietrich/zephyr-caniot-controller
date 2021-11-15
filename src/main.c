@@ -3,7 +3,6 @@
 #include "net_interface.h"
 #include "user_io.h"
 #include "net_time.h"
-#include "udp_discovery.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);

@@ -1,5 +1,7 @@
 #include "udp_discovery.h"
 
+#include <kernel.h>
+
 #include <net/socket.h>
 #include <net/net_core.h>
 #include <net/net_if.h>
@@ -10,8 +12,13 @@
 
 #include "utils.h"
 
+/* find a better way to do this */
+#ifndef CONFIG_CONTROLLER_DISCOVERY_LOG_LEVEL
+#define CONFIG_CONTROLLER_DISCOVERY_LOG_LEVEL 0
+#endif /* CONFIG_CONTROLLER_DISCOVERY_LOG_LEVEL */
+
 #include <logging/log.h>
-LOG_MODULE_REGISTER(discovery, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(discovery, CONFIG_CONTROLLER_DISCOVERY_LOG_LEVEL);
 
 #define DISCOVERY_PORT          5000
 #define SEARCH_STRING           "Search caniot-controller"
@@ -21,8 +28,10 @@ static int fd;
 
 static __noinit char buffer[0x20];
 
+#if defined(CONFIG_CONTROLLER_DISCOVERY)
 K_THREAD_DEFINE(discovery, 0x300, discovery_thread, NULL, NULL, NULL,
                 K_PRIO_PREEMPT(8), 0, 0);
+#endif /* CONFIG_CONTROLLER_DISCOVERY */
 
 int discovery_setup_socket(void)
 {
