@@ -7,7 +7,7 @@ ip = "192.168.10.240"
 
 req = {
         "method": "GET",
-        "url": f"http://{ip}/path/2",
+        "url": f"https://{ip}/info",
         "headers": {
                 # "Connection": "close"
         },
@@ -21,8 +21,8 @@ a = time.time()
 with requests.session() as sess:
         resp = sess.request(**req)
         print(resp)
-        resp = sess.request(**req)
-        print(resp)
+        # resp = sess.request(**req)
+        # print(resp)
 
 b = time.time()
 

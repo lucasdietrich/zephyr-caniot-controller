@@ -48,6 +48,9 @@
                 "json.h": "c",
                 "string.h": "c",
                 "kernel.h": "c",
-                "can.h": "c"
+                "can.h": "c",
+                "credentials.h": "c",
+                "memory_buffer_alloc.h": "c",
+                "config.h": "c"
         }
 }

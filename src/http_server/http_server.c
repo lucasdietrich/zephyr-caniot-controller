@@ -1,18 +1,21 @@
 #include "http_server.h"
 
+#include <stdio.h>
+
 #include <net/socket.h>
 #include <net/net_core.h>
 #include <net/net_ip.h>
 #include <net/net_if.h>
 #include <net/net_config.h>
+#include <net/tls_credentials.h>
 
 #include <net/http_parser.h>
-
-#include <stdio.h>
 
 #include "http_utils.h"
 #include "http_conn.h"
 #include "rest_server.h"
+
+#include "creds/credentials.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF);
@@ -23,6 +26,14 @@ LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF);
 
 #define HTTP_PORT       80
 #define HTTPS_PORT      443
+
+#define HTTPS_SERVER_SEC_TAG   1
+
+static const sec_tag_t sec_tag_list[] = {
+        HTTPS_SERVER_SEC_TAG
+};
+
+/*___________________________________________________________________________*/
 
 K_THREAD_DEFINE(http_server, 0x1000, http_srv_thread,
                 NULL, NULL, NULL, K_PRIO_PREEMPT(8), 0, 0);
@@ -53,11 +64,15 @@ static union
 {
         struct pollfd array[MAX_CONNECTIONS + 1];
         struct {
-                struct pollfd srv[1];
+#if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
+                struct pollfd srv;      /* non secure server socket */
+#endif
+                struct pollfd sec;      /* secure server socket */
                 struct pollfd cli[MAX_CONNECTIONS];
         };
 } fds;
 
+static int listening_count = 0;
 extern int conns_count;
 
 extern const struct http_parser_settings settings;
@@ -74,22 +89,34 @@ int conn_get_sock(struct connection *conn)
 
 /*___________________________________________________________________________*/
 
-int http_srv_setup_sockets(void)
+static int setup_socket(struct pollfd *pfd, bool secure)
 {
         int sock, ret;
         struct sockaddr_in local = {
                 .sin_family = AF_INET,
-                .sin_port = htons(HTTP_PORT),
+                .sin_port = htons(secure ? HTTPS_PORT : HTTP_PORT),
                 .sin_addr = {
                         .s_addr = 0
                 }
         };
 
-        sock = zsock_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        sock = zsock_socket(AF_INET, SOCK_STREAM, secure ?
+                            IPPROTO_TLS_1_2 : IPPROTO_TCP);
         if (sock < 0) {
                 ret = sock;
                 LOG_ERR("failed to create socket = %d", ret);
                 goto exit;
+        }
+
+        /* set secure tag */
+        if (secure) {
+                ret = zsock_setsockopt(sock, SOL_TLS, TLS_SEC_TAG_LIST,
+                                 sec_tag_list, sizeof(sec_tag_list));
+                if (ret < 0) {
+                        LOG_ERR("Failed to set TCP secure option (%d): %d", 
+                                sock, ret);
+                        goto exit;
+                }
         }
 
         ret = zsock_bind(sock, (const struct sockaddr *)&local,
@@ -106,13 +133,44 @@ int http_srv_setup_sockets(void)
                 goto exit;
         }
 
-        fds.srv->fd = sock;
-        fds.srv->events = POLLIN;
+        pfd->fd = sock;
+        pfd->events = POLLIN;
 
-        conns_count = 0;
+        listening_count++;
 
+        return sock;
 exit:
         return ret;
+}
+
+int http_srv_setup_sockets(void)
+{
+        /* setup non-secure HTTP socket (port 80) */
+#if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
+        if (setup_socket(&fds.srv, false) < 0) {
+                goto exit;
+        }
+#endif /* CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE */
+
+        /* setup secure HTTPS socket (port 443) */
+
+        /* include this PR : https://github.com/zephyrproject-rtos/zephyr/pull/40255
+         * related issue : https://github.com/zephyrproject-rtos/zephyr/issues/40267
+         */
+        tls_credential_add(
+                HTTPS_SERVER_SEC_TAG, TLS_CREDENTIAL_SERVER_CERTIFICATE,
+                x509_public_certificate_rsa1024_der, sizeof(x509_public_certificate_rsa1024_der));
+        tls_credential_add(
+                HTTPS_SERVER_SEC_TAG, TLS_CREDENTIAL_PRIVATE_KEY,
+                rsa_private_key_rsa1024_der, sizeof(rsa_private_key_rsa1024_der));
+
+        if (setup_socket(&fds.sec, true) < 0) {
+                goto exit;
+        }
+
+        conns_count = 0;
+exit:
+        return -1;
 }
 
 static void compress_fds(uint_fast8_t index)
@@ -139,19 +197,25 @@ void http_srv_thread(void *_a, void *_b, void *_c)
         ret = http_srv_setup_sockets();
 
         for (;;) {
-                ret = poll(fds.array, conns_count + 1, SYS_FOREVER_MS);
+                ret = poll(fds.array, conns_count + listening_count, SYS_FOREVER_MS);
                 if (ret > 0) {
-                        if (fds.srv->revents & POLLIN) {
-                                http_srv_accept(fds.srv->fd);
-
-                                /* if poll returned for 1 event 
-                                 * and conn accept, go to poll
-                                 */
-                                if (ret == 1) {
-                                        continue;
+#if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
+                        if (fds.srv.revents & POLLIN) {
+                                if (http_srv_accept(fds.srv.fd) != 0) {
+                                        /* TODO remove */
+                                        k_sleep(K_MSEC(1000));
                                 }
                         }
-                        
+#endif /* CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE */
+
+                        if (fds.sec.revents & POLLIN) {
+                                http_srv_accept(fds.sec.fd);
+                        }
+
+                        /* optimize, don't test each pollfd as we have the
+                         * number of ready fd returned by poll()
+                         */
+
                         uint_fast8_t idx = 0;
                         while (idx < conns_count) {
                                 if (fds.cli[idx].revents & POLLIN) {
@@ -168,12 +232,19 @@ void http_srv_thread(void *_a, void *_b, void *_c)
                                 idx++;
                         }
                 } else {
-                        LOG_ERR("unexpected poll(%p, %d, %d) return value",
-                                &fds, conns_count + 1, SYS_FOREVER_MS);
+                        LOG_ERR("unexpected poll(%p, %d, %d) return value = %d",
+                                &fds, conns_count + listening_count, SYS_FOREVER_MS, ret);
+                        
+                        /* TODO remove, sleep 1 sec here */
+                        k_sleep(K_MSEC(1000));
                 }
         }
 
-        zsock_close(fds.srv->fd);
+#if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
+        zsock_close(fds.srv.fd);
+#endif /* CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE */
+
+        zsock_close(fds.sec.fd);
 }
 
 int http_srv_accept(int serv_sock)
@@ -343,15 +414,18 @@ void http_srv_handle_conn(struct connection *conn)
                 goto close;
         }
 
+        LOG_INF("(%d) Processing req len %u B resp status %d len %u B (keep"
+                "-alive = %d)", sock, req.len, resp.status_code,
+                resp.content_len, conn->keep_alive ? 1 : 0);
+
         if (conn->keep_alive) {
-                LOG_INF("(%d) keeping connection %p alive", sock, conn);
                 return;
         }
 
 close:
         zsock_close(sock);
         free_connection(conn);
-        LOG_INF("Closing sock (%d) conn %p", sock, conn);
+        LOG_INF("(%d) Closing sock conn %p", sock, conn);
 }
 
 int http_srv_send_response(struct connection *conn,

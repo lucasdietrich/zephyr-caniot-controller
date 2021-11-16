@@ -4,3 +4,4 @@ project(caniot-controller)
 
 FILE(GLOB app_sources ../src/*.c*)
 target_sources(app PRIVATE ${app_sources})
+zephyr_include_directories(../src/mbedtls_config)

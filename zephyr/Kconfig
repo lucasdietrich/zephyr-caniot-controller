@@ -25,4 +25,8 @@ config CONTROLLER_DISCOVERY_LOG_LEVEL
         help
                 NONE(0) ERR(1) WRN (2) INF(3) DBG(4)
 
+config CONTROLLER_HTTP_SERVER_NONSECURE
+        bool "Allow non secure HTTP server"
+        default y
+
 source "Kconfig.zephyr"
