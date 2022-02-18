@@ -29,4 +29,11 @@ config CONTROLLER_HTTP_SERVER_NONSECURE
         bool "Allow non secure HTTP server"
         default y
 
+config CONTROLLER_MAX_HTTP_CONNECTIONS
+        int "Maximum number of HTTP connections"
+        default 3
+        range 0 5
+        help
+                Maximum number of HTTP connections supported by the HTTP server
+
 source "Kconfig.zephyr"

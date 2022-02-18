@@ -5,5 +5,8 @@
         "EditorConfig.EditorConfig",
         "humao.rest-client",
         "platformio.platformio-ide"
+    ],
+    "unwantedRecommendations": [
+        "ms-vscode.cpptools-extension-pack"
     ]
 }

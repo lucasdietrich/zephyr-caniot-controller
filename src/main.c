@@ -31,9 +31,9 @@ void main(void)
         for (;;) {
                 if (counter++ % 60 == 0) {
                         net_time_show();
+
+                        debug_mbedtls_memory();
                 }
-                
-                // debug_mbedtls_memory();
 
                 k_msleep(1000);
         }

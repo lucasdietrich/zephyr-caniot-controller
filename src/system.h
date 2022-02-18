@@ -3,9 +3,18 @@
 
 #include <stdint.h>
 
-struct {
-        uint32_t has_ipv4_addr: 1;
-        uint32_t valid_system_time: 1;
-} status;
+#include <kernel.h>
+
+typedef union {
+	atomic_t atomic;
+	atomic_val_t atomic_val;
+	struct
+	{
+		uint32_t has_ipv4_addr : 1;
+		uint32_t valid_system_time : 1;
+	};
+} controller_status_t;
+
+extern controller_status_t controller_status;
 
 #endif

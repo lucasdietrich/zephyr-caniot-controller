@@ -29,6 +29,12 @@ LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF);
 
 #define HTTPS_SERVER_SEC_TAG   1
 
+#if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
+#       define SERVER_FD_COUNT        2
+#else
+#       define SERVER_FD_COUNT        1
+#endif 
+
 static const sec_tag_t sec_tag_list[] = {
         HTTPS_SERVER_SEC_TAG
 };
@@ -62,13 +68,13 @@ union {
  */
 static union
 {
-        struct pollfd array[MAX_CONNECTIONS + 1];
+        struct pollfd array[CONFIG_CONTROLLER_MAX_HTTP_CONNECTIONS + SERVER_FD_COUNT];
         struct {
 #if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
                 struct pollfd srv;      /* non secure server socket */
 #endif
                 struct pollfd sec;      /* secure server socket */
-                struct pollfd cli[MAX_CONNECTIONS];
+                struct pollfd cli[CONFIG_CONTROLLER_MAX_HTTP_CONNECTIONS];
         };
 } fds;
 
@@ -77,15 +83,31 @@ extern int conns_count;
 
 extern const struct http_parser_settings settings;
 
-struct pollfd *conn_get_pfd(struct connection *conn)
+struct pollfd *conn_get_pfd(http_connection_t *conn)
 {
-        return &fds.cli[conn_get_index(conn)];
+        return &fds.cli[http_conn_get_index(conn)];
 }
 
-int conn_get_sock(struct connection *conn)
+int conn_get_sock(http_connection_t *conn)
 {
         return conn_get_pfd(conn)->fd;
 }
+
+/* debug functions */
+static void show_pfd(void)
+{
+        LOG_DBG("listening_count=%d conns_count=%d", listening_count, conns_count);
+        for (struct pollfd *pfd = fds.array;
+             pfd < fds.array + ARRAY_SIZE(fds.array); pfd++)
+        {
+                LOG_DBG("\tfd=%d ev=%d", pfd->fd, (int)pfd->events);
+        }
+}
+
+/*___________________________________________________________________________*/
+
+// forward declarations 
+static void handle_conn(http_connection_t *conn);
 
 /*___________________________________________________________________________*/
 
@@ -175,7 +197,11 @@ exit:
 
 static void compress_fds(uint_fast8_t index)
 {
-        if (index >= MAX_CONNECTIONS) {
+        LOG_DBG("Compress fds count = %u", conns_count);
+
+        show_pfd();
+
+        if (index >= CONFIG_CONTROLLER_MAX_HTTP_CONNECTIONS) {
                 return;
         }
         int move_count = conns_count - index;
@@ -184,6 +210,11 @@ static void compress_fds(uint_fast8_t index)
                         &fds.cli[index + 1],
                         move_count * sizeof(struct pollfd));
         }
+
+        memset(&fds.cli[conns_count], 0U,
+               sizeof(struct pollfd));
+
+        show_pfd();
 }
 
 void http_srv_thread(void *_a, void *_b, void *_c)
@@ -194,22 +225,30 @@ void http_srv_thread(void *_a, void *_b, void *_c)
 
         int ret;
 
+        /* initialize connection pool */
+        http_conn_init_pool();
+
         ret = http_srv_setup_sockets();
 
         for (;;) {
+                show_pfd();
+
                 ret = poll(fds.array, conns_count + listening_count, SYS_FOREVER_MS);
                 if (ret > 0) {
 #if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
                         if (fds.srv.revents & POLLIN) {
-                                if (http_srv_accept(fds.srv.fd) != 0) {
-                                        /* TODO remove */
-                                        k_sleep(K_MSEC(1000));
+                                ret = http_srv_accept(fds.srv.fd);
+                                if(ret != 0) {
+                                        LOG_ERR("http_srv_accept failed = %d", ret);
                                 }
                         }
 #endif /* CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE */
 
                         if (fds.sec.revents & POLLIN) {
-                                http_srv_accept(fds.sec.fd);
+                                ret = http_srv_accept(fds.srv.fd);
+                                if(ret != 0) {
+                                        LOG_ERR("http_srv_accept failed = %d", ret);
+                                }
                         }
 
                         /* optimize, don't test each pollfd as we have the
@@ -219,13 +258,14 @@ void http_srv_thread(void *_a, void *_b, void *_c)
                         uint_fast8_t idx = 0;
                         while (idx < conns_count) {
                                 if (fds.cli[idx].revents & POLLIN) {
-                                        struct connection *conn =
-                                                get_connection(idx);
+                                        http_connection_t *conn =
+                                                http_connect_get(idx);
 
-                                        http_srv_handle_conn(conn);
+                                        handle_conn(conn);
 
-                                        if (conn_is_closed(conn)) {
+                                        if (http_conn_closed(conn)) {
                                                 compress_fds(idx);
+                                                show_pfd();
                                                 continue;
                                         }
                                 }
@@ -236,7 +276,7 @@ void http_srv_thread(void *_a, void *_b, void *_c)
                                 &fds, conns_count + listening_count, SYS_FOREVER_MS, ret);
                         
                         /* TODO remove, sleep 1 sec here */
-                        k_sleep(K_MSEC(1000));
+                        k_sleep(K_MSEC(5000));
                 }
         }
 
@@ -251,7 +291,7 @@ int http_srv_accept(int serv_sock)
 {
         int ret, sock;
         struct sockaddr_in addr;
-        struct connection *conn;
+        http_connection_t *conn;
         socklen_t len = sizeof(struct sockaddr_in);
 
         uint32_t a = k_uptime_get();
@@ -266,7 +306,9 @@ int http_srv_accept(int serv_sock)
         char ipv4_str[NET_IPV4_ADDR_LEN];
         net_addr_ntop(AF_INET, &addr.sin_addr, ipv4_str, sizeof(ipv4_str));
 
-        conn = alloc_connection();
+        LOG_DBG("(%d) Accepted connection, allocating connection context", sock);
+
+        conn = http_conn_alloc();
         if (conn == NULL) {
                 LOG_WRN("Connection refused from %s:%d",
                         log_strdup(ipv4_str), htons(addr.sin_port));
@@ -283,6 +325,8 @@ int http_srv_accept(int serv_sock)
                 conn_get_pfd(conn)->fd = sock;
                 conn_get_pfd(conn)->events = POLLIN;
         }
+        
+        show_pfd();
 
         uint32_t b = k_uptime_get();
 
@@ -293,7 +337,7 @@ exit:
         return ret;
 }
 
-static int recv_request(struct connection *conn)
+static int recv_request(http_connection_t *conn)
 {
         size_t parsed;
         ssize_t rc;
@@ -373,7 +417,7 @@ exit:
         return ret;
 }
 
-void http_srv_handle_conn(struct connection *conn)
+static void handle_conn(http_connection_t *conn)
 {
         /* initialized one time only !*/
         static struct http_request req = {
@@ -424,11 +468,11 @@ void http_srv_handle_conn(struct connection *conn)
 
 close:
         zsock_close(sock);
-        free_connection(conn);
+        http_conn_free(conn);
         LOG_INF("(%d) Closing sock conn %p", sock, conn);
 }
 
-int http_srv_send_response(struct connection *conn,
+int http_srv_send_response(http_connection_t *conn,
                            struct http_response *resp)
 {
         int ret, sent;

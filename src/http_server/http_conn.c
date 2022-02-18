@@ -6,15 +6,20 @@
 
 /* connections connections */
 
-int conns_count = 0;
-static struct connection connections[MAX_CONNECTIONS];
+uint32_t conns_count = 0;
+static http_connection_t connections[CONFIG_CONTROLLER_MAX_HTTP_CONNECTIONS];
 
 /* all active connections stacked a the top of the array */
-static struct connection *pool[MAX_CONNECTIONS] = {
-        &connections[0], &connections[1], &connections[2]
-};
+static http_connection_t *pool[CONFIG_CONTROLLER_MAX_HTTP_CONNECTIONS];
 
-struct connection *get_connection(int index)
+void http_conn_init_pool(void)
+{
+        for (uint32_t i = 0; i < CONFIG_CONTROLLER_MAX_HTTP_CONNECTIONS; i++) {
+                pool[i] = &connections[i];
+        }
+}
+
+http_connection_t *http_connect_get(int index)
 {
         __ASSERT((0 <= index) && (index < ARRAY_SIZE(connections)),
                  "index out of range");
@@ -22,7 +27,18 @@ struct connection *get_connection(int index)
         return pool[index];
 }
 
-int conn_get_index(struct connection *conn)
+static void clear_conn(http_connection_t *conn)
+{
+        http_parser_init(&conn->parser, HTTP_REQUEST);
+
+        conn->req = NULL;
+        conn->resp = NULL;
+
+        conn->complete = 0;
+        conn->keep_alive = 1;
+}
+
+int http_conn_get_index(http_connection_t *conn)
 {
         for (uint_fast8_t i = 0; i < conns_count; i++) {
                 if (pool[i] == conn) {
@@ -32,11 +48,11 @@ int conn_get_index(struct connection *conn)
         return -1;
 }
 
-struct connection *alloc_connection(void)
+http_connection_t *http_conn_alloc(void)
 {
-        struct connection *conn =  NULL;
+        http_connection_t *conn =  NULL;
         
-        if (conns_count < MAX_CONNECTIONS) {
+        if (conns_count < CONFIG_CONTROLLER_MAX_HTTP_CONNECTIONS) {
                 conn = pool[conns_count++];
                 clear_conn(conn);
         }
@@ -44,37 +60,26 @@ struct connection *alloc_connection(void)
         return conn;
 }
 
-void free_connection(struct connection *conn)
+void http_conn_free(http_connection_t *conn)
 {
         if (conn == NULL) {
                 return;
         }
 
-        int index = conn_get_index(conn);
-        int move_count = MAX_CONNECTIONS - index - 1;
+        int index = http_conn_get_index(conn);
+        int move_count = CONFIG_CONTROLLER_MAX_HTTP_CONNECTIONS - index - 1;
         if (move_count > 0) {
                 memmove(&pool[index],
                         &pool[index + 1],
-                        move_count * sizeof(struct connection *));
+                        move_count * sizeof(http_connection_t *));
 
                 /* put the freed connection at the end of the list */
-                pool[MAX_CONNECTIONS - 1] = conn; 
+                pool[CONFIG_CONTROLLER_MAX_HTTP_CONNECTIONS - 1] = conn; 
         }
         conns_count--;
 }
 
-bool conn_is_closed(struct connection *conn)
+bool http_conn_closed(http_connection_t *conn)
 {
-        return conn_get_index(conn) == -1;
-}
-
-void clear_conn(struct connection *conn)
-{
-        http_parser_init(&conn->parser, HTTP_REQUEST);
-
-        conn->req = NULL;
-        conn->resp = NULL;
-
-        conn->complete = 0;
-        conn->keep_alive = 1;
+        return http_conn_get_index(conn) == -1;
 }

@@ -29,17 +29,17 @@ for i in range(n):
 
 b = time.time()
 
-time.sleep(2.0)
+# time.sleep(0.25)
 
 shuffle(sock)
 
-for j in range(3):
+for j in range(5):
         for i in range(n):
                 sock[i].send(req)
                 data = sock[i].recv(1024)
                 print(f"[{len(data)}] {data}")
 
-                time.sleep(1.0)
+                # time.sleep(0.25)
 
 c = time.time()
 

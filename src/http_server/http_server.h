@@ -20,10 +20,8 @@
 
 #include <poll.h>
 
-
 #include "http_request.h"
-
-struct connection;
+#include "http_conn.h"
 
 int http_srv_setup_sockets(void);
 
@@ -31,11 +29,9 @@ void http_srv_thread(void *_a, void *_b, void *_c);
 
 int http_srv_accept(int serv_sock);
 
-void http_srv_handle_conn(struct connection *conn);
-
 int http_dispatch_request(struct http_request *req);
 
-int http_srv_send_response(struct connection *conn,
+int http_srv_send_response(http_connection_t *conn,
                            struct http_response *resp);
 
 int http_srv_process_request(struct http_request *req,

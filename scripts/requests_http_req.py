@@ -4,10 +4,11 @@ from requests.auth import HTTPBasicAuth
 import time
 
 ip = "192.168.10.240"
+proto = "http"
 
 req = {
         "method": "GET",
-        "url": f"https://{ip}/info",
+        "url": f"{proto}://{ip}/info",
         "headers": {
                 # "Connection": "close"
         },

@@ -10,8 +10,8 @@ LOG_MODULE_REGISTER(http_req, LOG_LEVEL_INF);
 /* parsing */
 
 #define CONNECTION_FROM_PARSER(p_parser) \
-        ((struct connection *) \
-        CONTAINER_OF(p_parser, struct connection, parser))
+        ((http_connection_t *) \
+        CONTAINER_OF(p_parser, http_connection_t, parser))
 
 
 int on_message_begin(struct http_parser *parser)
@@ -22,7 +22,7 @@ int on_message_begin(struct http_parser *parser)
 
 int on_url(struct http_parser *parser, const char *at, size_t length)
 {
-        struct connection *conn = CONNECTION_FROM_PARSER(parser);
+        http_connection_t *conn = CONNECTION_FROM_PARSER(parser);
         if (length >= sizeof(conn->req->url)) {
                 LOG_ERR("conn (%p) URL too long (%d >= %u)",
                         conn, length, sizeof(conn->req->url));
@@ -43,7 +43,7 @@ int on_url(struct http_parser *parser, const char *at, size_t length)
 
 int on_header_field(struct http_parser *parser, const char *at, size_t length)
 {
-        struct connection *conn = CONNECTION_FROM_PARSER(parser);
+        http_connection_t *conn = CONNECTION_FROM_PARSER(parser);
         if (strncicmp(at, "Connection", length) == 0) {
                 conn->parsing_header = HEADER_CONNECTION;
         } else if (strncicmp(at, "Authorization", length) == 0) {
@@ -56,7 +56,7 @@ int on_header_field(struct http_parser *parser, const char *at, size_t length)
 
 int on_header_value(struct http_parser *parser, const char *at, size_t length)
 {
-        struct connection *conn = CONNECTION_FROM_PARSER(parser);
+        http_connection_t *conn = CONNECTION_FROM_PARSER(parser);
 
         if ((conn->parsing_header == HEADER_CONNECTION) &&
             (strncicmp(at, "keep-alive", length) == 0)) {

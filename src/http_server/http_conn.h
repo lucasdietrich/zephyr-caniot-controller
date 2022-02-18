@@ -10,9 +10,7 @@
 
 #include "http_request.h"
 
-#define MAX_CONNECTIONS   3
-
-struct connection
+typedef struct
 {
         /* INTERNAL */
         struct sockaddr addr;
@@ -32,18 +30,14 @@ struct connection
 
         struct http_request *req;
         struct http_response *resp;
-};
+} http_connection_t;
 
-inline uint16_t get_conn_method(struct connection *conn)
-{
-        return conn->parser.method;
-}
+void http_conn_init_pool(void);
 
-struct connection *get_connection(int index);
-int conn_get_index(struct connection *conn);
-void clear_conn(struct connection *conn);
-struct connection *alloc_connection(void);
-void free_connection(struct connection *conn);
-bool conn_is_closed(struct connection *conn);
+http_connection_t *http_connect_get(int index);
+int http_conn_get_index(http_connection_t *conn);
+http_connection_t *http_conn_alloc(void);
+void http_conn_free(http_connection_t *conn);
+bool http_conn_closed(http_connection_t *conn);
 
 #endif
