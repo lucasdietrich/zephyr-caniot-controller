@@ -4,13 +4,13 @@ from requests.auth import HTTPBasicAuth
 import time
 
 ip = "192.168.10.240"
-proto = "http"
+proto = "https"
 
 req = {
         "method": "GET",
         "url": f"{proto}://{ip}/info",
         "headers": {
-                # "Connection": "close"
+                "Connection": "close"
         },
         "json": {
                 "user": "L"*2000

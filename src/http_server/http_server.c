@@ -245,7 +245,7 @@ void http_srv_thread(void *_a, void *_b, void *_c)
 #endif /* CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE */
 
                         if (fds.sec.revents & POLLIN) {
-                                ret = http_srv_accept(fds.srv.fd);
+                                ret = http_srv_accept(fds.sec.fd);
                                 if(ret != 0) {
                                         LOG_ERR("http_srv_accept failed = %d", ret);
                                 }
