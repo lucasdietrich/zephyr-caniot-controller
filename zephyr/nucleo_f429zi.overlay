@@ -1,3 +1,5 @@
+#include "dt-bindings/pinctrl/stm32-pinctrl-common.h"
+
 &can1 {
         status = "okay";
         pinctrl-0 = <&can1_rx_pd0 &can1_tx_pd1>;
@@ -46,28 +48,75 @@
 
 /**
  * https: //docs.zephyrproject.org/2.7.0/reference/devicetree/bindings/pwm/st,stm32-pwm.html
- */
-
-/**
- * timers3 is based on 
+ *
+ * According to UM1974 (page 24) and "STM32F427xx STM32F429xx product datasheet" page 76
+ * 
+ * - LD1 (green user led) is connected to PB0
+ * 	- AF1 (alternate function 1) : TIM1_CH2N
+ * 	- AF2 : TIM3_CH3 (choosen)
+ * 	- AF3 : TIM8_CH2N
+ * - LD2 (blue user led) is connected to PB7
+ * 	- AF2 : TIM4_CH2 (choosen)
+ * - LD3 (red user led) is connected to PB14
+ * 	- AF1: TIM1_CH2N
+ * 	- AF3 : TIM8_CH2N (choosen)
+ * 
+ * - "These user LEDs are on when the I/O is HIGH value, and are off when the I/O is LOW."
+ * 
+ * - https://docs.zephyrproject.org/2.7.0/reference/devicetree/bindings/pwm/st,stm32-pwm.html
  */
 &timers3 {
         status = "okay";
         tim3pwm: pwm {
-                st,prescaler = <8399>;
+                st,prescaler = <8399>; /* depreciated, should be moved 1 layer above (i.e. to timers3) */
                 status = "okay";
                 pinctrl-0 = <&tim3_ch3_pb0>;
         };
 };
 
-// / {
-//         pwmleds {
-//                 compatible = "pwm-leds";
-//                 pwm_led0: pwm_led_0 {
-//                         pwms = <&t3pwm 0x03>;
-//                 };
-//         };
-// }
+&timers4 {
+        status = "okay";
+        tim4pwm: pwm {
+                st,prescaler = <8399>; /* depreciated */
+                status = "okay";
+                pinctrl-0 = <&tim4_ch2_pb7>;
+        };
+};
+
+/* complementary pwm channels not supported by st,stm32-pwm for now 
+ * Read : https://github.com/zephyrproject-rtos/zephyr/issues/38629
+ */
+
+/*
+&timers8 {
+        status = "okay";
+        tim8pwm: pwm {
+                st,prescaler = <8399>;  // depreciated
+                status = "okay";
+                pinctrl-0 = < &tim8_ch2n_pb14 >; // <&tim8_ch2n_pb14 &tim8_ch2_pc7>; STM32_PINMUX('B', 14, AF3)
+        };
+};
+*/
+
+/ {
+        pwmleds {
+                compatible = "pwm-leds";
+                green_pwm_led: led_pwm_0 {
+                        status = "okay";
+                        pwms = <&tim3pwm 0x03 1000000 PWM_POLARITY_NORMAL>;
+                };
+                blue_pwm_led: led_pwm_1 {
+                        status = "okay";
+                        pwms = <&tim4pwm 0x02 1000000 PWM_POLARITY_NORMAL>;
+                };
+                /*
+                red_pwm_led: led_pwm_2 {
+                        status = "okay";
+                        pwms = <&tim8pwm 0x02 1000000 PWM_POLARITY_NORMAL>;
+                };
+                */
+        };
+};
 
 
 /* platformio doesn't show the correct FLASH usage 
