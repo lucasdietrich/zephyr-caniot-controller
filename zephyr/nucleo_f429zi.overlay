@@ -44,6 +44,32 @@
         };
 };
 
+/**
+ * https: //docs.zephyrproject.org/2.7.0/reference/devicetree/bindings/pwm/st,stm32-pwm.html
+ */
+
+/**
+ * timers3 is based on 
+ */
+&timers3 {
+        status = "okay";
+        tim3pwm: pwm {
+                st,prescaler = <8399>;
+                status = "okay";
+                pinctrl-0 = <&tim3_ch3_pb0>;
+        };
+};
+
+// / {
+//         pwmleds {
+//                 compatible = "pwm-leds";
+//                 pwm_led0: pwm_led_0 {
+//                         pwms = <&t3pwm 0x03>;
+//                 };
+//         };
+// }
+
+
 /* platformio doesn't show the correct FLASH usage 
  * when using overlay with custom partitions
  * 

@@ -16,7 +16,6 @@
                         "host": "192.168.10.240",
                 },
         },
-
         "files.associations": {
                 "*.asm": "avr",
                 "zephyr.h": "c",
@@ -53,6 +52,7 @@
                 "memory_buffer_alloc.h": "c",
                 "config.h": "c",
                 "cantcp.h": "c",
-                "stm32f4xx_hal_tim.h": "c"
+                "stm32f4xx_hal_tim.h": "c",
+                "socket.h": "c"
         }
 }

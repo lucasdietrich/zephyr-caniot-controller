@@ -1,9 +1,11 @@
-#include "user_io.h"
+// #include "user_io.h"
 
 #include <kernel.h>
 
 // #include <stm32f439xx.h>
 // #include <stm32f4xx_hal_tim.h>
+
+#if 0
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(user_io, LOG_LEVEL_INF);
@@ -164,3 +166,5 @@ static void led_process(struct k_timer *timer)
                 k_timer_start(timer, next_process, next_process);
         }
 }
+
+#endif 

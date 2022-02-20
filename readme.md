@@ -39,6 +39,9 @@
 
 - HTTP server :
   - Timeout on keepalive connections
+  - fix no close notify problem
+  - fix poll return 0 problem
+  - Add Kconfig for RSA key size 1024 or 2048 ?
 
 - CAN-TCP server/client
 
@@ -49,6 +52,9 @@
   - Interrupt
   - Connect/Read/Write/Disconnect model
 
+- LED management
+
+
 ## Issues
 - loopback tcp doesn't work : connecting to localhost doesn't work (client connecting to server, both on the same f429zi)
     - Infinite recursion in tcp_in(), stack overflow
@@ -58,6 +64,7 @@
 
 - How to show correct Memory usage after linker in PlatformIO with custom partitions ?
 - Find a way to link certificates in the dedicated `certificates` partition (from a text file ?)
+
 ## Objectives
 - Be able to build/debug the project at the same time using PlatformIO and CMake/Zephyr env
 

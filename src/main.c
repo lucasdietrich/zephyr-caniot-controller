@@ -1,7 +1,6 @@
 #include <zephyr.h>
 
 #include "net_interface.h"
-#include "user_io.h"
 #include "net_time.h"
 #include "crypto.h"
 
@@ -9,6 +8,23 @@
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
+
+#include <devicetree.h>
+#include <drivers/pwm.h>
+
+#if DT_NODE_HAS_STATUS(DT_NODELABEL(tim3pwm), okay)
+#	define PWM_DEV_NODE DT_NODELABEL(tim3pwm)
+#else
+#	error "PWM device not found"
+#endif
+
+static void init_pwm(void)
+{
+	const struct device *pwm_dev = DEVICE_DT_GET(PWM_DEV_NODE);
+
+	int ret = pwm_pin_set_usec(pwm_dev, 3U, 1000000U, 500000U, 0);
+	LOG_INF("pwm_pin_set_usec returned %d", ret);
+}
 
 static void debug_mbedtls_memory(void)
 {
@@ -24,7 +40,9 @@ void main(void)
 {
         crypto_mbedtls_heap_init();
         net_interface_init();
-        user_io_init();
+        // user_io_init();
+
+	init_pwm();
 
         static int counter = 0;
         
