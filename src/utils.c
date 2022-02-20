@@ -1,7 +1,10 @@
-#include "utils.h"
+#include <kernel.h>
 
+#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+
+#include "utils.h"
 
 int ipv4_to_str(struct in_addr *addr, char *buffer, size_t len)
 {
@@ -25,4 +28,12 @@ int strncicmp(char const *a, char const *b, size_t len)
                         return d;
         }
         return 0;
+}
+
+int get_repr_can_frame(struct zcan_frame *frame, char *buf, size_t len)
+{
+	return snprintf(buf, len, "can id: 0x%x, len: %d, data: %02x %02x %02x %02x %02x %02x"
+			" %02x %02x", frame->id, frame->dlc, frame->data[0], frame->data[1],
+			frame->data[2], frame->data[3], frame->data[4], frame->data[5],
+			frame->data[6], frame->data[7]);
 }

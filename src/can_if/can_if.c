@@ -1,4 +1,4 @@
-#include "can.h"
+#include "can_if.h"
 
 #include <kernel.h>
 
@@ -11,12 +11,15 @@ const struct zcan_filter filter = {
                 .id = 0
 };
 
+static void can_rx_thread(const struct device *dev, struct k_msgq *msgq, struct zcan_filter *filter);
+static void can_tx_thread(const struct device *can_dev, void *_b, void *_c);
+
 CAN_DEFINE_MSGQ(can_rx_msgqueue, 2);
 K_THREAD_DEFINE(canrx, 0x500, can_rx_thread, CAN1_DEVICE, &can_rx_msgqueue, &filter, K_PRIO_COOP(5), 0, 0);
 
 K_THREAD_DEFINE(cantx, 0x500, can_tx_thread, CAN1_DEVICE, NULL, NULL, K_PRIO_COOP(5), 0, 0);
 
-void can_rx_thread(const struct device *dev, struct k_msgq *msgq, struct zcan_filter *filter)
+static void can_rx_thread(const struct device *dev, struct k_msgq *msgq, struct zcan_filter *filter)
 {
         int ret;
 
@@ -33,7 +36,7 @@ void can_rx_thread(const struct device *dev, struct k_msgq *msgq, struct zcan_fi
         }
 }
 
-void can_tx_thread(const struct device *dev, void *_b, void *_c)
+static void can_tx_thread(const struct device *dev, void *_b, void *_c)
 {
         int ret;
 

@@ -1,9 +1,8 @@
-#include "udp_discovery.h"
-
 #include <kernel.h>
 
 #include <net/socket.h>
 #include <net/net_core.h>
+#include <net/net_ip.h>
 #include <net/net_if.h>
 #include <net/net_config.h>
 #include <net/udp.h>
@@ -28,12 +27,14 @@ static int fd;
 
 static __noinit char buffer[0x20];
 
+static void thread(void *_a, void *_b, void *_c);
+
 #if defined(CONFIG_CONTROLLER_DISCOVERY)
-K_THREAD_DEFINE(discovery, 0x300, discovery_thread, NULL, NULL, NULL,
+K_THREAD_DEFINE(discovery, 0x300, thread, NULL, NULL, NULL,
                 K_PRIO_PREEMPT(8), 0, 0);
 #endif /* CONFIG_CONTROLLER_DISCOVERY */
 
-int discovery_setup_socket(void)
+static int setup_socket(void)
 {
         int ret;
         const struct sockaddr_in addr = {
@@ -70,7 +71,12 @@ exit:
         return ret;
 }
 
-int discovery_prepare_reponse(struct discovery_response *resp, size_t len)
+struct discovery_response {
+	uint32_t ip;
+	char str_ip[NET_IPV4_ADDR_LEN];
+} __attribute__((__packed__));
+
+static int prepare_reponse(struct discovery_response *resp, size_t len)
 {
         const size_t resp_len = sizeof(struct discovery_response);
         if (len < resp_len) {
@@ -88,7 +94,7 @@ int discovery_prepare_reponse(struct discovery_response *resp, size_t len)
 }
 
 /* addr support for IPV6 */
-void discovery_thread(void *_a, void *_b, void *_c)
+void thread(void *_a, void *_b, void *_c)
 {
         ARG_UNUSED(_a);
         ARG_UNUSED(_b);
@@ -99,7 +105,7 @@ void discovery_thread(void *_a, void *_b, void *_c)
         struct sockaddr_in client;
         socklen_t addrlen = sizeof(struct sockaddr_in);
 
-        ret = discovery_setup_socket();
+        ret = setup_socket();
 
         for(;;) {
                 /* recv */
@@ -127,7 +133,7 @@ void discovery_thread(void *_a, void *_b, void *_c)
                         continue;
                 }
 
-                size_t tosend = discovery_prepare_reponse(
+                size_t tosend = prepare_reponse(
                         (struct discovery_response *)buffer, sizeof(buffer));
                 if (tosend <= 0) {
                         continue;

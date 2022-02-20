@@ -51,6 +51,8 @@
                 "can.h": "c",
                 "credentials.h": "c",
                 "memory_buffer_alloc.h": "c",
-                "config.h": "c"
+                "config.h": "c",
+                "cantcp.h": "c",
+                "stm32f4xx_hal_tim.h": "c"
         }
 }

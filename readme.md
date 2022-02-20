@@ -37,6 +37,11 @@
   - MBEDTLS
   - elliptic curves ECDSA better than RSA ?
 
+- HTTP server :
+  - Timeout on keepalive connections
+
+- CAN-TCP server/client
+
 - Starting to specify the application
 
 - SD card :
@@ -44,11 +49,15 @@
   - Interrupt
   - Connect/Read/Write/Disconnect model
 
+## Issues
+- loopback tcp doesn't work : connecting to localhost doesn't work (client connecting to server, both on the same f429zi)
+    - Infinite recursion in tcp_in(), stack overflow
+    - Enable `CONFIG_NET_TCP_LOG_LEVEL_DBG` to debug
+
 ## Questions/Open Points
 
 - How to show correct Memory usage after linker in PlatformIO with custom partitions ?
 - Find a way to link certificates in the dedicated `certificates` partition (from a text file ?)
-
 ## Objectives
 - Be able to build/debug the project at the same time using PlatformIO and CMake/Zephyr env
 

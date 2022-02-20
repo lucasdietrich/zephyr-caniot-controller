@@ -2,6 +2,9 @@
 
 #include <kernel.h>
 
+// #include <stm32f439xx.h>
+// #include <stm32f4xx_hal_tim.h>
+
 #include <logging/log.h>
 LOG_MODULE_REGISTER(user_io, LOG_LEVEL_INF);
 

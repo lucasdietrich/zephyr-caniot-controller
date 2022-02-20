@@ -14,6 +14,7 @@
 #include "http_utils.h"
 #include "http_conn.h"
 #include "rest_server.h"
+#include "utils.h"
 
 #include "creds/credentials.h"
 
@@ -118,7 +119,7 @@ static int setup_socket(struct pollfd *pfd, bool secure)
                 .sin_family = AF_INET,
                 .sin_port = htons(secure ? HTTPS_PORT : HTTP_PORT),
                 .sin_addr = {
-                        .s_addr = 0
+                        .s_addr = INADDR_ANY
                 }
         };
 
@@ -126,7 +127,7 @@ static int setup_socket(struct pollfd *pfd, bool secure)
                             IPPROTO_TLS_1_2 : IPPROTO_TCP);
         if (sock < 0) {
                 ret = sock;
-                LOG_ERR("failed to create socket = %d", ret);
+                LOG_ERR("Failed to create socket = %d", ret);
                 goto exit;
         }
 
@@ -135,7 +136,7 @@ static int setup_socket(struct pollfd *pfd, bool secure)
                 ret = zsock_setsockopt(sock, SOL_TLS, TLS_SEC_TAG_LIST,
                                  sec_tag_list, sizeof(sec_tag_list));
                 if (ret < 0) {
-                        LOG_ERR("Failed to set TCP secure option (%d): %d", 
+                        LOG_ERR("(%d) Failed to set TCP secure option : %d", 
                                 sock, ret);
                         goto exit;
                 }
@@ -144,14 +145,14 @@ static int setup_socket(struct pollfd *pfd, bool secure)
         ret = zsock_bind(sock, (const struct sockaddr *)&local,
                          sizeof(struct sockaddr_in));
         if (ret < 0) {
-                LOG_ERR("failed to bind socket(%d) = %d", sock, ret);
+                LOG_ERR("(%d) Failed to bind socket = %d", sock, ret);
                 goto exit;
         }
 
         /* TODO adjust the backlog value */
         ret = zsock_listen(sock, 3);
         if (ret < 0) {
-                LOG_ERR("failed to listen socket(%d) = %d", sock, ret);
+                LOG_ERR("(%d) Failed to listen socket = %d", sock, ret);
                 goto exit;
         }
 
@@ -233,13 +234,13 @@ void http_srv_thread(void *_a, void *_b, void *_c)
         for (;;) {
                 show_pfd();
 
-                ret = poll(fds.array, conns_count + listening_count, SYS_FOREVER_MS);
+                ret = zsock_poll(fds.array, conns_count + listening_count, SYS_FOREVER_MS);
                 if (ret > 0) {
 #if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
                         if (fds.srv.revents & POLLIN) {
                                 ret = http_srv_accept(fds.srv.fd);
                                 if(ret != 0) {
-                                        LOG_ERR("http_srv_accept failed = %d", ret);
+                                        LOG_ERR("(%d) http_srv_accept failed", ret);
                                 }
                         }
 #endif /* CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE */
@@ -247,7 +248,7 @@ void http_srv_thread(void *_a, void *_b, void *_c)
                         if (fds.sec.revents & POLLIN) {
                                 ret = http_srv_accept(fds.sec.fd);
                                 if(ret != 0) {
-                                        LOG_ERR("http_srv_accept failed = %d", ret);
+                                        LOG_ERR("(%d) http_srv_accept failed", ret);
                                 }
                         }
 
@@ -298,28 +299,29 @@ int http_srv_accept(int serv_sock)
 
         sock = zsock_accept(serv_sock, (struct sockaddr *)&addr, &len);
         if (sock < 0) {
-                LOG_ERR("accept failed = %d", sock);
+                LOG_ERR("(%d) Accept failed = %d", serv_sock, sock);
                 ret = sock;
                 goto exit;
         }
 
         char ipv4_str[NET_IPV4_ADDR_LEN];
-        net_addr_ntop(AF_INET, &addr.sin_addr, ipv4_str, sizeof(ipv4_str));
+	ipv4_to_str(&addr.sin_addr, ipv4_str, sizeof(ipv4_str));
 
-        LOG_DBG("(%d) Accepted connection, allocating connection context", sock);
+        LOG_DBG("(%d) Accepted connection, allocating connection context, cli sock = %d",
+                serv_sock, sock);
 
         conn = http_conn_alloc();
         if (conn == NULL) {
-                LOG_WRN("Connection refused from %s:%d",
-                        log_strdup(ipv4_str), htons(addr.sin_port));
+                LOG_WRN("(%d) Connection refused from %s:%d, cli sock = %d", serv_sock,
+                        log_strdup(ipv4_str), htons(addr.sin_port), sock);
                 
                 zsock_close(sock);
 
                 ret = -1;
                 goto exit;
         } else {
-                LOG_INF("(%d) Connection accepted from %s:%d", sock,
-                        log_strdup(ipv4_str), htons(addr.sin_port));
+                LOG_INF("(%d) Connection accepted from %s:%d, cli sock = %d", serv_sock,
+                        log_strdup(ipv4_str), htons(addr.sin_port), sock);
 
 
                 conn_get_pfd(conn)->fd = sock;
@@ -330,7 +332,7 @@ int http_srv_accept(int serv_sock)
 
         uint32_t b = k_uptime_get();
 
-        LOG_DBG("accept delay %u ms", b - a);
+        LOG_DBG("Accept delay %u ms", b - a);
 
         return 0;
 exit:

@@ -18,7 +18,7 @@ void sntp_handler(struct k_work *work)
         const char *server = "0.fr.pool.ntp.org";
 
         /* https://www.pool.ntp.org/zone/fr */
-        ret = sntp_simple(server, 10000, &time);
+	ret = sntp_simple(server, 10U * MSEC_PER_SEC, &time);
         if (ret != 0) {
                 /* todo retry later */
                 LOG_ERR("sntp_simple() failed with error = %d", ret);
@@ -28,7 +28,7 @@ void sntp_handler(struct k_work *work)
         LOG_INF("SNTP time from %s:123 = %llu", server, time.seconds);
 
         tspec.tv_sec = time.seconds;
-        tspec.tv_nsec = ((uint64_t)time.fraction * (1000 * 1000 * 1000)) >> 32;
+        tspec.tv_nsec = ((uint64_t)time.fraction * (1000LU * 1000LU * 1000LU)) >> 32;
 
         clock_settime(CLOCK_REALTIME, &tspec);
 }
