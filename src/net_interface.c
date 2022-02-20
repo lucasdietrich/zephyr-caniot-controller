@@ -9,6 +9,7 @@
 #include <net/net_config.h>
 #include <net/sntp.h>
 
+#include "userio/leds.h"
 #include "net_time.h"
 
 #include <logging/log.h>
@@ -65,19 +66,19 @@ static void net_event_handler(struct net_mgmt_event_callback *cb,
         case NET_EVENT_IF_UP:
         {
                 LOG_DBG("NET_EVENT_IF_UP (%u)", mgmt_event);
-                // led_set_mode(&leds.net, BLINKING_5Hz);
+		leds_set_blinking(LED_NET, 200U * USEC_PER_MSEC);
                 break;
         }
         case NET_EVENT_IF_DOWN:
         {
                 LOG_DBG("NET_EVENT_IF_DOWN (%u)", mgmt_event);
-                // led_set_mode(&leds.net, OFF);
+		leds_set(LED_NET, LED_OFF);
                 break;
         }
         case NET_EVENT_IPV4_ADDR_ADD:
         {
                 LOG_DBG("NET_EVENT_IPV4_ADDR_ADD (%u)", mgmt_event);
-                // led_set_mode(&leds.net, STEADY);
+                leds_set(LED_NET, LED_ON);
                 net_time_sync();
                 show_ipv4();
                 break;
@@ -90,7 +91,7 @@ static void net_event_handler(struct net_mgmt_event_callback *cb,
                 break;
         case NET_EVENT_IPV4_DHCP_BOUND:
                 LOG_DBG("NET_EVENT_IPV4_DHCP_BOUND (%u)", mgmt_event);
-                // led_set_mode(&leds.net, STEADY);
+                leds_set(LED_NET, LED_ON);
                 net_time_sync();
                 break;
         case NET_EVENT_IPV4_DHCP_STOP:
