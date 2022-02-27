@@ -3,22 +3,20 @@
 #include <net/socket.h>
 #include <net/net_if.h>
 
+#include <fcntl.h>
+
+#include "cantcp_core.h"
+
 #include "utils.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(cantcp_client, LOG_LEVEL_DBG);
 
-void cantcp_tunnel_init(cantcp_tunnel_t *tunnel)
+void cantcp_client_tunnel_init(cantcp_tunnel_t *tunnel)
 {
-	memset(tunnel, 0U, sizeof(cantcp_tunnel_t));
+	cantcp_core_tunnel_init(tunnel);
 
-	tunnel->sock = -1;
 	tunnel->flags.mode = CANTCP_CLIENT;
-	tunnel->flags.secure = CANTCP_UNSECURE;
-	tunnel->flags.nonblocking = CANTCP_BLOCKING;
-	tunnel->flags.bus = CANTCP_BUS_DEFAULT;
-
-	tunnel->server.port = CANTCP_DEFAULT_PORT;
 }
 
 static bool host_is_resolved(cantcp_tunnel_t *tunnel)
@@ -86,6 +84,12 @@ int cantcp_connect(cantcp_tunnel_t *tunnel)
 			(uint32_t)tunnel);
 	}
 
+	if (tunnel->flags.blocking_mode != CANTCP_BLOCKING) {
+		tunnel->flags.blocking_mode = CANTCP_BLOCKING;
+		LOG_WRN("(%x) non blocking mode is not supported fow now, ignoring",
+			(uint32_t)tunnel);
+	}
+
 	/* resolve hostname  and prepare addr */
 	ret = host_resolve(tunnel);
 	if (ret != 0U) {
@@ -98,6 +102,7 @@ int cantcp_connect(cantcp_tunnel_t *tunnel)
 		LOG_WRN("(%x) port is not set, using default port (%d)",
 			(uint32_t)tunnel, CANTCP_DEFAULT_PORT);
 	}
+
 	tunnel->server.addr4.sin_port = htons(tunnel->server.port);
 
 	/* create socket and connect */
@@ -108,6 +113,16 @@ int cantcp_connect(cantcp_tunnel_t *tunnel)
 			(uint32_t)tunnel, sock);
 		ret = sock;
 		goto exit;
+	}
+
+	/* set socket non-blocking */
+	if (tunnel->flags.blocking_mode == CANTCP_BLOCKING_MODE) {
+		ret = zsock_fcntl(sock, F_SETFL, O_NONBLOCK);
+		if (ret < 0) {
+			LOG_ERR("(%x) Failed to set socket non-blocking = %d",
+				(uint32_t)tunnel, ret);
+			goto exit;
+		}
 	}
 
 	char ipv4_str[NET_IPV4_ADDR_LEN];
@@ -144,16 +159,6 @@ int cantcp_attach_rxcb(cantcp_tunnel_t *tunnel, cantcp_rx_callback_t rx_cb)
 	return 0U;
 }
 
-int cantcp_send(cantcp_tunnel_t *tunnel, struct zcan_frame *msg)
-{
-	return 0U;
-}
-
-int cantcp_recv(cantcp_tunnel_t *tunnel, struct zcan_frame *msg)
-{
-	return 0U;
-}
-
 int cantcp_disconnect(cantcp_tunnel_t *tunnel)
 {
 	if (cantcp_connected(tunnel)) {
@@ -171,6 +176,16 @@ int cantcp_disconnect(cantcp_tunnel_t *tunnel)
 bool cantcp_connected(cantcp_tunnel_t *tunnel)
 {
 	return tunnel->sock >= 0;
+}
+
+int cantcp_send(cantcp_tunnel_t *tunnel, struct zcan_frame *msg)
+{
+	return cantcp_core_send_frame(tunnel, msg);
+}
+
+int cantcp_recv(cantcp_tunnel_t *tunnel, struct zcan_frame *msg)
+{
+	return cantcp_core_recv_frame(tunnel, msg);
 }
 
 /*___________________________________________________________________________*/

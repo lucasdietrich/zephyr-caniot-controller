@@ -36,6 +36,13 @@ static void can_rx_thread(const struct device *dev, struct k_msgq *msgq, struct 
         }
 }
 
+K_MSGQ_DEFINE(can_tx_msgqueue, sizeof(struct zcan_frame), 1U, 4U);
+
+int can_queue(struct zcan_frame *frame)
+{
+	return k_msgq_put(&can_tx_msgqueue, frame, K_NO_WAIT);
+}
+
 static void can_tx_thread(const struct device *dev, void *_b, void *_c)
 {
         int ret;
@@ -53,13 +60,19 @@ static void can_tx_thread(const struct device *dev, void *_b, void *_c)
                 k_sleep(K_SECONDS(1));
         }
 
+	struct zcan_frame frame2;
+
         for (;;) {
-                ret = can_send(dev, &frame, K_MSEC(100), NULL, NULL);
+		if (k_msgq_get(&can_tx_msgqueue, &frame2, K_SECONDS(10)) == 0) {
+			can_send(dev, &frame2, K_FOREVER, NULL, NULL);
+			LOG_INF("TX CANTCP id_type=%u rtr=%u id=%u dlc=%u",
+				frame2.id_type, frame2.rtr, frame2.id, frame2.dlc);
+		}
+
+                ret = can_send(dev, &frame, K_FOREVER, NULL, NULL);
                 if (ret != CAN_TX_OK) {
                         LOG_ERR("Sending failed [%d]", ret);
                 }
-
-                k_sleep(K_SECONDS(5));
         }
 }
 

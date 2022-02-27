@@ -3,24 +3,12 @@
 
 #include <kernel.h>
 
-/*___________________________________________________________________________*/
+#include "cantcp.h"
 
-typedef enum
-{
-	CONTROL_FRAME = 0,
-	FILTER_FRAME = 1,
-	DATA_FRAME = 2,
-	ERROR_FRAME = 3,
-} cantcp_frame_t;
+int cantcp_core_tunnel_init(cantcp_tunnel_t *tunnel);
 
-typedef struct
-{
-	uint32_t frame_type : 2;
-	uint32_t rtr : 1;
-	uint32_t id_type : 1; 		/* standard or extended */
-	uint32_t dlc : 4;	  	/* can data length */
-} cantcp_header_t;
+int cantcp_core_send_frame(cantcp_tunnel_t *tunnel, struct zcan_frame *msg);
 
-/*___________________________________________________________________________*/
+int cantcp_core_recv_frame(cantcp_tunnel_t *tunnel, struct zcan_frame *msg);
 
 #endif /* _CANTCP_CORE_H_ */

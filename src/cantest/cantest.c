@@ -9,7 +9,7 @@ LOG_MODULE_REGISTER(cantcp_test, LOG_LEVEL_DBG);
 
 static void thread(void *_a, void *_b, void *_c);
 
-K_THREAD_DEFINE(cantest_thread, 0x3000, thread, NULL, NULL, NULL, K_PRIO_PREEMPT(8), 0, 0);
+// K_THREAD_DEFINE(cantest_thread, 0x3000, thread, NULL, NULL, NULL, K_PRIO_PREEMPT(8), 0, 0);
 
 static void thread(void *_a, void *_b, void *_c)
 {
@@ -17,15 +17,15 @@ static void thread(void *_a, void *_b, void *_c)
 	struct cantcp_tunnel tunnel;
 	struct zcan_frame frame;
 
-	cantcp_tunnel_init(&tunnel);
+	cantcp_client_tunnel_init(&tunnel);
 
-	tunnel.server.hostname = "192.168.10.225"; // "192.168.10.240"  "laptop-dev.local" "192.168.10.225"
+	tunnel.server.hostname = "192.168.10.236"; // "192.168.10.240"  "laptop-dev.local" "192.168.10.225"
 	tunnel.server.port = CANTCP_DEFAULT_PORT;
 
-	k_sleep(K_SECONDS(5));
+	k_sleep(K_SECONDS(1));
 
 	for (;;) {
-		k_sleep(K_MSEC(1000));
+		k_sleep(K_SECONDS(2));
 
 		ret = cantcp_connect(&tunnel);
 		if (ret != 0) {

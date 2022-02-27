@@ -53,6 +53,7 @@
                 "config.h": "c",
                 "cantcp.h": "c",
                 "stm32f4xx_hal_tim.h": "c",
-                "socket.h": "c"
+                "socket.h": "c",
+                "fcntl.h": "c"
         }
 }

@@ -35,7 +35,7 @@ void main(void)
 	
         
         for (;;) {
-                if (counter++ % 60 == 0) {
+                if (counter++ % 600 == 0) {
                         net_time_show();
 
                         debug_mbedtls_memory();

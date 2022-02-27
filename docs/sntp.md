@@ -42,3 +42,7 @@ Local (Europe/Paris) Date and time : 1970/01/01 00:00:02
 [00:00:04.406,000] <inf> net_time: SNTP time from 0.fr.pool.ntp.org:123 = 1637101385
 
 ```
+
+```
+[00:00:06.165,000] <err> net_time: sntp_simple() failed with error = -3
+```

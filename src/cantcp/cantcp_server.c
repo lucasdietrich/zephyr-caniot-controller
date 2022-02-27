@@ -6,6 +6,9 @@
 #include <poll.h>
 
 #include "cantcp.h"
+#include "cantcp_core.h"
+
+#include "can_if/can_if.h"
 
 /*___________________________________________________________________________*/
 
@@ -38,9 +41,66 @@ static union
 	};
 } fds;
 
+static cantcp_tunnel_t *tunnels[CANTCP_MAX_CLIENTS];
+
 static uint32_t connections_count = 0U;
 
-static uint32_t keep_alive_timeout[CANTCP_MAX_CLIENTS];
+// Get the time until the first tunnel keep-alive timeout
+static uint32_t get_neareset_timeout(void)
+{
+	uint32_t now = k_uptime_get_32();
+	uint32_t timeout = UINT32_MAX;
+
+	// compare i to "connections_count" rather ?
+	for (uint32_t i = 0U; i < CANTCP_MAX_CLIENTS; i++) {
+		cantcp_tunnel_t *const tun = tunnels[i];
+		if (tun != NULL) {
+			uint32_t diff = now - tun->last_keep_alive;
+			uint32_t tunnel_timeout = tun->keep_alive_timeout;
+
+			if (diff < tunnel_timeout) {
+				timeout = MIN(timeout, tunnel_timeout - diff);
+			} else {
+				timeout = 1000U;
+				break;
+			}
+		}
+	}
+
+	return timeout;
+}
+
+/*___________________________________________________________________________*/
+
+static void cantcp_server_tunnel_init(cantcp_tunnel_t *tunnel)
+{
+	cantcp_core_tunnel_init(tunnel);
+
+	tunnel->flags.mode = CANTCP_SERVER;
+}
+
+/*___________________________________________________________________________*/
+
+K_MEM_SLAB_DEFINE(tunnels_pool, sizeof(struct cantcp_tunnel),
+		  CANTCP_MAX_CLIENTS, 4);
+
+static int allocate_tunnel(cantcp_tunnel_t **tunnel)
+{
+	int ret = k_mem_slab_alloc(&tunnels_pool, (void **)tunnel, K_NO_WAIT);
+
+	if (ret == 0) {
+		cantcp_server_tunnel_init(*tunnel);
+	}
+
+	return ret;
+}
+
+static void free_tunnel(cantcp_tunnel_t **tunnel)
+{
+	k_mem_slab_free(&tunnels_pool, (void **)tunnel);
+}
+
+/*___________________________________________________________________________*/
 
 static int setup_socket(void)
 {
@@ -91,27 +151,30 @@ int accept_connection(int serv_sock)
 	char ipv4_str[NET_IPV4_ADDR_LEN];
 	net_addr_ntop(AF_INET, &addr.sin_addr, ipv4_str, sizeof(ipv4_str));
 
-	if (connections_count < CANTCP_MAX_CLIENTS) {
+	cantcp_tunnel_t *tunnel = NULL;
 
-		LOG_INF("(%d) Connection accepted from %s:%d, cli sock = %d", serv_sock,
-			log_strdup(ipv4_str), htons(addr.sin_port), sock);
-
-		fds.cli[connections_count].fd = sock;
-		fds.cli[connections_count].events = POLLIN | POLLERR | POLLHUP;
-
-		// todo
-		keep_alive_timeout[connections_count] = k_uptime_get_32();
-
-		connections_count++;
-	} else {
+	ret = allocate_tunnel(&tunnel);
+	if (ret != 0U) {
 		LOG_WRN("(%d) Connection refused from %s:%d, cli sock = %d", serv_sock,
 			log_strdup(ipv4_str), htons(addr.sin_port), sock);
 
 		zsock_close(sock);
 
-		ret = -1;
 		goto exit;
 	}
+
+	LOG_INF("(%d) Connection accepted from %s:%d, cli sock = %d", serv_sock,
+		log_strdup(ipv4_str), htons(addr.sin_port), sock);
+
+	// prepare tunnel
+	tunnel->sock = sock;
+	tunnel->last_keep_alive = k_uptime_get_32();
+
+	// prepare next poll
+	fds.cli[connections_count].fd = sock;
+	fds.cli[connections_count].events = POLLIN | POLLERR | POLLHUP;
+	tunnels[connections_count] = tunnel;
+	connections_count++;
 
 	return 0;
 exit:
@@ -128,70 +191,49 @@ static void handle_incoming_connection(struct pollfd *pfd)
 	}
 }
 
-static int recv_all(int sock, uint8_t *buf, size_t len)
+static int handle_connection(struct pollfd *pfd, cantcp_tunnel_t *tunnel)
 {
-	ssize_t ret = -EINVAL;
-
-	while (len > 0U) {
-		ret = zsock_recv(sock, buf, len, 0);
-		if (ret > 0) {
-			buf += ret;
-			len -= ret;
-			LOG_HEXDUMP_DBG(buf - ret, ret, "received");
-		} else if (ret == 0) {
-			zsock_close(sock);
-			break;
-		} else if (ret < 0) {
-			LOG_ERR("(%d) failed to recv = %d", sock, ret);
-			break;
-		}
+	if (!pfd || !tunnel || (pfd->fd != tunnel->sock)) {
+		return -EINVAL;
 	}
 
-	return ret;
-}
-
-static int send_all(int sock, uint8_t *buf, size_t len)
-{
-	ssize_t ret = -EINVAL;
-
-	while (len > 0U) {
-		ret = zsock_send(sock, buf, len, 0);
-		if (ret > 0) {
-			buf += ret;
-			len -= ret;
-		} else if (ret == 0) {
-			zsock_close(sock);
-			break;
-		} else if (ret < 0) {
-			LOG_ERR("(%d) failed to send = %d", sock, ret);
-			break;
-		}
-	}
-
-	return ret;
-}
-
-static void handle_connection(struct pollfd *pfd)
-{
-	static uint8_t buffer[10];
-
-	int received;
+	int rcvd;
+	struct zcan_frame msg;
 
 	if (pfd->revents & POLLIN) {
-		received = recv_all(pfd->fd, buffer, sizeof(buffer));
-		if (received <= 0U) {
-			connections_count--;
-			return;
-		}
+		rcvd = cantcp_core_recv_frame(tunnel, &msg);
+		if (rcvd > 0) {
+			LOG_HEXDUMP_INF(&msg, rcvd, "Received");
 
-		if (send_all(pfd->fd, buffer, received) <= 0U) {
-			connections_count--;
-			return;
+			tunnel->last_keep_alive = k_uptime_get_32();
+			if (tunnel->rx_callback) {
+				tunnel->rx_callback(tunnel, &msg);
+			}
+
+			// TODO concept
+			can_queue(&msg);
+			
+		} else if (rcvd == 0) {
+			LOG_WRN("(%d) connection closed", pfd->fd);
+			goto cleanup;
+		} else {
+			LOG_ERR("(%d) failed to recv = %d", pfd->fd, rcvd);
+			goto cleanup;
 		}
 
 	} else if (pfd->revents & (POLLERR | POLLHUP)) {
 		LOG_ERR("client socket error or hangup (revents = %hhx)", pfd->revents);
+		goto cleanup;
 	}
+
+	return rcvd;
+
+cleanup:
+	cantcp_disconnect(tunnel);
+	free_tunnel(&tunnel);
+	tunnels[0] = NULL;
+	connections_count--;
+	return rcvd;
 }
 
 static void server(void *_a, void *_b, void *_c)
@@ -205,17 +247,34 @@ static void server(void *_a, void *_b, void *_c)
 	sock = setup_socket();
 
 	for (;;) {
-		ret = zsock_poll(fds.array, 1U + connections_count, SYS_FOREVER_MS);
+		const uint32_t timeout = get_neareset_timeout();
+		ret = zsock_poll(fds.array, 1U + connections_count, timeout);
 		if (ret > 0) {
 			handle_incoming_connection(&fds.srv);
 
 			if (connections_count > 0U) {
-				handle_connection(&fds.cli[0]);
+				handle_connection(&fds.cli[0], tunnels[0]);
 			}
 		} else if (ret == 0) {
-			LOG_ERR("timeout (%u)", SYS_FOREVER_MS);
+			LOG_ERR("timeout (%u)", timeout);
 		} else {
 			LOG_ERR("failed to poll socket(%d) = %d", sock, ret);
+		}
+
+		// for each tunnel, check if the only tunnel has been inactive for too long
+#if CANTCP_MAX_CLIENTS != 1
+#    error More than one client is not supported for now ! HERE !!
+#endif		
+		if (connections_count > 0U) {
+			uint32_t now = k_uptime_get_32();
+			cantcp_tunnel_t *tun = tunnels[0U];
+			if (now - tun->last_keep_alive >= tun->keep_alive_timeout) {
+				LOG_WRN("(%d) keep-alive timeout for tunnel %x", tun->sock, (uint32_t)tun);
+				cantcp_disconnect(tun);
+				free_tunnel(&tun);
+				tunnels[0U] = NULL;
+				connections_count--;
+			}
 		}
 	}
 

@@ -8,7 +8,13 @@
 
 /*___________________________________________________________________________*/
 
-#define CANTCP_DEFAULT_PORT 5555U
+#define CANTCP_DEFAULT_PORT 			5555U
+
+#define CANTCP_DEFAULT_KEEP_ALIVE_TIMEOUT	10000U
+
+#define CANTCP_DEFAULT_MAX_RETRIES		0U
+
+#define CANTCP_DEFAULT_RETRY_DELAY		1000U
 
 /*___________________________________________________________________________*/
 
@@ -21,8 +27,8 @@ typedef enum
 typedef enum
 {
 	CANTCP_BLOCKING = 0,
-	CANTCP_NONBLOCKING = 1,
-} cantcp_blocking_mode_t;
+	CANTCP_BLOCKING_MODE = 1,
+} CANTCP_BLOCKING_MODE_t;
 
 typedef enum
 {
@@ -64,14 +70,15 @@ struct cantcp_tunnel
 	struct {
 		cantcp_mode_t mode: 1;
 		cantcp_secure_t secure: 1;
-		cantcp_blocking_mode_t nonblocking: 1;
+		
 		cantcp_busindex_t bus: 3;
+		CANTCP_BLOCKING_MODE_t blocking_mode: 1;
 	} flags;
 
 	/* other configuration */
 	uint8_t max_retries;
-	uint8_t retry_delay;			/* in milliseconds */
-	uint32_t keep_alive_timeout; 	/* in seconds */
+	uint32_t retry_delay;			/* in milliseconds */
+	uint32_t keep_alive_timeout; 		/* in milliseconds */
 
 	/* TLS secure parameters */
 	struct {
@@ -83,21 +90,31 @@ struct cantcp_tunnel
 	/* internal */
 	int sock;
 
+	uint32_t last_keep_alive; /* last keep alive time (in milliseconds) */
+
+	struct k_msgq rx_queue;
+	struct k_msgq tx_queue;
+
 	/* handlers */
 	cantcp_rx_callback_t rx_callback;
 };
 
-void cantcp_tunnel_init(cantcp_tunnel_t *tunnel);
+/* client */
+void cantcp_client_tunnel_init(cantcp_tunnel_t *tunnel);
 
 int cantcp_connect(cantcp_tunnel_t *tunnel);
 
-int cantcp_attach_rxcb(cantcp_tunnel_t *tunnel, cantcp_rx_callback_t rx_cb);
+int cantcp_disconnect(cantcp_tunnel_t *tunnel);
 
+/* server & client */
 int cantcp_send(cantcp_tunnel_t *tunnel, struct zcan_frame *msg);
 
 int cantcp_recv(cantcp_tunnel_t *tunnel, struct zcan_frame *msg);
 
-int cantcp_disconnect(cantcp_tunnel_t *tunnel);
+int cantcp_live(cantcp_tunnel_t *tunnel);
+
+int cantcp_attach_rxcb(cantcp_tunnel_t *tunnel, cantcp_rx_callback_t rx_cb);
+
 
 bool cantcp_connected(cantcp_tunnel_t *tunnel);
 
