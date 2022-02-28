@@ -16,6 +16,8 @@
 
 #define CANTCP_DEFAULT_RETRY_DELAY		1000U
 
+#define CANTCP_DEFAULT_MAX_TX_QUEUE_SIZE	10U
+
 /*___________________________________________________________________________*/
 
 typedef enum
@@ -50,7 +52,7 @@ typedef enum
 
 typedef struct cantcp_tunnel cantcp_tunnel_t;
 
-typedef void (*cantcp_rx_callback_t)(cantcp_tunnel_t *tunnel, struct zcan_frame *msg);
+// typedef void (*cantcp_rx_callback_t)(cantcp_tunnel_t *tunnel, struct zcan_frame *msg);
 
 struct cantcp_tunnel
 {
@@ -92,11 +94,7 @@ struct cantcp_tunnel
 
 	uint32_t last_keep_alive; /* last keep alive time (in milliseconds) */
 
-	struct k_msgq rx_queue;
-	struct k_msgq tx_queue;
-
-	/* handlers */
-	cantcp_rx_callback_t rx_callback;
+	struct k_msgq *rx_msgq;
 };
 
 /* client */
@@ -113,12 +111,8 @@ int cantcp_recv(cantcp_tunnel_t *tunnel, struct zcan_frame *msg);
 
 int cantcp_live(cantcp_tunnel_t *tunnel);
 
-int cantcp_attach_rxcb(cantcp_tunnel_t *tunnel, cantcp_rx_callback_t rx_cb);
-
+int cantcp_attach_msgq(cantcp_tunnel_t *tunnel, struct k_msgq *rx_queue);
 
 bool cantcp_connected(cantcp_tunnel_t *tunnel);
-
-// int cantcp_control(cantcp_tunnel_t *tunnel, uint8_t cmd, void *arg);
-
 
 #endif /* _CANTCP_H */

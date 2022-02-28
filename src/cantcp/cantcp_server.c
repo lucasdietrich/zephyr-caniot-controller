@@ -4,11 +4,10 @@
 #include <net/net_if.h>
 #include <net/net_config.h>
 #include <poll.h>
+#include <posix/sys/eventfd.h>
 
 #include "cantcp.h"
 #include "cantcp_core.h"
-
-#include "can_if/can_if.h"
 
 /*___________________________________________________________________________*/
 
@@ -29,13 +28,17 @@ K_THREAD_DEFINE(cantcp_thread, 0x1000, server, NULL, NULL, NULL, K_PRIO_PREEMPT(
 
 #define CANTCP_TUNNEL_PORT  CANTCP_DEFAULT_PORT
 
-#define CANTCP_MAX_CLIENTS  1U
+#define CANTCP_SERVER_FD_COUNT  1U
+#define CANTCP_MAX_CLIENTS  	1U
+
+#define CANTCP_BASE_FD_COUNT 	(CANTCP_SERVER_FD_COUNT + 1U)
 
 static union
 {
-	struct pollfd array[1U + CANTCP_MAX_CLIENTS];
+	struct pollfd array[1U + CANTCP_SERVER_FD_COUNT + CANTCP_MAX_CLIENTS];
 	struct
 	{
+		struct pollfd control;
 		struct pollfd srv;
 		struct pollfd cli[CANTCP_MAX_CLIENTS];
 	};
@@ -44,6 +47,69 @@ static union
 static cantcp_tunnel_t *tunnels[CANTCP_MAX_CLIENTS];
 
 static uint32_t connections_count = 0U;
+
+K_MSGQ_DEFINE(tx_msgq, sizeof(struct zcan_frame),
+	      CANTCP_DEFAULT_MAX_TX_QUEUE_SIZE, 4U);
+
+/*___________________________________________________________________________*/
+
+static int control_event_fd = -1;
+
+typedef enum {
+	/**
+	 * @brief Notify a message is pending in the TX queue
+	 */
+	READY_TX_MESSAGE = 1 << 0U,
+} control_event_type_t;
+
+static int setup_control_fd(void)
+{
+	int ret;
+
+	ret = eventfd(0U, EFD_NONBLOCK);
+	if (ret < 0) {
+		LOG_ERR("eventfd failed: %d", ret);
+	} else {
+		control_event_fd = ret;
+		fds.control.fd = control_event_fd;
+		fds.control.events = POLLIN;
+	}
+
+	return ret;
+}
+
+static inline int notify_control_fd(control_event_type_t type)
+{
+	return eventfd_write(control_event_fd, (eventfd_t) 1U);
+}
+
+int cantcp_server_broadcast(struct zcan_frame *msg)
+{
+	int ret;
+
+	LOG_DBG("Broadcasting message to listening CAN clients");
+	
+	ret = k_msgq_put(&tx_msgq, msg, K_NO_WAIT);
+
+	if (ret == 0) {
+		ret = notify_control_fd(READY_TX_MESSAGE);
+	}
+
+	return ret;
+}
+
+/*___________________________________________________________________________*/
+
+static struct k_msgq *common_rx_msgq = NULL;
+
+int cantcp_server_attach_rx_msgq(struct k_msgq *msgq)
+{
+	common_rx_msgq = msgq;
+
+	return 0;
+}
+
+/*___________________________________________________________________________*/
 
 // Get the time until the first tunnel keep-alive timeout
 static uint32_t get_neareset_timeout(void)
@@ -169,6 +235,7 @@ int accept_connection(int serv_sock)
 	// prepare tunnel
 	tunnel->sock = sock;
 	tunnel->last_keep_alive = k_uptime_get_32();
+	tunnel->rx_msgq = common_rx_msgq; /* TODO, make it configurable */
 
 	// prepare next poll
 	fds.cli[connections_count].fd = sock;
@@ -191,33 +258,57 @@ static void handle_incoming_connection(struct pollfd *pfd)
 	}
 }
 
+static void handle_outgoing_msgs(void)
+{
+	int ret;
+	struct zcan_frame msg;
+
+	if (k_msgq_get(&tx_msgq, &msg, K_NO_WAIT) == 0) {
+
+		/* send to all clients */
+		for (uint32_t i = 0U; i < connections_count; i++) {
+			cantcp_tunnel_t * tun = tunnels[i];
+
+			LOG_INF("Send CAN message to tunnel %x", (uint32_t)tun);
+
+			ret = cantcp_send(tun, &msg);
+			if (ret < 0) {
+				cantcp_disconnect(tun);
+				free_tunnel(&tun);
+				tunnels[0] = NULL;
+				connections_count--;
+			}
+		}
+	}
+}
+
 static int handle_connection(struct pollfd *pfd, cantcp_tunnel_t *tunnel)
 {
 	if (!pfd || !tunnel || (pfd->fd != tunnel->sock)) {
 		return -EINVAL;
 	}
 
-	int rcvd;
+	int rcvd, ret;
 	struct zcan_frame msg;
 
 	if (pfd->revents & POLLIN) {
 		rcvd = cantcp_core_recv_frame(tunnel, &msg);
 		if (rcvd > 0) {
-			LOG_HEXDUMP_INF(&msg, rcvd, "Received");
+			LOG_HEXDUMP_DBG(&msg, rcvd, "Received");
 
 			tunnel->last_keep_alive = k_uptime_get_32();
-			if (tunnel->rx_callback) {
-				tunnel->rx_callback(tunnel, &msg);
+
+			if (tunnel->rx_msgq != NULL) {
+				ret = k_msgq_put(tunnel->rx_msgq, &msg, K_NO_WAIT);
+				if (ret != 0) {
+					LOG_ERR("Failed to queue msg to rx_msgq %x",
+						(uint32_t)tunnel->rx_msgq);
+				}
+			} else {
+				LOG_WRN("No msgq to queue msg (%d)", 0);
 			}
 
-			// TODO concept
-			can_queue(&msg);
-			
-		} else if (rcvd == 0) {
-			LOG_WRN("(%d) connection closed", pfd->fd);
-			goto cleanup;
 		} else {
-			LOG_ERR("(%d) failed to recv = %d", pfd->fd, rcvd);
 			goto cleanup;
 		}
 
@@ -244,12 +335,20 @@ static void server(void *_a, void *_b, void *_c)
 
 	int ret, sock;
 
+	if (setup_control_fd() < 0) {
+		return;
+	}
+
 	sock = setup_socket();
 
 	for (;;) {
 		const uint32_t timeout = get_neareset_timeout();
-		ret = zsock_poll(fds.array, 1U + connections_count, timeout);
+		ret = zsock_poll(fds.array, CANTCP_BASE_FD_COUNT + connections_count, timeout);
 		if (ret > 0) {
+			if (fds.control.revents & POLLIN) {
+				handle_outgoing_msgs();
+			}
+
 			handle_incoming_connection(&fds.srv);
 
 			if (connections_count > 0U) {

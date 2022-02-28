@@ -1,5 +1,7 @@
 #include "can_if.h"
 
+#include "cantcp/cantcp_server.h"
+
 #include <kernel.h>
 
 #include <logging/log.h>
@@ -22,17 +24,22 @@ K_THREAD_DEFINE(cantx, 0x500, can_tx_thread, CAN1_DEVICE, NULL, NULL, K_PRIO_COO
 static void can_rx_thread(const struct device *dev, struct k_msgq *msgq, struct zcan_filter *filter)
 {
         int ret;
+	struct zcan_frame frame;
 
         ret = can_attach_msgq(dev, msgq, filter);
         LOG_DBG("can_attach_msgq(%p, %p, %p) = %d", dev, msgq, filter, ret);
 
-        struct zcan_frame rx;
-
         for (;;) {
-                k_msgq_get(msgq, &rx, K_FOREVER);
+                k_msgq_get(msgq, &frame, K_FOREVER);
 
-                LOG_INF("RX id_type=%u rtr=%u id=%u dlc=%u", rx.id_type, rx.rtr, rx.id, rx.dlc);
-                LOG_HEXDUMP_INF(rx.data, rx.dlc, "can data");
+                LOG_INF("RX id_type=%u rtr=%u id=%u dlc=%u", frame.id_type, 
+			frame.rtr, frame.id, frame.dlc);
+                LOG_HEXDUMP_INF(frame.data, frame.dlc, "can data");
+
+		ret = cantcp_server_broadcast(&frame);
+		if (ret < 0) {
+			LOG_ERR("cantcp_server_broadcast() failed = %d", ret);
+		}
         }
 }
 
@@ -43,36 +50,35 @@ int can_queue(struct zcan_frame *frame)
 	return k_msgq_put(&can_tx_msgqueue, frame, K_NO_WAIT);
 }
 
+	// int ret;
+
+	// const struct zcan_frame frame = {
+	//         .id_type = CAN_STANDARD_IDENTIFIER,
+	//         .rtr = CAN_DATAFRAME,
+	//         .id = 0x123,
+	//         .dlc = 8,
+	//         .data = {1, 2, 3, 4, 5, 6, 7, 8}
+	// };
+
+
 static void can_tx_thread(const struct device *dev, void *_b, void *_c)
 {
-        int ret;
-
-        const struct zcan_frame frame = {
-                .id_type = CAN_STANDARD_IDENTIFIER,
-                .rtr = CAN_DATAFRAME,
-                .id = 0x123,
-                .dlc = 8,
-                .data = {1, 2, 3, 4, 5, 6, 7, 8}
-        };
+	struct zcan_frame frame;
 
         while (!device_is_ready(dev)) {
                 LOG_INF("CAN: Device %s not ready.\n", dev->name);
                 k_sleep(K_SECONDS(1));
         }
 
-	struct zcan_frame frame2;
-
+	cantcp_server_attach_rx_msgq(&can_tx_msgqueue);
+	
         for (;;) {
-		if (k_msgq_get(&can_tx_msgqueue, &frame2, K_SECONDS(10)) == 0) {
-			can_send(dev, &frame2, K_FOREVER, NULL, NULL);
-			LOG_INF("TX CANTCP id_type=%u rtr=%u id=%u dlc=%u",
-				frame2.id_type, frame2.rtr, frame2.id, frame2.dlc);
+		if (k_msgq_get(&can_tx_msgqueue, &frame, K_FOREVER) == 0) {
+			can_send(dev, &frame, K_FOREVER, NULL, NULL);
+			LOG_INF("TX id_type=%u rtr=%u id=%u dlc=%u",
+				frame.id_type, frame.rtr, frame.id, frame.dlc);
+			LOG_HEXDUMP_INF(frame.data, frame.dlc, "data");
 		}
-
-                ret = can_send(dev, &frame, K_FOREVER, NULL, NULL);
-                if (ret != CAN_TX_OK) {
-                        LOG_ERR("Sending failed [%d]", ret);
-                }
         }
 }
 

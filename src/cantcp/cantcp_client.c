@@ -152,13 +152,6 @@ exit:
 	return ret;
 }
 
-int cantcp_attach_rxcb(cantcp_tunnel_t *tunnel, cantcp_rx_callback_t rx_cb)
-{
-	tunnel->rx_callback = rx_cb;
-
-	return 0U;
-}
-
 int cantcp_disconnect(cantcp_tunnel_t *tunnel)
 {
 	if (cantcp_connected(tunnel)) {

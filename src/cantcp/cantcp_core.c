@@ -5,9 +5,8 @@
 
 #include "cantcp.h"
 
-
 #include <logging/log.h>
-LOG_MODULE_REGISTER(cantcp_core, LOG_LEVEL_ERR);
+LOG_MODULE_REGISTER(cantcp_core, LOG_LEVEL_WRN);
 
 /*___________________________________________________________________________*/
 
@@ -149,7 +148,7 @@ int cantcp_core_recv_frame(cantcp_tunnel_t *tunnel, struct zcan_frame *msg)
 
 	recv += ret;
 
-	return recv;
+	return recv - 2U; /* remove header size */
 exit:
 	return ret;
 }
