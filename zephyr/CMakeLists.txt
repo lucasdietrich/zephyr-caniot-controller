@@ -5,3 +5,8 @@ project(caniot-controller)
 FILE(GLOB app_sources ../src/*.c*)
 target_sources(app PRIVATE ${app_sources})
 zephyr_include_directories(../src/mbedtls_config)
+
+
+# For custome sections
+# DATA_SECTIONS for RAM, SECTIONS for ROM
+zephyr_linker_sources(SECTIONS iterables.ld)

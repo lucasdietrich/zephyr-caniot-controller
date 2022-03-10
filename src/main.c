@@ -7,6 +7,8 @@
 #include "userio/leds.h"
 #include "userio/button.h"
 
+#include "system/service.h"
+
 #include <mbedtls/memory_buffer_alloc.h>
 
 #include <logging/log.h>
@@ -30,9 +32,9 @@ void main(void)
         crypto_mbedtls_heap_init();
         net_interface_init();
 
-        static int counter = 0;
+	system_services_start_ready();
 
-	
+        static int counter = 0;
         
         for (;;) {
                 if (counter++ % 600 == 0) {
