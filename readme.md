@@ -54,6 +54,8 @@
 
 - LED management
 
+- AWS MQTT client for Cloud : https://docs.aws.amazon.com/fr_fr/iot/latest/developerguide/mqtt.html
+
 
 ## Issues
 - loopback tcp doesn't work : connecting to localhost doesn't work (client connecting to server, both on the same f429zi)

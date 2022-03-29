@@ -31,8 +31,6 @@ void main(void)
         net_interface_init();
 
         static int counter = 0;
-
-	
         
         for (;;) {
                 if (counter++ % 600 == 0) {

@@ -25,6 +25,7 @@ static int sendall(int sock, const uint8_t *buf, size_t len)
 			LOG_WRN("(%d) connection closed", sock);
 			break;
 		} else if (ret < 0) {
+			// handle EAGAIN case if non-blocking option is enabled
 			LOG_ERR("(%d) failed to send = %d", sock, ret);
 			break;
 		}
@@ -47,6 +48,7 @@ static int recvall(int sock, uint8_t *buf, size_t len)
 			LOG_WRN("(%d) connection closed", sock);
 			break;
 		} else if (ret < 0) {
+			// handle EAGAIN case if non-blocking option is enabled
 			LOG_ERR("(%d) failed to recv = %d", sock, ret);
 			break;
 		}

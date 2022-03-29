@@ -7,11 +7,11 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(cantcp_test, LOG_LEVEL_DBG);
 
-static void thread(void *_a, void *_b, void *_c);
+void thread(void *_a, void *_b, void *_c);
 
 // K_THREAD_DEFINE(cantest_thread, 0x3000, thread, NULL, NULL, NULL, K_PRIO_PREEMPT(8), 0, 0);
 
-static void thread(void *_a, void *_b, void *_c)
+void thread(void *_a, void *_b, void *_c)
 {
 	int ret;
 	struct cantcp_tunnel tunnel;
