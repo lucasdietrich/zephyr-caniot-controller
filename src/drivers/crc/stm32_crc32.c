@@ -17,7 +17,7 @@ BUILD_ASSERT(DT_REG_ADDR(DT_NODELABEL(crc1)) == CRC_BASE,
 #define DEV_CFG(dev) \
 	((const struct crc_stm32_config *const)(dev)->config)
 
-static int crt_stm32_init(const struct device *dev)
+static int crc_stm32_init(const struct device *dev)
 {
 	/* Enable CRC peripheral clock */
 	__HAL_RCC_CRC_CLK_ENABLE();
@@ -25,7 +25,7 @@ static int crt_stm32_init(const struct device *dev)
 	return 0;
 }
 
-static uint32_t ctc_stm32_calculate(const struct device *dev,
+static uint32_t crc_stm32_calculate(const struct device *dev,
 				    uint32_t *buf,
 				    size_t len)
 {
@@ -49,7 +49,7 @@ static uint32_t ctc_stm32_calculate(const struct device *dev,
 }
 
 static const struct crc_drivers_api api = {
-	.calculate = ctc_stm32_calculate,
+	.calculate = crc_stm32_calculate,
 };
 
 static const struct crc_stm32_config crc1_stm32_cfg = {
@@ -60,7 +60,7 @@ static struct crc_stm32_data crc1_stm32_data = {
 	.lock = Z_MUTEX_INITIALIZER(crc1_stm32_data.lock),
 };
 
-DEVICE_DT_DEFINE(DT_NODELABEL(crc1), &crt_stm32_init,
+DEVICE_DT_DEFINE(DT_NODELABEL(crc1), &crc_stm32_init,
 		 NULL, &crc1_stm32_data, &crc1_stm32_cfg, POST_KERNEL,
 		 CONFIG_KERNEL_INIT_PRIORITY_DEFAULT, &api);
 
