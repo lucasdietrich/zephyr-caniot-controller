@@ -7,7 +7,7 @@
 #include "net_time.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(devices_controller, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(devices_controller, LOG_LEVEL_WRN);
 
 void devices_controller_thread(void *_a, void *_b, void *_c);
 
@@ -23,11 +23,12 @@ K_MUTEX_DEFINE(records_mutex);
 
 static xiaomi_record_t *get_record_from_addr(bt_addr_le_t *addr)
 {
-	static xiaomi_record_t *rec = NULL;
+	xiaomi_record_t *rec = NULL;
 
 	for (uint32_t i = 0U; i < records_count; i++) {
 		if (bt_addr_le_cmp(&records[i].addr, addr) == 0) {
 			rec = &records[i];
+			break;
 		}
 	}
 
@@ -92,8 +93,6 @@ void devices_controller_thread(void *_a, void *_b, void *_c)
 
 	for (;;) {
 		if (k_msgq_get(&msgq, (void *)&frame, K_FOREVER) == 0) {
-			LOG_HEXDUMP_DBG(frame.data.buf, frame.data.size, "IPC frame");
-
 			xiaomi_dataframe_t *const dataframe =
 				(xiaomi_dataframe_t *)frame.data.buf;
 
@@ -122,12 +121,11 @@ void devices_controller_thread(void *_a, void *_b, void *_c)
 
 				 // Show BLE address, temperature, humidity, battery
 				LOG_INF("\tBLE Xiaomi record %u [%d s]: addr: %s, " \
-					"temp: %d.%d °C, hum: %u %%, bat: %u mV",
+					"temp: %.2f°C, hum: %u %%, bat: %u mV",
 					i,
 					record_rel_time,
 					log_strdup(addr_str),
-					rec->measurements.temperature / 100,
-					rec->measurements.temperature % 100,
+					rec->measurements.temperature / 100.0f,
 					rec->measurements.humidity,
 					rec->measurements.battery);
 			}

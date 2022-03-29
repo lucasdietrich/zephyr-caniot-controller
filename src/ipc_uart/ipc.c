@@ -423,7 +423,7 @@ static bool verify_frame_crc32(ipc_frame_t *frame)
 
 static void ipc_log_frame(const ipc_frame_t *frame)
 {
-	LOG_INF("IPC frame: %u B, seq = %x, data size = %u, sfd = %x, efd = %x crc32=%x",
+	LOG_INF("RX IPC frame: %u B, seq = %x, data size = %u, sfd = %x, efd = %x crc32=%x",
 		IPC_FRAME_SIZE, frame->seq, frame->data.size, frame->start_delimiter,
 		frame->end_delimiter, frame->crc32);
 	LOG_HEXDUMP_DBG(frame->data.buf, frame->data.size, "IPC frame data");

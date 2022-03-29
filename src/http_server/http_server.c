@@ -40,6 +40,8 @@ static const sec_tag_t sec_tag_list[] = {
         HTTPS_SERVER_SEC_TAG
 };
 
+#define KEEP_ALIVE_DEFAULT_TIMEOUT_MS  (30*1000)
+
 /*___________________________________________________________________________*/
 
 K_THREAD_DEFINE(http_server, 0x1000, http_srv_thread,
@@ -196,7 +198,7 @@ exit:
         return -1;
 }
 
-static void compress_fds(uint_fast8_t index)
+static void remove_pollfd_by_index(uint_fast8_t index)
 {
         LOG_DBG("Compress fds count = %u", conns_count);
 
@@ -224,7 +226,7 @@ void http_srv_thread(void *_a, void *_b, void *_c)
         ARG_UNUSED(_b);
         ARG_UNUSED(_c);
 
-        int ret;
+        int ret, timeout;
 
         /* initialize connection pool */
         http_conn_init_pool();
@@ -234,8 +236,11 @@ void http_srv_thread(void *_a, void *_b, void *_c)
         for (;;) {
                 show_pfd();
 
-                ret = zsock_poll(fds.array, conns_count + listening_count, SYS_FOREVER_MS);
-                if (ret > 0) {
+		timeout = http_conn_get_duration_to_next_outdated_conn();
+		LOG_DBG("zsock_poll timeout: %d ms", timeout);
+
+                ret = zsock_poll(fds.array, conns_count + listening_count, timeout);
+                if (ret >= 0) {
 #if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
                         if (fds.srv.revents & POLLIN) {
                                 ret = http_srv_accept(fds.srv.fd);
@@ -252,25 +257,30 @@ void http_srv_thread(void *_a, void *_b, void *_c)
                                 }
                         }
 
-                        /* optimize, don't test each pollfd as we have the
-                         * number of ready fd returned by poll()
+                        /* We iterate over the connections and check if there are any data,
+			 * or if the connection has timeout.
                          */
-
                         uint_fast8_t idx = 0;
                         while (idx < conns_count) {
-                                if (fds.cli[idx].revents & POLLIN) {
-                                        http_connection_t *conn =
-                                                http_connect_get(idx);
+				http_connection_t *conn = http_conn_get(idx);
+				
+				if (fds.cli[idx].revents & POLLIN) { /* data available */
+					handle_conn(conn);
+				} else if (http_conn_is_outdated(conn)) { /* check if the connection has timed out */
+					const int sock = conn_get_sock(conn);
+					zsock_close(sock);
+					http_conn_free(conn);
+					LOG_WRN("(%d) Closing outdated connection %p", sock, conn);
+				}
 
-                                        handle_conn(conn);
-
-                                        if (http_conn_closed(conn)) {
-                                                compress_fds(idx);
-                                                show_pfd();
-                                                continue;
-                                        }
-                                }
-                                idx++;
+				/* if connection was closed, remove the socket from the pollfd array */
+				if (http_conn_closed(conn)) {
+					remove_pollfd_by_index(idx);
+					show_pfd();
+					continue;
+				} else {
+					idx++;
+				}
                         }
                 } else {
                         LOG_ERR("unexpected poll(%p, %d, %d) return value = %d",
@@ -326,6 +336,9 @@ int http_srv_accept(int serv_sock)
 
                 conn_get_pfd(conn)->fd = sock;
                 conn_get_pfd(conn)->events = POLLIN;
+
+		conn->keep_alive.timeout = KEEP_ALIVE_DEFAULT_TIMEOUT_MS;
+		conn->keep_alive.last_activity = k_uptime_get_32();
         }
         
         show_pfd();
@@ -445,7 +458,7 @@ static void handle_conn(http_connection_t *conn)
         conn->resp->content_len = 0,
         conn->resp->status_code = 200;
 
-        conn->keep_alive = 0;
+        conn->keep_alive.enabled = 0;
         conn->complete = 0;
 
         if (recv_request(conn) <= 0) {
@@ -462,9 +475,10 @@ static void handle_conn(http_connection_t *conn)
 
         LOG_INF("(%d) Processing req len %u B resp status %d len %u B (keep"
                 "-alive = %d)", sock, req.len, resp.status_code,
-                resp.content_len, conn->keep_alive ? 1 : 0);
+                resp.content_len, conn->keep_alive.enabled);
 
-        if (conn->keep_alive) {
+        if (conn->keep_alive.enabled) {
+		conn->keep_alive.last_activity = k_uptime_get_32();
                 return;
         }
 
@@ -489,7 +503,7 @@ int http_srv_send_response(http_connection_t *conn,
 
         encoded += ret;
         ret = http_encode_header_connection(b + encoded, buf_size - encoded,
-                                            conn->keep_alive);
+                                            (bool)  conn->keep_alive.enabled);
 
         encoded += ret;
         ret = http_encode_header_content_type(b + encoded, buf_size - encoded

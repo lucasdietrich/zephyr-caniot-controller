@@ -61,7 +61,7 @@ int on_header_value(struct http_parser *parser, const char *at, size_t length)
         if ((conn->parsing_header == HEADER_CONNECTION) &&
             (strncicmp(at, "keep-alive", length) == 0)) {
                 LOG_INF("(%p) Header Keep-alive found !", conn);
-                conn->keep_alive = 1;
+                conn->keep_alive.enabled = 1;
         }
         return 0;
 }

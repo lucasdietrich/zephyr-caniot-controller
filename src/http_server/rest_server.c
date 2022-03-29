@@ -32,6 +32,7 @@ static const struct rest_ressource map[] = {
 	REST(GET, "/", rest_index),
 	REST(GET, "/info", rest_info),
 	REST(GET, "/records/xiaomi", rest_xiaomi_records),
+	REST(GET, "/records/xiaomi/prometheus", rest_xiaomi_records_promethus),
 };
 
 static inline const struct rest_ressource *map_last(void)
@@ -253,7 +254,7 @@ struct xiaomi_records_encoding_context
 	} strings[XIAOMI_MAX_DEVICES];
 };
 
-static void rest_xiaomi_record_cb(xiaomi_record_t *rec,
+static void xiaomi_record_cb(xiaomi_record_t *rec,
 				  void *user_data)
 {
 	struct xiaomi_records_encoding_context *ctx =
@@ -285,9 +286,15 @@ int rest_xiaomi_records(struct http_request *req,
 
 	ctx.arr.count = 0;
 
-	dev_ble_xiaomi_iterate(rest_xiaomi_record_cb, &ctx);
+	dev_ble_xiaomi_iterate(xiaomi_record_cb, &ctx);
 
 	return rest_encode_response_json_array(json_xiaomi_record_array_descr,
 					       ARRAY_SIZE(json_xiaomi_record_array_descr),
 					       &ctx.arr, resp);
+}
+
+int rest_xiaomi_records_promethus(struct http_request *req,
+				  struct http_response *resp)
+{
+	return -1;
 }
