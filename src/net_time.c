@@ -38,17 +38,25 @@ void net_time_sync(void)
         k_work_submit(&sntp_work);
 }
 
-void net_time_show(void)
+uint32_t net_time_get(void)
 {
-        struct timespec ts;
-        struct tm time_infos;
+	struct timespec ts;
 
         if (clock_gettime(CLOCK_REALTIME, &ts) < 0) {
                 LOG_ERR("Invalid net time ! %d", -1);
-                return;
+                return 0;
         }
 
-        gmtime_r(&ts.tv_sec, &time_infos);
+	return ts.tv_sec;
+}
+
+void net_time_show(void)
+{
+	time_t timestamp = net_time_get();
+	
+        struct tm time_infos;
+
+        gmtime_r(&timestamp, &time_infos);
 
         printk("Local (Europe/Paris) Date and time : %04d/%02d/%02d %02d:%02d:%02d\n",
                time_infos.tm_year + 1900, time_infos.tm_mon + 1, time_infos.tm_mday,

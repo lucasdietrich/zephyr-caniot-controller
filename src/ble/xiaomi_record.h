@@ -29,9 +29,9 @@ typedef struct {
 	bt_addr_le_t addr;
 
 	/**
-	 * @brief Uptime when the measurements were retrieved
+	 * @brief Time when the measurements were retrieved
 	 */
-	uint32_t uptime;
+	uint32_t time;
 	
 	/**
 	 * @brief Measurements
@@ -47,7 +47,7 @@ typedef struct {
 	/**
 	 * @brief Frame time
 	 */
-	uint32_t frame_time;
+	uint32_t time;
 
 	/**
 	 * @brief Records count

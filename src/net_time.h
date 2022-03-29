@@ -12,8 +12,17 @@
 #ifndef _NET_TIME_H_
 #define _NET_TIME_H_
 
+#include <stdint.h>
+
 void net_time_sync(void);
 
 void net_time_show(void);
+
+/**
+ * @brief Get timestamp in seconds
+ * 
+ * @return uint32_t 
+ */
+uint32_t net_time_get(void);
 
 #endif

@@ -288,7 +288,7 @@ static int handle_connection(struct pollfd *pfd, cantcp_tunnel_t *tunnel)
 		return -EINVAL;
 	}
 
-	int rcvd, ret;
+	int rcvd = 0, ret;
 	struct zcan_frame msg;
 
 	if (pfd->revents & POLLIN) {
