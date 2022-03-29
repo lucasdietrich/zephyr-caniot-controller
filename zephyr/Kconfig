@@ -36,4 +36,11 @@ config CONTROLLER_MAX_HTTP_CONNECTIONS
         help
                 Maximum number of HTTP connections supported by the HTTP server
 
+# artificaly enable HAL_CRC drivers from STM32CUBE
+# read : https://github.com/zephyrproject-rtos/zephyr/issues/37543
+config MY_STM32_HAL
+default y
+bool
+select USE_STM32_HAL_CRC
+
 source "Kconfig.zephyr"

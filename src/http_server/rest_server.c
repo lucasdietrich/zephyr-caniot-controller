@@ -28,6 +28,7 @@ static const struct rest_ressource map[] = {
 	REST(GET, "", rest_index),
 	REST(GET, "/", rest_index),
 	REST(GET, "/info", rest_info),
+	// REST(GET, "/devices", rest_devices),
 };
 
 static inline const struct rest_ressource *map_last(void)

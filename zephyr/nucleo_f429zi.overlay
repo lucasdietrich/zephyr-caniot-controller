@@ -15,7 +15,21 @@
                 led-thread = &red_led_1;
                 led-can = &blue_led_1;
                 sw0 = &user_button;
+
+		ipc-uart = &uart7;
+		ipc-uart-7 = &uart7;
+		ipc-uart-8 = &uart8;
         };
+
+        soc {
+		// ahb1
+		crc1: crc@40023000 {
+			compatible = "st,stm32-crc";
+			reg = <0x40023000 0x400>;
+			label = "STM32_CRC";
+			status = "okay"; // okay
+		};
+	};
 };
 
 /* order matters */
@@ -118,6 +132,61 @@
         };
 };
 
+&dma1 {
+	status = "okay";
+};
+
+// https://docs.zephyrproject.org/latest/reference/devicetree/bindings/serial/st,stm32-uart.html?highlight=stm32%20uart
+&uart8 {
+	status = "okay";
+	current-speed = <1000000>; // 1000000
+	// hw-flow-control;
+	pinctrl-0 = <&uart8_tx_pe1 &uart8_rx_pe0>;
+
+	// https://docs.zephyrproject.org/latest/reference/devicetree/bindings/dma/st%2Cstm32-dma-v1.html
+
+	// RM0090 rev 19 page 307/1751 : DMA1
+	// UART8_TX chan 5 stream 0
+	// UART8_RX chan 5 stream 6
+
+	// see :
+	// - tests/drivers/uart/uart_async_api/boards/nucleo_f429zi.overlay
+	// or ...
+	// - tests/drivers/uart/uart_async_api/boards/disco_l475_iot1.overlay
+	// - tests/drivers/uart/uart_async_api/boards/nucleo_f103rb.overlay
+	// - tests/drivers/uart/uart_async_api/boards/nucleo_f207zg.overlay
+
+
+	dmas =  < &dma1 0 5 0x440 0x3>, /* dma channel stream-slot channel-config features */
+		< &dma1 6 5 0x480 0x3 >; 
+	dma-names = "tx", "rx";
+};
+
+// https://docs.zephyrproject.org/latest/reference/devicetree/bindings/serial/st,stm32-uart.html?highlight=stm32%20uart
+&uart7 {
+	status = "okay";
+	current-speed = <1000000>; // 1000000
+	// hw-flow-control;
+	pinctrl-0 = <&uart7_tx_pe8 &uart7_rx_pe7>;
+
+	// https://docs.zephyrproject.org/latest/reference/devicetree/bindings/dma/st%2Cstm32-dma-v1.html
+
+	// RM0090 rev 19 page 307/1751 : DMA1
+	// UART7_TX chan 5 stream 1
+	// UART7_RX chan 5 stream 3
+
+	// see :
+	// - tests/drivers/uart/uart_async_api/boards/nucleo_f429zi.overlay
+	// or ...
+	// - tests/drivers/uart/uart_async_api/boards/disco_l475_iot1.overlay
+	// - tests/drivers/uart/uart_async_api/boards/nucleo_f103rb.overlay
+	// - tests/drivers/uart/uart_async_api/boards/nucleo_f207zg.overlay
+
+
+	dmas =  < &dma1 1 5 0x440 0x3>, /* dma channel stream-slot channel-config features */
+		< &dma1 3 5 0x480 0x3 >; 
+	dma-names = "tx", "rx";
+};
 
 /* platformio doesn't show the correct FLASH usage 
  * when using overlay with custom partitions

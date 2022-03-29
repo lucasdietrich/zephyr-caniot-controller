@@ -1,0 +1,17 @@
+# https://docs.zephyrproject.org/latest/guides/dts/bindings.html
+
+# A high level description of the device the binding applies to:
+description: |
+   Bindings for CRC peripheral of STM32
+
+compatible: "st,stm32-crc"
+
+properties:
+  reg:
+    type: array
+    description: CRC peripheral MMIO register space
+    required: true
+  label:
+    type: string
+    description: human-readable name
+    required: false
