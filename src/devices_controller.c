@@ -35,19 +35,28 @@ void devices_controller_thread(void *_a, void *_b, void *_c)
 			LOG_INF("Received BLE Xiaomi records count: %u, frame_time: %u",
 				dataframe->count, dataframe->frame_time);
 
+			uint32_t frame_ref_time = dataframe->frame_time;
+
 			// Show all records
 			for (uint8_t i = 0; i < dataframe->count; i++) {
-				bt_addr_le_to_str(&dataframe->records[i].addr, addr_str,
+				xiaomi_record_t *const rec = &dataframe->records[i];
+
+				bt_addr_le_to_str(&rec->addr, 
+						  addr_str,
 						  sizeof(addr_str));
 
+				int32_t record_rel_time = rec->uptime - frame_ref_time;
+
 				 // Show BLE address, temperature, humidity, battery
-				LOG_INF("\tBLE Xiaomi record %u: addr: %s, temp: %d.%d °C, hum: %u %%, bat: %u mV",
+				LOG_INF("\tBLE Xiaomi record %u [%d s]: addr: %s, " \
+					"temp: %d.%d °C, hum: %u %%, bat: %u mV",
 					i,
+					record_rel_time,
 					log_strdup(addr_str),
-					dataframe->records[i].data.temperature / 100,
-					dataframe->records[i].data.temperature % 100,
-					dataframe->records[i].data.humidity,
-					dataframe->records[i].data.battery);
+					rec->measurements.temperature / 100,
+					rec->measurements.temperature % 100,
+					rec->measurements.humidity,
+					rec->measurements.battery);
 			}
 		}
 	}
