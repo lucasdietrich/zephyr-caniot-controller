@@ -6,4 +6,8 @@ GET http://{{host}}/info
 
 ###
 
+GET http://{{host}}/records/xiaomi
+
+###
+
 GET http://{{host}}/404

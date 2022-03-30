@@ -8,11 +8,16 @@
 
 struct http_request
 {
+	/**
+	 * @brief Request method (GET, POST, PUT, DELETE)
+	 */
         enum http_method method;
 
-        char url[32];
+	/* parsed url */
+        char url[64];
         size_t url_len;
 
+	/* parsed authentification */
         struct {
                 char user[16];
                 char password[16];
@@ -25,6 +30,7 @@ struct http_request
 
         size_t len;
 
+	/* HTTP content location */
         struct {
                 const char *loc;
                 size_t len;
@@ -37,6 +43,10 @@ struct http_response
         size_t buf_size;
         size_t content_len;
         uint16_t status_code;
+	enum {
+		HTTP_CONTENT_TYPE_TEXT_PLAIN = 0,
+		HTTP_CONTENT_TYPE_APPLICATION_JSON,
+	} content_type;
 };
 
 /* unused */

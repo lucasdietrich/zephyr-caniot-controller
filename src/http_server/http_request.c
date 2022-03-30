@@ -5,7 +5,7 @@
 #include "http_conn.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(http_req, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(http_req, LOG_LEVEL_WRN);
 
 /* parsing */
 

@@ -16,6 +16,10 @@ typedef struct
         struct sockaddr addr;
 
         /* struct sockaddr_in addr; */
+	/* TODO parser could be shared among all connections as requests 
+	 * are parsed as a whole. */
+	/* TODO parser should belongs to the http_request structure 
+	 * and not the connection structure, this solves also above problem */
         struct http_parser parser;
 
         enum {
@@ -27,7 +31,7 @@ typedef struct
 		HEADER_KEEP_ALIVE,
         } parsing_header;
 
-        
+        /* tells if HTTP request is complete */
         uint8_t complete : 1;
 
 	struct {

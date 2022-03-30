@@ -35,6 +35,11 @@ static const struct rest_ressource map[] = {
 	REST(GET, "/records/xiaomi/prometheus", rest_xiaomi_records_promethus),
 };
 
+static inline const struct rest_ressource *map_first(void)
+{
+	return map;
+}
+
 static inline const struct rest_ressource *map_last(void)
 {
 	return &map[ARRAY_SIZE(map) - 1];
@@ -50,7 +55,7 @@ static bool url_match(const struct rest_ressource *res,
 
 rest_handler_t rest_resolve(struct http_request *req)
 {
-	for (const struct rest_ressource *res = map; res <= map_last(); res++) {
+	for (const struct rest_ressource *res = map_first(); res <= map_last(); res++) {
 		if (res->method != req->method) {
 			continue;
 		}

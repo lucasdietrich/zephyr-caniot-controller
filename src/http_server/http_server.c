@@ -19,7 +19,7 @@
 #include "creds/credentials.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(http_server, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF);
 
 /*___________________________________________________________________________*/
 
@@ -53,14 +53,14 @@ K_THREAD_DEFINE(http_server, 0x1000, http_srv_thread,
 /* We use the same buffer for all connections,
  * each HTTP request should be parsed and processed immediately.
  *
- * Same buffer for RX and TX
+ * Same buffer for HTTP request and HTTP response
  */
 union {
-        char request[0xA00];
-        struct {
-                char internal[0x200];
-                char payload[0x800];
-        } response;
+	char request[0xA00];
+	struct {
+		char internal[0x200];
+		char payload[0x800];
+	} response;
 } buffer;
 
 /**
@@ -134,9 +134,9 @@ static int setup_socket(struct pollfd *pfd, bool secure)
         }
 
         /* set secure tag */
-        if (secure) {
-                ret = zsock_setsockopt(sock, SOL_TLS, TLS_SEC_TAG_LIST,
-                                 sec_tag_list, sizeof(sec_tag_list));
+	if (secure) {
+		ret = zsock_setsockopt(sock, SOL_TLS, TLS_SEC_TAG_LIST,
+				       sec_tag_list, sizeof(sec_tag_list));
                 if (ret < 0) {
                         LOG_ERR("(%d) Failed to set TCP secure option : %d", 
                                 sock, ret);
@@ -202,7 +202,7 @@ static void remove_pollfd_by_index(uint_fast8_t index)
 {
         LOG_DBG("Compress fds count = %u", conns_count);
 
-        show_pfd();
+        // show_pfd();
 
         if (index >= CONFIG_CONTROLLER_MAX_HTTP_CONNECTIONS) {
                 return;
@@ -394,6 +394,7 @@ static int recv_request(http_connection_t *conn)
                         remaining -= rc;
 
                         if (conn->complete) {
+				/* if request is complete, we only expect a following request */
                                 break;
                         }
                 }
@@ -415,9 +416,8 @@ static int sendall(int sock, char *buf, size_t len)
                         if (ret == -EAGAIN) {
                                 LOG_INF("-EAGAIN (%d)", sock);
                                 continue;
-
-                                goto exit;
                         }
+			goto exit;
                 } else if (ret > 0) {
                         sent += ret;
                 } else {
