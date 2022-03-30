@@ -60,6 +60,9 @@
                 "stdint.h": "c",
                 "net_stats.h": "c",
                 "net_mgmt.h": "c",
-                "if.h": "c"
+                "if.h": "c",
+                "http_routes.h": "c",
+                "routes.h": "c",
+                "web_server.h": "c"
         }
 }

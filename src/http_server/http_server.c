@@ -13,7 +13,7 @@
 
 #include "http_utils.h"
 #include "http_conn.h"
-#include "rest_server.h"
+#include "routes.h"
 #include "utils.h"
 
 #include "creds/credentials.h"
@@ -439,7 +439,7 @@ static void handle_conn(http_connection_t *conn)
                 .buffer = {
                         .buf = buffer.request,
                         .size = sizeof(buffer.request)
-                }
+                },
         };
         static struct http_response resp = {
                 .buf = buffer.response.payload,
@@ -468,6 +468,11 @@ static void handle_conn(http_connection_t *conn)
         if (http_srv_process_request(&req, &resp) != 0) {
                 goto close;
         }
+
+	/* in prepare response set content-type, length, ... */
+	// if (http_srv_prepare_response(&req, &resp) != 0) {
+	// 	goto close;
+	// }
 
         if (http_srv_send_response(conn, &resp) < 0) {
                 goto close;
@@ -546,12 +551,14 @@ exit:
 int http_srv_process_request(struct http_request *req,
                              struct http_response *resp)
 {
-        rest_handler_t handler = rest_resolve(req);
+        http_handler_t handler = route_resolve(req);
         if (handler != NULL) {
                 if (handler(req, resp)) {
                         /* encode HTTP internal server error */
                         resp->status_code = 500;
                 }
+
+		/* do post processing */
         } else {
                 /* encoded HTTP 404 response */
                 resp->status_code = 404;

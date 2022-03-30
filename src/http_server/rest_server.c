@@ -24,54 +24,6 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_DBG);
 
-#define REST REST_RESSOURCE
-
-#define DELETE HTTP_DELETE
-#define GET HTTP_GET
-#define POST HTTP_POST
-#define PUT HTTP_PUT
-
-static const struct rest_ressource map[] = {
-	REST(GET, "", rest_info),
-	REST(GET, "/", rest_info),
-	REST(GET, "/info", rest_info),
-	REST(GET, "/records/xiaomi", rest_xiaomi_records),
-	REST(GET, "/records/xiaomi/prometheus", rest_xiaomi_records_promethus),
-};
-
-static inline const struct rest_ressource *map_first(void)
-{
-	return map;
-}
-
-static inline const struct rest_ressource *map_last(void)
-{
-	return &map[ARRAY_SIZE(map) - 1];
-}
-
-static bool url_match(const struct rest_ressource *res,
-		      const char *url, size_t url_len)
-{
-	size_t check_len = MAX(res->route_len, url_len);
-
-	return strncmp(res->route, url, check_len) == 0;
-}
-
-rest_handler_t rest_resolve(struct http_request *req)
-{
-	for (const struct rest_ressource *res = map_first(); res <= map_last(); res++) {
-		if (res->method != req->method) {
-			continue;
-		}
-
-		if (url_match(res, req->url, req->url_len)) {
-			return res->handler;
-		}
-	}
-
-	return NULL;
-}
-
 int rest_encode_response_json(const struct json_obj_descr *descr,
 			      size_t descr_len, const void *val,
 			      struct http_response *resp)

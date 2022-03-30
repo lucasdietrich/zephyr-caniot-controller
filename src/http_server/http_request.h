@@ -6,6 +6,8 @@
 
 #include <net/http_parser.h>
 
+#include "routes.h"
+
 struct http_request
 {
 	/**
@@ -16,6 +18,9 @@ struct http_request
 	/* parsed url */
         char url[64];
         size_t url_len;
+
+	/* associate request to route */
+	const struct http_route *route;
 
 	/* parsed authentification */
         struct {
@@ -47,17 +52,6 @@ struct http_response
 		HTTP_CONTENT_TYPE_TEXT_PLAIN = 0,
 		HTTP_CONTENT_TYPE_APPLICATION_JSON,
 	} content_type;
-};
-
-/* unused */
-typedef int (*http_handler_t)(struct http_request *request,
-                             struct http_response *response);
-
-/* unused */
-struct http_ressource
-{
-        const char *url;
-        http_handler_t handler;
 };
 
 #endif

@@ -9,28 +9,6 @@
 #include "http_utils.h"
 #include "http_request.h"
 
-typedef int (*rest_handler_t) (struct http_request *req,
-                               struct http_response *resp);
-
-struct rest_ressource
-{
-        const char *route;
-        size_t route_len;
-
-        enum http_method method;
-        rest_handler_t handler;
-};
-
-#define REST_RESSOURCE(m, r, h) \
-{ \
-        .route = r, \
-        .route_len = sizeof(r) - 1, \
-        .method = m, \
-        .handler = h, \
-}
-
-rest_handler_t rest_resolve(struct http_request *req);
-
 int rest_encode_response_json(const struct json_obj_descr *descr,
                               size_t descr_len, const void *val,
                               struct http_response *resp);
