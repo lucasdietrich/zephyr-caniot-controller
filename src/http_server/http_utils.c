@@ -3,6 +3,8 @@
 
 #include "http_utils.h"
 
+#include "utils.h"
+
 #include <logging/log.h>
 LOG_MODULE_REGISTER(http_utils, LOG_LEVEL_DBG);
 
@@ -64,9 +66,26 @@ int http_encode_header_connection(char *buf, size_t len, bool keep_alive)
                         keep_alive ? connection_str[1] : connection_str[0]);
 }
 
-int http_encode_header_content_type(char *buf, size_t len)
+int http_encode_header_content_type(char *buf,
+				    size_t len,
+				    http_content_type_t type)
 {
-        return snprintf(buf, len, "Content-type: application/json\r\n");
+	static const char *content_type_str[] = {
+		"text/plain",
+		"application/json"
+	};
+
+	if (type < 0 || type >= ARRAY_SIZE(content_type_str)) {
+		return -EINVAL;
+	}
+
+	const char *parts[] = {
+		"Content-Type: ",
+		content_type_str[type],
+		"\r\n"
+	};
+
+	return mem_append_strings(buf, len, parts, ARRAY_SIZE(parts));
 }
 
 int http_encode_header_end(char *buf, size_t len)

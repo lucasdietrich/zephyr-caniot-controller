@@ -432,11 +432,11 @@ exit:
         return ret;
 }
 
-static int encode_response_headers(http_connection_t *conn,
-				   struct http_response *resp)
-{
-	return 0;
-}
+// static int encode_response_headers(http_connection_t *conn,
+// 				   struct http_response *resp)
+// {
+// 	return 0;
+// }
 
 static int send_response(http_connection_t *conn,
                            struct http_response *resp)
@@ -455,9 +455,9 @@ static int send_response(http_connection_t *conn,
         ret = http_encode_header_connection(b + encoded, buf_size - encoded,
                                             (bool)  conn->keep_alive.enabled);
 
-        encoded += ret;
-        ret = http_encode_header_content_type(b + encoded, buf_size - encoded
-                                              /*, resp->content_type */);
+	encoded += ret;
+	ret = http_encode_header_content_type(b + encoded, buf_size - encoded,
+					      resp->content_type);
 
         encoded += ret;
         ret = http_encode_header_content_length(b + encoded, buf_size - encoded,
@@ -494,23 +494,31 @@ exit:
 }
 
 static int process_request(struct http_request *req,
-                             struct http_response *resp)
+			   struct http_response *resp)
 {
-        http_handler_t handler = route_resolve(req);
-        if (handler != NULL) {
-                if (handler(req, resp)) {
-                        /* encode HTTP internal server error */
-                        resp->status_code = 500;
-                }
+	const struct http_route *route = route_resolve(req);
 
-		/* do post processing */
-        } else {
-                /* encoded HTTP 404 response */
-                resp->status_code = 404;
-        }
+	if (route != NULL) {
+		/* set default content type in function of the route */
+		resp->content_type = http_get_route_default_content_type(route);
 
-        /* post check on payload to send */
-        return 0;
+		if (route->handler != NULL) {
+			if (route->handler(req, resp)) {
+				/* encode HTTP internal server error */
+				resp->status_code = 500;
+			}
+		} else {
+			LOG_ERR("No handler for route %s", req->url);
+		}
+	} else {
+		LOG_WRN("No route found for %s", req->url);
+
+		/* encoded HTTP 404 response */
+		resp->status_code = 404;
+	}
+
+	/* post check on payload to send */
+	return 0;
 }
 
 static void handle_conn(http_connection_t *conn)
@@ -533,11 +541,12 @@ static void handle_conn(http_connection_t *conn)
         conn->resp = &resp;
 
         /* reset req and resp values */
-        conn->req->payload.loc = NULL;
-        conn->req->payload.len = 0;
+        req.payload.loc = NULL;
+        req.payload.len = 0;
 
-        conn->resp->content_len = 0,
-        conn->resp->status_code = 200;
+        resp.content_len = 0,
+        resp.status_code = 200;
+	resp.content_type = HTTP_CONTENT_TYPE_TEXT_PLAIN;
 
         conn->keep_alive.enabled = 0;
         conn->complete = 0;

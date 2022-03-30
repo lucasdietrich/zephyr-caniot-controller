@@ -6,6 +6,7 @@
 
 #include <net/http_parser.h>
 
+#include "http_utils.h"
 #include "routes.h"
 
 struct http_request
@@ -52,10 +53,7 @@ struct http_response
         size_t buf_size;
         size_t content_len;
         uint16_t status_code;
-	enum {
-		HTTP_CONTENT_TYPE_TEXT_PLAIN = 0,
-		HTTP_CONTENT_TYPE_APPLICATION_JSON,
-	} content_type;
+	http_content_type_t content_type;
 };
 
 #endif

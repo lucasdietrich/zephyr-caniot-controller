@@ -63,6 +63,8 @@
                 "if.h": "c",
                 "http_routes.h": "c",
                 "routes.h": "c",
-                "web_server.h": "c"
+                "web_server.h": "c",
+                "cstdio": "c",
+                "utils.h": "c"
         }
 }

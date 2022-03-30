@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <net/http_parser.h>
 
+#include "http_utils.h"
+
 typedef enum {
 	HTTP_REST_SERVER = 0,
 	HTTP_WEB_SERVER
@@ -36,6 +38,9 @@ struct http_route
 #define REST_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_REST_SERVER)
 #define WEB_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_WEB_SERVER)
 
-http_handler_t route_resolve(struct http_request *req);
+const struct http_route *route_resolve(struct http_request *req);
+
+http_content_type_t http_get_route_default_content_type(const struct http_route *route);
+
 
 #endif /* _HTTP_SERVER_ROUTES_H_ */

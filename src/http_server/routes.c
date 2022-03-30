@@ -42,34 +42,30 @@ static bool url_match(const struct http_route *res,
 	return strncmp(res->route, url, check_len) == 0;
 }
 
-http_handler_t route_resolve(struct http_request *req)
+const struct http_route *route_resolve(struct http_request *req)
 {
-	http_handler_t handler = NULL;
-
 	for (const struct http_route *route = first(); route <= last(); route++) {
 		if (route->method != req->method) {
 			continue;
 		}
 
 		if (url_match(route, req->url, req->url_len)) {
-			/* associate route to request */
-			req->route = route;
 
-			/* retrieve handler */
-			handler = route->handler;
-
-			/* check if handler is properly set */
-			if (handler == NULL) {
-				LOG_ERR("No handler for route %s", req->url);
-			}
-
-			break;
+			return route;
 		}
 	}
 
-	if (handler == NULL) {
-		LOG_WRN("No route found for %s", req->url);
-	}
+	return NULL;
+}
 
-	return handler;
+http_content_type_t http_get_route_default_content_type(const struct http_route *route)
+{
+	switch (route->server) {
+	case HTTP_REST_SERVER:
+		return HTTP_CONTENT_TYPE_APPLICATION_JSON;
+
+	case HTTP_WEB_SERVER:
+	default:
+		return HTTP_CONTENT_TYPE_TEXT_PLAIN;
+	}
 }

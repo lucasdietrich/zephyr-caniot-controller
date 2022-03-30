@@ -6,6 +6,48 @@
 
 #include "utils.h"
 
+ssize_t mem_append(void *dst,
+		   size_t dst_len,
+		   const void *src,
+		   size_t src_len)
+{
+	if (dst_len < src_len) {
+		return -EINVAL;
+	}
+
+	memcpy(dst, src, src_len);
+	return src_len;
+}
+
+ssize_t mem_append_string(void *dst,
+			  size_t dst_len,
+			  const char *string)
+{
+	return mem_append(dst, dst_len, string, strlen(string));
+}
+
+ssize_t mem_append_strings(void *dst,
+			   size_t dst_len,
+			   const char **strings,
+			   size_t count)
+{
+	ssize_t appended;
+	ssize_t total = 0;
+
+	const char **string;
+
+	for (string = strings; string < strings + count; string++) {
+		appended = mem_append_string((uint8_t *)dst + total,
+					     dst_len - total,
+					     *string);
+		if (appended < 0) {
+			return appended;
+		}
+		total += appended;
+	}
+	return total;
+}
+
 int ipv4_to_str(struct in_addr *addr, char *buffer, size_t len)
 {
         return net_addr_ntop(AF_INET, addr, buffer, len) == NULL ? - 1 : 0;
