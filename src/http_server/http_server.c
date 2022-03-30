@@ -496,6 +496,7 @@ exit:
 static int process_request(struct http_request *req,
 			   struct http_response *resp)
 {
+	int ret;
 	const struct http_route *route = route_resolve(req);
 
 	if (route != NULL) {
@@ -503,18 +504,24 @@ static int process_request(struct http_request *req,
 		resp->content_type = http_get_route_default_content_type(route);
 
 		if (route->handler != NULL) {
-			if (route->handler(req, resp)) {
+			ret = route->handler(req, resp);
+			if (ret != 0) {
+				LOG_ERR("Handler failed: err = %d", ret);
+
 				/* encode HTTP internal server error */
-				resp->status_code = 500;
+				resp->status_code = 500U;
 			}
 		} else {
 			LOG_ERR("No handler for route %s", req->url);
+
+			/* Not Found */
+			resp->status_code = 404U;
 		}
 	} else {
 		LOG_WRN("No route found for %s", req->url);
 
-		/* encoded HTTP 404 response */
-		resp->status_code = 404;
+		/* Not Found */
+		resp->status_code = 404U;
 	}
 
 	/* post check on payload to send */

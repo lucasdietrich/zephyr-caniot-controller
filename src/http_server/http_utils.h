@@ -6,6 +6,7 @@
 
 typedef enum {
 	HTTP_CONTENT_TYPE_TEXT_PLAIN = 0,
+	HTTP_CONTENT_TYPE_TEXT_HTML,
 	HTTP_CONTENT_TYPE_APPLICATION_JSON,
 } http_content_type_t;
 

@@ -11,3 +11,7 @@ GET http://{{host}}/records/xiaomi
 ###
 
 GET http://{{host}}/404
+
+###
+
+GET http://{{host}}/metrics

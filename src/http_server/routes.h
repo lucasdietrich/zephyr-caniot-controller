@@ -8,7 +8,8 @@
 
 typedef enum {
 	HTTP_REST_SERVER = 0,
-	HTTP_WEB_SERVER
+	HTTP_WEB_SERVER,
+	HTTP_PROMETHEUS_CLIENT
 } http_server_t;
 
 struct http_response;
@@ -37,6 +38,7 @@ struct http_route
 
 #define REST_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_REST_SERVER)
 #define WEB_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_WEB_SERVER)
+#define PROM_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_PROMETHEUS_CLIENT)
 
 const struct http_route *route_resolve(struct http_request *req);
 

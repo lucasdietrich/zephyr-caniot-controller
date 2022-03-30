@@ -6,6 +6,9 @@ class PrometheusType(IntEnum):
     Histogram = 3
     Summary = 4
 
+# BLE/CANIOT, EMB/EXT, BLE MAC/CANIOT DID, room name, f429/raspberry
+device_measurement_tags = ["device_type", "sensor_type", "mac", "room", "collector"]
+
 model = {
     "caniot": {
         "f429": {
@@ -19,13 +22,15 @@ model = {
                 "usage": [PrometheusType.Gauge, "CPU Usage"],
                 "uptime": [PrometheusType.Gauge, "CPU Uptime"],
             },
-            "device": {
-                "temperature": [PrometheusType.Gauge, "Device temperature (in °C)", ["type", "mac", "location", "collector"]],
-                "humidty":  [PrometheusType.Gauge, "Device humdity (in %)", ["type", "mac", "collector"]],
-                "battery_voltage": [PrometheusType.Gauge, "Device battery voltage (in V)", ["type", "mac", "collector"]],
-            },
         }
-    }
+    },
+    "device": {
+        "count": [PrometheusType.Gauge, "Device count"],
+        "temperature": [PrometheusType.Gauge, "Device temperature (in °C)", device_measurement_tags],
+        "humidity":  [PrometheusType.Gauge, "Device humidity (in %)", device_measurement_tags],
+        "battery_voltage": [PrometheusType.Gauge, "Device battery voltage (in V)", device_measurement_tags],
+        "measurements_last_timestamp": [PrometheusType.Gauge, "Device last measurement timestamp (UTC time)", device_measurement_tags],
+    },
 }
 
 
@@ -61,7 +66,7 @@ def generate_metrics(model: dict, prefix: str = "", mute: bool = False):
             raise Exception(f"Invalid model, ns = {metric}")
 
 if __name__ == "__main__":
-    content = "\n".join(generate_metrics(model, mute=False))
+    content = "\n".join(generate_metrics(model, mute=True))
 
     print("length = ", len(content))
 

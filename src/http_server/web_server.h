@@ -5,7 +5,4 @@
 
 #include "http_request.h"
 
-int prometheus_metrics(struct http_request *req,
-		       struct http_response *resp);
-
 #endif

@@ -8,15 +8,42 @@
 
 #include <sys/types.h>
 
+/**
+ * @brief Append memory to a buffer
+ * 
+ * @param dst buffer to store the result
+ * @param dst_len buffer length
+ * @param src source buffer
+ * @param src_len source buffer length
+ * @return ssize_t 
+ */
 ssize_t mem_append(void *dst,
 		   size_t dst_len,
 		   const void *src,
 		   size_t src_len);
 
+/**
+ * @brief Append a string to a buffer
+ * 
+ * @param dst buffer to store the result
+ * @param dst_len buffer length
+ * @param string String to append
+ * @return ssize_t 
+ */
 ssize_t mem_append_string(void *dst,
 			  size_t dst_len,
 			  const char *string);
 
+/**
+ * @brief Append and concatenate strings to a buffer
+ * 
+ * @param dst buffer to store the result
+ * @param dst_len buffer length
+ * @param strings Strings to concatenate, all strings should be fined 
+ *  		   (i.e. not null) and must be null-terminated)
+ * @param count Number of strings to concatenate
+ * @return ssize_t 
+ */
 ssize_t mem_append_strings(void *dst,
 			   size_t dst_len,
 			   const char **strings,

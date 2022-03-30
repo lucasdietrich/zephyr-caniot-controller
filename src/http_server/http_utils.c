@@ -72,7 +72,8 @@ int http_encode_header_content_type(char *buf,
 {
 	static const char *content_type_str[] = {
 		"text/plain",
-		"application/json"
+		"text/html",
+		"application/json",
 	};
 
 	if (type < 0 || type >= ARRAY_SIZE(content_type_str)) {

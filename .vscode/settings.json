@@ -65,6 +65,7 @@
                 "routes.h": "c",
                 "web_server.h": "c",
                 "cstdio": "c",
-                "utils.h": "c"
+                "utils.h": "c",
+                "prometheus_client.h": "c"
         }
 }

@@ -5,9 +5,11 @@ LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 
 #include "rest_server.h"
 #include "web_server.h"
+#include "prometheus_client.h"
 
 #define REST REST_RESSOURCE
 #define WEB WEB_RESSOURCE
+#define PROM PROM_RESSOURCE
 
 #define DELETE HTTP_DELETE
 #define GET HTTP_GET
@@ -21,7 +23,9 @@ static const struct http_route routes[] = {
 	REST(GET, "/records/xiaomi", rest_xiaomi_records),
 	REST(GET, "/records/xiaomi/prometheus", rest_xiaomi_records_promethus),
 
-	WEB(GET, "/metrics", NULL) /* prometheus_metrics */
+	PROM(GET, "/metrics", prometheus_metrics), /* prometheus_metrics */
+
+	WEB(GET, "index.html", NULL),
 };
 
 static inline const struct http_route *first(void)
@@ -65,6 +69,7 @@ http_content_type_t http_get_route_default_content_type(const struct http_route 
 		return HTTP_CONTENT_TYPE_APPLICATION_JSON;
 
 	case HTTP_WEB_SERVER:
+	case HTTP_PROMETHEUS_CLIENT:
 	default:
 		return HTTP_CONTENT_TYPE_TEXT_PLAIN;
 	}
