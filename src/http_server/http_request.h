@@ -23,16 +23,20 @@ struct http_request
 	const struct http_route *route;
 
 	/* parsed authentification */
+	/*
         struct {
                 char user[16];
                 char password[16];
         };
+	*/
 
+	/* Buffer used to store the received bytes */
         struct {
                 char* buf;
                 size_t size;
         } buffer;
 
+	/* Request length */
         size_t len;
 
 	/* HTTP content location */

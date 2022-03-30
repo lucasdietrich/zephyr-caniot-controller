@@ -23,18 +23,8 @@
 #include "http_request.h"
 #include "http_conn.h"
 
-int http_srv_setup_sockets(void);
+int setup_sockets(void);
 
 void http_srv_thread(void *_a, void *_b, void *_c);
-
-int http_srv_accept(int serv_sock);
-
-int http_dispatch_request(struct http_request *req);
-
-int http_srv_send_response(http_connection_t *conn,
-                           struct http_response *resp);
-
-int http_srv_process_request(struct http_request *req,
-                             struct http_response *resp);
 
 #endif

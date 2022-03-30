@@ -168,7 +168,7 @@ exit:
         return ret;
 }
 
-int http_srv_setup_sockets(void)
+int setup_sockets(void)
 {
         /* setup non-secure HTTP socket (port 80) */
 #if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
@@ -220,85 +220,7 @@ static void remove_pollfd_by_index(uint_fast8_t index)
         show_pfd();
 }
 
-void http_srv_thread(void *_a, void *_b, void *_c)
-{
-        ARG_UNUSED(_a);
-        ARG_UNUSED(_b);
-        ARG_UNUSED(_c);
-
-        int ret, timeout;
-
-        /* initialize connection pool */
-        http_conn_init_pool();
-
-        ret = http_srv_setup_sockets();
-
-        for (;;) {
-                show_pfd();
-
-		timeout = http_conn_get_duration_to_next_outdated_conn();
-		LOG_DBG("zsock_poll timeout: %d ms", timeout);
-
-                ret = zsock_poll(fds.array, conns_count + listening_count, timeout);
-                if (ret >= 0) {
-#if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
-                        if (fds.srv.revents & POLLIN) {
-                                ret = http_srv_accept(fds.srv.fd);
-                                if(ret != 0) {
-                                        LOG_ERR("(%d) http_srv_accept failed", ret);
-                                }
-                        }
-#endif /* CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE */
-
-                        if (fds.sec.revents & POLLIN) {
-                                ret = http_srv_accept(fds.sec.fd);
-                                if(ret != 0) {
-                                        LOG_ERR("(%d) http_srv_accept failed", ret);
-                                }
-                        }
-
-                        /* We iterate over the connections and check if there are any data,
-			 * or if the connection has timeout.
-                         */
-                        uint_fast8_t idx = 0;
-                        while (idx < conns_count) {
-				http_connection_t *conn = http_conn_get(idx);
-				
-				if (fds.cli[idx].revents & POLLIN) { /* data available */
-					handle_conn(conn);
-				} else if (http_conn_is_outdated(conn)) { /* check if the connection has timed out */
-					const int sock = conn_get_sock(conn);
-					zsock_close(sock);
-					http_conn_free(conn);
-					LOG_WRN("(%d) Closing outdated connection %p", sock, conn);
-				}
-
-				/* if connection was closed, remove the socket from the pollfd array */
-				if (http_conn_closed(conn)) {
-					remove_pollfd_by_index(idx);
-					show_pfd();
-					continue;
-				} else {
-					idx++;
-				}
-                        }
-                } else {
-                        LOG_ERR("unexpected poll(%p, %d, %d) return value = %d",
-                                &fds, conns_count + listening_count, SYS_FOREVER_MS, ret);
-                        
-                        /* TODO remove, sleep 1 sec here */
-                        k_sleep(K_MSEC(5000));
-                }
-        }
-
-#if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
-        zsock_close(fds.srv.fd);
-#endif /* CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE */
-
-        zsock_close(fds.sec.fd);
-}
-
-int http_srv_accept(int serv_sock)
+static int srv_accept(int serv_sock)
 {
         int ret, sock;
         struct sockaddr_in addr;
@@ -350,6 +272,84 @@ int http_srv_accept(int serv_sock)
         return 0;
 exit:
         return ret;
+}
+
+void http_srv_thread(void *_a, void *_b, void *_c)
+{
+        ARG_UNUSED(_a);
+        ARG_UNUSED(_b);
+        ARG_UNUSED(_c);
+
+        int ret, timeout;
+
+        /* initialize connection pool */
+        http_conn_init_pool();
+
+        ret = setup_sockets();
+
+        for (;;) {
+                show_pfd();
+
+		timeout = http_conn_get_duration_to_next_outdated_conn();
+		LOG_DBG("zsock_poll timeout: %d ms", timeout);
+
+                ret = zsock_poll(fds.array, conns_count + listening_count, timeout);
+                if (ret >= 0) {
+#if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
+                        if (fds.srv.revents & POLLIN) {
+                                ret = srv_accept(fds.srv.fd);
+                                if(ret != 0) {
+                                        LOG_ERR("(%d) srv_accept failed", ret);
+                                }
+                        }
+#endif /* CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE */
+
+                        if (fds.sec.revents & POLLIN) {
+                                ret = srv_accept(fds.sec.fd);
+                                if(ret != 0) {
+                                        LOG_ERR("(%d) srv_accept failed", ret);
+                                }
+                        }
+
+                        /* We iterate over the connections and check if there are any data,
+			 * or if the connection has timeout.
+                         */
+                        uint_fast8_t idx = 0;
+                        while (idx < conns_count) {
+				http_connection_t *conn = http_conn_get(idx);
+				
+				if (fds.cli[idx].revents & POLLIN) { /* data available */
+					handle_conn(conn);
+				} else if (http_conn_is_outdated(conn)) { /* check if the connection has timed out */
+					const int sock = conn_get_sock(conn);
+					zsock_close(sock);
+					http_conn_free(conn);
+					LOG_WRN("(%d) Closing outdated connection %p", sock, conn);
+				}
+
+				/* if connection was closed, remove the socket from the pollfd array */
+				if (http_conn_closed(conn)) {
+					remove_pollfd_by_index(idx);
+					show_pfd();
+					continue;
+				} else {
+					idx++;
+				}
+                        }
+                } else {
+                        LOG_ERR("unexpected poll(%p, %d, %d) return value = %d",
+                                &fds, conns_count + listening_count, SYS_FOREVER_MS, ret);
+                        
+                        /* TODO remove, sleep 1 sec here */
+                        k_sleep(K_MSEC(5000));
+                }
+        }
+
+#if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
+        zsock_close(fds.srv.fd);
+#endif /* CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE */
+
+        zsock_close(fds.sec.fd);
 }
 
 static int recv_request(http_connection_t *conn)
@@ -432,68 +432,13 @@ exit:
         return ret;
 }
 
-static void handle_conn(http_connection_t *conn)
+static int encode_response_headers(http_connection_t *conn,
+				   struct http_response *resp)
 {
-        /* initialized one time only !*/
-        static struct http_request req = {
-                .buffer = {
-                        .buf = buffer.request,
-                        .size = sizeof(buffer.request)
-                },
-        };
-        static struct http_response resp = {
-                .buf = buffer.response.payload,
-                .buf_size = sizeof(buffer.response.payload)
-        };
-
-        const int sock = conn_get_sock(conn);
-
-        conn->req = &req;
-        conn->resp = &resp;
-
-        /* reset req and resp values */
-        conn->req->payload.loc = NULL;
-        conn->req->payload.len = 0;
-
-        conn->resp->content_len = 0,
-        conn->resp->status_code = 200;
-
-        conn->keep_alive.enabled = 0;
-        conn->complete = 0;
-
-        if (recv_request(conn) <= 0) {
-                goto close;
-        }
-
-        if (http_srv_process_request(&req, &resp) != 0) {
-                goto close;
-        }
-
-	/* in prepare response set content-type, length, ... */
-	// if (http_srv_prepare_response(&req, &resp) != 0) {
-	// 	goto close;
-	// }
-
-        if (http_srv_send_response(conn, &resp) < 0) {
-                goto close;
-        }
-
-        LOG_INF("(%d) Processing req len %u B resp status %d len %u B (keep"
-                "-alive = %d)", sock, req.len, resp.status_code,
-                resp.content_len, conn->keep_alive.enabled);
-
-        if (conn->keep_alive.enabled) {
-		conn->keep_alive.last_activity = k_uptime_get_32();
-                return;
-        }
-
-close:
-        zsock_close(sock);
-        http_conn_free(conn);
-        LOG_INF("(%d) Closing sock conn %p", sock, conn);
+	return 0;
 }
 
-int http_srv_send_response(http_connection_t *conn,
+static int send_response(http_connection_t *conn,
                            struct http_response *resp)
 {
         int ret, sent;
@@ -548,7 +493,7 @@ exit:
         return ret;
 }
 
-int http_srv_process_request(struct http_request *req,
+static int process_request(struct http_request *req,
                              struct http_response *resp)
 {
         http_handler_t handler = route_resolve(req);
@@ -566,6 +511,67 @@ int http_srv_process_request(struct http_request *req,
 
         /* post check on payload to send */
         return 0;
+}
+
+static void handle_conn(http_connection_t *conn)
+{
+        /* initialized one time only !*/
+        static struct http_request req = {
+                .buffer = {
+                        .buf = buffer.request,
+                        .size = sizeof(buffer.request)
+                },
+        };
+        static struct http_response resp = {
+                .buf = buffer.response.payload,
+                .buf_size = sizeof(buffer.response.payload)
+        };
+
+        const int sock = conn_get_sock(conn);
+
+        conn->req = &req;
+        conn->resp = &resp;
+
+        /* reset req and resp values */
+        conn->req->payload.loc = NULL;
+        conn->req->payload.len = 0;
+
+        conn->resp->content_len = 0,
+        conn->resp->status_code = 200;
+
+        conn->keep_alive.enabled = 0;
+        conn->complete = 0;
+
+        if (recv_request(conn) <= 0) {
+                goto close;
+        }
+
+        if (process_request(&req, &resp) != 0) {
+                goto close;
+        }
+
+	/* in prepare response set content-type, length, ... */
+	// if (encode_response_headers(&req, &resp) != 0) {
+	// 	goto close;
+	// }
+
+        if (send_response(conn, &resp) < 0) {
+                goto close;
+        }
+
+        LOG_INF("(%d) Processing req len %u B resp status %d len %u B (keep"
+                "-alive = %d)", sock, req.len, resp.status_code,
+                resp.content_len, conn->keep_alive.enabled);
+
+        if (conn->keep_alive.enabled) {
+		conn->keep_alive.last_activity = k_uptime_get_32();
+                return;
+        }
+
+close:
+        zsock_close(sock);
+        http_conn_free(conn);
+        LOG_INF("(%d) Closing sock conn %p", sock, conn);
 }
 
 /*___________________________________________________________________________*/
