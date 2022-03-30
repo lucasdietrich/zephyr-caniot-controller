@@ -92,6 +92,8 @@ void devices_controller_thread(void *_a, void *_b, void *_c)
 	char addr_str[BT_ADDR_LE_STR_LEN];
 
 	for (;;) {
+		/* TODO : k_poll on msgq/fifo/... to received records from BLE and CANIOT devices */
+		
 		if (k_msgq_get(&msgq, (void *)&frame, K_FOREVER) == 0) {
 			xiaomi_dataframe_t *const dataframe =
 				(xiaomi_dataframe_t *)frame.data.buf;

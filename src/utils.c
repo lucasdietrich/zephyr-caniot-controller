@@ -79,3 +79,37 @@ int get_repr_can_frame(struct zcan_frame *frame, char *buf, size_t len)
 			frame->data[2], frame->data[3], frame->data[4], frame->data[5],
 			frame->data[6], frame->data[7]);
 }
+
+int buffer_init(buffer_t *buffer, void *data, size_t size)
+{
+	int ret = -EINVAL;
+
+	if ((data != NULL) && (size > 0U)) {
+		buffer->data = data;
+		buffer->size = size;
+		buffer->filling = 0U;
+
+		ret = 0;
+	}
+
+	return ret;
+}
+
+int buffer_append(buffer_t *buffer, void *data, size_t size)
+{
+	int ret = -EINVAL;
+
+	if ((buffer->filling + size) <= buffer->size) {
+		memcpy((uint8_t *)buffer->data + buffer->filling, data, size);
+		buffer->filling += size;
+
+		ret = 0;
+	}
+
+	return ret;
+}
+
+int buffer_append_string(buffer_t *buffer, const char *string)
+{
+	return buffer_append(buffer, (void *)string, strlen(string));
+}

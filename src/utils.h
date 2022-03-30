@@ -57,4 +57,16 @@ int strncicmp(char const *a, char const *b, size_t len);
 
 int get_repr_can_frame(struct zcan_frame *frame, char *buf, size_t len);
 
+typedef struct {
+	void *data;
+	size_t size;
+	size_t filling;
+} buffer_t;
+
+int buffer_init(buffer_t *buffer, void *data, size_t size);
+
+int buffer_append(buffer_t *buffer, void *data, size_t size);
+
+int buffer_append_string(buffer_t *buffer, const char *string);
+
 #endif /* _UTILS_H_ */

@@ -7,6 +7,11 @@
  * 
  * @copyright Copyright (c) 2022
  * 
+ * TODO:
+ * - Add support for tag default value
+ * - Check metric and tag names
+ * - Do show the measurement if it was not updated in the last 5 minutes, or since the last update
+ * 
  * Expected output:
  * # HELP device_temperature Device temperature
  * # TYPE device_temperature gauge
@@ -78,8 +83,8 @@ struct metric_tag {
 	/* tag name */
         char *name; 
 
-	/* tag default value */
-	char *def;
+	/* TODO tag default value */
+	// char *def;
 };
 
 struct metric_definition
@@ -101,12 +106,22 @@ struct metric_definition
 };
 
 #define METRIC_TAG(n) { .name = n }
-#define METRIC_DEF(n, t, tags_list, h) \
+
+#define METRIC_DEF_TAGS(n, t, tags_list, h) \
 { \
         .name = n, \
         .type = t, \
         .tags = tags_list, \
         .tags_count = ARRAY_SIZE(tags_list), \
+        .help = h \
+}
+
+#define METRIC_DEF(n, t, h) \
+{ \
+        .name = n, \
+        .type = t, \
+        .tags = NULL, \
+        .tags_count = 0U, \
         .help = h \
 }
 
@@ -127,14 +142,22 @@ static const struct metric_tag device_measurement_tags[] = {
         METRIC_TAG("collector"),
 };
 
-const struct metric_definition metric_def_device_temperature =
-	METRIC_DEF("device_temperature", GAUGE, device_measurement_tags, "Device temperature (in °C)");
+const struct metric_definition mdef_device_temperature =
+	METRIC_DEF_TAGS("device_temperature", GAUGE, device_measurement_tags, 
+	"Device temperature (in °C)");
 
-const struct metric_definition metric_def_device_humidity =
-	METRIC_DEF("device_humidity", GAUGE, device_measurement_tags, "Device humidity (in %)");
+const struct metric_definition mdef_device_humidity =
+	METRIC_DEF_TAGS("device_humidity", GAUGE, device_measurement_tags, 
+	"Device humidity (in %)");
 
-const struct metric_definition metric_def_device_battery =
-	METRIC_DEF("device_battery_level", GAUGE, device_measurement_tags, "Device battery level (in V)");
+const struct metric_definition mdef_device_battery =
+	METRIC_DEF_TAGS("device_battery_level", GAUGE, device_measurement_tags, 
+	"Device battery level (in V)");
+
+const struct metric_definition mdef_device_measurements_last_timestamp = 
+	METRIC_DEF_TAGS("device_measurements_last_timestamp", GAUGE, device_measurement_tags,
+	"Timestamp of the last device measurement (UTC time)");
+
 
 static bool validate_metric_value(struct metric_value *value)
 {
@@ -348,11 +371,11 @@ int prometheus_metrics(struct http_request *req,
 	};
 
 	resp->content_len += encode_metric(resp->buf, resp->buf_size, &val1,
-					   &metric_def_device_temperature, true);
+					   &mdef_device_temperature, true);
 
 	resp->content_len += encode_metric(resp->buf + resp->content_len,
 					   resp->buf_size - resp->content_len,
-					   &val2, &metric_def_device_temperature,
+					   &val2, &mdef_device_temperature,
 					   false);
 
 	resp->status_code = 200;
