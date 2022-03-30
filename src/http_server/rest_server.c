@@ -12,6 +12,10 @@
 #include <net/net_ip.h>
 #include <net/ethernet.h>
 
+#include <net/net_stats.h>
+#include <net/net_mgmt.h>
+#include <net/net_if.h>
+
 #include <bluetooth/addr.h>
 #include "../devices_controller.h"
 
@@ -28,8 +32,8 @@ LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_DBG);
 #define PUT HTTP_PUT
 
 static const struct rest_ressource map[] = {
-	REST(GET, "", rest_index),
-	REST(GET, "/", rest_index),
+	REST(GET, "", rest_info),
+	REST(GET, "/", rest_info),
 	REST(GET, "/info", rest_info),
 	REST(GET, "/records/xiaomi", rest_xiaomi_records),
 	REST(GET, "/records/xiaomi/prometheus", rest_xiaomi_records_promethus),
@@ -150,19 +154,103 @@ static const struct json_obj_descr info_controller_status_descr[] = {
 			    JSON_TOK_TRUE),
 };
 
+/* base on : net_if / struct net_if_ipv4 */
+struct json_info_iface
+{
+	const char *ethernet_mac;
+	const char *unicast;
+	const char *mcast;
+	const char *gateway;
+	const char *netmask;
+};
+
+static const struct json_obj_descr json_info_iface_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_info_iface, ethernet_mac, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_info_iface, unicast, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_info_iface, mcast, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_info_iface, gateway, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_info_iface, netmask, JSON_TOK_STRING),
+};
+
+static const struct json_obj_descr net_stats_bytes_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct net_stats_bytes, sent, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_bytes, received, JSON_TOK_NUMBER),
+};
+
+static const struct json_obj_descr net_stats_ip_errors_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct net_stats_ip_errors, vhlerr, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_ip_errors, hblenerr, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_ip_errors, lblenerr, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_ip_errors, fragerr, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_ip_errors, chkerr, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_ip_errors, protoerr, JSON_TOK_NUMBER),
+};
+
+static const struct json_obj_descr net_stats_ip_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct net_stats_ip, recv, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_ip, sent, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_ip, forwarded, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_ip, drop, JSON_TOK_NUMBER),
+};
+
+static const struct json_obj_descr net_stats_icmp_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct net_stats_icmp, recv, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_icmp, sent, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_icmp, drop, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_icmp, typeerr, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_icmp, chkerr, JSON_TOK_NUMBER),
+};
+
+static const struct json_obj_descr net_stats_tcp_descr[] = {
+	JSON_OBJ_DESCR_OBJECT(struct net_stats_tcp, bytes, net_stats_bytes_descr),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_tcp, resent, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_tcp, drop, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_tcp, recv, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_tcp, sent, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_tcp, seg_drop, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_tcp, chkerr, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_tcp, ackerr, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_tcp, rsterr, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_tcp, rst, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_tcp, rexmit, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_tcp, conndrop, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_tcp, connrst, JSON_TOK_NUMBER),
+};
+
+static const struct json_obj_descr net_stats_udp_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct net_stats_udp, drop, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_udp, recv, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_udp, sent, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct net_stats_udp, chkerr, JSON_TOK_NUMBER),
+};
+
+static const struct json_obj_descr net_stats_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct net_stats, processing_error,
+			    JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_OBJECT(struct net_stats, bytes, net_stats_bytes_descr),
+	JSON_OBJ_DESCR_OBJECT(struct net_stats, ip_errors,
+			      net_stats_ip_errors_descr),
+	JSON_OBJ_DESCR_OBJECT(struct net_stats, ipv4, net_stats_ip_descr),
+	JSON_OBJ_DESCR_OBJECT(struct net_stats, icmp, net_stats_icmp_descr),
+	JSON_OBJ_DESCR_OBJECT(struct net_stats, tcp, net_stats_tcp_descr),
+	JSON_OBJ_DESCR_OBJECT(struct net_stats, udp, net_stats_udp_descr),
+};
+
 struct json_info
 {
+	uint32_t uptime;
 	uint32_t timestamp;
-	const char *ip;
-	const char *mac;
 	struct json_info_controller_status status;
+	struct json_info_iface interface;
+	struct net_stats net_stats;
 };
 
 static const struct json_obj_descr info_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_info, uptime, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_info, timestamp, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_info, ip, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct json_info, mac, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_OBJECT(struct json_info, status, info_controller_status_descr),
+	JSON_OBJ_DESCR_OBJECT(struct json_info, interface, json_info_iface_descr),
+	JSON_OBJ_DESCR_OBJECT(struct json_info, net_stats, net_stats_descr),
 };
 
 #define ETH_ALEN sizeof(struct net_eth_addr)
@@ -171,39 +259,60 @@ static const struct json_obj_descr info_descr[] = {
 int rest_info(struct http_request *req,
 	      struct http_response *resp)
 {
+	struct json_info data;
+
+	/* get time */
 	struct timespec ts;
 	clock_gettime(CLOCK_REALTIME, &ts);
 
+	/* get iterface info */
 	struct net_if_config *const ifcfg = &net_if_get_default()->config;
-	char ipv4_str[NET_IPV4_ADDR_LEN];
+	char unicast_str[NET_IPV4_ADDR_LEN] = "";
+	char mcast_str[NET_IPV4_ADDR_LEN] = "";
+	char gateway_str[NET_IPV4_ADDR_LEN] = "";
+	char netmask_str[NET_IPV4_ADDR_LEN] = "";
+	char ethernet_mac_str[ETH_STR_LEN] = "";
+
 	net_addr_ntop(AF_INET,
 		      &ifcfg->ip.ipv4->unicast[0].address.in_addr,
-		      ipv4_str, sizeof(ipv4_str));
+		      unicast_str, sizeof(unicast_str));
+	net_addr_ntop(AF_INET,
+		      &ifcfg->ip.ipv4->mcast[0].address.in_addr,
+		      mcast_str, sizeof(mcast_str));
+	net_addr_ntop(AF_INET,
+		      &ifcfg->ip.ipv4->gw,
+		      gateway_str, sizeof(gateway_str));
+	net_addr_ntop(AF_INET,
+		      &ifcfg->ip.ipv4->netmask,
+		      netmask_str, sizeof(netmask_str));
 
-	/* TODO add gateway/dns/netmask/... */
-
-	char mac_str[ETH_STR_LEN] = "";
 	struct net_linkaddr *l2_addr = net_if_get_link_addr(net_if_get_default());
 	if (l2_addr->type == NET_LINK_ETHERNET) {
-		sprintf(mac_str, "%02X:%02X:%02X:%02X:%02X:%02X",
+		sprintf(ethernet_mac_str, "%02X:%02X:%02X:%02X:%02X:%02X",
 			l2_addr->addr[0], l2_addr->addr[1], l2_addr->addr[2],
 			l2_addr->addr[3], l2_addr->addr[4], l2_addr->addr[5]);
 	}
 
+	/* get network stats */
+	net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if_get_default(),
+		 &data.net_stats, sizeof(struct net_stats));
+
+	/* system status */
 	const controller_status_t status = {
 		.atomic_val = atomic_get(&controller_status.atomic)
 	};
-	
-	struct json_info data = { 
-		(uint32_t)ts.tv_sec,
-		ipv4_str,
-		mac_str,
-		.status = {
-			.has_ipv4_addr = status.has_ipv4_addr,
-			.valid_system_time = status.valid_system_time
-		}
-	 };
 
+	data.uptime = k_uptime_get() / MSEC_PER_SEC;
+	data.timestamp = (uint32_t)ts.tv_sec;
+	data.interface.ethernet_mac = ethernet_mac_str;
+	data.interface.unicast = unicast_str;
+	data.interface.mcast = mcast_str;
+	data.interface.gateway = gateway_str;
+	data.interface.netmask = netmask_str;
+	data.status.has_ipv4_addr = status.has_ipv4_addr;
+	data.status.valid_system_time = status.valid_system_time;
+
+	/* rencode response */
 	return rest_encode_response_json(info_descr, ARRAY_SIZE(info_descr),
 					 &data, resp);
 }

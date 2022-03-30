@@ -57,6 +57,9 @@
                 "fcntl.h": "c",
                 "addr.h": "c",
                 "system.h": "c",
-                "stdint.h": "c"
+                "stdint.h": "c",
+                "net_stats.h": "c",
+                "net_mgmt.h": "c",
+                "if.h": "c"
         }
 }
