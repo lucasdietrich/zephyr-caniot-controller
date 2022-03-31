@@ -20,25 +20,13 @@ typedef int (*http_handler_t) (struct http_request *req,
 
 struct http_route
 {
-	const char *route;
-	size_t route_len;
-	enum http_method method;
-	http_server_t server;
-	http_handler_t handler;
+	const char *route; /* route to match */
+	size_t route_len; /* without the trailing \0 */
+	enum http_method method; /* HTTP method */
+	http_server_t server; /* HTTP_REST_SERVER, HTTP_WEB_SERVER, HTTP_PROMETHEUS_CLIENT */
+	http_handler_t handler; /* handler to call */
+	http_content_type_t default_content_type; /* route default content type */
 };
-
-#define HTTP_ROUTE(m, r, h, t) \
-	{ \
-		.route = r, \
-		.route_len = sizeof(r) - 1, \
-		.method = m, \
-		.server = t, \
-		.handler = h \
-	}
-
-#define REST_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_REST_SERVER)
-#define WEB_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_WEB_SERVER)
-#define PROM_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_PROMETHEUS_CLIENT)
 
 const struct http_route *route_resolve(struct http_request *req);
 

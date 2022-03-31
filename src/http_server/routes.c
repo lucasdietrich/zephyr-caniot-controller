@@ -16,6 +16,20 @@ LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 #define POST HTTP_POST
 #define PUT HTTP_PUT
 
+#define HTTP_ROUTE(m, r, h, t, c) \
+	{ \
+		.route = r, \
+		.route_len = sizeof(r) - 1, \
+		.method = m, \
+		.server = t, \
+		.handler = h, \
+		.default_content_type = c \
+	}
+
+#define REST_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_REST_SERVER, HTTP_CONTENT_TYPE_APPLICATION_JSON)
+#define WEB_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_WEB_SERVER, HTTP_CONTENT_TYPE_TEXT_HTML)
+#define PROM_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_PROMETHEUS_CLIENT, HTTP_CONTENT_TYPE_TEXT_PLAIN)
+
 static const struct http_route routes[] = {
 	WEB(GET, "", web_server_index_html),
 	WEB(GET, "/", web_server_index_html),
@@ -43,9 +57,10 @@ static inline const struct http_route *last(void)
 static bool url_match(const struct http_route *res,
 		      const char *url, size_t url_len)
 {
-	size_t check_len = MAX(res->route_len, url_len);
+	if (res->route_len != url_len)
+		return false;
 
-	return strncmp(res->route, url, check_len) == 0;
+	return strncmp(res->route, url, res->route_len) == 0;
 }
 
 const struct http_route *route_resolve(struct http_request *req)
@@ -66,15 +81,5 @@ const struct http_route *route_resolve(struct http_request *req)
 
 http_content_type_t http_get_route_default_content_type(const struct http_route *route)
 {
-	switch (route->server) {
-	case HTTP_REST_SERVER:
-		return HTTP_CONTENT_TYPE_APPLICATION_JSON;
-
-	case HTTP_WEB_SERVER:
-		return HTTP_CONTENT_TYPE_TEXT_HTML;
-
-	case HTTP_PROMETHEUS_CLIENT:
-	default:
-		return HTTP_CONTENT_TYPE_TEXT_PLAIN;
-	}
+	return route->default_content_type;
 }

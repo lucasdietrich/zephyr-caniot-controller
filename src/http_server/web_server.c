@@ -29,6 +29,8 @@ int web_server_index_html(struct http_request *req,
 	buffer_append_string(&resp->buffer, HTML_LI(HTML_QUICK_URL("/devices/xiaomi")));
 	buffer_append_string(&resp->buffer, HTML_LI(HTML_QUICK_URL("/metrics")));
 
+	/* TODO generate this dynamically using routes map */
+
 	buffer_append_string(&resp->buffer, "</ul></fieldset>" HTML_BODY_TO_END);
 
 	return 0;
