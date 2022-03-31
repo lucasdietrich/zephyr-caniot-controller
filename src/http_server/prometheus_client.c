@@ -236,6 +236,9 @@ static ssize_t encode_metric(uint8_t *buf,
 	int ret;
 	ssize_t appended = 0U;
 
+	buffer_t buffer;
+	buffer_init(&buffer, buf, len);
+
 	const char *const metric_name = metric->name;
 
 	/* encode meta information HELP and TYPE */
@@ -248,9 +251,8 @@ static ssize_t encode_metric(uint8_t *buf,
 				metric->help,
 				"\n",
 			};
-
-			ret = mem_append_strings(buf + appended, len - appended,
-						 strings, ARRAY_SIZE(strings));
+			ret = buffer_append_strings(&buffer, strings,
+						    ARRAY_SIZE(strings));
 			if (ret < 0) {
 				return ret;
 			}
@@ -265,8 +267,8 @@ static ssize_t encode_metric(uint8_t *buf,
 			"\n",
 		};
 
-		ret = mem_append_strings(buf + appended, len - appended,
-					 strings, ARRAY_SIZE(strings));
+		ret = buffer_append_strings(&buffer, strings,
+					    ARRAY_SIZE(strings));
 		if (ret < 0) {
 			return ret;
 		}
@@ -287,7 +289,7 @@ static ssize_t encode_metric(uint8_t *buf,
 	char value_str[20];
 	ret = encode_value(value_str, sizeof(value_str), value);
 	if (ret < 0) {
-		LOG_ERR("Failed to encode metric value, buffer too small %u", 
+		LOG_ERR("Failed to encode metric value, buffer too small %u",
 			sizeof(value_str));
 		return ret;
 	}
@@ -301,7 +303,7 @@ static ssize_t encode_metric(uint8_t *buf,
 	/* prepare tags */
 	if (has_tags) {
 		strings[1] = "{";
-		
+
 		for (uint8_t i = 0U; i < tags_count; i++) {
 			const struct metric_tag *const tag = &metric->tags[i];
 			const char *tag_name = tag->name;
@@ -324,11 +326,11 @@ static ssize_t encode_metric(uint8_t *buf,
 	}
 
 	/* encode actual metric */
-	ret = mem_append_strings(buf + appended, len - appended, strings, count);
+	ret = buffer_append_strings(&buffer, strings, count);
 	if (ret < 0) {
 		return ret;
 	}
-	
+
 	return appended + ret;
 }
 

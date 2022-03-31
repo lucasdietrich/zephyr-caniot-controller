@@ -108,7 +108,7 @@ int buffer_reset(buffer_t *buffer)
 	return ret;
 }
 
-int buffer_append(buffer_t *buffer, void *data, size_t size)
+ssize_t buffer_append(buffer_t *buffer, void *data, size_t size)
 {
 	int ret = -EINVAL;
 
@@ -116,18 +116,18 @@ int buffer_append(buffer_t *buffer, void *data, size_t size)
 		memcpy((uint8_t *)buffer->data + buffer->filling, data, size);
 		buffer->filling += size;
 
-		ret = 0;
+		ret = size;
 	}
 
 	return ret;
 }
 
-int buffer_append_string(buffer_t *buffer, const char *string)
+ssize_t buffer_append_string(buffer_t *buffer, const char *string)
 {
 	return buffer_append(buffer, (void *)string, strlen(string));
 }
 
-int buffer_append_strings(buffer_t *buffer, const char **strings, size_t count)
+ssize_t buffer_append_strings(buffer_t *buffer, const char **strings, size_t count)
 {
 	ssize_t appended;
 	ssize_t total = 0;

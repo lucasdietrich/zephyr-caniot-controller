@@ -67,10 +67,10 @@ int buffer_init(buffer_t *buffer, void *data, size_t size);
 
 int buffer_reset(buffer_t *buffer);
 
-int buffer_append(buffer_t *buffer, void *data, size_t size);
+ssize_t buffer_append(buffer_t *buffer, void *data, size_t size);
 
-int buffer_append_string(buffer_t *buffer, const char *string);
+ssize_t buffer_append_string(buffer_t *buffer, const char *string);
 
-int buffer_append_strings(buffer_t *buffer, const char **strings, size_t count);
+ssize_t buffer_append_strings(buffer_t *buffer, const char **strings, size_t count);
 
 #endif /* _UTILS_H_ */
