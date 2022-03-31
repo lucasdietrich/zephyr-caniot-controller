@@ -7,20 +7,25 @@
  * 
  * @copyright Copyright (c) 2022
  * 
+ * Note: Check metrics format with command `curl -s http://192.168.10.240/metrics | promtool check metrics`
+ * 
  * TODO:
  * - Add support for tag default value
  * - Check metric and tag names
  * - Do show the measurement if it was not updated in the last 5 minutes, or since the last update
  * 
- * Expected output:
- * # HELP device_temperature Device temperature
- * # TYPE device_temperature gauge
- * device_temperature{device_type="BLE",sensor_type="EMB",mac="00:00:00:00:00:00",room="Lucas' Bedroom",collector="f429"} 24.723000
- * device_temperature{device_type="BLE",sensor_type="EMB",mac="11:11:11:11:11:11",room="Kitchen",collector="f429"} -1.723e+01
+ * 
+ * Expected output (per device):
+ *  device_temperature{medium="BLE",mac="A4:C1:38:68:05:63",device="LYWSD03MMC",sensor="EMBEDDED",room="",collector="f429"} 23.63
+ *  device_humidity{medium="BLE",mac="A4:C1:38:68:05:63",device="LYWSD03MMC",sensor="EMBEDDED",room="",collector="f429"} 39
+ *  device_battery_level{medium="BLE",mac="A4:C1:38:68:05:63",device="LYWSD03MMC",sensor="EMBEDDED",room="",collector="f429"} 2.899
+ *  device_measurements_last_timestamp{medium="BLE",mac="A4:C1:38:68:05:63",device="LYWSD03MMC",sensor="EMBEDDED",room="",collector="f429"} 1648764416
  * 
  */
 
 #include "prometheus_client.h"
+
+#include "mydevices.h"
 
 #include "utils.h"
 
@@ -126,14 +131,17 @@ struct metric_definition
 }
 
 static const struct metric_tag device_measurement_tags[] = {
-        /* device type : ble, can */
-        METRIC_TAG("device_type"),
-
-        /* sensor type : embedded, extern */
-        METRIC_TAG("sensor_type"),
+        /* medium type : ble, can */
+        METRIC_TAG("medium"),
 
         /* mac address: BLE MAC address (if ble), DeviceID (if caniot device) */
         METRIC_TAG("mac"),
+
+        /* device type : Xioami, caniot, ... */
+        METRIC_TAG("device"),
+
+        /* sensor type : embedded, extern */
+        METRIC_TAG("sensor"),
 
         /* device room: where the device is located */
         METRIC_TAG("room"),
@@ -143,14 +151,14 @@ static const struct metric_tag device_measurement_tags[] = {
 };
 
 const struct metric_definition mdef_device_temperature =
-	METRIC_DEF_TAGS("device_temperature", GAUGE, device_measurement_tags, 
+	METRIC_DEF_TAGS("device_temperature", GAUGE, device_measurement_tags,
 	"Device temperature (in °C)");
 
 const struct metric_definition mdef_device_humidity =
 	METRIC_DEF_TAGS("device_humidity", GAUGE, device_measurement_tags, 
 	"Device humidity (in %)");
 
-const struct metric_definition mdef_device_battery =
+const struct metric_definition mdef_device_battery_level =
 	METRIC_DEF_TAGS("device_battery_level", GAUGE, device_measurement_tags, 
 	"Device battery level (in V)");
 
@@ -222,8 +230,7 @@ static ssize_t encode_value(char *buf, size_t buf_size, struct metric_value *val
  * @param meta Tells if meta data TYPE and HELP should be prepended to the metric value
  * @return ssize_t 
  */
-static ssize_t encode_metric(uint8_t *buf,
-			     size_t len,
+static ssize_t encode_metric(buffer_t *buffer,
 			     struct metric_value *value,
 			     const struct metric_definition *metric,
 			     bool meta)
@@ -235,9 +242,6 @@ static ssize_t encode_metric(uint8_t *buf,
 
 	int ret;
 	ssize_t appended = 0U;
-
-	buffer_t buffer;
-	buffer_init(&buffer, buf, len);
 
 	const char *const metric_name = metric->name;
 
@@ -251,7 +255,7 @@ static ssize_t encode_metric(uint8_t *buf,
 				metric->help,
 				"\n",
 			};
-			ret = buffer_append_strings(&buffer, strings,
+			ret = buffer_append_strings(buffer, strings,
 						    ARRAY_SIZE(strings));
 			if (ret < 0) {
 				return ret;
@@ -267,7 +271,7 @@ static ssize_t encode_metric(uint8_t *buf,
 			"\n",
 		};
 
-		ret = buffer_append_strings(&buffer, strings,
+		ret = buffer_append_strings(buffer, strings,
 					    ARRAY_SIZE(strings));
 		if (ret < 0) {
 			return ret;
@@ -326,7 +330,7 @@ static ssize_t encode_metric(uint8_t *buf,
 	}
 
 	/* encode actual metric */
-	ret = buffer_append_strings(&buffer, strings, count);
+	ret = buffer_append_strings(buffer, strings, count);
 	if (ret < 0) {
 		return ret;
 	}
@@ -334,21 +338,63 @@ static ssize_t encode_metric(uint8_t *buf,
 	return appended + ret;
 }
 
-int prometheus_metrics(struct http_request *req,
-		       struct http_response *resp)
+/*___________________________________________________________________________*/
+
+const char *prom_myd_medium_to_str(mydevice_medium_type_t medium)
+{
+	switch (medium) {
+	case MYDEVICE_MEDIUM_TYPE_BLE:
+		return "BLE";
+	case MYDEVICE_MEDIUM_TYPE_CAN:
+		return "CAN";
+	default:
+		return "";
+	}
+}
+
+const char *prom_myd_device_type_to_str(mydevice_type_t device_type)
+{
+	switch (device_type) {
+	case MYDEVICE_TYPE_CANIOT:
+		return "CANIOT";
+	case MYDEVICE_TYPE_XIAOMI_MIJIA:
+		return "LYWSD03MMC";
+	default:
+		return "";
+	}
+}
+
+const char *prom_myd_sensor_type_to_str(mydevice_sensor_type_t sensor_type)
+{
+	switch(sensor_type) {
+	case MYDEVICE_SENSOR_TYPE_EMBEDDED:
+		return "EMBEDDED";
+	case MYDEVICE_SENSOR_TYPE_EXTERNAL:
+		return "EXTERNAL";
+	default:
+		return "";
+	}
+}
+
+/*___________________________________________________________________________*/
+
+int prometheus_metrics_demo(struct http_request *req,
+			    struct http_response *resp)
 {
 	const char *tags1[] = {
-		"BLE",
-		"EMB",
+		"BLE"
 		"00:00:00:00:00:00",
+		"Xioami",
+		"EMB",
 		"Lucas' Bedroom",
 		"f429"
 	};
 
 	const char *tags2[] = {
 		"BLE",
-		"EMB",
 		"11:11:11:11:11:11",
+		"Xioami"
+		"EMB",
 		"Kitchen",
 		"f429"
 	};
@@ -372,13 +418,114 @@ int prometheus_metrics(struct http_request *req,
 		.tags_values_count = ARRAY_SIZE(tags2)
 	};
 
-	resp->content_len += encode_metric(resp->buf, resp->buf_size, &val1,
-					   &mdef_device_temperature, true);
+	encode_metric(&resp->buffer, &val1,
+		      &mdef_device_temperature, true);
 
-	resp->content_len += encode_metric(resp->buf + resp->content_len,
-					   resp->buf_size - resp->content_len,
-					   &val2, &mdef_device_temperature,
-					   false);
+	encode_metric(&resp->buffer, &val2,
+		      &mdef_device_temperature, false);
+
+	resp->status_code = 200;
+
+	return 0;
+}
+
+union measurements_tags_values
+{
+	struct {
+		const char *medium;
+		const char *mac;
+		const char *device;
+		const char *sensor;
+		const char *room;
+		const char *collector;
+	};
+	const char *list[6];
+};
+
+static void prom_metric_feed_xiaomi_temperature(struct mydevice *dev,
+					 struct metric_value *val)
+{
+	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
+	val->encoding.digits = 2;
+	val->value = dev->data.xiaomi.temperature.value / 100.0;
+}
+
+static void prom_metric_feed_xiaomi_humidity(struct mydevice *dev,
+				      struct metric_value *val)
+{
+	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
+	val->value = dev->data.xiaomi.humidity;
+}
+
+static void prom_metric_feed_xiaomi_battery_level(struct mydevice *dev,
+				     struct metric_value *val)
+{
+	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
+	val->encoding.digits = 3;
+	val->value = dev->data.xiaomi.battery_level / 1000.0;
+}
+
+static void prom_metric_feed_xiaomi_measurement_timestamp(struct mydevice *dev,
+							  struct metric_value *val)
+{
+	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
+	val->value = dev->data.measurements_timestamp;
+}
+
+static void prom_mydevices_iterate_cb(struct mydevice *dev,
+				      void *user_data)
+{
+	buffer_t *const buffer = (buffer_t *)user_data;
+
+	if (dev->type == MYDEVICE_TYPE_XIAOMI_MIJIA) {
+
+		char mac_addr[BT_ADDR_STR_LEN];
+
+		bt_addr_to_str(&dev->addr.addr.ble.a,
+			       mac_addr, sizeof(mac_addr));
+
+		union measurements_tags_values tags_values = {
+			.medium = prom_myd_medium_to_str(dev->addr.medium),
+			.mac = mac_addr,
+			.device = prom_myd_device_type_to_str(dev->type),
+			.sensor = prom_myd_sensor_type_to_str(
+				dev->data.xiaomi.temperature.type),
+			.room = "",
+			.collector = "f429",
+		};
+
+		struct metric_value val = {
+			.tags_values = tags_values.list,
+			.tags_values_count = ARRAY_SIZE(tags_values.list)
+		};
+
+		prom_metric_feed_xiaomi_temperature(dev, &val);
+		encode_metric(buffer, &val, &mdef_device_temperature, false);
+
+		prom_metric_feed_xiaomi_humidity(dev, &val);
+		encode_metric(buffer, &val, &mdef_device_humidity, false);
+
+		prom_metric_feed_xiaomi_battery_level(dev, &val);
+		encode_metric(buffer, &val, &mdef_device_battery_level, false);
+
+		prom_metric_feed_xiaomi_measurement_timestamp(dev, &val);
+		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
+
+	} else if (dev->type == MYDEVICE_TYPE_CANIOT) {
+		/* TODO implement */
+	}
+}
+
+int prometheus_metrics(struct http_request *req,
+		       struct http_response *resp)
+{
+	mydevice_filter_t filter = {
+		.type = MYDEVICE_FILTER_NONE,
+	};
+
+	mydevice_iterate(prom_mydevices_iterate_cb,
+			 &filter,
+			 (void *)&resp->buffer);
 
 	resp->status_code = 200;
 

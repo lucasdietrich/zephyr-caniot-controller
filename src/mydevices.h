@@ -1,3 +1,16 @@
+/**
+ * @file mydevices.h
+ * @author Dietrich Lucas (ld.adecy@gmail.com)
+ * @brief 
+ * @version 0.1
+ * @date 2022-03-31
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ * TODO: shorten "mydevice" to "mydev" or "myd"
+ * 
+ */
+
 #ifndef _MYDEVICES_H_
 #define _MYDEVICES_H_
 
@@ -33,11 +46,13 @@ typedef enum {
 
 typedef enum
 {
+	MYDEVICE_FILTER_NONE = 0,
 	MYDEVICE_FILTER_TYPE_MEDIUM, /* filter by medium */
 	MYDEVICE_FILTER_TYPE_DEVICE_TYPE, /* filter by device type */
 	// MYDEVICE_FILTER_TYPE_SENSOR_TYPE, /* filter by temperature sensor type */
-	MYDEVICE_FILTER_TYPE_measurements_timestamp, /* filter only devices with recent measurements */
+	MYDEVICE_FILTER_TYPE_MEASUREMENTS_TIMESTAMP, /* filter only devices with recent measurements */
 	// MYDEVICE_FILTER_TYPE_REGISTERED_TIMESTAMP, /* filter only recent devices */
+	MYDEVICE_FILTER_TYPE_HAS_TEMPERATURE, /* filter only devices with temperature sensor */
 } mydevice_filter_type_t;
 
 typedef struct

@@ -82,7 +82,7 @@ int http_encode_header_content_type(char *buf,
 	case HTTP_CONTENT_TYPE_TEXT_PLAIN:
 	default:
 		content_type_str = "text/plain";
-		return -1;
+		break;
 	}
 
 	const char *parts[] = {

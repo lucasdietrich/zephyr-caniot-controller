@@ -447,7 +447,7 @@ static void ipc_thread(void *_a, void *_b, void *_c)
 			LOG_WRN("Seq gap %u -> %u, %u frames lost", last_seq,
 				frame->seq, frame->seq - last_seq - 1);
 		} else if (frame->seq < last_seq) {
-			LOG_WRN("Seq rollback to %u %u, peer probably reseted",
+			LOG_WRN("Seq rollback from %u to %u, peer probably reseted",
 				last_seq, frame->seq);
 		}
 

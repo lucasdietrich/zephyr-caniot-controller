@@ -113,12 +113,16 @@ static bool mydevice_match_filter(struct mydevice *dev, mydevice_filter_t *filte
 		return true;
 	}
 
+	if (filter->type == MYDEVICE_FILTER_NONE) {
+		return true;
+	}
+
 	switch (filter->type) {
 	case MYDEVICE_FILTER_TYPE_MEDIUM:
 		return dev->addr.medium == filter->data.medium;
 	case MYDEVICE_FILTER_TYPE_DEVICE_TYPE:
 		return dev->type == filter->data.device_type;
-	case MYDEVICE_FILTER_TYPE_measurements_timestamp:
+	case MYDEVICE_FILTER_TYPE_MEASUREMENTS_TIMESTAMP:
 		return dev->data.measurements_timestamp >= filter->data.timestamp;
 	default:
 		LOG_WRN("Unknown filter type %hhu", filter->type);

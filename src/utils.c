@@ -124,6 +124,8 @@ ssize_t buffer_append(buffer_t *buffer, void *data, size_t size)
 
 ssize_t buffer_append_string(buffer_t *buffer, const char *string)
 {
+	// printk("%s [%u] (%p %u)\n", string, strlen(string), buffer->data, buffer->filling);
+
 	return buffer_append(buffer, (void *)string, strlen(string));
 }
 

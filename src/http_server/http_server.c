@@ -56,10 +56,10 @@ K_THREAD_DEFINE(http_server, 0x1000, http_srv_thread,
  * Same buffer for HTTP request and HTTP response
  */
 union {
-	char request[0xA00];
+	char request[0x1000];
 	struct {
 		char internal[0x200];
-		char payload[0x800];
+		char payload[0xe00];
 	} response;
 } buffer;
 
@@ -411,7 +411,7 @@ static int sendall(int sock, char *buf, size_t len)
         size_t sent = 0;
 
         while (sent < len) {
-                ret = zsock_send(sock, buf, len - sent, 0);
+                ret = zsock_send(sock, &buf[sent], len - sent, 0);
                 if (ret < 0) {
                         if (ret == -EAGAIN) {
                                 LOG_INF("-EAGAIN (%d)", sock);
@@ -571,13 +571,14 @@ static void handle_conn(http_connection_t *conn)
 	// 	goto close;
 	// }
 
-        if (send_response(conn, &resp) < 0) {
+	int sent = send_response(conn, &resp);
+        if (sent < 0) {
                 goto close;
         }
 
-        LOG_INF("(%d) Processing req len %u B resp status %d len %u B (keep"
-                "-alive = %d)", sock, req.len, resp.status_code,
-                resp.content_len, conn->keep_alive.enabled);
+	LOG_INF("(%d) Processing req total len %u B resp status %d len %u B (keep"
+		"-alive = %d)", sock, req.len, resp.status_code,
+		sent, conn->keep_alive.enabled);
 
         if (conn->keep_alive.enabled) {
 		conn->keep_alive.last_activity = k_uptime_get_32();
