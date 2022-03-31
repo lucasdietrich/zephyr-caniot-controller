@@ -260,6 +260,7 @@ void devices_controller_thread(void *_a, void *_b, void *_c)
 	int ret;
 	static ipc_frame_t frame;
 
+	/* TODO make sure the ipc didn't start before calling this function */
 	ipc_attach_rx_msgq(&msgq);
 
 	for (;;) {

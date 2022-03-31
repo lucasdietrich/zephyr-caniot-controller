@@ -13,16 +13,34 @@
 #define _NET_TIME_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
-void net_time_sync(void);
+/**
+ * @brief Schedule a work to sync the system time
+ * 
+ * @return int 
+ */
+int net_time_sync(void);
 
-void net_time_show(void);
+/**
+ * @brief Get if the system time is synced
+ * 
+ * @return uint64_t 
+ */
+bool net_time_is_synced(void);
 
 /**
  * @brief Get timestamp in seconds
  * 
  * @return uint32_t 
+ * @retval 0 if not available
  */
 uint32_t net_time_get(void);
+
+/**
+ * @brief Show the current time in format: YYYY-MM-DD HH:MM:SS
+ */
+void net_time_show(void);
+
 
 #endif
