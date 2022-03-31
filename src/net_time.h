@@ -12,6 +12,8 @@
 #ifndef _NET_TIME_H_
 #define _NET_TIME_H_
 
+#include <zephyr.h>
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -42,5 +44,14 @@ uint32_t net_time_get(void);
  */
 void net_time_show(void);
 
+/**
+ * @brief Wait until the system time is synced.
+ * 
+ * Note: Should be called from a thread.
+ * 
+ * @param timeout 
+ * @return int 
+ */
+int net_time_wait_synced(k_timeout_t timeout);
 
 #endif

@@ -263,6 +263,8 @@ void devices_controller_thread(void *_a, void *_b, void *_c)
 	/* TODO make sure the ipc didn't start before calling this function */
 	ipc_attach_rx_msgq(&msgq);
 
+	net_time_wait_synced(K_FOREVER);
+
 	for (;;) {
 		/* TODO : k_poll on msgq/fifo/... to received records from BLE and CANIOT devices */
 

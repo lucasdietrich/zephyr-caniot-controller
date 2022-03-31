@@ -99,8 +99,10 @@ static bool ipc_is_initialized(void)
 int ipc_attach_rx_msgq(struct k_msgq *msgq)
 {
 	if (ipc_is_initialized() == true) {
-		LOG_ERR("IPC already initialized %d", 0);
-		return -EINVAL;
+		LOG_WRN("IPC already initialized %d", 0);
+		/* TODO introduce a condition variable in order initialize
+		 * only after having attached the msgq */
+		// return -EINVAL;
 	}
 
 	application_msgq = msgq;
