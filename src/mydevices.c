@@ -9,7 +9,7 @@
 #include "net_time.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(devices, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(devices, LOG_LEVEL_WRN);
 
 /*___________________________________________________________________________*/
 
@@ -230,7 +230,7 @@ static int handle_ble_xiaomi_dataframe(xiaomi_dataframe_t *frame)
 		}
 
 		 // Show BLE address, temperature, humidity, battery
-		LOG_INF("\tBLE Xiaomi record %u [%d s]: addr: %s, " \
+		LOG_DBG("\tBLE Xiaomi record %u [%d s]: addr: %s, " \
 			"temp: %.2f°C, hum: %u %%, bat: %u mV",
 			i,
 			record_rel_time,
