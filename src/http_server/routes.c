@@ -17,15 +17,17 @@ LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 #define PUT HTTP_PUT
 
 static const struct http_route routes[] = {
-	REST(GET, "", rest_info),
-	REST(GET, "/", rest_info),
+	WEB(GET, "", web_server_index_html),
+	WEB(GET, "/", web_server_index_html),
+	WEB(GET, "/index.html", web_server_index_html),
+
 	REST(GET, "/info", rest_info),
-	REST(GET, "/records/xiaomi", rest_xiaomi_records),
-	REST(GET, "/records/xiaomi/prometheus", rest_xiaomi_records_promethus),
+
+	REST(GET, "/devices", NULL),
+	REST(GET, "/devices/xiaomi", rest_xiaomi_records),
 
 	PROM(GET, "/metrics", prometheus_metrics), /* prometheus_metrics */
 
-	WEB(GET, "index.html", NULL),
 };
 
 static inline const struct http_route *first(void)
@@ -69,6 +71,8 @@ http_content_type_t http_get_route_default_content_type(const struct http_route 
 		return HTTP_CONTENT_TYPE_APPLICATION_JSON;
 
 	case HTTP_WEB_SERVER:
+		return HTTP_CONTENT_TYPE_TEXT_HTML;
+
 	case HTTP_PROMETHEUS_CLIENT:
 	default:
 		return HTTP_CONTENT_TYPE_TEXT_PLAIN;

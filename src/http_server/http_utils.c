@@ -70,19 +70,24 @@ int http_encode_header_content_type(char *buf,
 				    size_t len,
 				    http_content_type_t type)
 {
-	static const char *content_type_str[] = {
-		"text/plain",
-		"text/html",
-		"application/json",
-	};
+	char *content_type_str;
 
-	if (type < 0 || type >= ARRAY_SIZE(content_type_str)) {
-		return -EINVAL;
+	switch (type) {
+	case HTTP_CONTENT_TYPE_TEXT_HTML:
+		content_type_str = "text/html";
+		break;
+	case HTTP_CONTENT_TYPE_APPLICATION_JSON:
+		content_type_str = "application/json";
+		break;
+	case HTTP_CONTENT_TYPE_TEXT_PLAIN:
+	default:
+		content_type_str = "text/plain";
+		return -1;
 	}
 
 	const char *parts[] = {
 		"Content-Type: ",
-		content_type_str[type],
+		content_type_str,
 		"\r\n"
 	};
 

@@ -66,6 +66,7 @@
                 "web_server.h": "c",
                 "cstdio": "c",
                 "utils.h": "c",
-                "prometheus_client.h": "c"
+                "prometheus_client.h": "c",
+                "typeinfo": "c"
         }
 }

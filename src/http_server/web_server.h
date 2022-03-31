@@ -5,4 +5,7 @@
 
 #include "http_request.h"
 
+int web_server_index_html(struct http_request *req,
+			  struct http_response *resp);
+
 #endif

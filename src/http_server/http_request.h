@@ -6,6 +6,7 @@
 
 #include <net/http_parser.h>
 
+#include "utils.h"
 #include "http_utils.h"
 #include "routes.h"
 
@@ -49,9 +50,17 @@ struct http_request
 
 struct http_response
 {
-        char *buf;
-        size_t buf_size;
-        size_t content_len;
+	union {
+		/* This is as VERY DANGEROUS trick */
+		buffer_t buffer;
+		struct {
+			char *buf;
+			size_t buf_size;
+			size_t content_len;
+		};
+	};
+	
+        
         uint16_t status_code;
 	http_content_type_t content_type;
 };

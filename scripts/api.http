@@ -1,0 +1,21 @@
+GET http://{{host}}/
+
+###
+
+GET http://{{host}}/info
+
+###
+
+GET http://{{host}}/devices
+
+###
+
+GET http://{{host}}/devices/xiaomi
+
+###
+
+GET http://{{host}}/metrics
+
+###
+
+GET http://{{host}}/404
