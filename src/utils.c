@@ -95,6 +95,19 @@ int buffer_init(buffer_t *buffer, void *data, size_t size)
 	return ret;
 }
 
+int buffer_reset(buffer_t *buffer)
+{
+	int ret = -EINVAL;
+
+	if ((buffer != NULL) && (buffer->data != NULL)) {
+		buffer->filling = 0U;
+
+		ret = 0;
+	}
+
+	return ret;
+}
+
 int buffer_append(buffer_t *buffer, void *data, size_t size)
 {
 	int ret = -EINVAL;
@@ -112,4 +125,21 @@ int buffer_append(buffer_t *buffer, void *data, size_t size)
 int buffer_append_string(buffer_t *buffer, const char *string)
 {
 	return buffer_append(buffer, (void *)string, strlen(string));
+}
+
+int buffer_append_strings(buffer_t *buffer, const char **strings, size_t count)
+{
+	ssize_t appended;
+	ssize_t total = 0;
+
+	const char **string;
+
+	for (string = strings; string < strings + count; string++) {
+		appended = buffer_append_string(buffer, *string);
+		if (appended < 0) {
+			return appended;
+		}
+		total += appended;
+	}
+	return total;
 }
