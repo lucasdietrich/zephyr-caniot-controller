@@ -17,7 +17,7 @@
 #include <net/net_if.h>
 
 #include <bluetooth/addr.h>
-#include "../devices_controller.h"
+#include "../mydevices.h"
 
 #include "system.h"
 
@@ -320,8 +320,8 @@ struct xiaomi_records_encoding_context
 	} strings[XIAOMI_MAX_DEVICES];
 };
 
-static void xiaomi_record_cb(xiaomi_record_t *rec,
-				  void *user_data)
+static void xiaomi_device_cb(struct mydevice *dev,
+			     void *user_data)
 {
 	struct xiaomi_records_encoding_context *ctx =
 		(struct xiaomi_records_encoding_context *)user_data;
@@ -330,17 +330,17 @@ static void xiaomi_record_cb(xiaomi_record_t *rec,
 
 	arr_record->bt_mac = ctx->strings[ctx->arr.count].addr;
 	arr_record->temperature = ctx->strings[ctx->arr.count].temperature;
-	arr_record->temperature_raw = rec->measurements.temperature;
-	arr_record->humidity = rec->measurements.humidity;
-	arr_record->battery_level = rec->measurements.battery;
-	arr_record->timestamp = rec->time;
+	arr_record->temperature_raw = dev->data.xiaomi.temperature.value;
+	arr_record->humidity = dev->data.xiaomi.humidity;
+	arr_record->battery_level = dev->data.xiaomi.battery_level;
+	arr_record->timestamp = dev->data.measurements_timestamp;
 
-	bt_addr_le_to_str(&rec->addr,
+	bt_addr_le_to_str(&dev->addr.addr.ble,
 			  arr_record->bt_mac,
 			  BT_ADDR_LE_STR_LEN);
 	sprintf(arr_record->temperature,
 		"%.2f",
-		rec->measurements.temperature / 100.0);
+		dev->data.xiaomi.temperature.value / 100.0);
 
 	ctx->arr.count++;
 }
@@ -352,7 +352,7 @@ int rest_xiaomi_records(struct http_request *req,
 
 	ctx.arr.count = 0;
 
-	dev_ble_xiaomi_iterate(xiaomi_record_cb, &ctx);
+	mydevice_xiaomi_iterate(xiaomi_device_cb, &ctx);
 
 	return rest_encode_response_json_array(json_xiaomi_record_array_descr,
 					       ARRAY_SIZE(json_xiaomi_record_array_descr),

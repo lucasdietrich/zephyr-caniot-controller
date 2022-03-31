@@ -29,7 +29,8 @@ typedef struct {
 	bt_addr_le_t addr;
 
 	/**
-	 * @brief Time when the measurements were retrieved
+	 * @brief Time when the measurements were retrieved, in seconds.
+	 * This value is relative to frame time.
 	 */
 	uint32_t time;
 	
@@ -45,7 +46,7 @@ typedef struct {
  */
 typedef struct {
 	/**
-	 * @brief Frame time
+	 * @brief Relative frame time (could be UTC time or device uptime), in seconds.
 	 */
 	uint32_t time;
 
