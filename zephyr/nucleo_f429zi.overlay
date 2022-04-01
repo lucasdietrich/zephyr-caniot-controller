@@ -188,6 +188,21 @@
 	dma-names = "tx", "rx";
 };
 
+/*
+Sample application : https://github.com/zephyrproject-rtos/zephyr/tree/main/samples/sensor/stm32_temp_sensor/boards
+ */
+/ {
+        stm-temp {
+                label = "DIE_TEMP";
+                compatible = "st,stm32-temp";
+                io-channels = < &adc1 18 >;
+                // ts-voltage-mv = < 3300 >;
+                avgslope = < 25 >;
+                v25 = < 760 >;
+                status = "okay";
+        };
+};
+
 /* platformio doesn't show the correct FLASH usage 
  * when using overlay with custom partitions
  * 
@@ -198,7 +213,6 @@
                 zephyr,code-partition = &application_partition;
         };
 };
-
 
 
 /* Second can bus isn't supported yet */
