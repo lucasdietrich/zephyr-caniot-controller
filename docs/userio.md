@@ -1,4 +1,4 @@
-# Users LED and buttons
+## Users LED and buttons
 
 | Led | Green | Red | Blue |
 | --- | --- | --- | --- |

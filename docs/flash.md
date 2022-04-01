@@ -96,3 +96,21 @@ Flash: [          ]   1.0% (used 21088 bytes from 2097152 bytes)
 ```
 
 Which is wrong, real flash % use is 21088 / 1792KB = 1.1%, see [zephyr/nucleo_f429zi.overlay](../zephyr/nucleo_f429zi.overlay)
+
+---
+
+## OBSOLETE
+
+Issues :
+- **Interesting** :
+  - https://github.com/zephyrproject-rtos/zephyr/issues/13151
+
+
+- https://github.com/zephyrproject-rtos/zephyr/issues/31073
+- https://github.com/zephyrproject-rtos/zephyr/issues/36541
+- https://github.com/zephyrproject-rtos/zephyr/issues/34167
+- https://github.com/zephyrproject-rtos/zephyr/issues/27471
+- https://github.com/zephyrproject-rtos/zephyr/issues/31487
+- https://github.com/zephyrproject-rtos/zephyr/pull/27974
+
+- Theorically solved : https://github.com/zephyrproject-rtos/zephyr/issues/24237

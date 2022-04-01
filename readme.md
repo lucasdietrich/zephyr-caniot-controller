@@ -27,7 +27,6 @@
 - [application_development/external_lib](https://github.com/zephyrproject-rtos/zephyr/tree/v2.6-branch/samples/application_development/external_lib)
 - [out_of_tree_driver](https://github.com/zephyrproject-rtos/zephyr/tree/v2.6-branch/samples/application_development/out_of_tree_driver)
 
-
 ---
 
 ## Next steps
@@ -112,3 +111,4 @@ Will be required when using zephyr 2.7 without PlatformIO
 - *st* :
   - [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html)
   - [x-cube-azrtos-f4](https://github.com/STMicroelectronics/x-cube-azrtos-f4)
+  - 
