@@ -28,6 +28,7 @@ typedef enum {
 	MYDEVICE_TYPE_NONE = 0,
 	MYDEVICE_TYPE_XIAOMI_MIJIA, /* Xiaomi Mijia LYWSD03MMC */
 	MYDEVICE_TYPE_CANIOT,
+	MYDEVICE_TYPE_NUCLEO_F429ZI,
 } mydevice_type_t;
 
 typedef struct {
@@ -95,6 +96,10 @@ typedef struct
 			uint8_t in3 : 1;
 			uint8_t in4 : 1;
 		} caniot;
+
+		struct {
+			float die_temperature; /* °C */
+		} nucleo_f429zi;
 	};
 } mydevice_data_t;
 

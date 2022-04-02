@@ -1,0 +1,27 @@
+GET http://192.168.10.155/caniot-temperatures
+
+# Expected output:
+
+# HTTP/1.1 200 OK
+# Content-Type: application/json; charset=utf-8
+# Content-Length: 221
+# Date: Sat, 02 Apr 2022 16:37:13 GMT
+# Server: Python/3.7 aiohttp/3.7.4.post0
+# Connection: close
+
+# [
+#   {
+#     "deviceid": 16,
+#     "active_int_temp": true,
+#     "int_temp": "16.50",
+#     "active_ext_temp": false,
+#     "ext_temp": "1023.00"
+#   },
+#   {
+#     "deviceid": 24,
+#     "active_int_temp": true,
+#     "int_temp": "6.50",
+#     "active_ext_temp": true,
+#     "ext_temp": "1.30"
+#   }
+# ]

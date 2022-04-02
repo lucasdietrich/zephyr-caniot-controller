@@ -359,6 +359,8 @@ const char *prom_myd_device_type_to_str(mydevice_type_t device_type)
 		return "CANIOT";
 	case MYDEVICE_TYPE_XIAOMI_MIJIA:
 		return "LYWSD03MMC";
+	case MYDEVICE_TYPE_NUCLEO_F429ZI:
+		return "NUCLEO_F429ZI";
 	default:
 		return "";
 	}
@@ -513,6 +515,28 @@ static void prom_mydevices_iterate_cb(struct mydevice *dev,
 
 	} else if (dev->type == MYDEVICE_TYPE_CANIOT) {
 		/* TODO implement */
+	} else if (dev->type == MYDEVICE_TYPE_NUCLEO_F429ZI) {
+		union measurements_tags_values tags_values = {
+			.medium = "",
+			.mac = "",
+			.device = prom_myd_device_type_to_str(dev->type),
+			.sensor = prom_myd_sensor_type_to_str(
+				MYDEVICE_SENSOR_TYPE_EMBEDDED),
+			.room = "",
+			.collector = "f429",
+		};
+
+		struct metric_value val = {
+			.tags_values = tags_values.list,
+			.tags_values_count = ARRAY_SIZE(tags_values.list),
+			.value = dev->data.nucleo_f429zi.die_temperature,
+			.encoding = {
+				.type = VALUE_ENCODING_TYPE_FLOAT,
+				.digits = 1
+			}
+		};
+
+		encode_metric(buffer, &val, &mdef_device_temperature, false);
 	}
 }
 

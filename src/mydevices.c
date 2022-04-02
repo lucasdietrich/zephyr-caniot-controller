@@ -8,8 +8,10 @@
 #include "ble/xiaomi_record.h"
 #include "net_time.h"
 
+#include "main.h"
+
 #include <logging/log.h>
-LOG_MODULE_REGISTER(devices, LOG_LEVEL_WRN);
+LOG_MODULE_REGISTER(devices, LOG_LEVEL_DBG);
 
 /*___________________________________________________________________________*/
 
@@ -47,13 +49,14 @@ static int phys_addr_cmp(mydevice_phys_addr_t *addr1, mydevice_phys_addr_t *addr
 	return ret;
 }
 
-static struct mydevice *mydevice_get(mydevice_phys_addr_t *addr)
+static struct mydevice *get_device_by_addr(mydevice_phys_addr_t *addr)
 {
 	struct mydevice *device = NULL;
 
 	for (struct mydevice *dev = devices.list;
 	     dev < devices.list + devices.count;
 	     dev++) {
+
 		if (phys_addr_cmp(addr, &dev->addr) == 0) {
 			device = dev;
 			break;
@@ -63,12 +66,40 @@ static struct mydevice *mydevice_get(mydevice_phys_addr_t *addr)
 	return device;
 }
 
-/*
-static bool mydevice_exists(mydevice_phys_addr_t *addr)
+static struct mydevice *get_first_device_by_type(mydevice_type_t type)
 {
-	return mydevice_get(addr) != NULL;
+	struct mydevice *device = NULL;
+
+	for (struct mydevice *dev = devices.list;
+	     dev < devices.list + devices.count;
+	     dev++) {
+		if (dev->type == type) {
+			device = dev;
+			break;
+		}
+	}
+
+	return device;
 }
-*/
+
+static struct mydevice *mydevice_get(mydevice_phys_addr_t *addr,
+				     mydevice_type_t type)
+{
+	struct mydevice *device = NULL;
+
+	
+	/* Get device by address if possible */
+	if (phys_addr_valid(addr)) {
+		device = get_device_by_addr(addr);
+
+	/* if medium type is not set, device should be
+	 * differienciated using their device_type */
+	} else {
+		device = get_first_device_by_type(type);
+	}
+
+	return device;
+}
 
 static void mydevice_clear(struct mydevice *dev)
 {
@@ -99,6 +130,20 @@ static struct mydevice *mydevice_register(mydevice_phys_addr_t *addr,
 	dev->registered_timestamp = net_time_get();
 
 	devices.count++;
+
+	return dev;
+}
+
+static struct mydevice *mydevice_get_or_register(mydevice_phys_addr_t *addr,
+						 mydevice_type_t type)
+{
+	struct mydevice *dev;
+
+	dev = mydevice_get(addr, type);
+	
+	if (dev == NULL) {
+		dev = mydevice_register(addr, type);
+	}
 
 	return dev;
 }
@@ -182,14 +227,13 @@ static int handle_ble_xiaomi_record(xiaomi_record_t *rec)
 
 	bt_addr_le_copy(&record_addr.addr.ble, &rec->addr);
 
-	struct mydevice *dev = mydevice_get(&record_addr);
+	struct mydevice *dev = mydevice_get_or_register(&record_addr,
+							MYDEVICE_TYPE_XIAOMI_MIJIA);
 	if (dev == NULL) {
-		dev = mydevice_register(&record_addr, MYDEVICE_TYPE_XIAOMI_MIJIA);
-		if (dev == NULL) {
-			LOG_ERR("Failed to register device, list full %hhu / %lu", devices.count,
-				ARRAY_SIZE(devices.list));
-			return -ENOMEM;
-		}
+		LOG_ERR("Failed to register device, list full %hhu / %lu",
+			devices.count,
+			ARRAY_SIZE(devices.list));
+		return -ENOMEM;
 	}
 
 	/* device does exist now, update it measurements */
@@ -250,6 +294,38 @@ exit:
 	return ret;
 }
 
+static inline int handle_die_temperature(die_temperature_handle_t *handle)
+{
+	int ret = 0;
+
+	k_mutex_lock(&handle->mutex, K_FOREVER);
+	k_mutex_lock(&devices.mutex, K_FOREVER);
+	
+	/* check if device already exists */
+	mydevice_phys_addr_t record_addr = {
+		.medium = MYDEVICE_MEDIUM_TYPE_NONE,
+	};
+
+	struct mydevice *dev = mydevice_get_or_register(&record_addr,
+							MYDEVICE_TYPE_NUCLEO_F429ZI);
+	if (dev == NULL) {
+		LOG_ERR("Failed to register device, list full %hhu / %lu",
+			devices.count,
+			ARRAY_SIZE(devices.list));
+		ret = -ENOMEM;
+		goto exit;
+	}
+
+	/* device does exist now, update it measurements */
+	dev->data.measurements_timestamp = handle->timestamp;
+	dev->data.nucleo_f429zi.die_temperature = handle->die_temperature;
+
+exit:
+	k_mutex_unlock(&handle->mutex);
+	k_mutex_unlock(&devices.mutex);
+	return ret;
+}
+
 /*___________________________________________________________________________*/
 
 void devices_controller_thread(void *_a, void *_b, void *_c);
@@ -258,6 +334,8 @@ K_THREAD_DEFINE(devices_controller_thread_id, 0x400, devices_controller_thread,
 		NULL, NULL, NULL, K_PRIO_COOP(8), 0, 0);
 
 K_MSGQ_DEFINE(msgq, IPC_FRAME_SIZE, 1, 4);
+
+extern die_temperature_handle_t die_temp_handle;
 
 void devices_controller_thread(void *_a, void *_b, void *_c)
 {
@@ -269,16 +347,46 @@ void devices_controller_thread(void *_a, void *_b, void *_c)
 
 	net_time_wait_synced(K_FOREVER);
 
-	for (;;) {
-		/* TODO : k_poll on msgq/fifo/... to received records from BLE and CANIOT devices */
+	struct k_poll_event events[] = {
+		K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_MSGQ_DATA_AVAILABLE,
+						K_POLL_MODE_NOTIFY_ONLY,
+						&msgq, 0),
+		K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_SEM_AVAILABLE,
+						K_POLL_MODE_NOTIFY_ONLY,
+						&die_temp_handle.sem, 0),
+	};
 
-		if (k_msgq_get(&msgq, (void *)&frame, K_FOREVER) == 0) {
+	for (;;) {
+		ret = k_poll(events, ARRAY_SIZE(events), K_FOREVER);
+
+		if (events[0].state == K_POLL_STATE_MSGQ_DATA_AVAILABLE) {
+			ret = k_msgq_get(&msgq, (void *)&frame, K_NO_WAIT);
+			if (ret != 0) {
+				LOG_ERR("Failed to get msgq message! ret = %d",
+					ret);
+				return;
+			}
+
 			ret = handle_ble_xiaomi_dataframe(
 				(xiaomi_dataframe_t *)frame.data.buf);
 			if (ret != 0) {
-				LOG_ERR("Failed to handle BLE Xiaomi record, err: %d", ret);
+				LOG_ERR("Failed to handle BLE Xiaomi record, err: %d",
+					ret);
 			}
 		}
+
+		if (events[1].state == K_POLL_STATE_SEM_AVAILABLE) {
+			ret = k_sem_take(&die_temp_handle.sem, K_NO_WAIT);
+			if (ret != 0) {
+				LOG_ERR("Failed to take semaphore, err: %d", ret);
+				return;
+			}
+
+			ret = handle_die_temperature(&die_temp_handle);
+		}
+
+		events[0].state = K_POLL_STATE_NOT_READY;
+		events[1].state = K_POLL_STATE_NOT_READY;
 	}
 }
 

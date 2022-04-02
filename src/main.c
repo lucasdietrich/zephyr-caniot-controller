@@ -3,6 +3,8 @@
 #include <device.h>
 #include <drivers/sensor.h>
 
+#include "main.h"
+
 #include "net_interface.h"
 #include "net_time.h"
 #include "crypto.h"
@@ -20,6 +22,24 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 #else
 #error "Could not find a compatible temperature sensor"
 #endif
+
+die_temperature_handle_t die_temp_handle = {
+	.die_temperature = 0.0,
+	.timestamp = 0,
+	.sem = Z_SEM_INITIALIZER(die_temp_handle.sem, 0, 1),
+	.mutex = Z_MUTEX_INITIALIZER(die_temp_handle.mutex)
+};
+
+static void forward_die_temperature(die_temperature_handle_t *handle, float temperature)
+{
+	k_mutex_lock(&handle->mutex, K_FOREVER);
+
+	handle->die_temperature = temperature;
+	handle->timestamp = net_time_get();
+	k_sem_give(&handle->sem);
+
+	k_mutex_unlock(&handle->mutex);
+}
 
 static void debug_mbedtls_memory(void)
 {
@@ -63,8 +83,13 @@ void main(void)
 			continue;
 		}
 
-		LOG_DBG("Current temperature: %.1f °C ",
-			(float)sensor_value_to_double(&val));
+		const float temperature = (float)sensor_value_to_double(&val);
+		if (temperature > -276.0) {
+			forward_die_temperature(&die_temp_handle, temperature);
+			LOG_DBG("Current DIE temperature: %.1f °C ", temperature);
+		} else {
+			LOG_WRN("Invalid DIE temperature: %.1f °C", temperature);
+		}
 
                 if (counter++ % 600 == 0) {
                         net_time_show();
