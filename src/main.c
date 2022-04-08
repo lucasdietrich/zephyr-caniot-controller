@@ -15,7 +15,7 @@
 #include <mbedtls/memory_buffer_alloc.h>
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(main, LOG_LEVEL_NONE);
 
 #if DT_HAS_COMPAT_STATUS_OKAY(st_stm32_temp)
 #define TEMP_NODE DT_INST(0, st_stm32_temp)

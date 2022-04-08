@@ -22,8 +22,8 @@ a = time.time()
 with requests.session() as sess:
         resp = sess.request(**req)
         print(resp)
-        # resp = sess.request(**req)
-        # print(resp)
+        resp = sess.request(**req)
+        print(resp)
 
 b = time.time()
 
