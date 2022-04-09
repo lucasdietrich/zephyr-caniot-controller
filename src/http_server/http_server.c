@@ -298,17 +298,11 @@ void http_srv_thread(void *_a, void *_b, void *_c)
 #if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
                         if (fds.srv.revents & POLLIN) {
                                 ret = srv_accept(fds.srv.fd);
-                                if(ret != 0) {
-                                        LOG_ERR("(%d) srv_accept failed", ret);
-                                }
                         }
 #endif /* CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE */
 
                         if (fds.sec.revents & POLLIN) {
                                 ret = srv_accept(fds.sec.fd);
-                                if(ret != 0) {
-                                        LOG_ERR("(%d) srv_accept failed", ret);
-                                }
                         }
 
                         /* We iterate over the connections and check if there are any data,
