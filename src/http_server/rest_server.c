@@ -16,6 +16,8 @@
 #include <net/net_mgmt.h>
 #include <net/net_if.h>
 
+#include <mbedtls/memory_buffer_alloc.h>
+
 #include <bluetooth/addr.h>
 #include "../mydevices.h"
 
@@ -188,6 +190,23 @@ static const struct json_obj_descr net_stats_descr[] = {
 	JSON_OBJ_DESCR_OBJECT(struct net_stats, udp, net_stats_udp_descr),
 };
 
+#if defined(CONFIG_CONTROLLER_SYSTEM_MONITORING)
+struct json_info_mbedtls_stats
+{
+	uint32_t cur_used;
+	uint32_t cur_blocks;
+	uint32_t max_used;
+	uint32_t max_blocks;
+};
+
+static const struct json_obj_descr info_mbedtls_stats_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_info_mbedtls_stats, cur_used, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_info_mbedtls_stats, cur_blocks, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_info_mbedtls_stats, max_used, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_info_mbedtls_stats, max_blocks, JSON_TOK_NUMBER),
+};
+#endif /* CONFIG_CONTROLLER_SYSTEM_MONITORING */
+
 struct json_info
 {
 	uint32_t uptime;
@@ -195,6 +214,9 @@ struct json_info
 	struct json_info_controller_status status;
 	struct json_info_iface interface;
 	struct net_stats net_stats;
+#if defined(CONFIG_CONTROLLER_SYSTEM_MONITORING)
+	struct json_info_mbedtls_stats mbedtls_stats;
+#endif
 };
 
 static const struct json_obj_descr info_descr[] = {
@@ -203,6 +225,9 @@ static const struct json_obj_descr info_descr[] = {
 	JSON_OBJ_DESCR_OBJECT(struct json_info, status, info_controller_status_descr),
 	JSON_OBJ_DESCR_OBJECT(struct json_info, interface, json_info_iface_descr),
 	JSON_OBJ_DESCR_OBJECT(struct json_info, net_stats, net_stats_descr),
+#if defined(CONFIG_CONTROLLER_SYSTEM_MONITORING)
+	JSON_OBJ_DESCR_OBJECT(struct json_info, mbedtls_stats, info_mbedtls_stats_descr),
+#endif
 };
 
 #define ETH_ALEN sizeof(struct net_eth_addr)
@@ -263,6 +288,14 @@ int rest_info(struct http_request *req,
 	data.interface.netmask = netmask_str;
 	data.status.has_ipv4_addr = status.has_ipv4_addr;
 	data.status.valid_system_time = status.valid_system_time;
+
+	/* mbedtls stats */
+#if defined(CONFIG_CONTROLLER_SYSTEM_MONITORING)
+	mbedtls_memory_buffer_alloc_cur_get(&data.mbedtls_stats.cur_used,
+					    &data.mbedtls_stats.cur_blocks);
+	mbedtls_memory_buffer_alloc_max_get(&data.mbedtls_stats.max_used,
+					    &data.mbedtls_stats.max_blocks);
+#endif 
 
 	/* rencode response */
 	return rest_encode_response_json(info_descr, ARRAY_SIZE(info_descr),

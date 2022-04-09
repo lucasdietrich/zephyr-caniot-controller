@@ -36,6 +36,13 @@ config CONTROLLER_MAX_HTTP_CONNECTIONS
         help
                 Maximum number of HTTP connections supported by the HTTP server
 
+config CONTROLLER_SYSTEM_MONITORING
+        bool "Enable system monitoring"
+        select CONFIG_MBEDTLS_MEMORY_DEBUG
+        default n
+        help
+                Enable system monitoring e.g. (mbedTLS heap usage, ...)
+
 # artificaly enable HAL_CRC drivers from STM32CUBE
 # read : https://github.com/zephyrproject-rtos/zephyr/issues/37543
 config MY_STM32_HAL
