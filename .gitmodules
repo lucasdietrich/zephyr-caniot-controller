@@ -1,3 +1,4 @@
 [submodule "lib/caniot-lib"]
 	path = lib/caniot-lib
 	url = git@github.com:lucasdietrich/caniot-lib.git
+	branch = v2.1_branch_controller
