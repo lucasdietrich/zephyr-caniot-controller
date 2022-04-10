@@ -43,11 +43,13 @@ static void can_rx_thread(const struct device *dev,
                 LOG_INF("RX id_type=%u rtr=%u id=%u dlc=%u", frame.id_type, 
 			frame.rtr, frame.id, frame.dlc);
                 LOG_HEXDUMP_INF(frame.data, frame.dlc, "can data");
-
+	
+#if defined(CONTROLLER_CANTCP_SERVER)
 		ret = cantcp_server_broadcast(&frame);
 		if (ret < 0) {
 			LOG_ERR("cantcp_server_broadcast() failed = %d", ret);
 		}
+#endif 
         }
 }
 
@@ -75,9 +77,10 @@ static void can_tx_thread(const struct device *dev, void *_b, void *_c)
                 LOG_INF("CAN: Device %s not ready.\n", dev->name);
                 k_sleep(K_SECONDS(1));
         }
-
+#if defined(CONTROLLER_CANTCP_SERVER)
 	cantcp_server_attach_rx_msgq(&can_tx_msgqueue);
-	
+#endif /* defined(CONTROLLER_CANTCP_SERVER) */
+
         for (;;) {
 		if (k_msgq_get(&can_tx_msgqueue, &frame, K_FOREVER) == 0) {
 			can_send(dev, &frame, K_FOREVER, NULL, NULL);

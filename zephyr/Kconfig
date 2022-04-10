@@ -43,6 +43,12 @@ config CONTROLLER_SYSTEM_MONITORING
         help
                 Enable system monitoring e.g. (mbedTLS heap usage, ...)
 
+config CONTROLLER_CANTCP_SERVER
+        bool "Enable CANTCP server"
+        default n
+        help
+                Enable CANTCP server thread (for CAN over TCP)
+
 # artificaly enable HAL_CRC drivers from STM32CUBE
 # read : https://github.com/zephyrproject-rtos/zephyr/issues/37543
 config MY_STM32_HAL
