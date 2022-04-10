@@ -13,15 +13,23 @@ const struct zcan_filter filter = {
                 .id = 0
 };
 
-static void can_rx_thread(const struct device *dev, struct k_msgq *msgq, struct zcan_filter *filter);
-static void can_tx_thread(const struct device *can_dev, void *_b, void *_c);
+static void can_rx_thread(const struct device *dev,
+			  struct k_msgq *msgq,
+			  struct zcan_filter *filter);
+static void can_tx_thread(const struct device *can_dev,
+			  void *_b,
+			  void *_c);
 
 CAN_DEFINE_MSGQ(can_rx_msgqueue, 2);
-K_THREAD_DEFINE(canrx, 0x500, can_rx_thread, CAN1_DEVICE, &can_rx_msgqueue, &filter, K_PRIO_COOP(5), 0, 0);
+K_THREAD_DEFINE(canrx, 0x500, can_rx_thread, CAN1_DEVICE, 
+		&can_rx_msgqueue, &filter, K_PRIO_COOP(5), 0, 0);
 
-K_THREAD_DEFINE(cantx, 0x500, can_tx_thread, CAN1_DEVICE, NULL, NULL, K_PRIO_COOP(5), 0, 0);
+K_THREAD_DEFINE(cantx, 0x500, can_tx_thread, CAN1_DEVICE, 
+		NULL, NULL, K_PRIO_COOP(5), 0, 0);
 
-static void can_rx_thread(const struct device *dev, struct k_msgq *msgq, struct zcan_filter *filter)
+static void can_rx_thread(const struct device *dev,
+			  struct k_msgq *msgq,
+			  struct zcan_filter *filter)
 {
         int ret;
 	struct zcan_frame frame;
@@ -50,15 +58,13 @@ int can_queue(struct zcan_frame *frame)
 	return k_msgq_put(&can_tx_msgqueue, frame, K_NO_WAIT);
 }
 
-	// int ret;
-
-	// const struct zcan_frame frame = {
-	//         .id_type = CAN_STANDARD_IDENTIFIER,
-	//         .rtr = CAN_DATAFRAME,
-	//         .id = 0x123,
-	//         .dlc = 8,
-	//         .data = {1, 2, 3, 4, 5, 6, 7, 8}
-	// };
+// const struct zcan_frame frame = {
+//         .id_type = CAN_STANDARD_IDENTIFIER,
+//         .rtr = CAN_DATAFRAME,
+//         .id = 0x123,
+//         .dlc = 8,
+//         .data = {1, 2, 3, 4, 5, 6, 7, 8}
+// };
 
 
 static void can_tx_thread(const struct device *dev, void *_b, void *_c)

@@ -1,0 +1,3 @@
+[submodule "lib/caniot-lib"]
+	path = lib/caniot-lib
+	url = git@github.com:lucasdietrich/caniot-lib.git
