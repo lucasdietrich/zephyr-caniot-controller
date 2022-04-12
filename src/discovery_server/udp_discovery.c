@@ -12,12 +12,12 @@
 #include "utils.h"
 
 /* find a better way to do this */
-#ifndef CONFIG_CONTROLLER_DISCOVERY_LOG_LEVEL
-#define CONFIG_CONTROLLER_DISCOVERY_LOG_LEVEL 0
-#endif /* CONFIG_CONTROLLER_DISCOVERY_LOG_LEVEL */
+#ifndef CONFIG_DISCOVERY_SERVER_LOG_LEVEL
+#define CONFIG_DISCOVERY_SERVER_LOG_LEVEL 0
+#endif /* CONFIG_DISCOVERY_SERVER_LOG_LEVEL */
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(discovery, CONFIG_CONTROLLER_DISCOVERY_LOG_LEVEL);
+LOG_MODULE_REGISTER(discovery, CONFIG_DISCOVERY_SERVER_LOG_LEVEL);
 
 #define DISCOVERY_PORT          5000
 #define SEARCH_STRING           "Search caniot-controller"
@@ -29,10 +29,10 @@ static __noinit char buffer[0x20];
 
 static void thread(void *_a, void *_b, void *_c);
 
-#if defined(CONFIG_CONTROLLER_DISCOVERY)
+#if defined(CONFIG_DISCOVERY_SERVER)
 K_THREAD_DEFINE(discovery, 0x300, thread, NULL, NULL, NULL,
                 K_PRIO_PREEMPT(8), 0, 0);
-#endif /* CONFIG_CONTROLLER_DISCOVERY */
+#endif /* CONFIG_DISCOVERY_SERVER */
 
 static int setup_socket(void)
 {

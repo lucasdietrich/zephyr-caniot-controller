@@ -30,7 +30,7 @@ LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF);
 
 #define HTTPS_SERVER_SEC_TAG   1
 
-#if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
+#if CONFIG_HTTP_SERVER_NONSECURE
 #       define SERVER_FD_COUNT        2
 #else
 #       define SERVER_FD_COUNT        1
@@ -71,13 +71,13 @@ union {
  */
 static union
 {
-        struct pollfd array[CONFIG_CONTROLLER_MAX_HTTP_CONNECTIONS + SERVER_FD_COUNT];
+        struct pollfd array[CONFIG_MAX_HTTP_CONNECTIONS + SERVER_FD_COUNT];
         struct {
-#if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
+#if CONFIG_HTTP_SERVER_NONSECURE
                 struct pollfd srv;      /* non secure server socket */
 #endif
                 struct pollfd sec;      /* secure server socket */
-                struct pollfd cli[CONFIG_CONTROLLER_MAX_HTTP_CONNECTIONS];
+                struct pollfd cli[CONFIG_MAX_HTTP_CONNECTIONS];
         };
 } fds;
 
@@ -171,11 +171,11 @@ exit:
 int setup_sockets(void)
 {
         /* setup non-secure HTTP socket (port 80) */
-#if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
+#if CONFIG_HTTP_SERVER_NONSECURE
         if (setup_socket(&fds.srv, false) < 0) {
                 goto exit;
         }
-#endif /* CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE */
+#endif /* CONFIG_HTTP_SERVER_NONSECURE */
 
         /* setup secure HTTPS socket (port 443) */
 
@@ -204,7 +204,7 @@ static void remove_pollfd_by_index(uint_fast8_t index)
 
         // show_pfd();
 
-        if (index >= CONFIG_CONTROLLER_MAX_HTTP_CONNECTIONS) {
+        if (index >= CONFIG_MAX_HTTP_CONNECTIONS) {
                 return;
         }
         int move_count = conns_count - index;
@@ -295,11 +295,11 @@ void http_srv_thread(void *_a, void *_b, void *_c)
 
                 ret = zsock_poll(fds.array, conns_count + listening_count, timeout);
                 if (ret >= 0) {
-#if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
+#if CONFIG_HTTP_SERVER_NONSECURE
                         if (fds.srv.revents & POLLIN) {
                                 ret = srv_accept(fds.srv.fd);
                         }
-#endif /* CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE */
+#endif /* CONFIG_HTTP_SERVER_NONSECURE */
 
                         if (fds.sec.revents & POLLIN) {
                                 ret = srv_accept(fds.sec.fd);
@@ -339,9 +339,9 @@ void http_srv_thread(void *_a, void *_b, void *_c)
                 }
         }
 
-#if CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE
+#if CONFIG_HTTP_SERVER_NONSECURE
         zsock_close(fds.srv.fd);
-#endif /* CONFIG_CONTROLLER_HTTP_SERVER_NONSECURE */
+#endif /* CONFIG_HTTP_SERVER_NONSECURE */
 
         zsock_close(fds.sec.fd);
 }

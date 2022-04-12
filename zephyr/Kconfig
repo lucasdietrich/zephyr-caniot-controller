@@ -11,43 +11,49 @@ mainmenu "caniot-controller"
 # to 'source' relative to the current Kconfig file instead, use 'rsource' (or a
 # path relative to the Zephyr root).
 
-config CONTROLLER_DISCOVERY
+config DISCOVERY_SERVER
 	bool "Enable discovery server"
         default y
 	help
 	        Enable UDP discovery server on port 5000
 
-config CONTROLLER_DISCOVERY_LOG_LEVEL
+config DISCOVERY_SERVER_LOG_LEVEL
         int "UDP discovery server log level"
         default 2
         range 0 4
-        depends on CONTROLLER_DISCOVERY
+        depends on DISCOVERY_SERVER
         help
                 NONE(0) ERR(1) WRN (2) INF(3) DBG(4)
 
-config CONTROLLER_HTTP_SERVER_NONSECURE
+config HTTP_SERVER_NONSECURE
         bool "Allow non secure HTTP server"
         default y
 
-config CONTROLLER_MAX_HTTP_CONNECTIONS
+config MAX_HTTP_CONNECTIONS
         int "Maximum number of HTTP connections"
         default 3
         range 0 5
         help
                 Maximum number of HTTP connections supported by the HTTP server
 
-config CONTROLLER_SYSTEM_MONITORING
+config SYSTEM_MONITORING
         bool "Enable system monitoring"
         select CONFIG_MBEDTLS_MEMORY_DEBUG
         default n
         help
                 Enable system monitoring e.g. (mbedTLS heap usage, ...)
 
-config CONTROLLER_CANTCP_SERVER
+config CANTCP_SERVER
         bool "Enable CANTCP server"
         default n
         help
                 Enable CANTCP server thread (for CAN over TCP)
+
+config CANIOT_CONTROLLER
+        bool "Enable CANIOT controller"
+        default n
+        help
+                Enable CANIOT controller redirection for CAN messages
 
 # artificaly enable HAL_CRC drivers from STM32CUBE
 # read : https://github.com/zephyrproject-rtos/zephyr/issues/37543

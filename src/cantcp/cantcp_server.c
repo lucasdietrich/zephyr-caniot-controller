@@ -1,4 +1,4 @@
-#if defined(CONTROLLER_CANTCP_SERVER)
+#if defined(CANTCP_SERVER)
 
 #include <net/socket.h>
 #include <net/net_core.h>
@@ -383,4 +383,4 @@ static void server(void *_a, void *_b, void *_c)
 	zsock_close(sock);
 }
 
-#endif /* defined(CONTROLLER_CANTCP_SERVER) */
+#endif /* defined(CANTCP_SERVER) */
