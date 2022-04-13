@@ -3,14 +3,14 @@
 #include <device.h>
 #include <drivers/sensor.h>
 
-#include "main.h"
-
 #include "net_interface.h"
 #include "net_time.h"
 #include "crypto.h"
 
 #include "userio/leds.h"
 #include "userio/button.h"
+
+#include "mydevices.h"
 
 #include <mbedtls/memory_buffer_alloc.h>
 
@@ -22,24 +22,6 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_NONE);
 #else
 #error "Could not find a compatible temperature sensor"
 #endif
-
-die_temperature_handle_t die_temp_handle = {
-	.die_temperature = 0.0,
-	.timestamp = 0,
-	.sem = Z_SEM_INITIALIZER(die_temp_handle.sem, 0, 1),
-	.mutex = Z_MUTEX_INITIALIZER(die_temp_handle.mutex)
-};
-
-static void forward_die_temperature(die_temperature_handle_t *handle, float temperature)
-{
-	k_mutex_lock(&handle->mutex, K_FOREVER);
-
-	handle->die_temperature = temperature;
-	handle->timestamp = net_time_get();
-	k_sem_give(&handle->sem);
-
-	k_mutex_unlock(&handle->mutex);
-}
 
 static void debug_mbedtls_memory(void)
 {
@@ -59,8 +41,8 @@ void main(void)
         crypto_mbedtls_heap_init();
         net_interface_init();
 
-	struct sensor_value val;
 	int rc;
+	struct sensor_value val;
 	const struct device *dev = DEVICE_DT_GET(TEMP_NODE);
 
 	if (!device_is_ready(dev)) {
@@ -85,7 +67,8 @@ void main(void)
 
 		const float temperature = (float)sensor_value_to_double(&val);
 		if (temperature > -276.0) {
-			forward_die_temperature(&die_temp_handle, temperature);
+			mydevice_register_die_temperature(net_time_get(), temperature);
+
 			LOG_DBG("Current DIE temperature: %.1f °C ", temperature);
 		} else {
 			LOG_WRN("Invalid DIE temperature: %.1f °C", temperature);

@@ -71,6 +71,8 @@
                 "button.h": "c",
                 "caniot.h": "c",
                 "canbus_internal.h": "c",
-                "cantcp_server.h": "c"
+                "cantcp_server.h": "c",
+                "caniot_controller.h": "c",
+                "mydevices.h": "c"
         }
 }

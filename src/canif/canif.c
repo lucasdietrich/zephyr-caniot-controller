@@ -7,8 +7,7 @@
 
 #include <logging/log.h>
 
-#include <caniot/caniot.h>
-#include <caniot/controller.h>
+#include <canif/caniot_controller.h>
 
 LOG_MODULE_REGISTER(can, LOG_LEVEL_DBG);
 
@@ -44,9 +43,9 @@ static void can_thread(const struct device *dev,
 		return;
 	}
 
-#if defined(CANTCP_SERVER)
+#if defined(CONFIG_CANTCP_SERVER)
 	cantcp_server_attach_rx_msgq(txq);
-#endif /* defined(CANTCP_SERVER) */
+#endif /* defined(CONFIG_CANTCP_SERVER) */
 
 
 	/* wait for device ready */
@@ -68,7 +67,7 @@ static void can_thread(const struct device *dev,
 	for (;;) {
 		ret = k_poll(events, ARRAY_SIZE(events), K_FOREVER);
 		if (ret >= 0) {
-			if (events[0].state == K_POLL_STATE_SIGNALED) {
+			if (events[0].state == K_POLL_STATE_MSGQ_DATA_AVAILABLE) {
 				ret = k_msgq_get(rxq, &frame, K_NO_WAIT);
 
 				__ASSERT(ret == 0, "Failed to get received CAN frame");
@@ -76,7 +75,7 @@ static void can_thread(const struct device *dev,
 				handle_received_frame(&frame);
 			}
 
-			if (events[1].state == K_POLL_STATE_SIGNALED) {
+			if (events[1].state == K_POLL_STATE_MSGQ_DATA_AVAILABLE) {
 				ret = k_msgq_get(txq, &frame, K_NO_WAIT);
 
 				__ASSERT(ret == 0, "Failed to get TX  CAN frame from msgq");
@@ -98,20 +97,20 @@ static int handle_received_frame(struct zcan_frame *frame)
 	int ret = 0;
 
 	/* show received frame */
-	LOG_DBG("RX id_type=%u rtr=%u id=%u dlc=%u", frame->id_type,
+	LOG_DBG("RX id_type=%u rtr=%u id=%x dlc=%u", frame->id_type,
 		frame->rtr, frame->id, frame->dlc);
 	LOG_HEXDUMP_DBG(frame->data, frame->dlc, "can data");
 
 	/* broadcast to cantcp connections if any */
-#if defined(CANTCP_SERVER)
+#if defined(CONFIG_CANTCP_SERVER)
 	ret = cantcp_server_broadcast(frame);
 	if (ret < 0) {
 		LOG_ERR("cantcp_server_broadcast() failed = %d", ret);
 	}
-#endif 
+#endif /* CONFIG_CANTCP_SERVER */
 
-#if defined(CANIOT_CONTROLLER)
-	// caniot_controller_process(frame);
+#if defined(CONFIG_CANIOT_CONTROLLER)
+	caniot_process_can_frame(frame);
 #endif 
 
 	return ret;

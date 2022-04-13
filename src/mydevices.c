@@ -8,7 +8,7 @@
 #include "ble/xiaomi_record.h"
 #include "net_time.h"
 
-#include "main.h"
+#include "caniot/datatype.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(devices, LOG_LEVEL_DBG);
@@ -42,7 +42,8 @@ static int phys_addr_cmp(mydevice_phys_addr_t *addr1, mydevice_phys_addr_t *addr
 		if (addr1->medium == MYDEVICE_MEDIUM_TYPE_BLE) {
 			ret = bt_addr_le_cmp(&addr1->addr.ble, &addr2->addr.ble);
 		} else if (addr1->medium == MYDEVICE_MEDIUM_TYPE_CAN) {
-			ret = addr1->addr.caniot == addr2->addr.caniot;
+			ret = caniot_deviceid_cmp(addr1->addr.caniot,
+						  addr2->addr.caniot);
 		}
 	}
 
@@ -294,11 +295,11 @@ exit:
 	return ret;
 }
 
-static inline int handle_die_temperature(die_temperature_handle_t *handle)
+int mydevice_register_die_temperature(uint32_t timestamp,
+				      float die_temperature)
 {
 	int ret = 0;
 
-	k_mutex_lock(&handle->mutex, K_FOREVER);
 	k_mutex_lock(&devices.mutex, K_FOREVER);
 	
 	/* check if device already exists */
@@ -317,12 +318,62 @@ static inline int handle_die_temperature(die_temperature_handle_t *handle)
 	}
 
 	/* device does exist now, update it measurements */
-	dev->data.measurements_timestamp = handle->timestamp;
-	dev->data.nucleo_f429zi.die_temperature = handle->die_temperature;
+	dev->data.measurements_timestamp = timestamp;
+	dev->data.nucleo_f429zi.die_temperature = die_temperature;
 
 exit:
-	k_mutex_unlock(&handle->mutex);
 	k_mutex_unlock(&devices.mutex);
+	
+	return ret;
+}
+
+int mydevice_register_caniot_telemetry(uint32_t timestamp,
+				       union deviceid did,
+				       struct caniot_board_control_telemetry *data)
+{
+	int ret = 0;
+
+	k_mutex_lock(&devices.mutex, K_FOREVER);
+
+	/* check if device already exists */
+	mydevice_phys_addr_t phys_addr;
+	phys_addr.medium = MYDEVICE_MEDIUM_TYPE_CAN;
+	phys_addr.addr.caniot = did;
+
+	struct mydevice *dev = mydevice_get_or_register(&phys_addr,
+							MYDEVICE_TYPE_CANIOT);
+	if (dev == NULL) {
+		LOG_ERR("Failed to register device, list full %hhu / %lu",
+			devices.count,
+			ARRAY_SIZE(devices.list));
+		ret = -ENOMEM;
+		goto exit;
+	}
+
+	/* device does exist now, update it measurements */
+	dev->data.measurements_timestamp = timestamp;
+
+	if (CANIOT_DT_VALID_T10_TEMP(data->int_temperature)) {
+		dev->data.caniot.temperatures[0].type = MYDEVICE_SENSOR_TYPE_EMBEDDED;
+		dev->data.caniot.temperatures[0].value = 
+			caniot_dt_T10_to_T16(data->int_temperature);
+	} else {
+		dev->data.caniot.temperatures[0].type = MYDEVICE_SENSOR_TYPE_NONE;
+	}
+
+	if (CANIOT_DT_VALID_T10_TEMP(data->ext_temperature)) {
+		dev->data.caniot.temperatures[1].type = MYDEVICE_SENSOR_TYPE_EXTERNAL;
+		dev->data.caniot.temperatures[1].value = 
+			caniot_dt_T10_to_T16(data->ext_temperature);
+	} else {
+		dev->data.caniot.temperatures[1].type = MYDEVICE_SENSOR_TYPE_NONE;
+	}
+
+	/* todo baord IO */
+
+exit:
+	k_mutex_unlock(&devices.mutex);
+	
 	return ret;
 }
 
@@ -334,8 +385,6 @@ K_THREAD_DEFINE(devices_controller_thread_id, 0x400, devices_controller_thread,
 		NULL, NULL, NULL, K_PRIO_COOP(8), 0, 0);
 
 K_MSGQ_DEFINE(msgq, IPC_FRAME_SIZE, 1, 4);
-
-extern die_temperature_handle_t die_temp_handle;
 
 void devices_controller_thread(void *_a, void *_b, void *_c)
 {
@@ -351,9 +400,6 @@ void devices_controller_thread(void *_a, void *_b, void *_c)
 		K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_MSGQ_DATA_AVAILABLE,
 						K_POLL_MODE_NOTIFY_ONLY,
 						&msgq, 0),
-		K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_SEM_AVAILABLE,
-						K_POLL_MODE_NOTIFY_ONLY,
-						&die_temp_handle.sem, 0),
 	};
 
 	for (;;) {
@@ -375,18 +421,7 @@ void devices_controller_thread(void *_a, void *_b, void *_c)
 			}
 		}
 
-		if (events[1].state == K_POLL_STATE_SEM_AVAILABLE) {
-			ret = k_sem_take(&die_temp_handle.sem, K_NO_WAIT);
-			if (ret != 0) {
-				LOG_ERR("Failed to take semaphore, err: %d", ret);
-				return;
-			}
-
-			ret = handle_die_temperature(&die_temp_handle);
-		}
-
 		events[0].state = K_POLL_STATE_NOT_READY;
-		events[1].state = K_POLL_STATE_NOT_READY;
 	}
 }
 

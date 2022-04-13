@@ -29,6 +29,8 @@
 
 #include "utils.h"
 
+#include <caniot/caniot.h>
+
 #include <logging/log.h>
 LOG_MODULE_REGISTER(prom, LOG_LEVEL_DBG);
 
@@ -514,7 +516,41 @@ static void prom_mydevices_iterate_cb(struct mydevice *dev,
 		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
 
 	} else if (dev->type == MYDEVICE_TYPE_CANIOT) {
-		/* TODO implement */
+		char caniot_addr_str[CANIOT_ADDR_LEN];
+
+		caniot_encode_deviceid(dev->addr.addr.caniot,
+				       caniot_addr_str,
+				       sizeof(caniot_addr_str));
+
+		union measurements_tags_values tags_values = {
+			.medium = prom_myd_medium_to_str(dev->addr.medium),
+			.mac = caniot_addr_str, /* can device id */
+			.device = prom_myd_device_type_to_str(dev->type),
+			.sensor = prom_myd_sensor_type_to_str(
+				MYDEVICE_SENSOR_TYPE_EMBEDDED),
+			.room = "",
+			.collector = "f429",
+		};
+		
+		struct metric_value val = {
+			.tags_values = tags_values.list,
+			.tags_values_count = ARRAY_SIZE(tags_values.list),
+			.encoding = {
+				.type = VALUE_ENCODING_TYPE_FLOAT,
+				.digits = 2,
+			}
+		};
+
+		for (size_t i = 0U; i < ARRAY_SIZE(dev->data.caniot.temperatures); i++) {
+			mydevice_sensor_type_t sensor_type =
+				dev->data.caniot.temperatures[i].type;
+			if (sensor_type != MYDEVICE_SENSOR_TYPE_NONE) {
+				val.value = dev->data.caniot.temperatures[i].value / 100.0;
+				tags_values.sensor = prom_myd_sensor_type_to_str(sensor_type);
+				encode_metric(buffer, &val, &mdef_device_temperature, false);
+			}
+		}
+		
 	} else if (dev->type == MYDEVICE_TYPE_NUCLEO_F429ZI) {
 		union measurements_tags_values tags_values = {
 			.medium = "",

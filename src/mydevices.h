@@ -17,6 +17,8 @@
 #include <stddef.h>
 
 #include "ble/xiaomi_record.h"
+#include <caniot/caniot.h>
+#include <caniot/datatype.h>
 
 typedef enum {
 	MYDEVICE_MEDIUM_TYPE_NONE = 0,
@@ -35,7 +37,7 @@ typedef struct {
 	mydevice_medium_type_t medium;
 	union {
 		bt_addr_le_t ble;
-		uint8_t caniot;
+		union deviceid caniot;
 	} addr;
 } mydevice_phys_addr_t;
 
@@ -119,5 +121,13 @@ size_t mydevice_iterate(void (*callback)(struct mydevice *dev,
 size_t mydevice_xiaomi_iterate(void (*callback)(struct mydevice *dev,
 						void *user_data),
 			       void *user_data);
+
+int mydevice_register_die_temperature(uint32_t timestamp,
+				      float die_temperature);
+
+int mydevice_register_caniot_telemetry(uint32_t timestamp,
+				       union deviceid did,
+				       struct caniot_board_control_telemetry *data);
+
 
 #endif /* _MYDEVICES_H_ */
