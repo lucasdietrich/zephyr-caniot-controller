@@ -379,6 +379,8 @@ exit:
 
 /*___________________________________________________________________________*/
 
+/* TODO remove this thread and use the system workqueue to process ble dataframes */
+
 void devices_controller_thread(void *_a, void *_b, void *_c);
 
 K_THREAD_DEFINE(devices_controller_thread_id, 0x400, devices_controller_thread,

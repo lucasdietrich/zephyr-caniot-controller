@@ -55,7 +55,7 @@ K_THREAD_DEFINE(http_server, 0x1000, http_srv_thread,
  *
  * Same buffer for HTTP request and HTTP response
  */
-union {
+__noinit union {
 	char request[0x1000];
 	struct {
 		char internal[0x200];
