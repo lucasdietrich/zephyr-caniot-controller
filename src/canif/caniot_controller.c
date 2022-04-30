@@ -9,7 +9,7 @@
 #include "net_time.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(caniot, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(caniot, LOG_LEVEL_WRN);
 
 static void caniot_thread(void *_a, void *_b, void *_c);
 

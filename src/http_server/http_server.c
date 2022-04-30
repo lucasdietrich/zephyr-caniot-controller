@@ -506,13 +506,13 @@ static int process_request(struct http_request *req,
 				resp->status_code = 500U;
 			}
 		} else {
-			LOG_ERR("No handler for route %s", req->url);
+			LOG_ERR("No handler for route %s", log_strdup(req->url));
 
 			/* Not Found */
 			resp->status_code = 404U;
 		}
 	} else {
-		LOG_WRN("No route found for %s", req->url);
+		LOG_WRN("No route found for %s", log_strdup(req->url));
 
 		/* Not Found */
 		resp->status_code = 404U;

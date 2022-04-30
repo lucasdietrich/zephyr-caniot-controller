@@ -2,8 +2,8 @@
 
 #include "mydevices.h"
 
-#include "ipc_uart/ipc_frame.h"
-#include "ipc_uart/ipc.h"
+#include "uart_ipc/ipc_frame.h"
+#include "uart_ipc/ipc.h"
 
 #include "ble/xiaomi_record.h"
 #include "net_time.h"
@@ -247,7 +247,7 @@ static int handle_ble_xiaomi_record(xiaomi_record_t *rec)
 	return 0;
 }
 
-static int handle_ble_xiaomi_dataframe(xiaomi_dataframe_t *frame)
+int mydevices_register_ble_xiaomi_dataframe(xiaomi_dataframe_t *frame)
 {
 	int ret = 0;
 	char addr_str[BT_ADDR_LE_STR_LEN];
@@ -369,7 +369,9 @@ int mydevice_register_caniot_telemetry(uint32_t timestamp,
 		dev->data.caniot.temperatures[1].type = MYDEVICE_SENSOR_TYPE_NONE;
 	}
 
-	/* todo baord IO */
+	/* todo board IO */
+
+	LOG_INF("Registered CANIOT record for device 0x%hhx", did.val);
 
 exit:
 	k_mutex_unlock(&devices.mutex);
@@ -379,52 +381,55 @@ exit:
 
 /*___________________________________________________________________________*/
 
-/* TODO remove this thread and use the system workqueue to process ble dataframes */
 
-void devices_controller_thread(void *_a, void *_b, void *_c);
+K_MSGQ_DEFINE(ipc_ble_msgq, sizeof(ipc_frame_t), 1U, 4U);
+struct k_poll_event ipc_event =
+	K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_MSGQ_DATA_AVAILABLE,
+					K_POLL_MODE_NOTIFY_ONLY,
+					&ipc_ble_msgq, 0);
+static struct k_work_poll ipc_ble_work;
 
-K_THREAD_DEFINE(devices_controller_thread_id, 0x400, devices_controller_thread,
-		NULL, NULL, NULL, K_PRIO_COOP(8), 0, 0);
-
-K_MSGQ_DEFINE(msgq, IPC_FRAME_SIZE, 1, 4);
-
-void devices_controller_thread(void *_a, void *_b, void *_c)
+static void ipc_work_handler(struct k_work *work)
 {
 	int ret;
-	static ipc_frame_t frame;
 
-	/* TODO make sure the ipc didn't start before calling this function */
-	ipc_attach_rx_msgq(&msgq);
+	ipc_frame_t frame;
 
-	net_time_wait_synced(K_FOREVER);
-
-	struct k_poll_event events[] = {
-		K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_MSGQ_DATA_AVAILABLE,
-						K_POLL_MODE_NOTIFY_ONLY,
-						&msgq, 0),
-	};
-
-	for (;;) {
-		ret = k_poll(events, ARRAY_SIZE(events), K_FOREVER);
-
-		if (events[0].state == K_POLL_STATE_MSGQ_DATA_AVAILABLE) {
-			ret = k_msgq_get(&msgq, (void *)&frame, K_NO_WAIT);
-			if (ret != 0) {
-				LOG_ERR("Failed to get msgq message! ret = %d",
-					ret);
-				return;
-			}
-
-			ret = handle_ble_xiaomi_dataframe(
-				(xiaomi_dataframe_t *)frame.data.buf);
-			if (ret != 0) {
-				LOG_ERR("Failed to handle BLE Xiaomi record, err: %d",
-					ret);
-			}
+	/* process all available messages */
+	while (k_msgq_get(&ipc_ble_msgq, &frame, K_NO_WAIT) == 0U) {
+		ret = mydevices_register_ble_xiaomi_dataframe(
+			(xiaomi_dataframe_t *)frame.data.buf);
+		if (ret != 0) {
+			LOG_ERR("Failed to handle BLE Xiaomi record, err: %d",
+				ret);
 		}
+	}	
 
-		events[0].state = K_POLL_STATE_NOT_READY;
+	ipc_event.state = K_POLL_STATE_NOT_READY;
+
+	/* re-register for next event */
+	ret = k_work_poll_submit(&ipc_ble_work, &ipc_event, 1U, K_FOREVER);
+	if (ret != 0) {
+		LOG_ERR("Failed to resubmit work %p to poll queue: %d", work, ret);
 	}
 }
 
-/*___________________________________________________________________________*/
+
+int mydevice_init(void)
+{
+	/* time should be synced at this point */
+
+	int ret = net_time_wait_synced(K_FOREVER);
+
+	if (ret == 0) {
+		// ipc_attach_rx_msgq(&ipc_ble_msgq);
+
+		k_work_poll_init(&ipc_ble_work, ipc_work_handler);
+		k_work_poll_submit(&ipc_ble_work, &ipc_event, 1U, K_FOREVER);
+
+	} else {
+		LOG_ERR("Time not synced ! ret = %d", ret);
+	}
+
+	return ret;
+}

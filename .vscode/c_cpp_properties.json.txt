@@ -1,0 +1,105 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "/home/lucas/zephyrproject/stm32f429zi-caniot-controller/src",
+                "/home/lucas/zephyrproject/stm32f429zi-caniot-controller/lib/caniot-lib/include",
+                "/home/lucas/zephyrproject/stm32f429zi-caniot-controller/lib/caniot-lib/src",
+                "/home/lucas/.platformio/packages/framework-zephyr/include",
+                "/home/lucas/zephyrproject/stm32f429zi-caniot-controller/.pio/build/nucleo_f429zi/zephyr/include/generated",
+                "/home/lucas/.platformio/packages/framework-zephyr/soc/arm/st_stm32/stm32f4",
+                "/home/lucas/.platformio/packages/framework-zephyr/drivers",
+                "/home/lucas/.platformio/packages/framework-zephyr/soc/arm/st_stm32/common",
+                "/home/lucas/.platformio/packages/framework-zephyr/subsys/net/l2",
+                "/home/lucas/.platformio/packages/framework-zephyr/subsys/net/lib/sockets",
+                "/home/lucas/.platformio/packages/framework-zephyr/subsys/net/lib/tls_credentials",
+                "/home/lucas/.platformio/packages/framework-zephyr/subsys/net/lib/dns",
+                "/home/lucas/.platformio/packages/framework-zephyr/subsys/net/ip",
+                "/home/lucas/.platformio/packages/framework-zephyr/_pio/modules/hal/cmsis/CMSIS/Core/Include",
+                "/home/lucas/.platformio/packages/framework-zephyr/_pio/modules/hal/stm32/stm32cube/stm32f4xx/soc",
+                "/home/lucas/.platformio/packages/framework-zephyr/_pio/modules/hal/stm32/stm32cube/stm32f4xx/drivers/include",
+                "/home/lucas/.platformio/packages/framework-zephyr/_pio/modules/hal/stm32/stm32cube/stm32f4xx/drivers/include/Legacy",
+                "/home/lucas/.platformio/packages/framework-zephyr/_pio/modules/hal/stm32/stm32cube/common_ll/include",
+                "/home/lucas/zephyrproject/stm32f429zi-caniot-controller/src/mbedtls_config",
+                "/home/lucas/.platformio/packages/framework-zephyr/_pio/modules/crypto/mbedtls/mbedtls/include",
+                "/home/lucas/.platformio/packages/framework-zephyr/modules/mbedtls/configs",
+                "/home/lucas/.platformio/packages/framework-zephyr/include/posix",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/home/lucas/zephyrproject/stm32f429zi-caniot-controller/src",
+                    "/home/lucas/zephyrproject/stm32f429zi-caniot-controller/lib/caniot-lib/include",
+                    "/home/lucas/zephyrproject/stm32f429zi-caniot-controller/lib/caniot-lib/src",
+                    "/home/lucas/.platformio/packages/framework-zephyr/include",
+                    "/home/lucas/zephyrproject/stm32f429zi-caniot-controller/.pio/build/nucleo_f429zi/zephyr/include/generated",
+                    "/home/lucas/.platformio/packages/framework-zephyr/soc/arm/st_stm32/stm32f4",
+                    "/home/lucas/.platformio/packages/framework-zephyr/drivers",
+                    "/home/lucas/.platformio/packages/framework-zephyr/soc/arm/st_stm32/common",
+                    "/home/lucas/.platformio/packages/framework-zephyr/subsys/net/l2",
+                    "/home/lucas/.platformio/packages/framework-zephyr/subsys/net/lib/sockets",
+                    "/home/lucas/.platformio/packages/framework-zephyr/subsys/net/lib/tls_credentials",
+                    "/home/lucas/.platformio/packages/framework-zephyr/subsys/net/lib/dns",
+                    "/home/lucas/.platformio/packages/framework-zephyr/subsys/net/ip",
+                    "/home/lucas/.platformio/packages/framework-zephyr/_pio/modules/hal/cmsis/CMSIS/Core/Include",
+                    "/home/lucas/.platformio/packages/framework-zephyr/_pio/modules/hal/stm32/stm32cube/stm32f4xx/soc",
+                    "/home/lucas/.platformio/packages/framework-zephyr/_pio/modules/hal/stm32/stm32cube/stm32f4xx/drivers/include",
+                    "/home/lucas/.platformio/packages/framework-zephyr/_pio/modules/hal/stm32/stm32cube/stm32f4xx/drivers/include/Legacy",
+                    "/home/lucas/.platformio/packages/framework-zephyr/_pio/modules/hal/stm32/stm32cube/common_ll/include",
+                    "/home/lucas/zephyrproject/stm32f429zi-caniot-controller/src/mbedtls_config",
+                    "/home/lucas/.platformio/packages/framework-zephyr/_pio/modules/crypto/mbedtls/mbedtls/include",
+                    "/home/lucas/.platformio/packages/framework-zephyr/modules/mbedtls/configs",
+                    "/home/lucas/.platformio/packages/framework-zephyr/include/posix",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=50205",
+                "STM32F429xx",
+                "__FIRMWARE_VERSION__=1",
+                "CONFIG_CANIOT_LOG_LEVEL=0",
+                "CONFIG_CANIOT_ARCH_AGNOSTIC=0",
+                "BUILD_VERSION=zephyr-v20700",
+                "CORE_CM4",
+                "HSE_VALUE=8000000",
+                "KERNEL",
+                "MBEDTLS_CONFIG_FILE=\"config-tls-generic.h\"",
+                "STM32F429xx",
+                "USE_FULL_LL_DRIVER",
+                "USE_HAL_DRIVER",
+                "_FORTIFY_SOURCE=2",
+                "__PROGRAM_START",
+                "__ZEPHYR__=1",
+                ""
+            ],
+            "cStandard": "c99",
+            "forcedInclude": [
+                "/home/lucas/zephyrproject/stm32f429zi-caniot-controller/.pio/build/nucleo_f429zi/zephyr/include/generated/autoconf.h",
+                "/home/lucas/.platformio/packages/framework-zephyr/include/toolchain/zephyr_stdint.h",
+                ""
+            ],
+            "compilerPath": "/home/lucas/.platformio/packages/toolchain-gccarmnoneeabi/bin/arm-none-eabi-gcc",
+            "compilerArgs": [
+                "-mcpu=cortex-m4",
+                "-mthumb",
+                "-mabi=aapcs",
+                "-mfp16-format=ieee",
+                "-isystem",
+                "/home/lucas/.platformio/packages/framework-zephyr/lib/libc/minimal/include",
+                "-isystem",
+                "/home/lucas/.platformio/packages/toolchain-gccarmnoneeabi/bin/../lib/gcc/arm-none-eabi/8.2.1/include",
+                "-isystem",
+                "/home/lucas/.platformio/packages/toolchain-gccarmnoneeabi/bin/../lib/gcc/arm-none-eabi/8.2.1/include-fixed",
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}

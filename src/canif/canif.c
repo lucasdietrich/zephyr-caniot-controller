@@ -9,7 +9,7 @@
 
 #include <canif/caniot_controller.h>
 
-LOG_MODULE_REGISTER(can, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(can, LOG_LEVEL_WRN);
 
 #define CAN1_DEVICE DEVICE_DT_GET(DT_NODELABEL(can1))
 

@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
+rsource "src/uart_ipc/Kconfig"
+
 mainmenu "caniot-controller"
 
 # Your application configuration options go here
@@ -58,8 +60,9 @@ config CANIOT_CONTROLLER
 # artificaly enable HAL_CRC drivers from STM32CUBE
 # read : https://github.com/zephyrproject-rtos/zephyr/issues/37543
 config MY_STM32_HAL
-default y
-bool
-select USE_STM32_HAL_CRC
+        bool "Enable STM32 HAL drivers (custom)"
+        default y
+        select USE_STM32_HAL_CRC
+        select USE_STM32_HAL_GPIO
 
 source "Kconfig.zephyr"

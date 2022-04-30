@@ -14,6 +14,8 @@
 
 #include <mbedtls/memory_buffer_alloc.h>
 
+#include <stdio.h>
+
 #include <logging/log.h>
 LOG_MODULE_REGISTER(main, LOG_LEVEL_NONE);
 
@@ -40,6 +42,7 @@ void main(void)
 
         crypto_mbedtls_heap_init();
         net_interface_init();
+	mydevice_init();
 
 	int rc;
 	struct sensor_value val;

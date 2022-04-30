@@ -122,12 +122,16 @@ size_t mydevice_xiaomi_iterate(void (*callback)(struct mydevice *dev,
 						void *user_data),
 			       void *user_data);
 
+int mydevices_register_ble_xiaomi_dataframe(xiaomi_dataframe_t *frame);
+
 int mydevice_register_die_temperature(uint32_t timestamp,
 				      float die_temperature);
 
 int mydevice_register_caniot_telemetry(uint32_t timestamp,
 				       union deviceid did,
 				       struct caniot_board_control_telemetry *data);
+
+int mydevice_init(void);
 
 
 #endif /* _MYDEVICES_H_ */

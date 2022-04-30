@@ -6,3 +6,7 @@
 
 docs/html
 docs/latex
+
+tmp
+
+/build

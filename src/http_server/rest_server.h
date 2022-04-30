@@ -29,7 +29,7 @@ int rest_info(struct http_request *req,
 int rest_xiaomi_records(struct http_request *req,
 			struct http_response *resp);
 
-int rest_xiaomi_records_promethus(struct http_request *req,
-				  struct http_response *resp);
+int rest_devices_records(struct http_request *req,
+			 struct http_response *resp);
 
 #endif

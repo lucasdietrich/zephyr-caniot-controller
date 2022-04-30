@@ -162,10 +162,14 @@
 	dma-names = "tx", "rx";
 };
 
-// https://docs.zephyrproject.org/latest/reference/devicetree/bindings/serial/st,stm32-uart.html?highlight=stm32%20uart
+/* Read https://github.com/zephyrproject-rtos/zephyr/issues/34763 */
+
+// https://docs.zephyrproject.org/latest/build/dts/api/bindings/serial/st,stm32-uart.html
 &uart7 {
 	status = "okay";
-	current-speed = <1000000>; // 1000000
+
+        // Note: Clean and rebuild when changing this value !
+	current-speed = < 115200 >; // 1200, 115200, 1000000 
 	// hw-flow-control;
 	pinctrl-0 = <&uart7_tx_pe8 &uart7_rx_pe7>;
 
@@ -184,7 +188,7 @@
 
 
 	dmas =  < &dma1 1 5 0x440 0x3>, /* dma channel stream-slot channel-config features */
-		< &dma1 3 5 0x480 0x3 >; 
+		< &dma1 3 5 0x480 0x3>; 
 	dma-names = "tx", "rx";
 };
 
@@ -213,6 +217,18 @@ Sample application : https://github.com/zephyrproject-rtos/zephyr/tree/main/samp
                 zephyr,code-partition = &application_partition;
         };
 };
+
+/ {
+        chosen {
+                zephyr,console = &usart3;
+                zephyr,shell-uart = &usart3;
+        };
+};
+
+// &usart2 {
+// 	status = "okay";
+//         current-speed = < 115200 >;
+// };
 
 
 /* Second can bus isn't supported yet */
