@@ -169,11 +169,11 @@
 	status = "okay";
 
         // Note: Clean and rebuild when changing this value !
-	current-speed = < 115200 >; // 1200, 115200, 1000000 
+	current-speed = < 1000000 >; // 1200, 115200, 1000000 
 	// hw-flow-control;
 	pinctrl-0 = <&uart7_tx_pe8 &uart7_rx_pe7>;
 
-	// https://docs.zephyrproject.org/latest/reference/devicetree/bindings/dma/st%2Cstm32-dma-v1.html
+	// https://docs.zephyrproject.org/latest/build/dts/api/bindings/dma/st,stm32-dma.html
 
 	// RM0090 rev 19 page 307/1751 : DMA1
 	// UART7_TX chan 5 stream 1

@@ -77,7 +77,8 @@
                 "ipc.h": "c",
                 "ipc_frame.h": "c",
                 "device.h": "c",
-                "stdio.h": "c"
+                "stdio.h": "c",
+                "stm32f4xx_ll_gpio.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

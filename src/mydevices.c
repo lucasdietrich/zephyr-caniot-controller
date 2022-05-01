@@ -278,15 +278,17 @@ int mydevices_register_ble_xiaomi_dataframe(xiaomi_dataframe_t *frame)
 			goto exit;
 		}
 
-		 // Show BLE address, temperature, humidity, battery
-		LOG_DBG("\tBLE Xiaomi record %u [%d s]: addr: %s, " \
-			"temp: %.2f°C, hum: %u %%, bat: %u mV",
-			i,
-			record_rel_time,
+		
+		/* Show BLE address, temperature, humidity, battery
+		 *   Only raw values are showed in debug because, there is no formatting (e.g. float)
+		 */
+		LOG_DBG("BLE Xiaomi record %u [%d s]: addr: %s, " \
+			"temp: %d°C, hum: %u %%, bat: %u mV",
+			i, record_rel_time,
 			log_strdup(addr_str),
-			rec->measurements.temperature / 100.0f,
-			rec->measurements.humidity,
-			rec->measurements.battery);
+			(int32_t)rec->measurements.temperature,
+			(uint32_t)rec->measurements.humidity,
+			(uint32_t)rec->measurements.battery);
 	}
 
 exit:
@@ -417,12 +419,9 @@ static void ipc_work_handler(struct k_work *work)
 
 int mydevice_init(void)
 {
-	/* time should be synced at this point */
-
 	int ret = net_time_wait_synced(K_FOREVER);
-
 	if (ret == 0) {
-		// ipc_attach_rx_msgq(&ipc_ble_msgq);
+		ipc_attach_rx_msgq(&ipc_ble_msgq);
 
 		k_work_poll_init(&ipc_ble_work, ipc_work_handler);
 		k_work_poll_submit(&ipc_ble_work, &ipc_event, 1U, K_FOREVER);
