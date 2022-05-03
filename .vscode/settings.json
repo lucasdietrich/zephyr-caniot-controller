@@ -73,12 +73,14 @@
                 "canbus_internal.h": "c",
                 "cantcp_server.h": "c",
                 "caniot_controller.h": "c",
-                "mydevices.h": "c",
+                "ha_devs.h": "c",
                 "ipc.h": "c",
                 "ipc_frame.h": "c",
                 "device.h": "c",
                 "stdio.h": "c",
-                "stm32f4xx_ll_gpio.h": "c"
+                "stm32f4xx_ll_gpio.h": "c",
+                "dispatcher.h": "c",
+                "canif.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

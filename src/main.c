@@ -10,7 +10,7 @@
 #include "userio/leds.h"
 #include "userio/button.h"
 
-#include "mydevices.h"
+#include "ha/devices.h"
 
 #include <mbedtls/memory_buffer_alloc.h>
 
@@ -42,7 +42,7 @@ void main(void)
 
         crypto_mbedtls_heap_init();
         net_interface_init();
-	mydevice_init();
+	ha_dev_init();
 
 	int rc;
 	struct sensor_value val;
@@ -70,7 +70,7 @@ void main(void)
 
 		const float temperature = (float)sensor_value_to_double(&val);
 		if (temperature > -276.0) {
-			mydevice_register_die_temperature(net_time_get(), temperature);
+			ha_dev_register_die_temperature(net_time_get(), temperature);
 
 			LOG_DBG("Current DIE temperature: %.1f °C ", temperature);
 		} else {

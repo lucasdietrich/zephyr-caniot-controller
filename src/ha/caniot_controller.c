@@ -4,20 +4,12 @@
 #include <caniot/controller.h>
 #include <caniot/datatype.h>
 
-#include "mydevices.h"
+#include "devices.h"
 
 #include "net_time.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(caniot, LOG_LEVEL_WRN);
-
-static void caniot_thread(void *_a, void *_b, void *_c);
-
-K_THREAD_DEFINE(caniotid, 0x500, caniot_thread, NULL, NULL, NULL,
-		K_PRIO_PREEMPT(8), 0, 0);
-
-
-K_MSGQ_DEFINE(caniot_msgq, sizeof(struct caniot_frame), 4U, 4U);
 
 static int handle_caniot_frame(struct caniot_frame *ctf)
 {
@@ -30,7 +22,7 @@ static int handle_caniot_frame(struct caniot_frame *ctf)
 				ctf->len);
 		}
 
-		ret = mydevice_register_caniot_telemetry(
+		ret = ha_dev_register_caniot_telemetry(
 			net_time_get(),
 			CANIOT_DEVICE(ctf->id.cls, ctf->id.sid),
 			AS_BOARD_CONTROL_TELEMETRY(ctf->buf)
@@ -38,29 +30,6 @@ static int handle_caniot_frame(struct caniot_frame *ctf)
 	}
 
 	return ret;
-}
-
-static void caniot_thread(void *_a, void *_b, void *_c)
-{
-	int ret;
-
-	struct caniot_frame ctf;
-
-	for (;;) {
-		ret = k_msgq_get(&caniot_msgq, &ctf, K_FOREVER);
-		if (ret == 0) {
-			char buf[64];
-
-			ret = caniot_explain_frame_str(&ctf, buf, sizeof(buf));
-			if (ret > 0) {
-				LOG_INF("%s", buf);
-			} else {
-				LOG_ERR("Failed to encode frame, ret = %d", ret);
-			}
-
-			handle_caniot_frame(&ctf);
-		}
-	}
 }
 
 int caniot_process_can_frame(struct zcan_frame *frame)
@@ -79,7 +48,15 @@ int caniot_process_can_frame(struct zcan_frame *frame)
 	memcpy(ctf.buf, frame->data, ctf.len);
 
 	if (caniot_controller_is_target(&ctf) == true) {
-		ret = k_msgq_put(&caniot_msgq, &ctf, K_NO_WAIT);
+		char buf[64];
+		ret = caniot_explain_frame_str(&ctf, buf, sizeof(buf));
+		if (ret > 0) {
+			LOG_INF("%s", buf);
+		} else {
+			LOG_WRN("Failed to encode frame, ret = %d", ret);
+		}
+
+		handle_caniot_frame(&ctf);
 	}
 exit:
 	return ret;

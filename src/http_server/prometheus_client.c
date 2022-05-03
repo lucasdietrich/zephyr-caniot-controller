@@ -25,7 +25,7 @@
 
 #include "prometheus_client.h"
 
-#include "mydevices.h"
+#include "ha/devices.h"
 
 #include "utils.h"
 
@@ -342,38 +342,38 @@ static ssize_t encode_metric(buffer_t *buffer,
 
 /*___________________________________________________________________________*/
 
-const char *prom_myd_medium_to_str(mydevice_medium_type_t medium)
+const char *prom_myd_medium_to_str(ha_dev_medium_type_t medium)
 {
 	switch (medium) {
-	case MYDEVICE_MEDIUM_TYPE_BLE:
+	case HA_DEV_MEDIUM_TYPE_BLE:
 		return "BLE";
-	case MYDEVICE_MEDIUM_TYPE_CAN:
+	case HA_DEV_MEDIUM_TYPE_CAN:
 		return "CAN";
 	default:
 		return "";
 	}
 }
 
-const char *prom_myd_device_type_to_str(mydevice_type_t device_type)
+const char *prom_myd_device_type_to_str(ha_dev_type_t device_type)
 {
 	switch (device_type) {
-	case MYDEVICE_TYPE_CANIOT:
+	case HA_DEV_TYPE_CANIOT:
 		return "CANIOT";
-	case MYDEVICE_TYPE_XIAOMI_MIJIA:
+	case HA_DEV_TYPE_XIAOMI_MIJIA:
 		return "LYWSD03MMC";
-	case MYDEVICE_TYPE_NUCLEO_F429ZI:
+	case HA_DEV_TYPE_NUCLEO_F429ZI:
 		return "NUCLEO_F429ZI";
 	default:
 		return "";
 	}
 }
 
-const char *prom_myd_sensor_type_to_str(mydevice_sensor_type_t sensor_type)
+const char *prom_myd_sensor_type_to_str(ha_dev_sensor_type_t sensor_type)
 {
 	switch(sensor_type) {
-	case MYDEVICE_SENSOR_TYPE_EMBEDDED:
+	case HA_DEV_SENSOR_TYPE_EMBEDDED:
 		return "EMBEDDED";
-	case MYDEVICE_SENSOR_TYPE_EXTERNAL:
+	case HA_DEV_SENSOR_TYPE_EXTERNAL:
 		return "EXTERNAL";
 	default:
 		return "";
@@ -446,7 +446,7 @@ union measurements_tags_values
 	const char *list[6];
 };
 
-static void prom_metric_feed_xiaomi_temperature(struct mydevice *dev,
+static void prom_metric_feed_xiaomi_temperature(struct ha_dev *dev,
 					 struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
@@ -454,14 +454,14 @@ static void prom_metric_feed_xiaomi_temperature(struct mydevice *dev,
 	val->value = dev->data.xiaomi.temperature.value / 100.0;
 }
 
-static void prom_metric_feed_xiaomi_humidity(struct mydevice *dev,
+static void prom_metric_feed_xiaomi_humidity(struct ha_dev *dev,
 				      struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
 	val->value = dev->data.xiaomi.humidity;
 }
 
-static void prom_metric_feed_xiaomi_battery_level(struct mydevice *dev,
+static void prom_metric_feed_xiaomi_battery_level(struct ha_dev *dev,
 				     struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
@@ -469,19 +469,19 @@ static void prom_metric_feed_xiaomi_battery_level(struct mydevice *dev,
 	val->value = dev->data.xiaomi.battery_level / 1000.0;
 }
 
-static void prom_metric_feed_xiaomi_measurement_timestamp(struct mydevice *dev,
+static void prom_metric_feed_xiaomi_measurement_timestamp(struct ha_dev *dev,
 							  struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
 	val->value = dev->data.measurements_timestamp;
 }
 
-static void prom_mydevices_iterate_cb(struct mydevice *dev,
+static void prom_ha_devs_iterate_cb(struct ha_dev *dev,
 				      void *user_data)
 {
 	buffer_t *const buffer = (buffer_t *)user_data;
 
-	if (dev->type == MYDEVICE_TYPE_XIAOMI_MIJIA) {
+	if (dev->type == HA_DEV_TYPE_XIAOMI_MIJIA) {
 
 		char mac_addr[BT_ADDR_STR_LEN];
 
@@ -515,7 +515,7 @@ static void prom_mydevices_iterate_cb(struct mydevice *dev,
 		prom_metric_feed_xiaomi_measurement_timestamp(dev, &val);
 		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
 
-	} else if (dev->type == MYDEVICE_TYPE_CANIOT) {
+	} else if (dev->type == HA_DEV_TYPE_CANIOT) {
 		char caniot_addr_str[CANIOT_ADDR_LEN];
 
 		caniot_encode_deviceid(dev->addr.addr.caniot,
@@ -527,7 +527,7 @@ static void prom_mydevices_iterate_cb(struct mydevice *dev,
 			.mac = caniot_addr_str, /* can device id */
 			.device = prom_myd_device_type_to_str(dev->type),
 			.sensor = prom_myd_sensor_type_to_str(
-				MYDEVICE_SENSOR_TYPE_EMBEDDED),
+				HA_DEV_SENSOR_TYPE_EMBEDDED),
 			.room = "",
 			.collector = "f429",
 		};
@@ -542,22 +542,22 @@ static void prom_mydevices_iterate_cb(struct mydevice *dev,
 		};
 
 		for (size_t i = 0U; i < ARRAY_SIZE(dev->data.caniot.temperatures); i++) {
-			mydevice_sensor_type_t sensor_type =
+			ha_dev_sensor_type_t sensor_type =
 				dev->data.caniot.temperatures[i].type;
-			if (sensor_type != MYDEVICE_SENSOR_TYPE_NONE) {
+			if (sensor_type != HA_DEV_SENSOR_TYPE_NONE) {
 				val.value = dev->data.caniot.temperatures[i].value / 100.0;
 				tags_values.sensor = prom_myd_sensor_type_to_str(sensor_type);
 				encode_metric(buffer, &val, &mdef_device_temperature, false);
 			}
 		}
 		
-	} else if (dev->type == MYDEVICE_TYPE_NUCLEO_F429ZI) {
+	} else if (dev->type == HA_DEV_TYPE_NUCLEO_F429ZI) {
 		union measurements_tags_values tags_values = {
 			.medium = "",
 			.mac = "",
 			.device = prom_myd_device_type_to_str(dev->type),
 			.sensor = prom_myd_sensor_type_to_str(
-				MYDEVICE_SENSOR_TYPE_EMBEDDED),
+				HA_DEV_SENSOR_TYPE_EMBEDDED),
 			.room = "",
 			.collector = "f429",
 		};
@@ -579,11 +579,11 @@ static void prom_mydevices_iterate_cb(struct mydevice *dev,
 int prometheus_metrics(struct http_request *req,
 		       struct http_response *resp)
 {
-	mydevice_filter_t filter = {
-		.type = MYDEVICE_FILTER_NONE,
+	ha_dev_filter_t filter = {
+		.type = HA_DEV_FILTER_NONE,
 	};
 
-	mydevice_iterate(prom_mydevices_iterate_cb,
+	ha_dev_iterate(prom_ha_devs_iterate_cb,
 			 &filter,
 			 (void *)&resp->buffer);
 

@@ -7,20 +7,16 @@
 #include <drivers/can.h>
 #include <device.h>
 
-/**
- * @brief Can bus index
- */
-typedef enum {
-	CAN_BUS_1 = 0,
-	CAN_BUS_2,
-} CAN_bus_t;
+#include "dispatcher.h"
 
 /**
  * @brief Queue a CAN message for transmission on the given CAN bus.
  * 
+ * @param bus 
  * @param frame 
+ * @param delay_ms delay before transmission in milliseconds
  * @return int 
  */
-int can_queue(CAN_bus_t bus, struct zcan_frame *frame);
+int can_queue(CAN_bus_t bus, struct zcan_frame *frame, uint32_t delay_ms);
 
 #endif

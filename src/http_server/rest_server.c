@@ -19,7 +19,7 @@
 #include <mbedtls/memory_buffer_alloc.h>
 
 #include <bluetooth/addr.h>
-#include "../mydevices.h"
+#include "ha/devices.h"
 
 #include "system.h"
 
@@ -353,7 +353,7 @@ struct xiaomi_records_encoding_context
 	} strings[XIAOMI_MAX_DEVICES];
 };
 
-static void xiaomi_device_cb(struct mydevice *dev,
+static void xiaomi_device_cb(struct ha_dev *dev,
 			     void *user_data)
 {
 	struct xiaomi_records_encoding_context *ctx =
@@ -385,7 +385,7 @@ int rest_xiaomi_records(struct http_request *req,
 
 	ctx.arr.count = 0;
 
-	mydevice_xiaomi_iterate(xiaomi_device_cb, &ctx);
+	ha_dev_xiaomi_iterate(xiaomi_device_cb, &ctx);
 
 	return rest_encode_response_json_array(json_xiaomi_record_array_descr,
 					       ARRAY_SIZE(json_xiaomi_record_array_descr),

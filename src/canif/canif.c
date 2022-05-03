@@ -1,13 +1,13 @@
 #include "canif/canif.h"
 
-#include "cantcp/cantcp_server.h"
-
 #include <kernel.h>
 #include <poll.h>
 
 #include <logging/log.h>
 
-#include <canif/caniot_controller.h>
+#include <ha/caniot_controller.h>
+
+#include "dispatcher.h"
 
 LOG_MODULE_REGISTER(can, LOG_LEVEL_WRN);
 
@@ -26,6 +26,7 @@ K_THREAD_DEFINE(cantid, 0x500, can_thread, CAN1_DEVICE,
 
 static int handle_received_frame(struct zcan_frame *frame);
 
+/* TODO remove these threads and use k_work_poll in dispatch.c file */
 static void can_thread(const struct device *dev,
 		       struct k_msgq *rxq,
 		       struct k_msgq *txq)
@@ -94,33 +95,24 @@ static void can_thread(const struct device *dev,
 
 static int handle_received_frame(struct zcan_frame *frame)
 {
-	int ret = 0;
-
 	/* show received frame */
 	LOG_DBG("RX id_type=%u rtr=%u id=%x dlc=%u", frame->id_type,
 		frame->rtr, frame->id, frame->dlc);
 	LOG_HEXDUMP_DBG(frame->data, frame->dlc, "can data");
 
-	/* broadcast to cantcp connections if any */
-#if defined(CONFIG_CANTCP_SERVER)
-	ret = cantcp_server_broadcast(frame);
-	if (ret < 0) {
-		LOG_ERR("cantcp_server_broadcast() failed = %d", ret);
-	}
-#endif /* CONFIG_CANTCP_SERVER */
-
-#if defined(CONFIG_CANIOT_CONTROLLER)
-	caniot_process_can_frame(frame);
-#endif 
-
-	return ret;
+	return can_dispatch(CAN_BUS_1, frame);
 }
 
-int can_queue(CAN_bus_t bus, struct zcan_frame *frame)
+int can_queue(CAN_bus_t bus, struct zcan_frame *frame, uint32_t delay_ms)
 {
 	if (bus != CAN_BUS_1) {
 		LOG_ERR("CAN bus %d not supported", bus);
 		return -EINVAL;
+	}
+
+	if (delay_ms != 0) {
+		LOG_WRN("CAN: delay not supported, forced delay %u to 0 ms", delay_ms);
+		delay_ms = 0;
 	}
 
 	return k_msgq_put(&tx_msgqueue, frame, K_NO_WAIT);

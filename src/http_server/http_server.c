@@ -182,13 +182,17 @@ int setup_sockets(void)
         /* include this PR : https://github.com/zephyrproject-rtos/zephyr/pull/40255
          * related issue : https://github.com/zephyrproject-rtos/zephyr/issues/40267
          */
-        tls_credential_add(
-                HTTPS_SERVER_SEC_TAG, TLS_CREDENTIAL_SERVER_CERTIFICATE,
-                x509_public_certificate_rsa1024_der, sizeof(x509_public_certificate_rsa1024_der));
-        tls_credential_add(
-                HTTPS_SERVER_SEC_TAG, TLS_CREDENTIAL_PRIVATE_KEY,
-                rsa_private_key_rsa1024_der, sizeof(rsa_private_key_rsa1024_der));
-
+	tls_credential_add(
+		HTTPS_SERVER_SEC_TAG,
+		TLS_CREDENTIAL_SERVER_CERTIFICATE,
+		x509_public_certificate_rsa1024_der,
+		sizeof(x509_public_certificate_rsa1024_der));
+	tls_credential_add(
+		HTTPS_SERVER_SEC_TAG,
+		TLS_CREDENTIAL_PRIVATE_KEY,
+		rsa_private_key_rsa1024_der,
+		sizeof(rsa_private_key_rsa1024_der));
+	
         if (setup_socket(&fds.sec, true) < 0) {
                 goto exit;
         }
