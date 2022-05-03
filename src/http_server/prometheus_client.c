@@ -1,26 +1,26 @@
 /**
  * @file prometheus_client.c
  * @author Dietrich Lucas (ld.adecy@gmail.com)
- * @brief Prometheus exporter 
+ * @brief Prometheus exporter
  * @version 0.1
  * @date 2022-03-30
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  * Note: Check metrics format with command `curl -s http://192.168.10.240/metrics | promtool check metrics`
- * 
+ *
  * TODO:
  * - Add support for tag default value
  * - Check metric and tag names
  * - Do show the measurement if it was not updated in the last 5 minutes, or since the last update
- * 
- * 
+ *
+ *
  * Expected output (per device):
  *  device_temperature{medium="BLE",mac="A4:C1:38:68:05:63",device="LYWSD03MMC",sensor="EMBEDDED",room="",collector="f429"} 23.63
  *  device_humidity{medium="BLE",mac="A4:C1:38:68:05:63",device="LYWSD03MMC",sensor="EMBEDDED",room="",collector="f429"} 39
  *  device_battery_level{medium="BLE",mac="A4:C1:38:68:05:63",device="LYWSD03MMC",sensor="EMBEDDED",room="",collector="f429"} 2.899
  *  device_measurements_last_timestamp{medium="BLE",mac="A4:C1:38:68:05:63",device="LYWSD03MMC",sensor="EMBEDDED",room="",collector="f429"} 1648764416
- * 
+ *
  */
 
 #include "prometheus_client.h"
@@ -44,7 +44,7 @@ typedef enum {
 
 struct metric_value {
 	/* The value of the metric */
-        float value;
+	float value;
 
 	struct {
 		/* Float encoding type: float, exp ...*/
@@ -57,17 +57,17 @@ struct metric_value {
 	} encoding;
 
 	/* Values for tags */
-        const char **tags_values;
+	const char **tags_values;
 
 	/* Number of tags values */
-        uint8_t tags_values_count;
+	uint8_t tags_values_count;
 };
 
 typedef enum {
-        COUNTER = 0,
-        GAUGE,
-        HISTOGRAM,
-        SUMMARY,
+	COUNTER = 0,
+	GAUGE,
+	HISTOGRAM,
+	SUMMARY,
 } metric_type_t;
 
 static const char *get_metric_type_str(metric_type_t type)
@@ -88,7 +88,7 @@ static const char *get_metric_type_str(metric_type_t type)
 
 struct metric_tag {
 	/* tag name */
-        char *name; 
+	char *name;
 
 	/* TODO tag default value */
 	// char *def;
@@ -97,19 +97,19 @@ struct metric_tag {
 struct metric_definition
 {
 	/* metric name */
-        const char *name; 
+	const char *name;
 
 	/* metric type */
-        metric_type_t type; 
+	metric_type_t type;
 
 	/* metric tags list */
-        const struct metric_tag *tags; 
+	const struct metric_tag *tags;
 
 	/* metric tags count */
-        uint8_t tags_count; 
+	uint8_t tags_count;
 
 	/* metric help */
-        const char *help; 
+	const char *help;
 };
 
 #define METRIC_TAG(n) { .name = n }
@@ -133,40 +133,40 @@ struct metric_definition
 }
 
 static const struct metric_tag device_measurement_tags[] = {
-        /* medium type : ble, can */
-        METRIC_TAG("medium"),
+	/* medium type : ble, can */
+	METRIC_TAG("medium"),
 
-        /* mac address: BLE MAC address (if ble), DeviceID (if caniot device) */
-        METRIC_TAG("mac"),
+	/* mac address: BLE MAC address (if ble), DeviceID (if caniot device) */
+	METRIC_TAG("mac"),
 
-        /* device type : Xioami, caniot, ... */
-        METRIC_TAG("device"),
+	/* device type : Xioami, caniot, ... */
+	METRIC_TAG("device"),
 
-        /* sensor type : embedded, extern */
-        METRIC_TAG("sensor"),
+	/* sensor type : embedded, extern */
+	METRIC_TAG("sensor"),
 
-        /* device room: where the device is located */
-        METRIC_TAG("room"),
+	/* device room: where the device is located */
+	METRIC_TAG("room"),
 
-        /* which device collected the data */
-        METRIC_TAG("collector"),
+	/* which device collected the data */
+	METRIC_TAG("collector"),
 };
 
 const struct metric_definition mdef_device_temperature =
-	METRIC_DEF_TAGS("device_temperature", GAUGE, device_measurement_tags,
-	"Device temperature (in °C)");
+METRIC_DEF_TAGS("device_temperature", GAUGE, device_measurement_tags,
+		"Device temperature (in °C)");
 
 const struct metric_definition mdef_device_humidity =
-	METRIC_DEF_TAGS("device_humidity", GAUGE, device_measurement_tags, 
-	"Device humidity (in %)");
+METRIC_DEF_TAGS("device_humidity", GAUGE, device_measurement_tags,
+		"Device humidity (in %)");
 
 const struct metric_definition mdef_device_battery_level =
-	METRIC_DEF_TAGS("device_battery_level", GAUGE, device_measurement_tags, 
-	"Device battery level (in V)");
+METRIC_DEF_TAGS("device_battery_level", GAUGE, device_measurement_tags,
+		"Device battery level (in V)");
 
-const struct metric_definition mdef_device_measurements_last_timestamp = 
-	METRIC_DEF_TAGS("device_measurements_last_timestamp", GAUGE, device_measurement_tags,
-	"Timestamp of the last device measurement (UTC time)");
+const struct metric_definition mdef_device_measurements_last_timestamp =
+METRIC_DEF_TAGS("device_measurements_last_timestamp", GAUGE, device_measurement_tags,
+		"Timestamp of the last device measurement (UTC time)");
 
 
 static bool validate_metric_value(struct metric_value *value)
@@ -224,13 +224,13 @@ static ssize_t encode_value(char *buf, size_t buf_size, struct metric_value *val
 
 /**
  * @brief Encode metric value using the metric definition
- * 
+ *
  * @param buf Buffer to store the encoded value
  * @param len Buffer length
  * @param value Metric value and tags values
  * @param metric Metric definition
  * @param meta Tells if meta data TYPE and HELP should be prepended to the metric value
- * @return ssize_t 
+ * @return ssize_t
  */
 static ssize_t encode_metric(buffer_t *buffer,
 			     struct metric_value *value,
@@ -370,7 +370,7 @@ const char *prom_myd_device_type_to_str(ha_dev_type_t device_type)
 
 const char *prom_myd_sensor_type_to_str(ha_dev_sensor_type_t sensor_type)
 {
-	switch(sensor_type) {
+	switch (sensor_type) {
 	case HA_DEV_SENSOR_TYPE_EMBEDDED:
 		return "EMBEDDED";
 	case HA_DEV_SENSOR_TYPE_EXTERNAL:
@@ -446,38 +446,38 @@ union measurements_tags_values
 	const char *list[6];
 };
 
-static void prom_metric_feed_xiaomi_temperature(struct ha_dev *dev,
-					 struct metric_value *val)
+static void prom_metric_feed_xiaomi_temperature(ha_dev_t *dev,
+						struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
 	val->encoding.digits = 2;
 	val->value = dev->data.xiaomi.temperature.value / 100.0;
 }
 
-static void prom_metric_feed_xiaomi_humidity(struct ha_dev *dev,
-				      struct metric_value *val)
+static void prom_metric_feed_xiaomi_humidity(ha_dev_t *dev,
+					     struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
 	val->value = dev->data.xiaomi.humidity;
 }
 
-static void prom_metric_feed_xiaomi_battery_level(struct ha_dev *dev,
-				     struct metric_value *val)
+static void prom_metric_feed_xiaomi_battery_level(ha_dev_t *dev,
+						  struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
 	val->encoding.digits = 3;
 	val->value = dev->data.xiaomi.battery_level / 1000.0;
 }
 
-static void prom_metric_feed_xiaomi_measurement_timestamp(struct ha_dev *dev,
+static void prom_metric_feed_xiaomi_measurement_timestamp(ha_dev_t *dev,
 							  struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
 	val->value = dev->data.measurements_timestamp;
 }
 
-static void prom_ha_devs_iterate_cb(struct ha_dev *dev,
-				      void *user_data)
+static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
+				    void *user_data)
 {
 	buffer_t *const buffer = (buffer_t *)user_data;
 
@@ -531,7 +531,7 @@ static void prom_ha_devs_iterate_cb(struct ha_dev *dev,
 			.room = "",
 			.collector = "f429",
 		};
-		
+
 		struct metric_value val = {
 			.tags_values = tags_values.list,
 			.tags_values_count = ARRAY_SIZE(tags_values.list),
@@ -550,7 +550,7 @@ static void prom_ha_devs_iterate_cb(struct ha_dev *dev,
 				encode_metric(buffer, &val, &mdef_device_temperature, false);
 			}
 		}
-		
+
 	} else if (dev->type == HA_DEV_TYPE_NUCLEO_F429ZI) {
 		union measurements_tags_values tags_values = {
 			.medium = "",
@@ -584,8 +584,8 @@ int prometheus_metrics(struct http_request *req,
 	};
 
 	ha_dev_iterate(prom_ha_devs_iterate_cb,
-			 &filter,
-			 (void *)&resp->buffer);
+		       &filter,
+		       (void *)&resp->buffer);
 
 	resp->status_code = 200;
 

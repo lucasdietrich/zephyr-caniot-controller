@@ -17,22 +17,22 @@ LOG_MODULE_REGISTER(devices, LOG_LEVEL_DBG);
 
 struct {
 	struct k_mutex mutex;
-	struct ha_dev list[20];
+	ha_dev_t list[20];
 	uint8_t count;
 } devices = {
 	.mutex = Z_MUTEX_INITIALIZER(devices.mutex),
 	.count = 0U
 };
 
-static bool phys_addr_valid(ha_dev_phys_addr_t *addr)
+static bool addr_valid(ha_dev_addr_t *addr)
 {
 	return (addr->medium == HA_DEV_MEDIUM_TYPE_BLE) ||
 		(addr->medium == HA_DEV_MEDIUM_TYPE_CAN);
 }
 
-static int phys_addr_cmp(ha_dev_phys_addr_t *addr1, ha_dev_phys_addr_t *addr2)
+static int addr_cmp(ha_dev_addr_t *addr1, ha_dev_addr_t *addr2)
 {
-	if ((phys_addr_valid(addr1) == false) || (phys_addr_valid(addr2) == false)) {
+	if ((addr_valid(addr1) == false) || (addr_valid(addr2) == false)) {
 		return -EINVAL;
 	}
 
@@ -50,15 +50,15 @@ static int phys_addr_cmp(ha_dev_phys_addr_t *addr1, ha_dev_phys_addr_t *addr2)
 	return ret;
 }
 
-static struct ha_dev *get_device_by_addr(ha_dev_phys_addr_t *addr)
+static ha_dev_t *get_device_by_addr(ha_dev_addr_t *addr)
 {
-	struct ha_dev *device = NULL;
+	ha_dev_t *device = NULL;
 
-	for (struct ha_dev *dev = devices.list;
+	for (ha_dev_t *dev = devices.list;
 	     dev < devices.list + devices.count;
 	     dev++) {
 
-		if (phys_addr_cmp(addr, &dev->addr) == 0) {
+		if (addr_cmp(addr, &dev->addr) == 0) {
 			device = dev;
 			break;
 		}
@@ -67,11 +67,11 @@ static struct ha_dev *get_device_by_addr(ha_dev_phys_addr_t *addr)
 	return device;
 }
 
-static struct ha_dev *get_first_device_by_type(ha_dev_type_t type)
+static ha_dev_t *get_first_device_by_type(ha_dev_type_t type)
 {
-	struct ha_dev *device = NULL;
+	ha_dev_t *device = NULL;
 
-	for (struct ha_dev *dev = devices.list;
+	for (ha_dev_t *dev = devices.list;
 	     dev < devices.list + devices.count;
 	     dev++) {
 		if (dev->type == type) {
@@ -83,14 +83,14 @@ static struct ha_dev *get_first_device_by_type(ha_dev_type_t type)
 	return device;
 }
 
-static struct ha_dev *ha_dev_get(ha_dev_phys_addr_t *addr,
-				     ha_dev_type_t type)
+static ha_dev_t *ha_dev_get(ha_dev_addr_t *addr,
+			    ha_dev_type_t type)
 {
-	struct ha_dev *device = NULL;
+	ha_dev_t *device = NULL;
 
-	
+
 	/* Get device by address if possible */
-	if (phys_addr_valid(addr)) {
+	if (addr_valid(addr)) {
 		device = get_device_by_addr(addr);
 
 	/* if medium type is not set, device should be
@@ -102,27 +102,27 @@ static struct ha_dev *ha_dev_get(ha_dev_phys_addr_t *addr,
 	return device;
 }
 
-static void ha_dev_clear(struct ha_dev *dev)
+static void ha_dev_clear(ha_dev_t *dev)
 {
 	memset(dev, 0U, sizeof(*dev));
 }
 
 /**
  * @brief Register a new device in the list, addr duplicates are not verified
- * 
- * @param medium 
- * @param type 
- * @param addr 
- * @return int 
+ *
+ * @param medium
+ * @param type
+ * @param addr
+ * @return int
  */
-static struct ha_dev *ha_dev_register(ha_dev_phys_addr_t *addr,
-					  ha_dev_type_t type)
+static ha_dev_t *ha_dev_register(ha_dev_addr_t *addr,
+				 ha_dev_type_t type)
 {
 	if (devices.count >= ARRAY_SIZE(devices.list)) {
 		return NULL;
 	}
 
-	struct ha_dev *dev = devices.list + devices.count;
+	ha_dev_t *dev = devices.list + devices.count;
 
 	ha_dev_clear(dev);
 
@@ -135,13 +135,13 @@ static struct ha_dev *ha_dev_register(ha_dev_phys_addr_t *addr,
 	return dev;
 }
 
-static struct ha_dev *ha_dev_get_or_register(ha_dev_phys_addr_t *addr,
-						 ha_dev_type_t type)
+static ha_dev_t *ha_dev_get_or_register(ha_dev_addr_t *addr,
+					ha_dev_type_t type)
 {
-	struct ha_dev *dev;
+	ha_dev_t *dev;
 
 	dev = ha_dev_get(addr, type);
-	
+
 	if (dev == NULL) {
 		dev = ha_dev_register(addr, type);
 	}
@@ -149,7 +149,7 @@ static struct ha_dev *ha_dev_get_or_register(ha_dev_phys_addr_t *addr,
 	return dev;
 }
 
-static bool ha_dev_match_filter(struct ha_dev *dev, ha_dev_filter_t *filter)
+static bool ha_dev_match_filter(ha_dev_t *dev, ha_dev_filter_t *filter)
 {
 	if (dev == NULL) {
 		return false;
@@ -180,16 +180,16 @@ static bool ha_dev_match_filter(struct ha_dev *dev, ha_dev_filter_t *filter)
 
 /*___________________________________________________________________________*/
 
-size_t ha_dev_iterate(void (*callback)(struct ha_dev *dev,
-					 void *user_data),
-			ha_dev_filter_t *filter,
-			void *user_data)
+size_t ha_dev_iterate(void (*callback)(ha_dev_t *dev,
+				       void *user_data),
+		      ha_dev_filter_t *filter,
+		      void *user_data)
 {
 	k_mutex_lock(&devices.mutex, K_FOREVER);
 
 	size_t count = 0U;
 
-	for (struct ha_dev *dev = devices.list;
+	for (ha_dev_t *dev = devices.list;
 	     dev < devices.list + devices.count;
 	     dev++) {
 		if (ha_dev_match_filter(dev, filter)) {
@@ -203,9 +203,9 @@ size_t ha_dev_iterate(void (*callback)(struct ha_dev *dev,
 	return count;
 }
 
-size_t ha_dev_xiaomi_iterate(void (*callback)(struct ha_dev *dev,
-						void *user_data),
-			       void *user_data)
+size_t ha_dev_xiaomi_iterate(void (*callback)(ha_dev_t *dev,
+					      void *user_data),
+			     void *user_data)
 {
 	ha_dev_filter_t filter = {
 		.type = HA_DEV_FILTER_TYPE_DEVICE_TYPE,
@@ -222,14 +222,14 @@ size_t ha_dev_xiaomi_iterate(void (*callback)(struct ha_dev *dev,
 static int handle_ble_xiaomi_record(xiaomi_record_t *rec)
 {
 	/* check if device already exists */
-	ha_dev_phys_addr_t record_addr = {
+	ha_dev_addr_t record_addr = {
 		.medium = HA_DEV_MEDIUM_TYPE_BLE,
 	};
 
 	bt_addr_le_copy(&record_addr.addr.ble, &rec->addr);
 
-	struct ha_dev *dev = ha_dev_get_or_register(&record_addr,
-							HA_DEV_TYPE_XIAOMI_MIJIA);
+	ha_dev_t *dev = ha_dev_get_or_register(&record_addr,
+					       HA_DEV_TYPE_XIAOMI_MIJIA);
 	if (dev == NULL) {
 		LOG_ERR("Failed to register device, list full %hhu / %lu",
 			devices.count,
@@ -264,7 +264,7 @@ int ha_devs_register_ble_xiaomi_dataframe(xiaomi_dataframe_t *frame)
 	// Show all records
 	for (uint8_t i = 0; i < frame->count; i++) {
 		xiaomi_record_t *const rec = &frame->records[i];
-		
+
 		bt_addr_le_to_str(&rec->addr,
 				  addr_str,
 				  sizeof(addr_str));
@@ -274,11 +274,11 @@ int ha_devs_register_ble_xiaomi_dataframe(xiaomi_dataframe_t *frame)
 		rec->time = record_timestamp;
 
 		ret = handle_ble_xiaomi_record(rec);
-		if (ret != 0) {			
+		if (ret != 0) {
 			goto exit;
 		}
 
-		
+
 		/* Show BLE address, temperature, humidity, battery
 		 *   Only raw values are showed in debug because, there is no formatting (e.g. float)
 		 */
@@ -298,19 +298,19 @@ exit:
 }
 
 int ha_dev_register_die_temperature(uint32_t timestamp,
-				      float die_temperature)
+				    float die_temperature)
 {
 	int ret = 0;
 
 	k_mutex_lock(&devices.mutex, K_FOREVER);
-	
+
 	/* check if device already exists */
-	ha_dev_phys_addr_t record_addr = {
+	ha_dev_addr_t record_addr = {
 		.medium = HA_DEV_MEDIUM_TYPE_NONE,
 	};
 
-	struct ha_dev *dev = ha_dev_get_or_register(&record_addr,
-							HA_DEV_TYPE_NUCLEO_F429ZI);
+	ha_dev_t *dev = ha_dev_get_or_register(&record_addr,
+					       HA_DEV_TYPE_NUCLEO_F429ZI);
 	if (dev == NULL) {
 		LOG_ERR("Failed to register device, list full %hhu / %lu",
 			devices.count,
@@ -325,11 +325,11 @@ int ha_dev_register_die_temperature(uint32_t timestamp,
 
 exit:
 	k_mutex_unlock(&devices.mutex);
-	
+
 	return ret;
 }
 
-static int save_caniot_temperature(struct ha_dev *dev,
+static int save_caniot_temperature(ha_dev_t *dev,
 				   uint8_t temp_index,
 				   uint16_t temperature,
 				   ha_dev_sensor_type_t sens_type)
@@ -357,20 +357,20 @@ static int save_caniot_temperature(struct ha_dev *dev,
 }
 
 int ha_dev_register_caniot_telemetry(uint32_t timestamp,
-				       union deviceid did,
-				       struct caniot_board_control_telemetry *data)
+				     union deviceid did,
+				     struct caniot_board_control_telemetry *data)
 {
 	int ret = 0;
 
 	k_mutex_lock(&devices.mutex, K_FOREVER);
 
 	/* check if device already exists */
-	ha_dev_phys_addr_t phys_addr;
-	phys_addr.medium = HA_DEV_MEDIUM_TYPE_CAN;
-	phys_addr.addr.caniot = did;
+	ha_dev_addr_t addr;
+	addr.medium = HA_DEV_MEDIUM_TYPE_CAN;
+	addr.addr.caniot = did;
 
-	struct ha_dev *dev = ha_dev_get_or_register(&phys_addr,
-							HA_DEV_TYPE_CANIOT);
+	ha_dev_t *dev = ha_dev_get_or_register(&addr,
+					       HA_DEV_TYPE_CANIOT);
 	if (dev == NULL) {
 		LOG_ERR("Failed to register device, list full %hhu / %lu",
 			devices.count,
@@ -395,7 +395,7 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 
 exit:
 	k_mutex_unlock(&devices.mutex);
-	
+
 	return ret;
 }
 
@@ -423,7 +423,7 @@ static void ipc_work_handler(struct k_work *work)
 			LOG_ERR("Failed to handle BLE Xiaomi record, err: %d",
 				ret);
 		}
-	}	
+	}
 
 	ipc_event.state = K_POLL_STATE_NOT_READY;
 

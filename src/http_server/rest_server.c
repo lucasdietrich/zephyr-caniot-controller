@@ -353,7 +353,7 @@ struct xiaomi_records_encoding_context
 	} strings[XIAOMI_MAX_DEVICES];
 };
 
-static void xiaomi_device_cb(struct ha_dev *dev,
+static void xiaomi_device_cb(ha_dev_t *dev,
 			     void *user_data)
 {
 	struct xiaomi_records_encoding_context *ctx =

@@ -1,14 +1,14 @@
 /**
  * @file ha_devs.h
  * @author Dietrich Lucas (ld.adecy@gmail.com)
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2022-03-31
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  * TODO: shorten "ha_dev" to "mydev" or "myd"
- * 
+ *
  */
 
 #ifndef _HA_DEVS_H_
@@ -39,7 +39,7 @@ typedef struct {
 		bt_addr_le_t ble;
 		union deviceid caniot;
 	} addr;
-} ha_dev_phys_addr_t;
+} ha_dev_addr_t;
 
 typedef enum {
 	HA_DEV_SENSOR_TYPE_NONE = 0,
@@ -105,31 +105,31 @@ typedef struct
 	};
 } ha_dev_data_t;
 
-struct ha_dev {
+typedef struct {
 	uint32_t registered_timestamp;
 
-	ha_dev_phys_addr_t addr;
+	ha_dev_addr_t addr;
 	ha_dev_type_t type;
 	ha_dev_data_t data;
-};
+} ha_dev_t;
 
-size_t ha_dev_iterate(void (*callback)(struct ha_dev *dev,
-					 void *user_data),
-			ha_dev_filter_t *filter,
-			void *user_data);
+size_t ha_dev_iterate(void (*callback)(ha_dev_t *dev,
+				       void *user_data),
+		      ha_dev_filter_t *filter,
+		      void *user_data);
 
-size_t ha_dev_xiaomi_iterate(void (*callback)(struct ha_dev *dev,
-						void *user_data),
-			       void *user_data);
+size_t ha_dev_xiaomi_iterate(void (*callback)(ha_dev_t *dev,
+					      void *user_data),
+			     void *user_data);
 
 int ha_devs_register_ble_xiaomi_dataframe(xiaomi_dataframe_t *frame);
 
 int ha_dev_register_die_temperature(uint32_t timestamp,
-				      float die_temperature);
+				    float die_temperature);
 
 int ha_dev_register_caniot_telemetry(uint32_t timestamp,
-				       union deviceid did,
-				       struct caniot_board_control_telemetry *data);
+				     union deviceid did,
+				     struct caniot_board_control_telemetry *data);
 
 int ha_dev_init(void);
 
