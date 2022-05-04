@@ -485,7 +485,7 @@ static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
 
 		char mac_addr[BT_ADDR_STR_LEN];
 
-		bt_addr_to_str(&dev->addr.addr.ble.a,
+		bt_addr_to_str(&dev->addr.mac.ble.a,
 			       mac_addr, sizeof(mac_addr));
 
 		union measurements_tags_values tags_values = {
@@ -518,7 +518,7 @@ static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
 	} else if (dev->type == HA_DEV_TYPE_CANIOT) {
 		char caniot_addr_str[CANIOT_ADDR_LEN];
 
-		caniot_encode_deviceid(dev->addr.addr.caniot,
+		caniot_encode_deviceid(dev->addr.mac.caniot,
 				       caniot_addr_str,
 				       sizeof(caniot_addr_str));
 

@@ -21,7 +21,7 @@ struct room_dev_assoc
 	.type = HA_DEV_TYPE_XIAOMI_MIJIA, \
 	.addr = { \
 		.medium = HA_DEV_MEDIUM_BLE, \
-		.addr = { \
+		.mac = { \
 			.ble = { \
 				.type = BT_ADDR_LE_PUBLIC, \
 				.a = { \

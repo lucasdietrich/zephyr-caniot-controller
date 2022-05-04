@@ -38,7 +38,7 @@ typedef struct {
 	union {
 		bt_addr_le_t ble;
 		union deviceid caniot;
-	} addr;
+	} mac;
 } ha_dev_addr_t;
 
 typedef enum {
@@ -124,7 +124,7 @@ size_t ha_dev_xiaomi_iterate(void (*callback)(ha_dev_t *dev,
 					      void *user_data),
 			     void *user_data);
 
-int ha_devs_register_ble_xiaomi_dataframe(xiaomi_dataframe_t *frame);
+int ha_register_xiaomi_from_dataframe(xiaomi_dataframe_t *frame);
 
 int ha_dev_register_die_temperature(uint32_t timestamp,
 				    float die_temperature);

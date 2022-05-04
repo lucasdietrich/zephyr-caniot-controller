@@ -40,10 +40,10 @@ static int addr_cmp(ha_dev_addr_t *addr1, ha_dev_addr_t *addr2)
 
 	if (addr1->medium == addr2->medium) {
 		if (addr1->medium == HA_DEV_MEDIUM_BLE) {
-			ret = bt_addr_le_cmp(&addr1->addr.ble, &addr2->addr.ble);
+			ret = bt_addr_le_cmp(&addr1->mac.ble, &addr2->mac.ble);
 		} else if (addr1->medium == HA_DEV_MEDIUM_CAN) {
-			ret = caniot_deviceid_cmp(addr1->addr.caniot,
-						  addr2->addr.caniot);
+			ret = caniot_deviceid_cmp(addr1->mac.caniot,
+						  addr2->mac.caniot);
 		}
 	}
 
@@ -231,7 +231,7 @@ static int handle_ble_xiaomi_record(xiaomi_record_t *rec)
 		.medium = HA_DEV_MEDIUM_BLE,
 	};
 
-	bt_addr_le_copy(&record_addr.addr.ble, &rec->addr);
+	bt_addr_le_copy(&record_addr.mac.ble, &rec->addr);
 
 	ha_dev_t *dev = ha_dev_get_or_register(&record_addr,
 					       HA_DEV_TYPE_XIAOMI_MIJIA);
@@ -252,7 +252,7 @@ static int handle_ble_xiaomi_record(xiaomi_record_t *rec)
 	return 0;
 }
 
-int ha_devs_register_ble_xiaomi_dataframe(xiaomi_dataframe_t *frame)
+int ha_register_xiaomi_from_dataframe(xiaomi_dataframe_t *frame)
 {
 	int ret = 0;
 	char addr_str[BT_ADDR_LE_STR_LEN];
@@ -372,7 +372,7 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 	/* check if device already exists */
 	ha_dev_addr_t addr;
 	addr.medium = HA_DEV_MEDIUM_CAN;
-	addr.addr.caniot = did;
+	addr.mac.caniot = did;
 
 	ha_dev_t *dev = ha_dev_get_or_register(&addr,
 					       HA_DEV_TYPE_CANIOT);
@@ -422,7 +422,7 @@ static void ipc_work_handler(struct k_work *work)
 
 	/* process all available messages */
 	while (k_msgq_get(&ipc_ble_msgq, &frame, K_NO_WAIT) == 0U) {
-		ret = ha_devs_register_ble_xiaomi_dataframe(
+		ret = ha_register_xiaomi_from_dataframe(
 			(xiaomi_dataframe_t *)frame.data.buf);
 		if (ret != 0) {
 			LOG_ERR("Failed to handle BLE Xiaomi record, err: %d",
