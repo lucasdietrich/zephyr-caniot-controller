@@ -345,9 +345,9 @@ static ssize_t encode_metric(buffer_t *buffer,
 const char *prom_myd_medium_to_str(ha_dev_medium_type_t medium)
 {
 	switch (medium) {
-	case HA_DEV_MEDIUM_TYPE_BLE:
+	case HA_DEV_MEDIUM_BLE:
 		return "BLE";
-	case HA_DEV_MEDIUM_TYPE_CAN:
+	case HA_DEV_MEDIUM_CAN:
 		return "CAN";
 	default:
 		return "";

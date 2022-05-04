@@ -80,7 +80,9 @@
                 "stdio.h": "c",
                 "stm32f4xx_ll_gpio.h": "c",
                 "dispatcher.h": "c",
-                "canif.h": "c"
+                "canif.h": "c",
+                "room.h": "c",
+                "devices.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

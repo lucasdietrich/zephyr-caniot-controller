@@ -21,9 +21,9 @@
 #include <caniot/datatype.h>
 
 typedef enum {
-	HA_DEV_MEDIUM_TYPE_NONE = 0,
-	HA_DEV_MEDIUM_TYPE_BLE,
-	HA_DEV_MEDIUM_TYPE_CAN,
+	HA_DEV_MEDIUM_NONE = 0,
+	HA_DEV_MEDIUM_BLE,
+	HA_DEV_MEDIUM_CAN,
 } ha_dev_medium_type_t;
 
 typedef enum {
@@ -50,12 +50,12 @@ typedef enum {
 typedef enum
 {
 	HA_DEV_FILTER_NONE = 0,
-	HA_DEV_FILTER_TYPE_MEDIUM, /* filter by medium */
-	HA_DEV_FILTER_TYPE_DEVICE_TYPE, /* filter by device type */
-	// HA_DEV_FILTER_TYPE_SENSOR_TYPE, /* filter by temperature sensor type */
-	HA_DEV_FILTER_TYPE_MEASUREMENTS_TIMESTAMP, /* filter only devices with recent measurements */
-	// HA_DEV_FILTER_TYPE_REGISTERED_TIMESTAMP, /* filter only recent devices */
-	HA_DEV_FILTER_TYPE_HAS_TEMPERATURE, /* filter only devices with temperature sensor */
+	HA_DEV_FILTER_MEDIUM, /* filter by medium */
+	HA_DEV_FILTER_DEVICE_TYPE, /* filter by device type */
+	// HA_DEV_FILTER_SENSOR_TYPE, /* filter by temperature sensor type */
+	HA_DEV_FILTER_MEASUREMENTS_TIMESTAMP, /* filter only devices with recent measurements */
+	// HA_DEV_FILTER_REGISTERED_TIMESTAMP, /* filter only recent devices */
+	HA_DEV_FILTER_HAS_TEMPERATURE, /* filter only devices with temperature sensor */
 } ha_dev_filter_type_t;
 
 typedef struct
@@ -112,6 +112,8 @@ typedef struct {
 	ha_dev_type_t type;
 	ha_dev_data_t data;
 } ha_dev_t;
+
+bool ha_dev_valid(ha_dev_t *const dev);
 
 size_t ha_dev_iterate(void (*callback)(ha_dev_t *dev,
 				       void *user_data),

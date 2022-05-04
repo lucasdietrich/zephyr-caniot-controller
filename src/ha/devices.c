@@ -26,8 +26,8 @@ struct {
 
 static bool addr_valid(ha_dev_addr_t *addr)
 {
-	return (addr->medium == HA_DEV_MEDIUM_TYPE_BLE) ||
-		(addr->medium == HA_DEV_MEDIUM_TYPE_CAN);
+	return (addr->medium == HA_DEV_MEDIUM_BLE) ||
+		(addr->medium == HA_DEV_MEDIUM_CAN);
 }
 
 static int addr_cmp(ha_dev_addr_t *addr1, ha_dev_addr_t *addr2)
@@ -39,9 +39,9 @@ static int addr_cmp(ha_dev_addr_t *addr1, ha_dev_addr_t *addr2)
 	int ret = -1;
 
 	if (addr1->medium == addr2->medium) {
-		if (addr1->medium == HA_DEV_MEDIUM_TYPE_BLE) {
+		if (addr1->medium == HA_DEV_MEDIUM_BLE) {
 			ret = bt_addr_le_cmp(&addr1->addr.ble, &addr2->addr.ble);
-		} else if (addr1->medium == HA_DEV_MEDIUM_TYPE_CAN) {
+		} else if (addr1->medium == HA_DEV_MEDIUM_CAN) {
 			ret = caniot_deviceid_cmp(addr1->addr.caniot,
 						  addr2->addr.caniot);
 		}
@@ -81,6 +81,11 @@ static ha_dev_t *get_first_device_by_type(ha_dev_type_t type)
 	}
 
 	return device;
+}
+
+bool ha_dev_valid(ha_dev_t *const dev)
+{
+	return (dev != NULL) && (addr_valid(&dev->addr) == true);
 }
 
 static ha_dev_t *ha_dev_get(ha_dev_addr_t *addr,
@@ -164,11 +169,11 @@ static bool ha_dev_match_filter(ha_dev_t *dev, ha_dev_filter_t *filter)
 	}
 
 	switch (filter->type) {
-	case HA_DEV_FILTER_TYPE_MEDIUM:
+	case HA_DEV_FILTER_MEDIUM:
 		return dev->addr.medium == filter->data.medium;
-	case HA_DEV_FILTER_TYPE_DEVICE_TYPE:
+	case HA_DEV_FILTER_DEVICE_TYPE:
 		return dev->type == filter->data.device_type;
-	case HA_DEV_FILTER_TYPE_MEASUREMENTS_TIMESTAMP:
+	case HA_DEV_FILTER_MEASUREMENTS_TIMESTAMP:
 		return dev->data.measurements_timestamp >= filter->data.timestamp;
 	default:
 		LOG_WRN("Unknown filter type %hhu", filter->type);
@@ -208,7 +213,7 @@ size_t ha_dev_xiaomi_iterate(void (*callback)(ha_dev_t *dev,
 			     void *user_data)
 {
 	ha_dev_filter_t filter = {
-		.type = HA_DEV_FILTER_TYPE_DEVICE_TYPE,
+		.type = HA_DEV_FILTER_DEVICE_TYPE,
 		.data = {
 			.device_type = HA_DEV_TYPE_XIAOMI_MIJIA
 		}
@@ -223,7 +228,7 @@ static int handle_ble_xiaomi_record(xiaomi_record_t *rec)
 {
 	/* check if device already exists */
 	ha_dev_addr_t record_addr = {
-		.medium = HA_DEV_MEDIUM_TYPE_BLE,
+		.medium = HA_DEV_MEDIUM_BLE,
 	};
 
 	bt_addr_le_copy(&record_addr.addr.ble, &rec->addr);
@@ -306,7 +311,7 @@ int ha_dev_register_die_temperature(uint32_t timestamp,
 
 	/* check if device already exists */
 	ha_dev_addr_t record_addr = {
-		.medium = HA_DEV_MEDIUM_TYPE_NONE,
+		.medium = HA_DEV_MEDIUM_NONE,
 	};
 
 	ha_dev_t *dev = ha_dev_get_or_register(&record_addr,
@@ -366,7 +371,7 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 
 	/* check if device already exists */
 	ha_dev_addr_t addr;
-	addr.medium = HA_DEV_MEDIUM_TYPE_CAN;
+	addr.medium = HA_DEV_MEDIUM_CAN;
 	addr.addr.caniot = did;
 
 	ha_dev_t *dev = ha_dev_get_or_register(&addr,
