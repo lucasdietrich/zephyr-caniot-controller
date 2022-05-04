@@ -6,7 +6,7 @@
 #include "devices.h"
 
 typedef enum {
-	HA_ROOM_UNDEF = 0x00U,
+	HA_ROOM_NONE = 0x00U,
 
 	HA_ROOM_ENTRANCE,
 	HA_ROOM_LIVING_ROOM,

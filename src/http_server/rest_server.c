@@ -368,7 +368,7 @@ static void xiaomi_device_cb(ha_dev_t *dev,
 	arr_record->battery_level = dev->data.xiaomi.battery_level;
 	arr_record->timestamp = dev->data.measurements_timestamp;
 
-	bt_addr_le_to_str(&dev->addr.mac.ble,
+	bt_addr_le_to_str(&dev->addr.mac.addr.ble,
 			  arr_record->bt_mac,
 			  BT_ADDR_LE_STR_LEN);
 	sprintf(arr_record->temperature,

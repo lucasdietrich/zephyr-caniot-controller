@@ -33,12 +33,20 @@ typedef enum {
 	HA_DEV_TYPE_NUCLEO_F429ZI,
 } ha_dev_type_t;
 
-typedef struct {
+typedef union {
+	bt_addr_le_t ble;
+	union deviceid caniot;
+} ha_dev_mac_addr_t;
+
+typedef struct
+{
 	ha_dev_medium_type_t medium;
-	union {
-		bt_addr_le_t ble;
-		union deviceid caniot;
-	} mac;
+	ha_dev_mac_addr_t addr;
+} ha_dev_mac_t;
+
+typedef struct {
+	ha_dev_type_t type;
+	ha_dev_mac_t mac;
 } ha_dev_addr_t;
 
 typedef enum {
@@ -106,14 +114,17 @@ typedef struct
 } ha_dev_data_t;
 
 typedef struct {
+	ha_dev_addr_t addr;
+
 	uint32_t registered_timestamp;
 
-	ha_dev_addr_t addr;
-	ha_dev_type_t type;
 	ha_dev_data_t data;
 } ha_dev_t;
 
 bool ha_dev_valid(ha_dev_t *const dev);
+
+int ha_dev_addr_cmp(const ha_dev_addr_t *a,
+		    const ha_dev_addr_t *b);
 
 size_t ha_dev_iterate(void (*callback)(ha_dev_t *dev,
 				       void *user_data),

@@ -481,17 +481,17 @@ static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
 {
 	buffer_t *const buffer = (buffer_t *)user_data;
 
-	if (dev->type == HA_DEV_TYPE_XIAOMI_MIJIA) {
+	if (dev->addr.type == HA_DEV_TYPE_XIAOMI_MIJIA) {
 
 		char mac_addr[BT_ADDR_STR_LEN];
 
-		bt_addr_to_str(&dev->addr.mac.ble.a,
+		bt_addr_to_str(&dev->addr.mac.addr.ble.a,
 			       mac_addr, sizeof(mac_addr));
 
 		union measurements_tags_values tags_values = {
-			.medium = prom_myd_medium_to_str(dev->addr.medium),
+			.medium = prom_myd_medium_to_str(dev->addr.mac.medium),
 			.mac = mac_addr,
-			.device = prom_myd_device_type_to_str(dev->type),
+			.device = prom_myd_device_type_to_str(dev->addr.type),
 			.sensor = prom_myd_sensor_type_to_str(
 				dev->data.xiaomi.temperature.type),
 			.room = "",
@@ -515,17 +515,17 @@ static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
 		prom_metric_feed_xiaomi_measurement_timestamp(dev, &val);
 		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
 
-	} else if (dev->type == HA_DEV_TYPE_CANIOT) {
+	} else if (dev->addr.type == HA_DEV_TYPE_CANIOT) {
 		char caniot_addr_str[CANIOT_ADDR_LEN];
 
-		caniot_encode_deviceid(dev->addr.mac.caniot,
+		caniot_encode_deviceid(dev->addr.mac.addr.caniot,
 				       caniot_addr_str,
 				       sizeof(caniot_addr_str));
 
 		union measurements_tags_values tags_values = {
-			.medium = prom_myd_medium_to_str(dev->addr.medium),
+			.medium = prom_myd_medium_to_str(dev->addr.mac.medium),
 			.mac = caniot_addr_str, /* can device id */
-			.device = prom_myd_device_type_to_str(dev->type),
+			.device = prom_myd_device_type_to_str(dev->addr.type),
 			.sensor = prom_myd_sensor_type_to_str(
 				HA_DEV_SENSOR_TYPE_EMBEDDED),
 			.room = "",
@@ -551,11 +551,11 @@ static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
 			}
 		}
 
-	} else if (dev->type == HA_DEV_TYPE_NUCLEO_F429ZI) {
+	} else if (dev->addr.type == HA_DEV_TYPE_NUCLEO_F429ZI) {
 		union measurements_tags_values tags_values = {
 			.medium = "",
 			.mac = "",
-			.device = prom_myd_device_type_to_str(dev->type),
+			.device = prom_myd_device_type_to_str(dev->addr.type),
 			.sensor = prom_myd_sensor_type_to_str(
 				HA_DEV_SENSOR_TYPE_EMBEDDED),
 			.room = "",

@@ -11,7 +11,7 @@
 #include "caniot/datatype.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(devices, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(devices, LOG_LEVEL_INF);
 
 /*___________________________________________________________________________*/
 
@@ -24,33 +24,52 @@ struct {
 	.count = 0U
 };
 
-static bool addr_valid(ha_dev_addr_t *addr)
+typedef int (*mac_cmp_func_t)(const ha_dev_mac_addr_t *a,
+			      const ha_dev_mac_addr_t *b);
+
+static int internal_caniot_addr_cmp(const ha_dev_mac_addr_t *a,
+				    const ha_dev_mac_addr_t *b)
 {
-	return (addr->medium == HA_DEV_MEDIUM_BLE) ||
-		(addr->medium == HA_DEV_MEDIUM_CAN);
+	return caniot_deviceid_cmp(a->caniot, b->caniot);
 }
 
-static int addr_cmp(ha_dev_addr_t *addr1, ha_dev_addr_t *addr2)
+static int internal_ble_addr_cmp(const ha_dev_mac_addr_t *a,
+				 const ha_dev_mac_addr_t *b)
 {
-	if ((addr_valid(addr1) == false) || (addr_valid(addr2) == false)) {
-		return -EINVAL;
-	}
+	return bt_addr_le_cmp(&a->ble, &b->ble);
+}
 
-	int ret = -1;
+static mac_cmp_func_t get_mac_cmp_func(ha_dev_medium_type_t medium)
+{
+	switch (medium) {
+	case HA_DEV_MEDIUM_BLE:
+		return internal_ble_addr_cmp;
+	case HA_DEV_MEDIUM_CAN:
+		return internal_caniot_addr_cmp;
+	default:
+		return NULL;
+	}	
+}
 
-	if (addr1->medium == addr2->medium) {
-		if (addr1->medium == HA_DEV_MEDIUM_BLE) {
-			ret = bt_addr_le_cmp(&addr1->mac.ble, &addr2->mac.ble);
-		} else if (addr1->medium == HA_DEV_MEDIUM_CAN) {
-			ret = caniot_deviceid_cmp(addr1->mac.caniot,
-						  addr2->mac.caniot);
-		}
+static bool mac_valid(const ha_dev_mac_t *mac)
+{
+	return get_mac_cmp_func(mac->medium) != NULL;
+}
+
+static int mac_cmp(const ha_dev_mac_t *m1, const ha_dev_mac_t *m2)
+{
+	int ret = -EINVAL;
+
+	mac_cmp_func_t cmpf = get_mac_cmp_func(m1->medium);
+
+	if (cmpf != NULL) {
+		ret = cmpf(&m1->addr, &m2->addr);
 	}
 
 	return ret;
 }
 
-static ha_dev_t *get_device_by_addr(ha_dev_addr_t *addr)
+static ha_dev_t *get_device_by_mac(const ha_dev_mac_t *mac)
 {
 	ha_dev_t *device = NULL;
 
@@ -58,7 +77,7 @@ static ha_dev_t *get_device_by_addr(ha_dev_addr_t *addr)
 	     dev < devices.list + devices.count;
 	     dev++) {
 
-		if (addr_cmp(addr, &dev->addr) == 0) {
+		if (mac_cmp(mac, &dev->addr.mac) == 0) {
 			device = dev;
 			break;
 		}
@@ -74,7 +93,7 @@ static ha_dev_t *get_first_device_by_type(ha_dev_type_t type)
 	for (ha_dev_t *dev = devices.list;
 	     dev < devices.list + devices.count;
 	     dev++) {
-		if (dev->type == type) {
+		if (dev->addr.type == type) {
 			device = dev;
 			break;
 		}
@@ -85,26 +104,33 @@ static ha_dev_t *get_first_device_by_type(ha_dev_type_t type)
 
 bool ha_dev_valid(ha_dev_t *const dev)
 {
-	return (dev != NULL) && (addr_valid(&dev->addr) == true);
+	return (dev != NULL) && (mac_valid(&dev->addr.mac) == true);
 }
 
-static ha_dev_t *ha_dev_get(ha_dev_addr_t *addr,
-			    ha_dev_type_t type)
+static ha_dev_t *ha_dev_get(const ha_dev_addr_t *addr)
 {
 	ha_dev_t *device = NULL;
 
-
-	/* Get device by address if possible */
-	if (addr_valid(addr)) {
-		device = get_device_by_addr(addr);
-
-	/* if medium type is not set, device should be
-	 * differienciated using their device_type */
+	if (mac_valid(&addr->mac)) {
+		/* Get device by address if possible */
+		device = get_device_by_mac(&addr->mac);
 	} else {
-		device = get_first_device_by_type(type);
+		/* if medium type is not set, device should be
+		* differienciated using their device_type */
+		device = get_first_device_by_type(addr->type);
 	}
 
 	return device;
+}
+
+int ha_dev_addr_cmp(const ha_dev_addr_t *a,
+		    const ha_dev_addr_t *b)
+{
+	if (mac_valid(&a->mac) && mac_valid(&b->mac)) {
+		return mac_cmp(&a->mac, &b->mac);
+	} else {
+		return a->type - b->type;
+	}
 }
 
 static void ha_dev_clear(ha_dev_t *dev)
@@ -120,8 +146,7 @@ static void ha_dev_clear(ha_dev_t *dev)
  * @param addr
  * @return int
  */
-static ha_dev_t *ha_dev_register(ha_dev_addr_t *addr,
-				 ha_dev_type_t type)
+static ha_dev_t *ha_dev_register(ha_dev_addr_t *addr)
 {
 	if (devices.count >= ARRAY_SIZE(devices.list)) {
 		return NULL;
@@ -132,7 +157,6 @@ static ha_dev_t *ha_dev_register(ha_dev_addr_t *addr,
 	ha_dev_clear(dev);
 
 	dev->addr = *addr;
-	dev->type = type;
 	dev->registered_timestamp = net_time_get();
 
 	devices.count++;
@@ -140,15 +164,14 @@ static ha_dev_t *ha_dev_register(ha_dev_addr_t *addr,
 	return dev;
 }
 
-static ha_dev_t *ha_dev_get_or_register(ha_dev_addr_t *addr,
-					ha_dev_type_t type)
+static ha_dev_t *ha_dev_get_or_register(ha_dev_addr_t *addr)
 {
 	ha_dev_t *dev;
 
-	dev = ha_dev_get(addr, type);
+	dev = ha_dev_get(addr);
 
 	if (dev == NULL) {
-		dev = ha_dev_register(addr, type);
+		dev = ha_dev_register(addr);
 	}
 
 	return dev;
@@ -170,9 +193,9 @@ static bool ha_dev_match_filter(ha_dev_t *dev, ha_dev_filter_t *filter)
 
 	switch (filter->type) {
 	case HA_DEV_FILTER_MEDIUM:
-		return dev->addr.medium == filter->data.medium;
+		return dev->addr.mac.medium == filter->data.medium;
 	case HA_DEV_FILTER_DEVICE_TYPE:
-		return dev->type == filter->data.device_type;
+		return dev->addr.type == filter->data.device_type;
 	case HA_DEV_FILTER_MEASUREMENTS_TIMESTAMP:
 		return dev->data.measurements_timestamp >= filter->data.timestamp;
 	default:
@@ -227,14 +250,12 @@ size_t ha_dev_xiaomi_iterate(void (*callback)(ha_dev_t *dev,
 static int handle_ble_xiaomi_record(xiaomi_record_t *rec)
 {
 	/* check if device already exists */
-	ha_dev_addr_t record_addr = {
-		.medium = HA_DEV_MEDIUM_BLE,
-	};
+	ha_dev_addr_t record_addr;
+	record_addr.type = HA_DEV_TYPE_XIAOMI_MIJIA;
+	record_addr.mac.medium = HA_DEV_MEDIUM_BLE;
+	bt_addr_le_copy(&record_addr.mac.addr.ble, &rec->addr);
 
-	bt_addr_le_copy(&record_addr.mac.ble, &rec->addr);
-
-	ha_dev_t *dev = ha_dev_get_or_register(&record_addr,
-					       HA_DEV_TYPE_XIAOMI_MIJIA);
+	ha_dev_t *dev = ha_dev_get_or_register(&record_addr);
 	if (dev == NULL) {
 		LOG_ERR("Failed to register device, list full %hhu / %lu",
 			devices.count,
@@ -258,7 +279,7 @@ int ha_register_xiaomi_from_dataframe(xiaomi_dataframe_t *frame)
 	char addr_str[BT_ADDR_LE_STR_LEN];
 
 	// show dataframe records
-	LOG_INF("Received BLE Xiaomi records count: %u, frame_time: %u",
+	LOG_DBG("Received BLE Xiaomi records count: %u, frame_time: %u",
 		frame->count, frame->time);
 
 	uint32_t frame_ref_time = frame->time;
@@ -310,12 +331,11 @@ int ha_dev_register_die_temperature(uint32_t timestamp,
 	k_mutex_lock(&devices.mutex, K_FOREVER);
 
 	/* check if device already exists */
-	ha_dev_addr_t record_addr = {
-		.medium = HA_DEV_MEDIUM_NONE,
-	};
+	ha_dev_addr_t record_addr;
+	record_addr.type = HA_DEV_TYPE_NUCLEO_F429ZI;
+	record_addr.mac.medium = HA_DEV_MEDIUM_NONE;
 
-	ha_dev_t *dev = ha_dev_get_or_register(&record_addr,
-					       HA_DEV_TYPE_NUCLEO_F429ZI);
+	ha_dev_t *dev = ha_dev_get_or_register(&record_addr);
 	if (dev == NULL) {
 		LOG_ERR("Failed to register device, list full %hhu / %lu",
 			devices.count,
@@ -342,7 +362,7 @@ static int save_caniot_temperature(ha_dev_t *dev,
 	int ret = -EINVAL;
 
 	if ((dev != NULL) &&
-	    (dev->type == HA_DEV_TYPE_CANIOT) &&
+	    (dev->addr.type == HA_DEV_TYPE_CANIOT) &&
 	    (temp_index < ARRAY_SIZE(dev->data.caniot.temperatures))) {
 		if (CANIOT_DT_VALID_T10_TEMP(temperature)) {
 			dev->data.caniot.temperatures[temp_index].type = sens_type;
@@ -371,11 +391,11 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 
 	/* check if device already exists */
 	ha_dev_addr_t addr;
-	addr.medium = HA_DEV_MEDIUM_CAN;
-	addr.mac.caniot = did;
+	addr.type = HA_DEV_TYPE_CANIOT;
+	addr.mac.addr.caniot = did;
+	addr.mac.medium = HA_DEV_MEDIUM_CAN;
 
-	ha_dev_t *dev = ha_dev_get_or_register(&addr,
-					       HA_DEV_TYPE_CANIOT);
+	ha_dev_t *dev = ha_dev_get_or_register(&addr);
 	if (dev == NULL) {
 		LOG_ERR("Failed to register device, list full %hhu / %lu",
 			devices.count,

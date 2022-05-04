@@ -1,12 +1,13 @@
 #include "room.h"
 
+#include <zephyr.h>
+
 #include <bluetooth/addr.h>
 
 
 struct room_dev_assoc
 {	
 	room_id_t room;
-	ha_dev_type_t type;
 	ha_dev_addr_t addr;
 };
 
@@ -18,20 +19,22 @@ struct room_dev_assoc
 #define MIJIA_ROOM(rid, bt3, bt4, bt5) \
 { \
 	.room = rid, \
-	.type = HA_DEV_TYPE_XIAOMI_MIJIA, \
 	.addr = { \
-		.medium = HA_DEV_MEDIUM_BLE, \
+		.type = HA_DEV_TYPE_XIAOMI_MIJIA, \
 		.mac = { \
-			.ble = { \
-				.type = BT_ADDR_LE_PUBLIC, \
-				.a = { \
-					.val = { \
-						XIAOMI_BT_LE_ADDR_0, \
-						XIAOMI_BT_LE_ADDR_1, \
-						XIAOMI_BT_LE_ADDR_2, \
-						bt3, \
-						bt4, \
-						bt5, \
+			.medium = HA_DEV_MEDIUM_BLE, \
+			.addr = { \
+				.ble = { \
+					.type = BT_ADDR_LE_PUBLIC, \
+					.a = { \
+						.val = { \
+							XIAOMI_BT_LE_ADDR_0, \
+							XIAOMI_BT_LE_ADDR_1, \
+							XIAOMI_BT_LE_ADDR_2, \
+							bt3, \
+							bt4, \
+							bt5, \
+						} \
 					} \
 				} \
 			} \
@@ -39,11 +42,31 @@ struct room_dev_assoc
 	} \
 }
 
-static const struct room_dev_assoc rooms[] = {
+static const struct room_dev_assoc assocs[] = {
 	MIJIA_ROOM(HA_ROOM_ENTRANCE, 0x0A, 0x1E, 0x38),
 };
 
+static const struct room_dev_assoc *ha_get_device_assoc(ha_dev_t *const dev)
+{
+	const struct room_dev_assoc *assoc;
+
+	for (assoc = assocs; assoc < assocs + ARRAY_SIZE(assocs); assoc++) {
+		if (ha_dev_addr_cmp(&assoc->addr, &dev->addr)) {
+			return assoc;
+		}
+	}
+
+	return NULL;
+}
+
 room_id_t ha_get_device_room(ha_dev_t *const dev)
 {
-	return HA_ROOM_UNDEF;
+	room_id_t rid = HA_ROOM_NONE;
+	const struct room_dev_assoc *assoc = ha_get_device_assoc(dev);
+
+	if (assoc != NULL) {
+		rid = assoc->room;
+	}
+
+	return rid;
 }
