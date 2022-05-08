@@ -306,7 +306,8 @@ int ha_register_xiaomi_from_dataframe(xiaomi_dataframe_t *frame)
 
 
 		/* Show BLE address, temperature, humidity, battery
-		 *   Only raw values are showed in debug because, there is no formatting (e.g. float)
+		 *   Only raw values are showed in debug because, 
+		 *   there is no formatting (e.g. float)
 		 */
 		LOG_DBG("BLE Xiaomi record %u [%d s]: addr: %s, " \
 			"temp: %d°C, hum: %u %%, bat: %u mV",

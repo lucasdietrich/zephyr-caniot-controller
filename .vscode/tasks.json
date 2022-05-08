@@ -14,7 +14,7 @@
     "tasks": [
         {
             "label": "Build",
-            "detail": "Build",
+            "detail": "west build --board=${board}",
             "type": "shell",
             "command": "${westPath}",
             "args": [
@@ -35,7 +35,7 @@
         },
         {
             "label": "Flash",
-            "detail": "Flash",
+            "detail": "west flash --serial ${serialNumber}",
             "type": "shell",
             "command": "${westPath}",
             "args": [
@@ -57,6 +57,7 @@
         },
         {
             "label": "Clean",
+            "detail": "rm -rf ${workspaceFolder}/build",
             "type": "shell",
             "command": "rm -rf ${workspaceFolder}/build",
             "group": "build",
@@ -71,46 +72,25 @@
             },
             "problemMatcher": []
         },
-        // {
-        //     "label": "debugserver",
-        //     "type": "shell",
-        // 	"command": "${westPath}",
-        //     "group": "build",
-        //     "args": [
-        //         "debugserver"
-        //     ],
-        //     "options": {
-        //         "statusbar": {
-        //             "hide": false
-        //         }
-        //     },
-        //     "presentation": {
-        //         "reveal": "always",
-        //         "panel": "dedicated"
-        //     },
-        //     "isBackground": true,
-        //     // https://stackoverflow.com/questions/44242048/how-to-make-vscode-not-wait-for-finishing-a-prelaunchtask
-        //     // This task is run before some debug tasks.
-        //     // Problem is, it's a watch script, and since it never exits, VSCode
-        //     // complains. All this is needed so VSCode just lets it run.
-        //     "problemMatcher": [
-        //         {
-        //             "pattern": [
-        //                 {
-        //                     "regexp": ".",
-        //                     "file": 1,
-        //                     "location": 2,
-        //                     "message": 3
-        //                 }
-        //             ],
-        //             "background": {
-        //                 "activeOnStart": true,
-        //                 "beginsPattern": ".",
-        //                 "endsPattern": ".",
-        //             }
-        //         }
-        //     ]
-        // },
+        {
+            "label": "debugserver",
+            "detail": "west debugserver",
+            "type": "shell",
+        	"command": "${westPath}",
+            "group": "build",
+            "args": [
+                "debugserver"
+            ],
+            "options": {
+                "statusbar": {
+                    "hide": false
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
         {
             "label": "Readelf",
             "type": "shell",

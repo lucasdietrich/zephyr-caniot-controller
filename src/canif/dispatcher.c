@@ -28,7 +28,7 @@ struct can_handler
 	} flags;
 };
 
-static const struct can_handler handlers[2] = {
+static const struct can_handler handlers[] = {
 	{
 		.name = "caniot",
 		.handler = caniot_process_can_frame,

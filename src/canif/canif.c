@@ -9,7 +9,7 @@
 
 #include "dispatcher.h"
 
-LOG_MODULE_REGISTER(can, LOG_LEVEL_WRN);
+LOG_MODULE_REGISTER(can, LOG_LEVEL_DBG);
 
 #define CAN1_DEVICE DEVICE_DT_GET(DT_NODELABEL(can1))
 
@@ -21,7 +21,7 @@ static void can_thread(const struct device *dev,
 CAN_DEFINE_MSGQ(rx_msgqueue, 4);
 CAN_DEFINE_MSGQ(tx_msgqueue, 4);
 
-K_THREAD_DEFINE(cantid, 0x500, can_thread, CAN1_DEVICE,
+K_THREAD_DEFINE(cantid, 0x400, can_thread, CAN1_DEVICE,
 		&rx_msgqueue, &tx_msgqueue, K_PRIO_COOP(5), 0, 0);
 
 static int handle_received_frame(struct zcan_frame *frame);
@@ -100,7 +100,9 @@ static int handle_received_frame(struct zcan_frame *frame)
 		frame->rtr, frame->id, frame->dlc);
 	LOG_HEXDUMP_DBG(frame->data, frame->dlc, "can data");
 
-	return can_dispatch(CAN_BUS_1, frame);
+	// return can_dispatch(CAN_BUS_1, frame);
+
+	return caniot_process_can_frame(frame);
 }
 
 int can_queue(CAN_bus_t bus, struct zcan_frame *frame, uint32_t delay_ms)
