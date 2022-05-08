@@ -11,7 +11,7 @@
 #include "caniot/datatype.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(devices, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_NONE);
 
 /*___________________________________________________________________________*/
 

@@ -9,7 +9,7 @@
 #include "net_time.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(caniot, LOG_LEVEL_WRN);
+LOG_MODULE_REGISTER(caniot, LOG_LEVEL_DBG);
 
 static int handle_caniot_frame(struct caniot_frame *ctf)
 {
@@ -42,30 +42,22 @@ int caniot_process_can_frame(struct zcan_frame *frame)
 		goto exit;
 	}
 
-	printk("frame %p\n", frame);
-
 	struct caniot_frame ctf;
 	caniot_clear_frame(&ctf);
 	ctf.id = caniot_canid_to_id((uint16_t) frame->id);
 	ctf.len = MIN(frame->dlc, 8U);
 	memcpy(ctf.buf, frame->data, ctf.len);
 
-	printk("&ctf %p id %u len %u resp %u\n",
-	       &ctf, (uint32_t)ctf.id.raw, (uint32_t)ctf.len,
-	       ctf.id.query == CANIOT_RESPONSE ? 1U : 0U);
-
-	// if (caniot_controller_is_target(&ctf) == true) {
-	if (ctf.id.query == CANIOT_RESPONSE) {
-		char buf[100];
+	if (caniot_controller_is_target(&ctf) == true) {
+		char buf[64];
 		ret = caniot_explain_frame_str(&ctf, buf, sizeof(buf));
 		if (ret > 0) {
-			LOG_INF("%s", buf);
+			LOG_INF("%s", log_strdup(buf));
 		} else {
 			LOG_WRN("Failed to encode frame, ret = %d", ret);
 		}
 		
-		// ret = handle_caniot_frame(&ctf);
-		printk("ret %d\n", ret);
+		ret = handle_caniot_frame(&ctf);
 	}
 exit:
 	return ret;

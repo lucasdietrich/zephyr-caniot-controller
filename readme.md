@@ -19,8 +19,8 @@
   - [nucleo_f429zi.overlay](./zephyr/nucleo_f429zi.overlay)
   - [CMakeLists.txt](./zephyr/CMakeLists.txt)
 - Build:
-  - [zephyr.dts](.pio/build/nucleo_f429zi/zephyr/zephyr.dts)
-  - [autoconf.h](.pio/build/nucleo_f429zi/zephyr/include/generated/autoconf.h)
+  - [zephyr.dts](build/zephyr/zephyr.dts)
+  - [autoconf.h](build/zephyr/include/generated/autoconf.h)
 
 **Zephyr Samples**
 - [code_relocation](https://github.com/zephyrproject-rtos/zephyr/tree/v2.6-branch/samples/application_development/code_relocation)

@@ -82,7 +82,8 @@
                 "dispatcher.h": "c",
                 "canif.h": "c",
                 "room.h": "c",
-                "devices.h": "c"
+                "devices.h": "c",
+                "archutils.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

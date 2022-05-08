@@ -1,15 +1,14 @@
-#include "canif/canif.h"
-
 #include <kernel.h>
 #include <poll.h>
 
-#include <logging/log.h>
-
+#include <caniot/caniot.h>
 #include <ha/caniot_controller.h>
 
+#include "canif/canif.h"
 #include "dispatcher.h"
 
-LOG_MODULE_REGISTER(can, LOG_LEVEL_DBG);
+#include <logging/log.h>
+LOG_MODULE_REGISTER(can, LOG_LEVEL_NONE);
 
 #define CAN1_DEVICE DEVICE_DT_GET(DT_NODELABEL(can1))
 
@@ -31,6 +30,8 @@ static void can_thread(const struct device *dev,
 		       struct k_msgq *rxq,
 		       struct k_msgq *txq)
 {
+	caniot_test();
+
 	int ret;
 	struct zcan_frame frame;
 
@@ -100,9 +101,7 @@ static int handle_received_frame(struct zcan_frame *frame)
 		frame->rtr, frame->id, frame->dlc);
 	LOG_HEXDUMP_DBG(frame->data, frame->dlc, "can data");
 
-	// return can_dispatch(CAN_BUS_1, frame);
-
-	return caniot_process_can_frame(frame);
+	return can_dispatch(CAN_BUS_1, frame);
 }
 
 int can_queue(CAN_bus_t bus, struct zcan_frame *frame, uint32_t delay_ms)

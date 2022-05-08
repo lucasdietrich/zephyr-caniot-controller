@@ -4,7 +4,7 @@
 #include "ha/caniot_controller.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(can_dispatcher, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(can_dispatcher, LOG_LEVEL_WRN);
 
 typedef int (*can_handler_func_t)(struct zcan_frame *frame);
 
