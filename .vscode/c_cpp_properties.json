@@ -1,0 +1,67 @@
+{
+    "env": {
+        "zephyrDirectory": "../zephyr",
+        "modulesDirectory": "../modules",
+        "buildDirectory": "${workspaceFolder}/build"
+    },
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "${workspaceFolder}/build",
+                "${zephyrDirectory}/include",
+                "${buildDirectory}/zephyr/include/generated",
+                "${zephyrDirectory}/soc/arm/st_stm32/stm32f4",
+                "${zephyrDirectory}/drivers",
+                "${zephyrDirectory}/soc/arm/st_stm32/common",
+                "${modulesDirectory}/hal/cmsis/CMSIS/Core/Include",
+                "${modulesDirectory}/hal/stm32/stm32cube/stm32f4xx/soc",
+                "${modulesDirectory}/hal/stm32/stm32cube/stm32f4xx/drivers/include",
+                "${modulesDirectory}/hal/stm32/stm32cube/stm32f4xx/drivers/include/Legacy",
+                "${modulesDirectory}/hal/stm32/stm32cube/common_ll/include",
+                "${workspaceFolder}/lib/caniot-lib/include"
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "${workspaceFolder}/build",
+                    "${zephyrDirectory}/include",
+                    "${buildDirectory}/zephyr/include/generated/**",
+                    "${zephyrDirectory}/soc/arm/st_stm32/stm32f4",
+                    "${zephyrDirectory}/drivers",
+                    "${zephyrDirectory}/soc/arm/st_stm32/common",
+                    "${modulesDirectory}/hal/cmsis/CMSIS/Core/Include",
+                    "${modulesDirectory}/hal/stm32/stm32cube/stm32f4xx/soc",
+                    "${modulesDirectory}/hal/stm32/stm32cube/stm32f4xx/drivers/include",
+                    "${modulesDirectory}/hal/stm32/stm32cube/stm32f4xx/drivers/include/Legacy",
+                    "${modulesDirectory}/hal/stm32/stm32cube/common_ll/include"
+                ]
+            },
+            "defines": [
+                "STM32F429xx",
+                "CORE_CM4",
+                "HSE_VALUE=8000000",
+                "KERNEL",
+                "STM32F429xx",
+                "USE_FULL_LL_DRIVER",
+                "USE_HAL_DRIVER",
+                "_FORTIFY_SOURCE=2",
+                "__PROGRAM_START",
+                "__ZEPHYR__=1",
+                /* user defined */
+                "__FIRMWARE_VERSION__=1",
+                "CONFIG_CANIOT_LOG_LEVEL=0",
+                "CONFIG_CANIOT_ARCH_AGNOSTIC=0"
+            ],
+            "cStandard": "c99",
+            "forcedInclude": [
+                "${buildDirectory}/zephyr/include/generated/autoconf.h",
+                "${zephyrDirectory}/include/toolchain/zephyr_stdint.h"
+            ],
+            "compilerPath": "/usr/bin/arm-none-eabi-gcc",
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+            "configurationProvider": "ms-vscode.cmake-tools"
+        }
+    ],
+    "version": 4
+}

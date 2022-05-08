@@ -1,0 +1,80 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "LAUNCH cortex-debug OpenOCD",
+			"cwd": "${workspaceRoot}",
+			"executable": "./build/zephyr/zephyr.elf",
+			"request": "launch",
+			"type": "cortex-debug",
+			"servertype": "openocd",
+			"device": "stm32l011k4",
+			"runToEntryPoint": "main",
+			"configFiles": [
+				"interface/stlink.cfg",
+				"target/stm32f4x.cfg"
+			],
+			"svdFile": "./STM32F429.svd"
+		},
+		{
+			"name": "ATTACH cortex-debug OpenOCD",
+			"cwd": "${workspaceRoot}",
+			"executable": "./build/zephyr/zephyr.elf",
+			"request": "attach",
+			"type": "cortex-debug",
+			"servertype": "openocd",
+			"device": "stm32l011k4",
+			"runToEntryPoint": "main",
+			"configFiles": [
+				"interface/stlink.cfg",
+				"target/stm32f4x.cfg"
+			],
+			"svdFile": "./STM32F429.svd"
+		},
+		{
+			"name": "cppdbg OpenOCD (west debugserver)",
+			"type": "cppdbg",
+			"program": "${workspaceFolder}/build/zephyr/zephyr.elf",
+			"request": "launch",
+			"targetArchitecture": "arm",
+			"stopAtEntry": false,
+			"MIMode": "gdb",
+			"miDebuggerPath": "/usr/bin/arm-none-eabi-gdb",
+			"customLaunchSetupCommands": [
+				{
+					"text": "target extended-remote localhost:3333",
+					"description": "connect to remote target",
+					"ignoreFailures": false
+				},
+				{
+					"text": "monitor reset halt",
+					"description": "halt",
+					"ignoreFailures": false
+				},
+				{
+					"text": "file ${workspaceFolder}/build/zephyr/zephyr.elf",
+					"description": "load symbols",
+					"ignoreFailures": false
+				},
+				{
+					"text": "load",
+					"description": "load to remote MCU",
+					"ignoreFailures": false
+				}
+			],
+			"cwd": "${workspaceFolder}",
+		},
+		{
+			"name": "cortex-debug STutil",
+			"type": "cortex-debug",
+			"request": "launch",
+			"executable": "${workspaceFolder}/build/zephyr/zephyr.elf",
+			"cwd": "${workspaceFolder}",
+			"device": "stm32f429zi",
+			"externalConsole": true,
+			"servertype": "stutil",
+			"interface": "swd",
+			"runToEntryPoint": "main",
+		}
+	]
+}
