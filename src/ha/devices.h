@@ -77,26 +77,25 @@ typedef struct
 	} data;
 } ha_dev_filter_t;
 
-typedef struct
+struct ha_xiaomi_dataset
 {
-	/* UNIX timestamps in seconds */
-	uint32_t measurements_timestamp;
+	uint8_t humidity; /* % */
+	uint16_t battery_level; /* mV */
+	struct {
+		int16_t value; /* 1e-2 °C */
+		ha_dev_sensor_type_t type;
+	} temperature;
+};
+
+struct ha_caniot_dataset
+{
+	struct {
+		int16_t value; /* 1e-2 °C */
+		ha_dev_sensor_type_t type;
+	} temperatures[3];
 
 	union {
 		struct {
-			uint8_t humidity; /* % */
-			uint16_t battery_level; /* mV */
-			struct {
-				int16_t value; /* 1e-2 °C */
-				ha_dev_sensor_type_t type;
-			} temperature;
-		} xiaomi;
-		struct {
-			struct {
-				int16_t value; /* 1e-2 °C */
-				ha_dev_sensor_type_t type;
-			} temperatures[3];
-
 			uint8_t rl1 : 1;
 			uint8_t rl2 : 1;
 			uint8_t oc1 : 1;
@@ -105,20 +104,30 @@ typedef struct
 			uint8_t in2 : 1;
 			uint8_t in3 : 1;
 			uint8_t in4 : 1;
-		} caniot;
-
-		struct {
-			float die_temperature; /* °C */
-		} nucleo_f429zi;
+		};
+		uint8_t dio;
 	};
-} ha_dev_data_t;
+};
+
+struct ha_f429zi_dataset
+{
+	float die_temperature; /* °C */
+};
 
 typedef struct {
 	ha_dev_addr_t addr;
 
+	/* UNIX timestamps in seconds */
 	uint32_t registered_timestamp;
+	struct {
+		uint32_t measurements_timestamp;
 
-	ha_dev_data_t data;
+		union {
+			struct ha_xiaomi_dataset xiaomi;
+			struct ha_caniot_dataset caniot;
+			struct ha_f429zi_dataset nucleo_f429zi;
+		};
+	} data;
 } ha_dev_t;
 
 bool ha_dev_valid(ha_dev_t *const dev);

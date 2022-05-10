@@ -411,11 +411,11 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 	save_caniot_temperature(dev, 0U, data->int_temperature,
 				HA_DEV_SENSOR_TYPE_EMBEDDED);
 	save_caniot_temperature(dev, 1U, data->ext_temperature,
-				HA_DEV_SENSOR_TYPE_EMBEDDED);
-	// save_caniot_temperature(dev, 2U, data->ext_temperature2,
-	// 			HA_DEV_SENSOR_TYPE_EMBEDDED);
+				HA_DEV_SENSOR_TYPE_EXTERNAL);
+	save_caniot_temperature(dev, 2U, data->ext_temperature2,
+				HA_DEV_SENSOR_TYPE_EXTERNAL);
 
-	/* todo board IO */
+	data->dio = AS_BOARD_CONTROL_TELEMETRY(data)->dio;
 
 	LOG_INF("Registered CANIOT record for device 0x%hhx", did.val);
 
@@ -451,6 +451,7 @@ static void ipc_work_handler(struct k_work *work)
 		}
 	}
 
+	// optional ?
 	ipc_event.state = K_POLL_STATE_NOT_READY;
 
 	/* re-register for next event */
