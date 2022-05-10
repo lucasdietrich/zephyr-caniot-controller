@@ -231,16 +231,14 @@ size_t ha_dev_iterate(void (*callback)(ha_dev_t *dev,
 	return count;
 }
 
-size_t ha_dev_xiaomi_iterate(void (*callback)(ha_dev_t *dev,
-					      void *user_data),
-			     void *user_data)
+size_t ha_dev_iterate_filter_type(void (*callback)(ha_dev_t *dev,
+						   void *user_data),
+				  void *user_data,
+				  ha_dev_type_t type)
 {
-	ha_dev_filter_t filter = {
-		.type = HA_DEV_FILTER_DEVICE_TYPE,
-		.data = {
-			.device_type = HA_DEV_TYPE_XIAOMI_MIJIA
-		}
-	};
+	ha_dev_filter_t filter;
+	filter.type = HA_DEV_FILTER_DEVICE_TYPE;
+	filter.data.device_type = type;
 
 	return ha_dev_iterate(callback, &filter, user_data);
 }
@@ -373,10 +371,8 @@ static int save_caniot_temperature(ha_dev_t *dev,
 		} else {
 			dev->data.caniot.temperatures[temp_index].type =
 				HA_DEV_SENSOR_TYPE_NONE;
-			return 0U;
+			ret = 0U;
 		}
-
-		ret = 0;
 	}
 
 	return ret;
@@ -413,9 +409,9 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 	save_caniot_temperature(dev, 1U, data->ext_temperature,
 				HA_DEV_SENSOR_TYPE_EXTERNAL);
 	save_caniot_temperature(dev, 2U, data->ext_temperature2,
-				HA_DEV_SENSOR_TYPE_EXTERNAL);
+				HA_DEV_SENSOR_TYPE_EXTERNAL2);
 
-	data->dio = AS_BOARD_CONTROL_TELEMETRY(data)->dio;
+	dev->data.caniot.dio = AS_BOARD_CONTROL_TELEMETRY(data)->dio;
 
 	LOG_INF("Registered CANIOT record for device 0x%hhx", did.val);
 

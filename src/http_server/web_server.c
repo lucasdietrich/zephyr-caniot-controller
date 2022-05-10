@@ -26,6 +26,7 @@ int web_server_index_html(struct http_request *req,
 	buffer_append_string(&resp->buffer, HTML_LI(HTML_QUICK_URL("/index.html")));
 	buffer_append_string(&resp->buffer, HTML_LI(HTML_QUICK_URL("/info")));
 	buffer_append_string(&resp->buffer, HTML_LI(HTML_QUICK_URL("/devices")));
+	buffer_append_string(&resp->buffer, HTML_LI(HTML_QUICK_URL("/devices/caniot")));
 	buffer_append_string(&resp->buffer, HTML_LI(HTML_QUICK_URL("/devices/xiaomi")));
 	buffer_append_string(&resp->buffer, HTML_LI(HTML_QUICK_URL("/metrics")));
 

@@ -21,7 +21,7 @@ struct http_request
         char url[64];
         size_t url_len;
 
-	/* associate request to route */
+	/* route for the current request */
 	const struct http_route *route;
 
 	/* parsed authentification */

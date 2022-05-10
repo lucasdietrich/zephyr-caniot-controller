@@ -13,6 +13,9 @@ GET http://{{host}}/devices
 GET http://{{host}}/devices/xiaomi
 
 ###
+GET http://{{host}}/devices/caniot
+
+###
 
 GET http://{{host}}/metrics
 

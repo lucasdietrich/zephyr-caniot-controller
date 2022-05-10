@@ -53,6 +53,7 @@ typedef enum {
 	HA_DEV_SENSOR_TYPE_NONE = 0,
 	HA_DEV_SENSOR_TYPE_EMBEDDED,
 	HA_DEV_SENSOR_TYPE_EXTERNAL,
+	HA_DEV_SENSOR_TYPE_EXTERNAL2,
 } ha_dev_sensor_type_t;
 
 typedef enum
@@ -92,7 +93,7 @@ struct ha_caniot_dataset
 	struct {
 		int16_t value; /* 1e-2 °C */
 		ha_dev_sensor_type_t type;
-	} temperatures[3];
+	} temperatures[3U];
 
 	union {
 		struct {
@@ -114,6 +115,13 @@ struct ha_f429zi_dataset
 	float die_temperature; /* °C */
 };
 
+struct ha_dev_stats_t
+{
+	uint32_t rx;
+	uint32_t tx;
+	uint32_t max_inactivity;
+};
+
 typedef struct {
 	ha_dev_addr_t addr;
 
@@ -128,21 +136,42 @@ typedef struct {
 			struct ha_f429zi_dataset nucleo_f429zi;
 		};
 	} data;
+
+	struct ha_dev_stats_t stats;
 } ha_dev_t;
 
 bool ha_dev_valid(ha_dev_t *const dev);
 
+typedef void ha_dev_iterate_cb_t(ha_dev_t *dev,
+				 void *user_data);
+
 int ha_dev_addr_cmp(const ha_dev_addr_t *a,
 		    const ha_dev_addr_t *b);
 
-size_t ha_dev_iterate(void (*callback)(ha_dev_t *dev,
-				       void *user_data),
+size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 		      ha_dev_filter_t *filter,
 		      void *user_data);
 
-size_t ha_dev_xiaomi_iterate(void (*callback)(ha_dev_t *dev,
-					      void *user_data),
-			     void *user_data);
+size_t ha_dev_iterate_filter_type(ha_dev_iterate_cb_t callback,
+				  void *user_data,
+				  ha_dev_type_t type);
+
+static inline size_t ha_dev_xiaomi_iterate(ha_dev_iterate_cb_t callback,
+					   void *user_data)
+{
+	return ha_dev_iterate_filter_type(callback,
+					  user_data,
+					  HA_DEV_TYPE_XIAOMI_MIJIA);
+}
+
+
+static inline size_t ha_dev_caniot_iterate(ha_dev_iterate_cb_t callback,
+					   void *user_data)
+{
+	return ha_dev_iterate_filter_type(callback,
+					  user_data,
+					  HA_DEV_TYPE_CANIOT);
+}
 
 int ha_register_xiaomi_from_dataframe(xiaomi_dataframe_t *frame);
 

@@ -498,6 +498,9 @@ static int process_request(struct http_request *req,
 	const struct http_route *route = route_resolve(req);
 
 	if (route != NULL) {
+		/* associate route with request */
+		req->route = route;
+
 		/* set default content type in function of the route */
 		resp->content_type = http_get_route_default_content_type(route);
 

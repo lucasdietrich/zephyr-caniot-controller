@@ -304,16 +304,26 @@ int rest_info(struct http_request *req,
 
 /*___________________________________________________________________________*/
 
+struct json_device_base
+{
+	// const char *device_name;
+
+	// const char *datetime;
+	// int32_t rel_time;
+
+	uint32_t timestamp;
+};
+
+/*___________________________________________________________________________*/
+
 #define XIAOMI_MAX_DEVICES 15
+
 
 struct json_xiaomi_record
 {
-	// const char *device_name;
 	char *bt_mac;
 
-	uint32_t timestamp;
-	// const char *datetime;
-	// int32_t rel_time;
+	struct json_device_base base;
 
 	char *temperature;
 	int32_t temperature_raw;
@@ -322,10 +332,8 @@ struct json_xiaomi_record
 };
 
 static const struct json_obj_descr json_xiaomi_record_descr[] = {
-	// JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, device_name, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, bt_mac, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, timestamp, JSON_TOK_NUMBER),
-	// JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, datetime, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, base.timestamp, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, temperature, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, temperature_raw, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, humidity, JSON_TOK_NUMBER),
@@ -366,7 +374,7 @@ static void xiaomi_device_cb(ha_dev_t *dev,
 	arr_record->temperature_raw = dev->data.xiaomi.temperature.value;
 	arr_record->humidity = dev->data.xiaomi.humidity;
 	arr_record->battery_level = dev->data.xiaomi.battery_level;
-	arr_record->timestamp = dev->data.measurements_timestamp;
+	arr_record->base.timestamp = dev->data.measurements_timestamp;
 
 	bt_addr_le_to_str(&dev->addr.mac.addr.ble,
 			  arr_record->bt_mac,
@@ -392,8 +400,118 @@ int rest_xiaomi_records(struct http_request *req,
 					       &ctx.arr, resp);
 }
 
-int rest_devices_records(struct http_request *req,
-			 struct http_response *resp)
+#define CANIOT_MAX_DEVICES 10U
+
+struct json_caniot_temperature_record
+{
+	const char *repr;
+	int32_t value;
+	uint32_t sens_type;
+};
+
+static const struct json_obj_descr json_caniot_temperature_record_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_temperature_record, repr, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_temperature_record, value, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_temperature_record, sens_type, JSON_TOK_NUMBER),
+};
+
+struct json_caniot_record
+{
+	uint32_t did;
+
+	struct json_device_base base;
+
+	struct json_caniot_temperature_record temperatures[3U];
+	uint32_t temperatures_count;
+	uint32_t dio;
+};
+
+static const struct json_obj_descr json_caniot_record_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, did, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, base.timestamp, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_record, temperatures, 3U, temperatures_count,
+		json_caniot_temperature_record_descr, ARRAY_SIZE(json_caniot_temperature_record_descr)),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, dio, JSON_TOK_NUMBER),
+};
+
+
+struct json_caniot_record_array
+{
+	struct json_caniot_record records[CANIOT_MAX_DEVICES];
+	size_t count;
+};
+
+const struct json_obj_descr json_caniot_record_array_descr[] = {
+  JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_record_array, records, CANIOT_MAX_DEVICES,
+	count, json_caniot_record_descr, ARRAY_SIZE(json_caniot_record_descr))
+};
+
+struct caniot_records_encoding_context
+{
+	struct json_caniot_record_array arr;
+	/* x = devices
+	 * y = temperatures per device
+	 * z = string length
+	 */
+	char temp_repr[CANIOT_MAX_DEVICES][3][9]; 
+};
+
+static void caniot_device_cb(ha_dev_t *dev,
+			     void *user_data)
+{
+	struct caniot_records_encoding_context *ctx =
+		(struct caniot_records_encoding_context *)user_data;
+
+	struct json_caniot_record *rec = &ctx->arr.records[ctx->arr.count];
+
+	rec->base.timestamp = dev->data.measurements_timestamp;
+	rec->did = CANIOT_DEVICE_TO_UINT8(dev->addr.mac.addr.caniot);
+	rec->temperatures_count = 0U;
+
+	/* encode temperatures */
+	for (size_t i = 0; i < ARRAY_SIZE(rec->temperatures); i++) {
+		/* if temperature is valid */
+		if (dev->data.caniot.temperatures->type != HA_DEV_SENSOR_TYPE_NONE) {
+			const size_t j = rec->temperatures_count;
+			sprintf(ctx->temp_repr[ctx->arr.count][j],
+				"%.2f",
+				dev->data.caniot.temperatures[j].value / 100.0);
+			rec->temperatures[j].repr = ctx->temp_repr[ctx->arr.count][j];
+			rec->temperatures[j].sens_type = dev->data.caniot.temperatures[j].type;
+			rec->temperatures[j].value = dev->data.caniot.temperatures[j].value;
+			rec->temperatures_count++;
+		}
+	}
+
+	rec->dio = dev->data.caniot.dio;
+
+	ctx->arr.count++;
+}
+
+int rest_caniot_records(struct http_request *req,
+			struct http_response *resp)
+{
+	struct caniot_records_encoding_context ctx;
+
+	ctx.arr.count = 0;
+
+	ha_dev_caniot_iterate(caniot_device_cb, &ctx);
+
+	return rest_encode_response_json_array(json_caniot_record_array_descr,
+					       ARRAY_SIZE(json_caniot_record_array_descr),
+					       &ctx.arr, resp);
+}
+
+struct json_device_repr {
+	uint32_t index;
+	const char *addr_repr;
+	uint32_t timestamp;
+
+	// stats
+};
+
+int rest_devices_list(struct http_request *req,
+		      struct http_response *resp)
 {
 	return -EINVAL;
 }

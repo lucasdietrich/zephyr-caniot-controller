@@ -375,6 +375,8 @@ const char *prom_myd_sensor_type_to_str(ha_dev_sensor_type_t sensor_type)
 		return "EMBEDDED";
 	case HA_DEV_SENSOR_TYPE_EXTERNAL:
 		return "EXTERNAL";
+	case HA_DEV_SENSOR_TYPE_EXTERNAL2:
+			return "EXTERNAL2";
 	default:
 		return "";
 	}

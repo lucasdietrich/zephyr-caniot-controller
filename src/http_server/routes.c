@@ -37,8 +37,9 @@ static const struct http_route routes[] = {
 
 	REST(GET, "/info", rest_info),
 
-	REST(GET, "/devices", rest_devices_records),
+	REST(GET, "/devices", rest_devices_list),
 	REST(GET, "/devices/xiaomi", rest_xiaomi_records),
+	REST(GET, "/devices/caniot", rest_caniot_records),
 
 	PROM(GET, "/metrics", prometheus_metrics),
 	PROM(GET, "/metrics_demo", prometheus_metrics_demo),

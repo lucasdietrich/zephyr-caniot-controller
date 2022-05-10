@@ -26,10 +26,13 @@ int rest_index(struct http_request *req,
 int rest_info(struct http_request *req,
               struct http_response *resp);
 
+int rest_caniot_records(struct http_request *req,
+			struct http_response *resp);
+
 int rest_xiaomi_records(struct http_request *req,
 			struct http_response *resp);
 
-int rest_devices_records(struct http_request *req,
-			 struct http_response *resp);
+int rest_devices_list(struct http_request *req,
+		      struct http_response *resp);
 
 #endif
