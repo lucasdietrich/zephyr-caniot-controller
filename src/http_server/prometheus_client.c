@@ -167,11 +167,11 @@ METRIC_DEF_TAGS("device_humidity", GAUGE, device_measurement_tags,
 
 const struct metric_definition mdef_device_battery_level =
 METRIC_DEF_TAGS("device_battery_level", GAUGE, device_measurement_tags,
-		"Device battery level (in V)");
+		"Device battery level (in %)");
 
 const struct metric_definition mdef_device_battery_voltage =
 METRIC_DEF_TAGS("device_battery_voltage", GAUGE, device_measurement_tags,
-		"Device battery voltage (in mV)");
+		"Device battery voltage (in V)");
 
 const struct metric_definition mdef_device_measurements_last_timestamp =
 METRIC_DEF_TAGS("device_measurements_last_timestamp", GAUGE, device_measurement_tags,
@@ -464,14 +464,15 @@ static void prom_metric_feed_xiaomi_temperature(ha_dev_t *dev,
 						struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
-	val->encoding.digits = 2;
+	val->encoding.digits = 2U;
 	val->value = dev->data.xiaomi.temperature.value / 100.0;
 }
 
 static void prom_metric_feed_xiaomi_humidity(ha_dev_t *dev,
 					     struct metric_value *val)
 {
-	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
+	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
+	val->encoding.digits = 3U;
 	val->value = dev->data.xiaomi.humidity / 100.0;
 }
 
@@ -500,7 +501,7 @@ static void prom_metric_feed_xiaomi_battery_voltage(ha_dev_t *dev,
 						  struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
-	val->encoding.digits = 3;
+	val->encoding.digits = 3U;
 	val->value = dev->data.xiaomi.battery_mv / 1000.0;
 }
 
