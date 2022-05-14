@@ -11,6 +11,7 @@
 #include "userio/button.h"
 
 #include "ha/devices.h"
+#include "ha/ble_controller.h"
 
 #include <mbedtls/memory_buffer_alloc.h>
 
@@ -42,8 +43,9 @@ void main(void)
 
         crypto_mbedtls_heap_init();
         net_interface_init();
-	ha_dev_init();
-
+	
+	ha_ble_controller_init();
+	
 	int rc;
 	struct sensor_value val;
 	const struct device *dev = DEVICE_DT_GET(TEMP_NODE);

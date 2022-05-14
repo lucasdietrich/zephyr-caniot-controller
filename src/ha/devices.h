@@ -16,7 +16,7 @@
 
 #include <stddef.h>
 
-#include "ble/xiaomi_record.h"
+#include "../ble/xiaomi_record.h"
 #include <caniot/caniot.h>
 #include <caniot/datatype.h>
 
@@ -188,8 +188,5 @@ int ha_dev_register_die_temperature(uint32_t timestamp,
 int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 				     union deviceid did,
 				     struct caniot_board_control_telemetry *data);
-
-int ha_dev_init(void);
-
 
 #endif /* _HA_DEVS_H_ */
