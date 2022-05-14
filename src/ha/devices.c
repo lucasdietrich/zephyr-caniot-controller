@@ -231,7 +231,7 @@ size_t ha_dev_iterate(void (*callback)(ha_dev_t *dev,
 	return count;
 }
 
-size_t ha_dev_iterate_filter_type(void (*callback)(ha_dev_t *dev,
+size_t ha_dev_iterate_filter_by_type(void (*callback)(ha_dev_t *dev,
 						   void *user_data),
 				  void *user_data,
 				  ha_dev_type_t type)

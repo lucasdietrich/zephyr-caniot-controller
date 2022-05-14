@@ -152,14 +152,14 @@ size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 		      ha_dev_filter_t *filter,
 		      void *user_data);
 
-size_t ha_dev_iterate_filter_type(ha_dev_iterate_cb_t callback,
+size_t ha_dev_iterate_filter_by_type(ha_dev_iterate_cb_t callback,
 				  void *user_data,
 				  ha_dev_type_t type);
 
 static inline size_t ha_dev_xiaomi_iterate(ha_dev_iterate_cb_t callback,
 					   void *user_data)
 {
-	return ha_dev_iterate_filter_type(callback,
+	return ha_dev_iterate_filter_by_type(callback,
 					  user_data,
 					  HA_DEV_TYPE_XIAOMI_MIJIA);
 }
@@ -168,7 +168,7 @@ static inline size_t ha_dev_xiaomi_iterate(ha_dev_iterate_cb_t callback,
 static inline size_t ha_dev_caniot_iterate(ha_dev_iterate_cb_t callback,
 					   void *user_data)
 {
-	return ha_dev_iterate_filter_type(callback,
+	return ha_dev_iterate_filter_by_type(callback,
 					  user_data,
 					  HA_DEV_TYPE_CANIOT);
 }
