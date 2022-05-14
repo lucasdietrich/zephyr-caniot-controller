@@ -89,5 +89,5 @@
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",
-        "cortex-debug.variableUseNaturalFormat": false,
+        "cortex-debug.variableUseNaturalFormat": true,
 }

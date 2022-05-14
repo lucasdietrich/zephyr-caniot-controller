@@ -10,7 +10,7 @@
 #include "ha/devices.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(ble_ctrlr, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(ble_ctrlr, LOG_LEVEL_NONE);
 
 K_MSGQ_DEFINE(ipc_ble_msgq, sizeof(ipc_frame_t), 1U, 4U);
 struct k_poll_event ipc_event =

@@ -428,7 +428,7 @@ struct json_caniot_record
 
 static const struct json_obj_descr json_caniot_record_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, did, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, base.timestamp, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM_NAMED(struct json_caniot_record, "timestamp", base.timestamp, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_record, temperatures, 3U, temperatures_count,
 		json_caniot_temperature_record_descr, ARRAY_SIZE(json_caniot_temperature_record_descr)),
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, dio, JSON_TOK_NUMBER),

@@ -45,8 +45,13 @@ typedef enum {
 
 struct metric_value {
 	/* The value of the metric */
-	float value;
+	union {
+		float fvalue; /* store value as float */
+		uint32_t uvalue; /* store value as unsigned */
+		int32_t svalue; /* store value as signed */
+	};
 
+	/* Encoding type in the case of a float value */
 	struct {
 		/* Float encoding type: float, exp ...*/
 		metric_encoding_type_t type;
@@ -209,25 +214,25 @@ static ssize_t encode_value(char *buf, size_t buf_size, struct metric_value *val
 
 	switch (value->encoding.type) {
 	case VALUE_ENCODING_TYPE_INT32:
-		ret = snprintf(buf, buf_size, "%d", (int32_t)value->value);
+		ret = snprintf(buf, buf_size, "%d", value->svalue);
 		break;
 	case VALUE_ENCODING_TYPE_UINT32:
-		ret = snprintf(buf, buf_size, "%u", (uint32_t)value->value);
+		ret = snprintf(buf, buf_size, "%u", value->uvalue);
 		break;
 	case VALUE_ENCODING_TYPE_FLOAT_DIGITS:
 		ret = snprintf(buf, buf_size, "%.*f",
-			       (int)value->encoding.digits, value->value);
+			       (int)value->encoding.digits, value->fvalue);
 		break;
 	case VALUE_ENCODING_TYPE_EXP:
-		ret = snprintf(buf, buf_size, "%e", value->value);
+		ret = snprintf(buf, buf_size, "%e", value->fvalue);
 		break;
 	case VALUE_ENCODING_TYPE_EXP_DIGITS:
 		ret = snprintf(buf, buf_size, "%.*e",
-			       (int)value->encoding.digits, value->value);
+			       (int)value->encoding.digits, value->fvalue);
 		break;
 	case VALUE_ENCODING_TYPE_FLOAT:
 	default:
-		ret = snprintf(buf, buf_size, "%f", value->value);
+		ret = snprintf(buf, buf_size, "%f", value->fvalue);
 		break;
 	}
 
@@ -418,7 +423,7 @@ int prometheus_metrics_demo(struct http_request *req,
 	};
 
 	struct metric_value val1 = {
-		.value = 24.723,
+		.fvalue = 24.723,
 		.encoding = {
 			.type = VALUE_ENCODING_TYPE_FLOAT,
 		},
@@ -427,7 +432,7 @@ int prometheus_metrics_demo(struct http_request *req,
 	};
 
 	struct metric_value val2 = {
-		.value = -17.234,
+		.fvalue = -17.234,
 		.encoding = {
 			.type = VALUE_ENCODING_TYPE_EXP_DIGITS,
 			.digits = 3,
@@ -460,12 +465,19 @@ union measurements_tags_values
 	const char *list[6];
 };
 
+static void prom_metric_feed_dev_measurement_timestamp(ha_dev_t *dev,
+						       struct metric_value *val)
+{
+	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
+	val->uvalue = dev->data.measurements_timestamp;
+}
+
 static void prom_metric_feed_xiaomi_temperature(ha_dev_t *dev,
 						struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
 	val->encoding.digits = 2U;
-	val->value = dev->data.xiaomi.temperature.value / 100.0;
+	val->fvalue = dev->data.xiaomi.temperature.value / 100.0;
 }
 
 static void prom_metric_feed_xiaomi_humidity(ha_dev_t *dev,
@@ -473,28 +485,21 @@ static void prom_metric_feed_xiaomi_humidity(ha_dev_t *dev,
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
 	val->encoding.digits = 3U;
-	val->value = dev->data.xiaomi.humidity / 100.0;
+	val->fvalue = dev->data.xiaomi.humidity / 100.0;
 }
 
 static void prom_metric_feed_xiaomi_battery_level(ha_dev_t *dev,
 						  struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
-	val->value = dev->data.xiaomi.battery_level;
-}
-
-static void prom_metric_feed_xiaomi_measurement_timestamp(ha_dev_t *dev,
-							  struct metric_value *val)
-{
-	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
-	val->value = dev->data.measurements_timestamp;
+	val->uvalue = dev->data.xiaomi.battery_level;
 }
 
 static void prom_metric_feed_xiaomi_rssi(ha_dev_t *dev,
 					 struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_INT32;
-	val->value = (float) dev->data.xiaomi.rssi;
+	val->svalue = (float) dev->data.xiaomi.rssi;
 }
 
 static void prom_metric_feed_xiaomi_battery_voltage(ha_dev_t *dev,
@@ -502,7 +507,7 @@ static void prom_metric_feed_xiaomi_battery_voltage(ha_dev_t *dev,
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
 	val->encoding.digits = 3U;
-	val->value = dev->data.xiaomi.battery_mv / 1000.0;
+	val->fvalue = dev->data.xiaomi.battery_mv / 1000.0;
 }
 
 static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
@@ -547,7 +552,7 @@ static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
 		prom_metric_feed_xiaomi_battery_voltage(dev, &val);
 		encode_metric(buffer, &val, &mdef_device_battery_voltage, false);
 
-		prom_metric_feed_xiaomi_measurement_timestamp(dev, &val);
+		prom_metric_feed_dev_measurement_timestamp(dev, &val);
 		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
 
 	} else if (dev->addr.type == HA_DEV_TYPE_CANIOT) {
@@ -580,11 +585,14 @@ static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
 			ha_dev_sensor_type_t sensor_type =
 				dev->data.caniot.temperatures[i].type;
 			if (sensor_type != HA_DEV_SENSOR_TYPE_NONE) {
-				val.value = dev->data.caniot.temperatures[i].value / 100.0;
+				val.fvalue = dev->data.caniot.temperatures[i].value / 100.0;
 				tags_values.sensor = prom_myd_sensor_type_to_str(sensor_type);
 				encode_metric(buffer, &val, &mdef_device_temperature, false);
 			}
 		}
+
+		prom_metric_feed_dev_measurement_timestamp(dev, &val);
+		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
 
 	} else if (dev->addr.type == HA_DEV_TYPE_NUCLEO_F429ZI) {
 		union measurements_tags_values tags_values = {
@@ -600,7 +608,7 @@ static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
 		struct metric_value val = {
 			.tags_values = tags_values.list,
 			.tags_values_count = ARRAY_SIZE(tags_values.list),
-			.value = dev->data.nucleo_f429zi.die_temperature,
+			.fvalue = dev->data.nucleo_f429zi.die_temperature,
 			.encoding = {
 				.type = VALUE_ENCODING_TYPE_FLOAT,
 				.digits = 1
@@ -608,6 +616,9 @@ static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
 		};
 
 		encode_metric(buffer, &val, &mdef_device_temperature, false);
+
+		prom_metric_feed_dev_measurement_timestamp(dev, &val);
+		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
 	}
 }
 

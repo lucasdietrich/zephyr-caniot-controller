@@ -19,7 +19,7 @@
 #include "creds/credentials.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(http_server, LOG_LEVEL_WRN); /* INF */
 
 /*___________________________________________________________________________*/
 
