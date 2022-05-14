@@ -5,21 +5,32 @@
 
 #include <bluetooth/addr.h>
 
+/* size is 7B */
 typedef struct {
+	/**
+	 * @brief RSSI
+	 */
+	int8_t rssi;
 	/**
 	 * @brief Device measured temperature, base unit : 1e-2 °C
 	 */
 	int16_t temperature;
 
 	/**
-	 * @brief Device measured humidity, base unit : 1 %
+	 * @brief Device measured humidity, base unit : 1e-2 %
 	 */
-	uint8_t humidity; /* 1 % */
+	uint16_t humidity; /* 1e-2 % */
 
 	/**
-	 * @brief Device measured battery level, base unit: 1 mV
+	 * @brief Device measured battery voltage, base unit: 1 mV
 	 */
-	uint16_t battery;
+	uint16_t battery_mv;
+
+	/**
+	 * @brief Device measured battery level, base unit:  %
+	 * Measurement is valid if battery_level > 0
+	 */
+	uint8_t battery_level;
 }  __attribute__((packed)) xiaomi_measurements_t;
 
 typedef struct {
@@ -29,8 +40,7 @@ typedef struct {
 	bt_addr_le_t addr;
 
 	/**
-	 * @brief Time when the measurements were retrieved, in seconds.
-	 * This value is relative to frame time.
+	 * @brief Time when the measurements were retrieved
 	 */
 	uint32_t time;
 	
@@ -41,12 +51,12 @@ typedef struct {
 } __attribute__((packed)) xiaomi_record_t;
 
 /**
- * @brief size = 8 + n * (7 + 9)
- * Where n is the number of devices (here, n = 15, size = 248)
+ * @brief size = 8 + n * (7 + 4 + 8)
+ * Where n is the number of devices (here, n = 14, size = 248)
  */
 typedef struct {
 	/**
-	 * @brief Relative frame time (could be UTC time or device uptime), in seconds.
+	 * @brief Frame time
 	 */
 	uint32_t time;
 
@@ -58,7 +68,7 @@ typedef struct {
 	/**
 	 * @brief List of records
 	 */
-	xiaomi_record_t records[15];
+	xiaomi_record_t records[13];
 } xiaomi_dataframe_t;
 
 #endif /* _BLE_XIAOMI_RECORD_H_ */

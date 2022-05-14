@@ -11,7 +11,7 @@
 #include "caniot/datatype.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_NONE);
+LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_DBG);
 
 /*___________________________________________________________________________*/
 
@@ -263,10 +263,12 @@ static int handle_ble_xiaomi_record(xiaomi_record_t *rec)
 
 	/* device does exist now, update it measurements */
 	dev->data.measurements_timestamp = rec->time;
+	dev->data.xiaomi.rssi = rec->measurements.rssi;
 	dev->data.xiaomi.temperature.type = HA_DEV_SENSOR_TYPE_EMBEDDED;
 	dev->data.xiaomi.temperature.value = rec->measurements.temperature;
 	dev->data.xiaomi.humidity = rec->measurements.humidity;
-	dev->data.xiaomi.battery_level = rec->measurements.battery;
+	dev->data.xiaomi.battery_mv = rec->measurements.battery_mv;
+	dev->data.xiaomi.battery_level = rec->measurements.battery_level;
 
 	return 0;
 }
@@ -274,7 +276,7 @@ static int handle_ble_xiaomi_record(xiaomi_record_t *rec)
 int ha_register_xiaomi_from_dataframe(xiaomi_dataframe_t *frame)
 {
 	int ret = 0;
-	char addr_str[BT_ADDR_LE_STR_LEN];
+	char addr_str[BT_ADDR_STR_LEN];
 
 	// show dataframe records
 	LOG_DBG("Received BLE Xiaomi records count: %u, frame_time: %u",
@@ -289,9 +291,8 @@ int ha_register_xiaomi_from_dataframe(xiaomi_dataframe_t *frame)
 	for (uint8_t i = 0; i < frame->count; i++) {
 		xiaomi_record_t *const rec = &frame->records[i];
 
-		bt_addr_le_to_str(&rec->addr,
-				  addr_str,
-				  sizeof(addr_str));
+		bt_addr_to_str(&rec->addr.a, addr_str,
+			       sizeof(addr_str));
 
 		int32_t record_rel_time = rec->time - frame_ref_time;
 		uint32_t record_timestamp = now + record_rel_time;
@@ -302,18 +303,19 @@ int ha_register_xiaomi_from_dataframe(xiaomi_dataframe_t *frame)
 			goto exit;
 		}
 
-
 		/* Show BLE address, temperature, humidity, battery
-		 *   Only raw values are showed in debug because, 
+		 *   Only raw values are showed in debug because,
 		 *   there is no formatting (e.g. float)
 		 */
-		LOG_DBG("BLE Xiaomi record %u [%d s]: addr: %s, " \
-			"temp: %d°C, hum: %u %%, bat: %u mV",
+		LOG_INF("BLE Xiaomi rec %u [%d s]: %s [rssi %d] " \
+			"temp: %d°C hum: %u %% bat: %u mV (%u %%)",
 			i, record_rel_time,
-			log_strdup(addr_str),
-			(int32_t)rec->measurements.temperature,
-			(uint32_t)rec->measurements.humidity,
-			(uint32_t)rec->measurements.battery);
+			log_strdup(addr_str), 
+			(int32_t)rec->measurements.rssi,
+			(int32_t)rec->measurements.temperature / 100,
+			(uint32_t)rec->measurements.humidity / 100,
+			(uint32_t)rec->measurements.battery_mv,
+			(uint32_t)rec->measurements.battery_level);
 	}
 
 exit:

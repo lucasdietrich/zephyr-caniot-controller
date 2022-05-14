@@ -35,6 +35,7 @@
 LOG_MODULE_REGISTER(prom, LOG_LEVEL_DBG);
 
 typedef enum {
+	VALUE_ENCODING_TYPE_INT32,
 	VALUE_ENCODING_TYPE_UINT32,
 	VALUE_ENCODING_TYPE_FLOAT,
 	VALUE_ENCODING_TYPE_FLOAT_DIGITS,
@@ -152,6 +153,10 @@ static const struct metric_tag device_measurement_tags[] = {
 	METRIC_TAG("collector"),
 };
 
+const struct metric_definition mdef_device_rssi =
+METRIC_DEF_TAGS("device_rssi", GAUGE, device_measurement_tags,
+		"Device rssi (in dBm)");
+		
 const struct metric_definition mdef_device_temperature =
 METRIC_DEF_TAGS("device_temperature", GAUGE, device_measurement_tags,
 		"Device temperature (in °C)");
@@ -163,6 +168,10 @@ METRIC_DEF_TAGS("device_humidity", GAUGE, device_measurement_tags,
 const struct metric_definition mdef_device_battery_level =
 METRIC_DEF_TAGS("device_battery_level", GAUGE, device_measurement_tags,
 		"Device battery level (in V)");
+
+const struct metric_definition mdef_device_battery_voltage =
+METRIC_DEF_TAGS("device_battery_voltage", GAUGE, device_measurement_tags,
+		"Device battery voltage (in mV)");
 
 const struct metric_definition mdef_device_measurements_last_timestamp =
 METRIC_DEF_TAGS("device_measurements_last_timestamp", GAUGE, device_measurement_tags,
@@ -199,6 +208,9 @@ static ssize_t encode_value(char *buf, size_t buf_size, struct metric_value *val
 	ssize_t ret = -EINVAL;
 
 	switch (value->encoding.type) {
+	case VALUE_ENCODING_TYPE_INT32:
+		ret = snprintf(buf, buf_size, "%d", (int32_t)value->value);
+		break;
 	case VALUE_ENCODING_TYPE_UINT32:
 		ret = snprintf(buf, buf_size, "%u", (uint32_t)value->value);
 		break;
@@ -460,15 +472,14 @@ static void prom_metric_feed_xiaomi_humidity(ha_dev_t *dev,
 					     struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
-	val->value = dev->data.xiaomi.humidity;
+	val->value = dev->data.xiaomi.humidity / 100.0;
 }
 
 static void prom_metric_feed_xiaomi_battery_level(ha_dev_t *dev,
 						  struct metric_value *val)
 {
-	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
-	val->encoding.digits = 3;
-	val->value = dev->data.xiaomi.battery_level / 1000.0;
+	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
+	val->value = dev->data.xiaomi.battery_level;
 }
 
 static void prom_metric_feed_xiaomi_measurement_timestamp(ha_dev_t *dev,
@@ -476,6 +487,21 @@ static void prom_metric_feed_xiaomi_measurement_timestamp(ha_dev_t *dev,
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
 	val->value = dev->data.measurements_timestamp;
+}
+
+static void prom_metric_feed_xiaomi_rssi(ha_dev_t *dev,
+					 struct metric_value *val)
+{
+	val->encoding.type = VALUE_ENCODING_TYPE_INT32;
+	val->value = (float) dev->data.xiaomi.rssi;
+}
+
+static void prom_metric_feed_xiaomi_battery_voltage(ha_dev_t *dev,
+						  struct metric_value *val)
+{
+	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
+	val->encoding.digits = 3;
+	val->value = dev->data.xiaomi.battery_mv / 1000.0;
 }
 
 static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
@@ -505,6 +531,9 @@ static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
 			.tags_values_count = ARRAY_SIZE(tags_values.list)
 		};
 
+		prom_metric_feed_xiaomi_rssi(dev, &val);
+		encode_metric(buffer, &val, &mdef_device_rssi, false);
+
 		prom_metric_feed_xiaomi_temperature(dev, &val);
 		encode_metric(buffer, &val, &mdef_device_temperature, false);
 
@@ -513,6 +542,9 @@ static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
 
 		prom_metric_feed_xiaomi_battery_level(dev, &val);
 		encode_metric(buffer, &val, &mdef_device_battery_level, false);
+
+		prom_metric_feed_xiaomi_battery_voltage(dev, &val);
+		encode_metric(buffer, &val, &mdef_device_battery_voltage, false);
 
 		prom_metric_feed_xiaomi_measurement_timestamp(dev, &val);
 		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);

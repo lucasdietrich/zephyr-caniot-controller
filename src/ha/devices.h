@@ -80,12 +80,19 @@ typedef struct
 
 struct ha_xiaomi_dataset
 {
-	uint8_t humidity; /* % */
-	uint16_t battery_level; /* mV */
+	int8_t rssi;
+
+	uint16_t humidity; /* 1e-2 % */
+
 	struct {
 		int16_t value; /* 1e-2 °C */
+
 		ha_dev_sensor_type_t type;
 	} temperature;
+
+	uint16_t battery_mv; /* mV */
+
+	uint8_t battery_level; /* % */
 };
 
 struct ha_caniot_dataset
