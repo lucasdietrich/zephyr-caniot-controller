@@ -257,6 +257,8 @@ static int handle_ble_xiaomi_record(xiaomi_record_t *rec)
 		return -ENOMEM;
 	}
 
+	ha_dev_inc_stats_rx(dev, sizeof(*rec));
+
 	/* device does exist now, update it measurements */
 	dev->data.measurements_timestamp = rec->time;
 	dev->data.xiaomi.rssi = rec->measurements.rssi;
@@ -341,6 +343,8 @@ int ha_dev_register_die_temperature(uint32_t timestamp,
 		goto exit;
 	}
 
+	ha_dev_inc_stats_rx(dev, sizeof(die_temperature));
+
 	/* device does exist now, update it measurements */
 	dev->data.measurements_timestamp = timestamp;
 	dev->data.nucleo_f429zi.die_temperature = die_temperature;
@@ -398,6 +402,8 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 		ret = -ENOMEM;
 		goto exit;
 	}
+
+	ha_dev_inc_stats_rx(dev, sizeof(*data));
 
 	/* device does exist now, update it measurements */
 	dev->data.measurements_timestamp = timestamp;

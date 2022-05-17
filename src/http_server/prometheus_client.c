@@ -359,6 +359,51 @@ static ssize_t encode_metric(buffer_t *buffer,
 
 /*___________________________________________________________________________*/
 
+/**
+ * @brief @see "struct json_obj_descr" in :
+ * https://github.com/zephyrproject-rtos/zephyr/blob/main/include/zephyr/data/json.h
+ */
+struct prom_metric_descr
+{
+	const struct metric_definition *def;
+	
+	const char *metric_name;
+
+	uint32_t align_shift : 2;
+	uint32_t metric_name_len : 7;
+	metric_encoding_type_t type : 7;
+	uint32_t offset : 16;
+};
+
+#define Z_ALIGN_SHIFT(type)	(__alignof__(type) == 1 ? 0 : \
+				 __alignof__(type) == 2 ? 1 : \
+				 __alignof__(type) == 4 ? 2 : 3)
+
+#define PROM_METRIC_DESCR(struct_, field_name_, type_, def_) \
+	{ \
+		.def = def_, \
+		.metric_name = (#field_name_), \
+		.align_shift = Z_ALIGN_SHIFT(struct_), \
+		.metric_name_len = sizeof(#field_name_) - 1, \
+		.type = type_, \
+		.offset = offsetof(struct_, field_name_), \
+	}
+	
+#define PROM_METRIC_DESCR_NAMED(struct_, metric_field_name_, \
+				struct_field_name_, type_, def_) \
+	{ \
+		.def = def_, \
+		.metric_name = (metric_field_name_), \
+		.align_shift = Z_ALIGN_SHIFT(struct_), \
+		.metric_name_len = sizeof(metric_field_name_) - 1, \
+		.type = type_, \
+		.offset = offsetof(struct_, struct_field_name_), \
+	}
+
+
+
+/*___________________________________________________________________________*/
+
 const char *prom_myd_medium_to_str(ha_dev_medium_type_t medium)
 {
 	switch (medium) {
@@ -400,6 +445,19 @@ const char *prom_myd_sensor_type_to_str(ha_dev_sensor_type_t sensor_type)
 }
 
 /*___________________________________________________________________________*/
+
+struct prom_demo_struct {
+	uint32_t a;
+	float b;
+	int32_t c;
+};
+
+/* iterator for this struct */
+__attribute__((used)) static const struct prom_metric_descr demo_descr[] = {
+	PROM_METRIC_DESCR_NAMED(struct prom_demo_struct, "vara", a, VALUE_ENCODING_TYPE_UINT32, NULL),
+	PROM_METRIC_DESCR_NAMED(struct prom_demo_struct, "varb", b, VALUE_ENCODING_TYPE_FLOAT, NULL),
+	PROM_METRIC_DESCR(struct prom_demo_struct, c, VALUE_ENCODING_TYPE_INT32, NULL),
+};
 
 int prometheus_metrics_demo(struct http_request *req,
 			    struct http_response *resp)

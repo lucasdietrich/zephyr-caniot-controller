@@ -14,6 +14,8 @@
 #ifndef _HA_DEVS_H_
 #define _HA_DEVS_H_
 
+#include <zephyr.h>
+
 #include <stddef.h>
 
 #include "../ble/xiaomi_record.h"
@@ -124,9 +126,13 @@ struct ha_f429zi_dataset
 
 struct ha_dev_stats_t
 {
-	uint32_t rx;
-	uint32_t tx;
-	uint32_t max_inactivity;
+	uint32_t rx; /* number of received packets */
+	uint32_t rx_bytes; /* number of received bytes */
+
+	uint32_t tx; /* number of transmitted packets */
+	uint32_t tx_bytes; /* number of transmitted bytes */
+
+	uint32_t max_inactivity; /* number of seconds without any activity */
 };
 
 typedef struct {
@@ -144,6 +150,7 @@ typedef struct {
 		};
 	} data;
 
+	/* TODO handle */
 	struct ha_dev_stats_t stats;
 } ha_dev_t;
 
@@ -176,8 +183,24 @@ static inline size_t ha_dev_caniot_iterate(ha_dev_iterate_cb_t callback,
 					   void *user_data)
 {
 	return ha_dev_iterate_filter_by_type(callback,
-					  user_data,
-					  HA_DEV_TYPE_CANIOT);
+					     user_data,
+					     HA_DEV_TYPE_CANIOT);
+}
+
+static inline void ha_dev_inc_stats_rx(ha_dev_t *dev, uint32_t rx_bytes)
+{
+	__ASSERT(dev != NULL, "dev is NULL");
+
+	dev->stats.rx_bytes += rx_bytes;
+	dev->stats.rx++;
+}
+
+static inline void ha_dev_inc_stats_tx(ha_dev_t *dev, uint32_t tx_bytes)
+{
+	__ASSERT(dev != NULL, "dev is NULL");
+
+	dev->stats.tx_bytes += tx_bytes;
+	dev->stats.tx++;
 }
 
 int ha_register_xiaomi_from_dataframe(xiaomi_dataframe_t *frame);
