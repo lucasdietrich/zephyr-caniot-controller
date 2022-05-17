@@ -42,6 +42,7 @@ static const struct http_route routes[] = {
 	REST(GET, "/devices/caniot", rest_caniot_records),
 
 	PROM(GET, "/metrics", prometheus_metrics),
+	PROM(GET, "/metrics_controller", prometheus_metrics_controller),
 	PROM(GET, "/metrics_demo", prometheus_metrics_demo),
 
 };

@@ -695,3 +695,9 @@ int prometheus_metrics(struct http_request *req,
 
 	return 0;
 }
+
+int prometheus_metrics_controller(struct http_request *req,
+				  struct http_response *resp)
+{
+	return -EINVAL;
+}
