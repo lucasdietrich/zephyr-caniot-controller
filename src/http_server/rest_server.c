@@ -21,6 +21,8 @@
 #include <bluetooth/addr.h>
 #include "ha/devices.h"
 
+#include "uart_ipc/ipc.h"
+
 #include "system.h"
 
 #include <logging/log.h>
@@ -207,6 +209,30 @@ static const struct json_obj_descr info_mbedtls_stats_descr[] = {
 };
 #endif /* CONFIG_SYSTEM_MONITORING */
 
+#if defined(CONFIG_UART_IPC_STATS)
+
+// generate json descriptor for ipc_stats struct
+static const struct json_obj_descr info_ipc_stats_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, rx.bytes, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, rx.frames, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, rx.discarded_bytes, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, rx.malformed, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, rx.crc_errors, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, rx.seq_gap, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, rx.frames_lost, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, rx.seq_reset, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, rx.dropped_frames, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, rx.unsupported_ver, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, tx.bytes, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, tx.frames, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, tx.retries, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, tx.errors, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, ping.rx, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, ping.tx, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ipc_stats, misc.mem_alloc_fail, JSON_TOK_NUMBER),
+};
+#endif /* defined(CONFIG_UART_IPC_STATS) */
+
 struct json_info
 {
 	uint32_t uptime;
@@ -214,8 +240,13 @@ struct json_info
 	struct json_info_controller_status status;
 	struct json_info_iface interface;
 	struct net_stats net_stats;
+	
 #if defined(CONFIG_SYSTEM_MONITORING)
 	struct json_info_mbedtls_stats mbedtls_stats;
+#endif
+
+#if defined(CONFIG_UART_IPC_STATS)
+	struct ipc_stats ipc_stats;
 #endif
 };
 
@@ -227,6 +258,9 @@ static const struct json_obj_descr info_descr[] = {
 	JSON_OBJ_DESCR_OBJECT(struct json_info, net_stats, net_stats_descr),
 #if defined(CONFIG_SYSTEM_MONITORING)
 	JSON_OBJ_DESCR_OBJECT(struct json_info, mbedtls_stats, info_mbedtls_stats_descr),
+#endif
+#if defined(CONFIG_UART_IPC_STATS)
+	JSON_OBJ_DESCR_OBJECT(struct json_info, ipc_stats, info_ipc_stats_descr),
 #endif
 };
 
@@ -296,6 +330,11 @@ int rest_info(struct http_request *req,
 	mbedtls_memory_buffer_alloc_max_get(&data.mbedtls_stats.max_used,
 					    &data.mbedtls_stats.max_blocks);
 #endif 
+
+#if defined(CONFIG_UART_IPC_STATS)
+	/* ipc stats */
+	ipc_stats_get(&data.ipc_stats);
+#endif
 
 	/* rencode response */
 	return rest_encode_response_json(info_descr, ARRAY_SIZE(info_descr),
