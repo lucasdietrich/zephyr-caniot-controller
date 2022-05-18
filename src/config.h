@@ -1,0 +1,11 @@
+#ifndef _APP_CONFIG_H_
+#define _APP_CONFIG_H_
+
+#include <zephyr.h>
+
+#define HA_CANIOT_MAX_DEVICES 5U
+#define HA_XIAOMI_MAX_DEVICES 15U
+
+#define HA_MAX_DEVICES (HA_CANIOT_MAX_DEVICES + HA_XIAOMI_MAX_DEVICES)
+
+#endif /* _APP_CONFIG_H_ */

@@ -1,10 +1,10 @@
 #include <zephyr.h>
 
+#include <caniot/datatype.h>
+
 #include "devices.h"
-
 #include "net_time.h"
-
-#include "caniot/datatype.h"
+#include "config.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_WRN);
@@ -13,7 +13,7 @@ LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_WRN);
 
 struct {
 	struct k_mutex mutex;
-	ha_dev_t list[20];
+	ha_dev_t list[HA_MAX_DEVICES];
 	uint8_t count;
 } devices = {
 	.mutex = Z_MUTEX_INITIALIZER(devices.mutex),

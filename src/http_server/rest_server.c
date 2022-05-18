@@ -24,6 +24,7 @@
 #include "uart_ipc/ipc.h"
 
 #include "system.h"
+#include "config.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_DBG);
@@ -355,9 +356,6 @@ struct json_device_base
 
 /*___________________________________________________________________________*/
 
-#define XIAOMI_MAX_DEVICES 15
-
-
 struct json_xiaomi_record
 {
 	char *bt_mac;
@@ -387,12 +385,12 @@ static const struct json_obj_descr json_xiaomi_record_descr[] = {
 
 struct json_xiaomi_record_array
 {
-	struct json_xiaomi_record records[XIAOMI_MAX_DEVICES];
+	struct json_xiaomi_record records[HA_XIAOMI_MAX_DEVICES];
 	size_t count;
 };
 
 const struct json_obj_descr json_xiaomi_record_array_descr[] = {
-  JSON_OBJ_DESCR_OBJ_ARRAY(struct json_xiaomi_record_array, records, XIAOMI_MAX_DEVICES,
+  JSON_OBJ_DESCR_OBJ_ARRAY(struct json_xiaomi_record_array, records, HA_XIAOMI_MAX_DEVICES,
 	count, json_xiaomi_record_descr, ARRAY_SIZE(json_xiaomi_record_descr))
 };
 
@@ -402,7 +400,7 @@ struct xiaomi_records_encoding_context
 	struct {
 		char addr[BT_ADDR_LE_STR_LEN];
 		char temperature[9];
-	} strings[XIAOMI_MAX_DEVICES];
+	} strings[HA_XIAOMI_MAX_DEVICES];
 };
 
 static void xiaomi_device_cb(ha_dev_t *dev,
@@ -447,8 +445,6 @@ int rest_xiaomi_records(struct http_request *req,
 					       &ctx.arr, resp);
 }
 
-#define CANIOT_MAX_DEVICES 10U
-
 struct json_caniot_temperature_record
 {
 	const char *repr;
@@ -484,12 +480,12 @@ static const struct json_obj_descr json_caniot_record_descr[] = {
 
 struct json_caniot_record_array
 {
-	struct json_caniot_record records[CANIOT_MAX_DEVICES];
+	struct json_caniot_record records[HA_CANIOT_MAX_DEVICES];
 	size_t count;
 };
 
 const struct json_obj_descr json_caniot_record_array_descr[] = {
-  JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_record_array, records, CANIOT_MAX_DEVICES,
+  JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_record_array, records, HA_CANIOT_MAX_DEVICES,
 	count, json_caniot_record_descr, ARRAY_SIZE(json_caniot_record_descr))
 };
 
@@ -500,7 +496,7 @@ struct caniot_records_encoding_context
 	 * y = temperatures per device
 	 * z = string length
 	 */
-	char temp_repr[CANIOT_MAX_DEVICES][3][9]; 
+	char temp_repr[HA_CANIOT_MAX_DEVICES][3][9]; 
 };
 
 static void caniot_device_cb(ha_dev_t *dev,
