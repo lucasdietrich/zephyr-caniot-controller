@@ -15,7 +15,9 @@ struct room_dev_assoc
 #define XIAOMI_BT_LE_ADDR_1 0xC1U
 #define XIAOMI_BT_LE_ADDR_2 0x38U
 
-
+/* loooooooooooooooooooooooooooooooooooooool that's deeeeeeeeeeeeeeeeeeeeeeeeeep
+ * TODO refactor
+ */
 #define MIJIA_ROOM(rid, bt3, bt4, bt5) \
 { \
 	.room = rid, \
