@@ -411,9 +411,11 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 	save_caniot_temperature(dev, 0U, data->int_temperature,
 				HA_DEV_SENSOR_TYPE_EMBEDDED);
 	save_caniot_temperature(dev, 1U, data->ext_temperature,
-				HA_DEV_SENSOR_TYPE_EXTERNAL);
+				HA_DEV_SENSOR_TYPE_EXTERNAL1);
 	save_caniot_temperature(dev, 2U, data->ext_temperature2,
 				HA_DEV_SENSOR_TYPE_EXTERNAL2);
+	save_caniot_temperature(dev, 3U, data->ext_temperature3,
+				HA_DEV_SENSOR_TYPE_EXTERNAL3);
 
 	dev->data.caniot.dio = AS_BOARD_CONTROL_TELEMETRY(data)->dio;
 

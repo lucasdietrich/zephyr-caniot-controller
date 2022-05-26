@@ -464,7 +464,7 @@ struct json_caniot_record
 
 	struct json_device_base base;
 
-	struct json_caniot_temperature_record temperatures[3U];
+	struct json_caniot_temperature_record temperatures[HA_CANIOT_MAX_TEMPERATURES];
 	uint32_t temperatures_count;
 	uint32_t dio;
 };
@@ -472,7 +472,7 @@ struct json_caniot_record
 static const struct json_obj_descr json_caniot_record_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, did, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM_NAMED(struct json_caniot_record, "timestamp", base.timestamp, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_record, temperatures, 3U, temperatures_count,
+	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_record, temperatures, HA_CANIOT_MAX_TEMPERATURES, temperatures_count,
 		json_caniot_temperature_record_descr, ARRAY_SIZE(json_caniot_temperature_record_descr)),
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, dio, JSON_TOK_NUMBER),
 };
@@ -496,32 +496,34 @@ struct caniot_records_encoding_context
 	 * y = temperatures per device
 	 * z = string length
 	 */
-	char temp_repr[HA_CANIOT_MAX_DEVICES][3][9]; 
+	char temp_repr[HA_CANIOT_MAX_DEVICES][HA_CANIOT_MAX_TEMPERATURES][9U]; 
 };
 
 static void caniot_device_cb(ha_dev_t *dev,
 			     void *user_data)
 {
-	struct caniot_records_encoding_context *ctx =
+	struct caniot_records_encoding_context *const ctx =
 		(struct caniot_records_encoding_context *)user_data;
-
-	struct json_caniot_record *rec = &ctx->arr.records[ctx->arr.count];
+	struct json_caniot_record *const rec = &ctx->arr.records[ctx->arr.count];
+	struct ha_caniot_dataset *const dt = &dev->data.caniot;
 
 	rec->base.timestamp = dev->data.measurements_timestamp;
 	rec->did = CANIOT_DEVICE_TO_UINT8(dev->addr.mac.addr.caniot);
 	rec->temperatures_count = 0U;
 
 	/* encode temperatures */
-	for (size_t i = 0; i < ARRAY_SIZE(rec->temperatures); i++) {
+	for (size_t i = 0; i < HA_CANIOT_MAX_TEMPERATURES; i++) {
 		/* if temperature is valid */
-		if (dev->data.caniot.temperatures->type != HA_DEV_SENSOR_TYPE_NONE) {
+		if (dt->temperatures[i].type != HA_DEV_SENSOR_TYPE_NONE) {
 			const size_t j = rec->temperatures_count;
+
 			sprintf(ctx->temp_repr[ctx->arr.count][j],
 				"%.2f",
-				dev->data.caniot.temperatures[j].value / 100.0);
+				dt->temperatures[i].value / 100.0);
+
 			rec->temperatures[j].repr = ctx->temp_repr[ctx->arr.count][j];
-			rec->temperatures[j].sens_type = dev->data.caniot.temperatures[j].type;
-			rec->temperatures[j].value = dev->data.caniot.temperatures[j].value;
+			rec->temperatures[j].sens_type = dt->temperatures[i].type;
+			rec->temperatures[j].value = dt->temperatures[i].value;
 			rec->temperatures_count++;
 		}
 	}

@@ -22,6 +22,8 @@
 #include <caniot/caniot.h>
 #include <caniot/datatype.h>
 
+#include "config.h"
+
 typedef enum {
 	HA_DEV_MEDIUM_NONE = 0,
 	HA_DEV_MEDIUM_BLE,
@@ -54,8 +56,9 @@ typedef struct {
 typedef enum {
 	HA_DEV_SENSOR_TYPE_NONE = 0,
 	HA_DEV_SENSOR_TYPE_EMBEDDED,
-	HA_DEV_SENSOR_TYPE_EXTERNAL,
+	HA_DEV_SENSOR_TYPE_EXTERNAL1,
 	HA_DEV_SENSOR_TYPE_EXTERNAL2,
+	HA_DEV_SENSOR_TYPE_EXTERNAL3,
 } ha_dev_sensor_type_t;
 
 typedef enum
@@ -102,7 +105,7 @@ struct ha_caniot_dataset
 	struct {
 		int16_t value; /* 1e-2 °C */
 		ha_dev_sensor_type_t type;
-	} temperatures[3U];
+	} temperatures[HA_CANIOT_MAX_TEMPERATURES];
 
 	union {
 		struct {

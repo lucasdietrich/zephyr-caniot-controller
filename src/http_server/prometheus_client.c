@@ -435,10 +435,12 @@ const char *prom_myd_sensor_type_to_str(ha_dev_sensor_type_t sensor_type)
 	switch (sensor_type) {
 	case HA_DEV_SENSOR_TYPE_EMBEDDED:
 		return "EMBEDDED";
-	case HA_DEV_SENSOR_TYPE_EXTERNAL:
+	case HA_DEV_SENSOR_TYPE_EXTERNAL1:
 		return "EXTERNAL";
 	case HA_DEV_SENSOR_TYPE_EXTERNAL2:
-			return "EXTERNAL2";
+		return "EXTERNAL2";
+	case HA_DEV_SENSOR_TYPE_EXTERNAL3:
+		return "EXTERNAL3";
 	default:
 		return "";
 	}
