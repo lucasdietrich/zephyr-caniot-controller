@@ -5,7 +5,9 @@
         "editorconfig.editorconfig",
         "humao.rest-client",
         "platformio.platformio-ide",
-        "actboy168.tasks"
+        "actboy168.tasks",
+        "arjun.swagger-viewer",
+        "42crunch.vscode-openapi",
     ],
     "unwantedRecommendations": [
         "ms-vscode.cpptools-extension-pack"

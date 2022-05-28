@@ -1,0 +1,281 @@
+openapi: 3.0.0
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/lucasdietrich/caniot-local-api/1.0.0
+  - description: Caniot stm32f429zi controller
+    url: http://192.168.10.240:80/
+info:
+  description: This is a simple API
+  version: "1.0.0"
+  title: Simple Inventory API
+  contact:
+    email: ld.adecy@gmail.com
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+
+tags:
+  - name: general
+    description: General operations
+  - name: caniot
+    description: CANIOT operations
+  - name: caniot-low-level
+    description: CANIOT Low Level operations
+
+security:
+  - BasicAuth: []
+
+paths:
+
+  /devices/caniot:    
+    get:
+      summary: Retrieves caniot devices measurements
+      tags:
+        - "caniot"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 24
+                    timestamp:
+                      type: integer
+                      example: 1653726896
+                    temperatures:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          repr:
+                            type: string
+                            example: "24.20"
+                          value: 
+                            type: integer
+                            example: 2400
+                          sens_type:
+                            type: integer
+                            example: 4
+                    dio:
+                      type: integer
+                      example: 240
+
+  /devices/caniot/{did}:
+    get:
+      tags:
+        - "caniot"
+      parameters:
+        - $ref: '#/components/parameters/DeviceID'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceInfo'
+        '404':
+          description: CANIOT device not found
+  
+  /devices/caniot/{did}/ll/attributes/{attr}:
+    parameters:
+      - $ref: '#/components/parameters/DeviceID'
+      - $ref: "#/components/parameters/AttributeAddr"
+    post:
+      tags:
+        - "caniot-low-level"
+      requestBody:
+        required: true
+        description: Attribute value to write in
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userName
+              properties:
+                value:
+                  type: integer
+                  example: 67
+                  minimum: 0
+                  maximum: 65535     
+              
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributeInfo'
+        '404':
+          description: CANIOT device not found
+        '400':
+          description: Request malformed
+
+    get:
+      tags:
+        - "caniot-low-level"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributeInfo'
+        '404':
+          description: CANIOT device not found
+
+  /devices/caniot/{did}/ll/endpoint/{ep}/command:
+    parameters:
+      - $ref: '#/components/parameters/DeviceID'
+      - $ref: '#/components/parameters/EndpointID'
+    post:
+      tags:
+        - "caniot-low-level"
+      requestBody:
+        required: true
+        description: Command to send
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                oc1:
+                  $ref: "#/components/schemas/XPSCommand"
+                oc2:
+                  $ref: "#/components/schemas/XPSCommand"
+                rl1:
+                  $ref: "#/components/schemas/XPSCommand"
+                rl2:
+                  $ref: "#/components/schemas/XPSCommand"
+                special:
+                  type: object
+                  description: Device management commands
+                  properties:
+                    hr:
+                      description: "Hardware Reset"
+                      type: boolean
+                      default: false
+                    sr:
+                      description: "Software Reset"
+                      type: boolean
+                      default: false
+                    wr:
+                      description: "Rest by Watchdog"
+                      type: boolean
+                      default: false
+                    wdt:
+                      description: "Watchdog configuration"
+                      $ref: "#/components/schemas/TSCommand"
+                    cfgr:
+                      description: "Configuration reset"
+                      type: boolean
+                      default: false
+
+          # application/json:
+          # any JSON object
+
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: CANIOT device or endpoint not found
+        '400':
+          description: Request malformed
+    
+
+  /devices/caniot/{did}/ll/endpoint/{ep}/request_telemetry:
+    parameters:
+      - $ref: '#/components/parameters/DeviceID'
+      - $ref: '#/components/parameters/EndpointID'
+    post:
+      tags:
+        - "caniot-low-level"
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: CANIOT device or endpoint not found
+        '400':
+          description: Request malformed
+    
+components:
+  # Security
+  securitySchemes:
+    BasicAuth:     # <-- arbitrary name for the security scheme
+      type: http
+      scheme: basic
+
+  schemas:
+    DeviceInfo:
+      description: CANIOT device informations
+      type: object
+      properties:
+        did:
+          type: integer
+          example: 24
+        last_seen:
+          type: integer
+          example: 1653726896
+
+    AttributeInfo:
+      description: CANIOT device attribute informations
+      type: object
+      properties:
+        addr:
+          type: integer
+          example: 8208
+        repr:
+          type: string
+          example: x2010
+        value:
+          type: integer
+          example: 0
+
+    XPSCommand:
+      description: CANIOT device "Complex Digital Command" XPS command
+      type: string
+      enum: [none, set, set_off, toggle, pulse_on, pulse_off, pulse_cancel]
+
+    TSCommand:
+      description: CANIOT device "Two State" command
+      type: string
+      enum: [none, set, reset, toggle]
+
+  parameters:
+    DeviceID:
+      name: did
+      in: path
+      description: Device ID
+      required: true
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 63
+        example: 24
+
+    AttributeAddr:
+      name: attr
+      in: path
+      description: Attribute Address (in hexadecimal)
+      required: true
+      schema:
+        type: string
+        example: "x2010"
+
+    EndpointID:
+      name: ep
+      in: path
+      description: Endpoint ID (app = 0, 1, 2, board control = 4)
+      required: true
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 3
+        example: 0
