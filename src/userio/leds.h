@@ -33,6 +33,7 @@ typedef enum { LED_GREEN = 0, LED_BLUE, LED_RED } led_t;
 
 #define LED_NET LED_GREEN
 #define LED_THREAD LED_BLUE
+#define LED_BLE LED_BLUE
 #define LED_CAN LED_RED
 
 typedef enum {

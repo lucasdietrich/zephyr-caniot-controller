@@ -8,6 +8,7 @@
 #include "uart_ipc/ipc_frame.h"
 #include "uart_ipc/ipc.h"
 #include "ha/devices.h"
+#include "userio/leds.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(ble_ctrlr, LOG_LEVEL_NONE);
@@ -45,12 +46,27 @@ static void ipc_work_handler(struct k_work *work)
 	}
 }
 
+void ipc_ev_cb(ipc_event_t event,
+	       void *data)
+{
+	static led_state_t state = LED_OFF;
+
+	switch (event) {
+	case IPC_DATA_FRAME_RECEIVED:
+		state = (led_state_t)(1 - state);
+		leds_set(LED_BLE, state);
+		break;
+	default:
+		break;
+	}
+}
 
 int ha_ble_controller_init(void)
 {
 	int ret = net_time_wait_synced(K_FOREVER);
 	if (ret == 0) {
 		ipc_attach_rx_msgq(&ipc_ble_msgq);
+		ipc_register_event_callback(ipc_ev_cb, NULL);
 
 		k_work_poll_init(&ipc_ble_work, ipc_work_handler);
 		k_work_poll_submit(&ipc_ble_work, &ipc_event, 1U, K_FOREVER);
