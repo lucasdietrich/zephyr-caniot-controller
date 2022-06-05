@@ -34,6 +34,29 @@
             "problemMatcher": []
         },
         {
+            "label": "Build (w\\ ACN52840)",
+            "detail": "west build --board=${board}",
+            "type": "shell",
+            "command": "${westPath}",
+            "args": [
+                "build",
+                "--board=${board}",
+                "--",
+                "-DDTC_OVERLAY_FILE=\"nucleo_f429zi.overlay ipc_to_custom_acn52840.overlay\"",
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "options": {
+                "statusbar": {
+                    "hide": false
+                }
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "Flash",
             "detail": "west flash --serial ${serialNumber}",
             "type": "shell",
