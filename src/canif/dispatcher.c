@@ -31,7 +31,7 @@ struct can_handler
 static const struct can_handler handlers[] = {
 	{
 		.name = "caniot",
-		.handler = caniot_process_can_frame,
+		.handler = ha_ciot_process_frame,
 		// .filter = {
 		// 	.id_type = CAN_ID_STD,
 		// },

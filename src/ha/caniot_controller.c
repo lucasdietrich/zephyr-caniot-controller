@@ -11,6 +11,8 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(caniot, LOG_LEVEL_DBG);
 
+struct caniot_controller ctrl;
+
 static int handle_caniot_frame(struct caniot_frame *ctf)
 {
 	int ret = -EINVAL;
@@ -32,7 +34,13 @@ static int handle_caniot_frame(struct caniot_frame *ctf)
 	return ret;
 }
 
-int caniot_process_can_frame(struct zcan_frame *frame)
+int ha_ciot_ctrl_init(void)
+{
+	return caniot_controller_init(&ctrl);
+}
+
+
+int ha_ciot_process_frame(struct zcan_frame *frame)
 {
 	int ret = -EINVAL;
 
@@ -47,6 +55,8 @@ int caniot_process_can_frame(struct zcan_frame *frame)
 	ctf.id = caniot_canid_to_id((uint16_t) frame->id);
 	ctf.len = MIN(frame->dlc, 8U);
 	memcpy(ctf.buf, frame->data, ctf.len);
+
+	caniot_controller_process(&ctrl);
 
 	if (caniot_controller_is_target(&ctf) == true) {
 		char buf[64];
