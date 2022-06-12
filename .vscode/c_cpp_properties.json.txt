@@ -65,7 +65,6 @@
                 "STM32F429xx",
                 "__FIRMWARE_VERSION__=1",
                 "CONFIG_CANIOT_LOG_LEVEL=0",
-                "CONFIG_CANIOT_ARCH_AGNOSTIC=0",
                 "BUILD_VERSION=zephyr-v20700",
                 "CORE_CM4",
                 "HSE_VALUE=8000000",

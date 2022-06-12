@@ -36,55 +36,83 @@ static void debug_mbedtls_memory(void)
                 max_blocks, cur_used, cur_blocks);
 }
 
-void main(void)
+static const struct device *die_temp_dev = DEVICE_DT_GET(TEMP_NODE);
+
+static int die_temp_dev_init(void)
 {
-        leds_init();
-	button_init();
-
-        crypto_mbedtls_heap_init();
-        net_interface_init();
-	
-	ha_ble_controller_init();
-	
-	int rc;
-	struct sensor_value val;
-	const struct device *dev = DEVICE_DT_GET(TEMP_NODE);
-
-	if (!device_is_ready(dev)) {
-		LOG_ERR("(%p) Temperature sensor is not ready", dev);
-		return;
+	if (!device_is_ready(die_temp_dev)) {
+		LOG_ERR("(%p) Temperature sensor is not ready", die_temp_dev);
+		return -EIO;
 	}
 
-        static int counter = 0;
-        
+	return 0U;
+}
+
+static int die_temp_fetch(void)
+{
+	int rc;
+	struct sensor_value val;
+
+	rc = sensor_sample_fetch(die_temp_dev);
+	if (rc) {
+		LOG_ERR("Failed to fetch sample (%d)", rc);
+		goto exit;
+	}
+
+	rc = sensor_channel_get(die_temp_dev, SENSOR_CHAN_DIE_TEMP, &val);
+	if (rc) {
+		LOG_ERR("Failed to get data (%d)", rc);
+		goto exit;
+	}
+
+	const float temperature = (float)sensor_value_to_double(&val);
+	if (temperature > -276.0) {
+		ha_dev_register_die_temperature(net_time_get(), temperature);
+
+		LOG_DBG("Current DIE temperature: %.1f °C ", temperature);
+	} else {
+		LOG_WRN("Invalid DIE temperature: %.1f °C", temperature);
+	}
+
+exit:
+	return rc;
+}
+
+void main(void)
+{
+	leds_init();
+	button_init();
+
+	crypto_mbedtls_heap_init();
+	net_interface_init();
+
+	ha_ble_controller_init();
+
+	die_temp_dev_init();
+
+	uint32_t counter = 0;
+
 	for (;;) {
-		rc = sensor_sample_fetch(dev);
-		if (rc) {
-			LOG_ERR("Failed to fetch sample (%d)", rc);
-			continue;
+
+		/* 1 second tasks */
+
+		/* 10 second tasks */
+		if (counter % 10 == 0) {
+			die_temp_fetch();
 		}
 
-		rc = sensor_channel_get(dev, SENSOR_CHAN_DIE_TEMP, &val);
-		if (rc) {
-			LOG_ERR("Failed to get data (%d)", rc);
-			continue;
+		/* 1min tasks */
+		if (counter % 60 == 0) {
+
 		}
 
-		const float temperature = (float)sensor_value_to_double(&val);
-		if (temperature > -276.0) {
-			ha_dev_register_die_temperature(net_time_get(), temperature);
-
-			LOG_DBG("Current DIE temperature: %.1f °C ", temperature);
-		} else {
-			LOG_WRN("Invalid DIE temperature: %.1f °C", temperature);
+		/* 10min tasks */
+		if (counter % 600 == 0) {
+			net_time_show();
+			debug_mbedtls_memory();
 		}
 
-                if (counter++ % 600 == 0) {
-                        net_time_show();
-
-                        debug_mbedtls_memory();
-                }
-
-                k_msleep(5000);
-        }
+		counter++;
+		k_msleep(1000);
+	}
 }

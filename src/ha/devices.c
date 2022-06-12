@@ -381,7 +381,7 @@ static int save_caniot_temperature(ha_dev_t *dev,
 }
 
 int ha_dev_register_caniot_telemetry(uint32_t timestamp,
-				     union deviceid did,
+				     caniot_did_t did,
 				     struct caniot_board_control_telemetry *data)
 {
 	int ret = 0;
@@ -419,7 +419,7 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 
 	dev->data.caniot.dio = AS_BOARD_CONTROL_TELEMETRY(data)->dio;
 
-	LOG_INF("Registered CANIOT record for device 0x%hhx", did.val);
+	LOG_INF("Registered CANIOT record for device 0x%hhx", did);
 
 exit:
 	k_mutex_unlock(&devices.mutex);

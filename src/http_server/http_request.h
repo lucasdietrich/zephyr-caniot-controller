@@ -18,7 +18,7 @@ struct http_request
         enum http_method method;
 
 	/* parsed url */
-        char url[64];
+        char url[64U];
         size_t url_len;
 
 	/* route for the current request */

@@ -1,5 +1,7 @@
 #include "dispatcher.h"
 
+#if 0
+
 #include "cantcp/cantcp_server.h"
 #include "ha/caniot_controller.h"
 
@@ -31,7 +33,7 @@ struct can_handler
 static const struct can_handler handlers[] = {
 	{
 		.name = "caniot",
-		.handler = caniot_process_can_frame,
+		.handler = ha_ciot_process_frame,
 		// .filter = {
 		// 	.id_type = CAN_ID_STD,
 		// },
@@ -78,3 +80,5 @@ int can_dispatch(CAN_bus_t bus, struct zcan_frame *frame)
 
 	return ret;
 }
+
+#endif

@@ -39,7 +39,7 @@ typedef enum {
 
 typedef union {
 	bt_addr_le_t ble;
-	union deviceid caniot;
+	caniot_did_t caniot;
 } ha_dev_mac_addr_t;
 
 typedef struct
@@ -212,7 +212,7 @@ int ha_dev_register_die_temperature(uint32_t timestamp,
 				    float die_temperature);
 
 int ha_dev_register_caniot_telemetry(uint32_t timestamp,
-				     union deviceid did,
+				     caniot_did_t did,
 				     struct caniot_board_control_telemetry *data);
 
 #endif /* _HA_DEVS_H_ */

@@ -86,7 +86,10 @@
                 "archutils.h": "c",
                 "stddef.h": "c",
                 "xiaomi_record.h": "c",
-                "rpmsg_multi_instance.h": "c"
+                "rpmsg_multi_instance.h": "c",
+                "ct_controller.h": "c",
+                "controller.h": "c",
+                "datatype.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",
@@ -98,21 +101,21 @@
         "editor.guides.bracketPairs" : true,
         "editor.guides.highlightActiveIndentation" : true,
         "editor.guides.bracketPairsHorizontal" : "active",
-        
+
         "workbench.colorCustomizations": {
-            "[Panda Syntax]": {
-              "editorBracketPairGuide.background1": "#FFB86C",
-              "editorBracketPairGuide.background2": "#FF75B5",
-              "editorBracketPairGuide.background3": "#45A9F9",
-              "editorBracketPairGuide.background4": "#B084EB",
-              "editorBracketPairGuide.background5": "#E6E6E6",
-              "editorBracketPairGuide.background6": "#19f9d8",
-                
-              "editorBracketPairGuide.activeBackground1": "#FFB86C",
-              "editorBracketPairGuide.activeBackground2": "#FF75B5",
-              "editorBracketPairGuide.activeBackground3": "#45A9F9",
-              "editorBracketPairGuide.activeBackground4": "#B084EB",
-              "editorBracketPairGuide.activeBackground5": "#E6E6E6",
-              "editorBracketPairGuide.activeBackground6": "#19f9d8",
+                "[Panda Syntax]": {
+                        "editorBracketPairGuide.background1": "#FFB86C",
+                        "editorBracketPairGuide.background2": "#FF75B5",
+                        "editorBracketPairGuide.background3": "#45A9F9",
+                        "editorBracketPairGuide.background4": "#B084EB",
+                        "editorBracketPairGuide.background5": "#E6E6E6",
+                        "editorBracketPairGuide.background6": "#19f9d8",
+                        "editorBracketPairGuide.activeBackground1": "#FFB86C",
+                        "editorBracketPairGuide.activeBackground2": "#FF75B5",
+                        "editorBracketPairGuide.activeBackground3": "#45A9F9",
+                        "editorBracketPairGuide.activeBackground4": "#B084EB",
+                        "editorBracketPairGuide.activeBackground5": "#E6E6E6",
+                        "editorBracketPairGuide.activeBackground6": "#19f9d8",
+                }
         }
 }
