@@ -2,7 +2,7 @@
 #include <poll.h>
 
 #include <caniot/caniot.h>
-#include <ha/caniot_controller.h>
+#include <ha/ct_controller.h>
 
 #include "canif/canif.h"
 #include "dispatcher.h"
@@ -17,19 +17,21 @@ static void can_thread(const struct device *dev,
 		       struct k_msgq *rx_msgq,
 		       struct k_msgq *tx_msgq);
 
-CAN_DEFINE_MSGQ(rx_msgqueue, 4);
+// CAN_DEFINE_MSGQ(rx_msgqueue, 4);
 CAN_DEFINE_MSGQ(tx_msgqueue, 4);
 
 K_THREAD_DEFINE(cantid, 0x400, can_thread, CAN1_DEVICE,
-		&rx_msgqueue, &tx_msgqueue, K_PRIO_COOP(5), 0, 0);
+		&tx_msgqueue, NULL, K_PRIO_COOP(5), 0, 0);
 
-static int handle_received_frame(struct zcan_frame *frame);
+// static int handle_received_frame(struct zcan_frame *frame);
 
 /* TODO remove these threads and use k_work_poll in dispatch.c file */
 static void can_thread(const struct device *dev,
-		       struct k_msgq *rxq,
-		       struct k_msgq *txq)
+		       struct k_msgq *txq,
+		       struct k_msgq *rxq)
 {
+	ARG_UNUSED(rxq);
+
 	caniot_test();
 
 	int ret;
@@ -39,7 +41,7 @@ static void can_thread(const struct device *dev,
 	struct zcan_filter filter = {
 		.id_type = CAN_ID_STD, /* currently we ignore extended IDs */
 	};
-	ret = can_attach_msgq(dev, rxq, &filter);
+	ret = can_attach_msgq(dev, &ha_ciot_ctrl_rx_msgq, &filter);
 	if (ret) {
 		LOG_ERR("can_attach_msgq failed: %d", ret);
 		return;
@@ -59,10 +61,12 @@ static void can_thread(const struct device *dev,
 	struct k_poll_event events[] = {
 		K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_MSGQ_DATA_AVAILABLE,
 						K_POLL_MODE_NOTIFY_ONLY,
-						rxq, 0),
+						txq, 0),
+		/*
 		K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_MSGQ_DATA_AVAILABLE,
 						K_POLL_MODE_NOTIFY_ONLY,
-						txq, 0),
+						rxq, 0),
+		*/
 	};
 
 	/* poll for events */
@@ -70,14 +74,6 @@ static void can_thread(const struct device *dev,
 		ret = k_poll(events, ARRAY_SIZE(events), K_FOREVER);
 		if (ret >= 0) {
 			if (events[0].state == K_POLL_STATE_MSGQ_DATA_AVAILABLE) {
-				ret = k_msgq_get(rxq, &frame, K_NO_WAIT);
-
-				__ASSERT(ret == 0, "Failed to get received CAN frame");
-
-				handle_received_frame(&frame);
-			}
-
-			if (events[1].state == K_POLL_STATE_MSGQ_DATA_AVAILABLE) {
 				ret = k_msgq_get(txq, &frame, K_NO_WAIT);
 
 				__ASSERT(ret == 0, "Failed to get TX  CAN frame from msgq");
@@ -88,21 +84,36 @@ static void can_thread(const struct device *dev,
 				}
 			}
 
+			/*
+			if (events[1].state == K_POLL_STATE_MSGQ_DATA_AVAILABLE) {
+				ret = k_msgq_get(rxq, &frame, K_NO_WAIT);
+
+				__ASSERT(ret == 0, "Failed to get received CAN frame");
+
+				handle_received_frame(&frame);
+			}
+			*/
+
 			events[0].state = K_POLL_STATE_NOT_READY;
+
+			/*
 			events[1].state = K_POLL_STATE_NOT_READY;
+			*/
 		}
 	}
 }
 
+/*
 static int handle_received_frame(struct zcan_frame *frame)
 {
-	/* show received frame */
+	// show received frame
 	LOG_DBG("RX id_type=%u rtr=%u id=%x dlc=%u", frame->id_type,
 		frame->rtr, frame->id, frame->dlc);
 	LOG_HEXDUMP_DBG(frame->data, frame->dlc, "can data");
 
-	return can_dispatch(CAN_BUS_1, frame);
+	ha_ciot_process_frame(frame);
 }
+*/
 
 int can_queue(CAN_bus_t bus, struct zcan_frame *frame, uint32_t delay_ms)
 {

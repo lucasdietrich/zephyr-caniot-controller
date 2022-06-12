@@ -21,6 +21,8 @@
 #include <bluetooth/addr.h>
 #include "ha/devices.h"
 
+#include <caniot/caniot.h>
+
 #include "uart_ipc/ipc.h"
 
 #include "system.h"
@@ -508,7 +510,7 @@ static void caniot_device_cb(ha_dev_t *dev,
 	struct ha_caniot_dataset *const dt = &dev->data.caniot;
 
 	rec->base.timestamp = dev->data.measurements_timestamp;
-	rec->did = CANIOT_DEVICE_TO_UINT8(dev->addr.mac.addr.caniot);
+	rec->did = (uint32_t) dev->addr.mac.addr.caniot;
 	rec->temperatures_count = 0U;
 
 	/* encode temperatures */
@@ -561,5 +563,29 @@ int rest_devices_list(struct http_request *req,
 {
 	// TODO
 
+	return -EINVAL;
+}
+
+int rest_caniot_info(struct http_request *req,
+		     struct http_response *resp)
+{
+	return -EINVAL;
+}
+
+int rest_caniot_command(struct http_request *req,
+			struct http_response *resp)
+{
+	// const uint8_t did = 24;
+	// const uint8_t enpoint = CANIOT_ENDPOINT_BOARD_CONTROL;
+
+	return -EINVAL;
+}
+
+int rest_caniot_query_telemetry(struct http_request *req,
+				struct http_response *resp)
+{
+	// const uint8_t did = 24;
+	// const uint8_t enpoint = CANIOT_ENDPOINT_BOARD_CONTROL;
+	
 	return -EINVAL;
 }

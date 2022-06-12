@@ -87,7 +87,10 @@
                 "stddef.h": "c",
                 "xiaomi_record.h": "c",
                 "rpmsg_multi_instance.h": "c",
-                "leds.h": "c"
+                "leds.h": "c",
+                "ct_controller.h": "c",
+                "controller.h": "c",
+                "datatype.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

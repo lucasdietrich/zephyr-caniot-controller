@@ -19,7 +19,7 @@
                 "${modulesDirectory}/hal/stm32/stm32cube/stm32f4xx/drivers/include",
                 "${modulesDirectory}/hal/stm32/stm32cube/stm32f4xx/drivers/include/Legacy",
                 "${modulesDirectory}/hal/stm32/stm32cube/common_ll/include",
-                "${workspaceFolder}/lib/caniot-lib/include"
+                "${workspaceFolder}/modules/caniot-lib/include"
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
@@ -48,10 +48,9 @@
                 "_FORTIFY_SOURCE=2",
                 "__PROGRAM_START",
                 "__ZEPHYR__=1",
+
                 /* user defined */
-                "__FIRMWARE_VERSION__=1",
-                "CONFIG_CANIOT_LOG_LEVEL=0",
-                "CONFIG_CANIOT_ARCH_AGNOSTIC=0"
+                "__FIRMWARE_VERSION__=1"
             ],
             "cStandard": "c99",
             "forcedInclude": [
