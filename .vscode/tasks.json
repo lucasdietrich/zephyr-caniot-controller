@@ -126,7 +126,7 @@
         {
             "label": "Disassembly",
             "type": "shell",
-            "command": "arm-none-eabi-objdump -S ${workspaceFolder}/build/zephyr/zephyr.elf > disassembly.S",
+            "command": "./scripts/dis.sh",
             "presentation": {
                 "echo": false,
             },

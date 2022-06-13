@@ -55,12 +55,6 @@ int caniot_to_zcan(struct zcan_frame *zcan,
 bool event_cb(const caniot_controller_event_t *ev,
 	      void *user_data)
 {
-	return true;
-}
-
-bool event_cb2(const caniot_controller_event_t *ev,
-	      void *user_data)
-{
 	int ret;
 
 	switch (ev->status) {

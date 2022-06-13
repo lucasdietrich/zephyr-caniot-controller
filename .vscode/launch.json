@@ -8,7 +8,7 @@
 			"request": "launch",
 			"type": "cortex-debug",
 			"servertype": "openocd",
-			"device": "stm32l011k4",
+			"device": "stm32f429zi",
 			"runToEntryPoint": "main",
 			"configFiles": [
 				"interface/stlink.cfg",
@@ -23,7 +23,7 @@
 			"request": "attach",
 			"type": "cortex-debug",
 			"servertype": "openocd",
-			"device": "stm32l011k4",
+			"device": "stm32f429zi",
 			"runToEntryPoint": "main",
 			"configFiles": [
 				"interface/stlink.cfg",
