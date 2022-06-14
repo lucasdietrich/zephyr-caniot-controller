@@ -15,28 +15,27 @@
  */
 int ha_ciot_ctrl_init(void);
 
-extern struct k_msgq ha_ciot_ctrl_rx_msgq;
-
+int ha_ciot_ctrl_send(struct caniot_frame *__RESTRICT req,
+		      caniot_did_t did);
 /**
- * @brief Process the caniot frame
+ * @brief Do a CANIOT query, blocking
  * 
  * @param frame 
  * @return int 
  */
-// int ha_ciot_ctrl_process_frame(struct zcan_frame *frame);
+int ha_ciot_ctrl_query(struct caniot_frame *__RESTRICT req,
+		       struct caniot_frame *__RESTRICT resp,
+		       caniot_did_t did,
+		       uint32_t timeout);
+
+typedef void (*ha_ciot_ctrl_did_cb_t)(caniot_did_t did,
+				      const struct caniot_frame *frame,
+				      void *user_data);
 
 /*
-int ha_ciot_ctrl_command(caniot_did_t did,
-			 caniot_endpoint_t endpoint,
-			 const caniot_frame_t *query,
-			 caniot_frame_t *resp,
-			 uint32_t timeout_ms);
-
-
-int ha_ciot_ctrl_qtelemetry(caniot_did_t did,
-			    caniot_endpoint_t endpoint,
-			    caniot_frame_t *resp,
-			    uint32_t timeout_ms);
+int ha_ciot_ctrl_register_did_cb(caniot_did_t did,
+				 ha_ciot_ctrl_did_cb_t cb,
+				 void *user_data);
 */
 
 #endif /* _CAN_CANIOT_CONTROLLER_H */

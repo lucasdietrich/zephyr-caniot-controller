@@ -22,3 +22,7 @@ GET http://{{host}}/metrics
 ###
 
 GET http://{{host}}/404
+
+###
+
+GET http://{{host}}/devices/caniot/24/ll/3/query_telemetry

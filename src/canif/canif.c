@@ -12,6 +12,12 @@ LOG_MODULE_REGISTER(can, LOG_LEVEL_NONE);
 
 #define CAN1_DEVICE DEVICE_DT_GET(DT_NODELABEL(can1))
 
+#define DEBUG_CANIOT_EMULATE_RESPONSE 0
+
+#if DEBUG_CANIOT_EMULATE_RESPONSE
+#include "ha/utils.h"
+#endif
+
 
 static void can_thread(const struct device *dev,
 		       struct k_msgq *rx_msgq,
@@ -21,9 +27,11 @@ static void can_thread(const struct device *dev,
 CAN_DEFINE_MSGQ(tx_msgqueue, 4);
 
 K_THREAD_DEFINE(cantid, 0x400, can_thread, CAN1_DEVICE,
-		&tx_msgqueue, NULL, K_PRIO_COOP(5), 0, 0);
+		&tx_msgqueue, NULL, K_PRIO_COOP(3), 0, 0);
 
 // static int handle_received_frame(struct zcan_frame *frame);
+
+extern struct k_msgq ha_ciot_ctrl_rx_msgq;
 
 /* TODO remove these threads and use k_work_poll in dispatch.c file */
 static void can_thread(const struct device *dev,
@@ -78,10 +86,21 @@ static void can_thread(const struct device *dev,
 
 				__ASSERT(ret == 0, "Failed to get TX  CAN frame from msgq");
 
+#if DEBUG_CANIOT_EMULATE_RESPONSE == 1
+				struct caniot_frame cf;
+				zcan_to_caniot(&frame, &cf);
+				cf.id.query = CANIOT_RESPONSE;
+				caniot_to_zcan(&frame, (const struct caniot_frame *)&cf);
+
+				// k_sleep(K_MSEC(200));
+
+				k_msgq_put(&ha_ciot_ctrl_rx_msgq, &frame, K_NO_WAIT);
+#else
 				ret = can_send(dev, &frame, K_FOREVER, NULL, NULL);
 				if (ret < 0) {
 					LOG_ERR("Failed to send CAN frame, ret = %d", ret);
 				}
+#endif
 			}
 
 			/*

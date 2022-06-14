@@ -90,7 +90,9 @@
                 "leds.h": "c",
                 "ct_controller.h": "c",
                 "controller.h": "c",
-                "datatype.h": "c"
+                "datatype.h": "c",
+                "list_gen.h": "c",
+                "dlist.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

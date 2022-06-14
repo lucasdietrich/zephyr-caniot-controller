@@ -8,6 +8,20 @@
 
 #include <sys/types.h>
 
+static inline uint32_t k_uptime_delta32(uint32_t *reftime)
+{
+	__ASSERT_NO_MSG(reftime);
+
+	uint32_t uptime, delta;
+
+	uptime = k_uptime_get_32();
+	delta = uptime - *reftime;
+	*reftime = uptime;
+
+	return delta;
+}
+
+
 /**
  * @brief Append memory to a buffer
  * 
