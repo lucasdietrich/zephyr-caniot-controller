@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13.1)
 
 # set the variables before calling the cmake command
-set(ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/modules/caniot-lib)
+set(ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/modules/uart_ipc ${CMAKE_CURRENT_SOURCE_DIR}/modules/caniot-lib)
 
 include($ENV{ZEPHYR_BASE}/cmake/app/boilerplate.cmake NO_POLICY_SCOPE)
 

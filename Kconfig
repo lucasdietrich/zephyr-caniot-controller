@@ -1,7 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 
-rsource "src/uart_ipc/Kconfig"
-
 mainmenu "caniot-controller"
 
 # Your application configuration options go here

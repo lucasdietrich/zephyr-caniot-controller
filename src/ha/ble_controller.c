@@ -5,10 +5,11 @@
 #include "net_time.h"
 
 #include "ble/xiaomi_record.h"
-#include "uart_ipc/ipc_frame.h"
-#include "uart_ipc/ipc.h"
 #include "ha/devices.h"
 #include "userio/leds.h"
+
+#include <uart_ipc/ipc_frame.h>
+#include <uart_ipc/ipc.h>
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(ble_ctrlr, LOG_LEVEL_NONE);

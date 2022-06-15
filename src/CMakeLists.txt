@@ -5,7 +5,6 @@ add_subdirectory(discovery_server)
 add_subdirectory(drivers)
 add_subdirectory(ha)
 add_subdirectory(http_server)
-add_subdirectory(uart_ipc)
 add_subdirectory(userio)
 add_subdirectory(utils)
 

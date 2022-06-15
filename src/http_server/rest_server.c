@@ -25,7 +25,7 @@
 #include <caniot/datatype.h>
 #include <ha/caniot_controller.h>
 
-#include "uart_ipc/ipc.h"
+#include <uart_ipc/ipc.h>
 
 #include "system.h"
 #include "config.h"

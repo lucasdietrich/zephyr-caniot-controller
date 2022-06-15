@@ -19,7 +19,8 @@
                 "${modulesDirectory}/hal/stm32/stm32cube/stm32f4xx/drivers/include",
                 "${modulesDirectory}/hal/stm32/stm32cube/stm32f4xx/drivers/include/Legacy",
                 "${modulesDirectory}/hal/stm32/stm32cube/common_ll/include",
-                "${workspaceFolder}/modules/caniot-lib/include"
+                "${workspaceFolder}/modules/caniot-lib/include",
+                "${workspaceFolder}/modules/uart_ipc/include"
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,

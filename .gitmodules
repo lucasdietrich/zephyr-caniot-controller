@@ -3,5 +3,5 @@
 	url = https://github.com/lucasdietrich/caniot-lib.git
 	branch = v2.1_branch_controller
 [submodule "src/uart_ipc"]
-	path = src/uart_ipc
+	path = modules/uart_ipc
 	url = https://github.com/lucasdietrich/zephyr-uart-dma-ipc.git
