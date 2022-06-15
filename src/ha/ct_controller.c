@@ -3,7 +3,9 @@
 #include <caniot/caniot.h>
 #include <caniot/controller.h>
 #include <caniot/datatype.h>
-#include <canif/canif.h>
+
+#include <drivers/can.h>
+#include <device.h>
 
 #include <sys/dlist.h>
 #include <assert.h>
@@ -15,21 +17,41 @@
 #include "../utils.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(caniot, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(caniot, LOG_LEVEL_WRN);
+
+CAN_DEFINE_MSGQ(can_rxq, 4U);
+
+const struct device *can_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
 
 /* initialized with 0 */
 static ha_ciot_ctrl_did_cb_t did_callbacks[CANIOT_DID_MAX_VALUE];
 
-CAN_DEFINE_MSGQ(ha_ciot_ctrl_rx_msgq, 4U);
-
-// K_MUTEX_DEFINE(mutex);
-// #define CONTEXT_LOCK() k_mutex_lock(&mutex, K_FOREVER)
-// #define CONTEXT_UNLOCK() k_mutex_unlock(&mutex)
 
 static void thread(void *_a, void *_b, void *_c);
 
 K_THREAD_DEFINE(ha_ciot_thread, 0x800, thread, NULL, NULL, NULL,
 		K_PRIO_COOP(5), 0U, 0U);
+
+static int z_can_init(void)
+{
+	/* wait for device ready */
+        while (!device_is_ready(can_dev)) {
+                LOG_WRN("CAN: Device %s not ready.\n", can_dev->name);
+                k_sleep(K_SECONDS(1));
+        }
+
+	/* attach message q */
+	struct zcan_filter filter = {
+		.id_type = CAN_ID_STD, /* currently we ignore extended IDs */
+	};
+
+	int ret = can_attach_msgq(can_dev, &can_rxq, &filter);
+	if (ret) {
+		LOG_ERR("can_attach_msgq failed: %d", ret);
+	}
+
+	return ret;
+}
 
 static int z_can_send(const struct caniot_frame *frame,
 		      uint32_t delay_ms)
@@ -38,7 +60,8 @@ static int z_can_send(const struct caniot_frame *frame,
 
 	struct zcan_frame zframe;
 	caniot_to_zcan(&zframe, frame);
-	return can_queue(CAN_BUS_1, &zframe, delay_ms);
+
+	return can_send(can_dev, &zframe, K_FOREVER, NULL, NULL);
 }
 
 const struct caniot_drivers_api driv =
@@ -49,8 +72,6 @@ const struct caniot_drivers_api driv =
 	.recv = NULL,
 	.send = z_can_send
 };
-
-sys_dlist_t qx_dlist = SYS_DLIST_STATIC_INIT(&qx_dlist);
 
 static struct caniot_controller ctrl;
 
@@ -203,34 +224,25 @@ bool event_cb(const caniot_controller_event_t *ev,
 		did_callbacks[ev->did](ev->did, ev->response, NULL);
 	}
 
-	if (ev->context == CANIOT_CONTROLLER_EVENT_CONTEXT_QUERY) {
-		struct syncq *qx;
+	struct syncq *const qx = ev->user_data;
+	if ((qx != NULL) &&
+	    (ev->context == CANIOT_CONTROLLER_EVENT_CONTEXT_QUERY)) {
+		LOG_DBG("Query %p answered", qx);
 
-		SYS_DLIST_FOR_EACH_CONTAINER(&qx_dlist, qx, _node) {
-			if (qx->handle == ev->handle) {
-				break;
-			}
+		if (ev->status == CANIOT_CONTROLLER_EVENT_STATUS_OK) {
+			qx->status = SYNCQ_ANSWERED;
+		} else if (ev->status == CANIOT_CONTROLLER_EVENT_STATUS_ERROR) {
+			qx->status = SYNCQ_CANIOT_ERROR;
+		} else {
+			qx->status = SYNCQ_TIMEOUT;
 		}
 
-		if (qx != NULL) {
-			LOG_DBG("Query %p answered", qx);
-
-			if (ev->status == CANIOT_CONTROLLER_EVENT_STATUS_OK) {
-				qx->status = SYNCQ_ANSWERED;
-			} else if (ev->status == CANIOT_CONTROLLER_EVENT_STATUS_ERROR) {
-				qx->status = SYNCQ_CANIOT_ERROR;
-			} else {
-				qx->status = SYNCQ_TIMEOUT;
-			}
-
-			if (response_is_set == true) {
-				memcpy(qx->response, ev->response, sizeof(struct caniot_frame));
-			}
-
-			qx->delta = k_uptime_delta32(&qx->uptime);
-			sys_dlist_remove(&qx->_node);
-			k_sem_give(&qx->_sem);
+		if (response_is_set == true) {
+			memcpy(qx->response, ev->response, sizeof(struct caniot_frame));
 		}
+
+		qx->delta = k_uptime_delta32(&qx->uptime);
+		k_sem_give(&qx->_sem);
 	}
 
 	return true;
@@ -246,7 +258,7 @@ static void thread(void *_a, void *_b, void *_c)
 	static struct caniot_frame frame;
 	static struct zcan_frame zframe;
 
-	uint32_t reftime = k_uptime_get_32();
+	z_can_init();
 
 	caniot_controller_driv_init(&ctrl, &driv, event_cb, NULL);
 
@@ -254,16 +266,14 @@ static void thread(void *_a, void *_b, void *_c)
 		K_POLL_EVENT_STATIC_INITIALIZER(
 			K_POLL_TYPE_MSGQ_DATA_AVAILABLE,
 			K_POLL_MODE_NOTIFY_ONLY,
-			&ha_ciot_ctrl_rx_msgq, 0),
+			&can_rxq, 0),
 		K_POLL_EVENT_STATIC_INITIALIZER(
 			K_POLL_TYPE_FIFO_DATA_AVAILABLE,
 			K_POLL_MODE_NOTIFY_ONLY,
 			&fifo_queries, 0),
-		// K_POLL_EVENT_STATIC_INITIALIZER(
-		// 	K_POLL_TYPE_FIFO_DATA_AVAILABLE,
-		// 	K_POLL_MODE_NOTIFY_ONLY,
-		// 	&fifo_waiting, 0),
 	};
+
+	uint32_t reftime = k_uptime_get_32();
 
 	while (1) {
 		const uint32_t timeout_ms = caniot_controller_next_timeout(&ctrl);
@@ -274,7 +284,7 @@ static void thread(void *_a, void *_b, void *_c)
 
 			/* events */
 			if (events[0].state == K_POLL_STATE_MSGQ_DATA_AVAILABLE) {
-				ret = k_msgq_get(&ha_ciot_ctrl_rx_msgq, &zframe, K_NO_WAIT);
+				ret = k_msgq_get(&can_rxq, &zframe, K_NO_WAIT);
 				if (ret == 0) {
 					zcan_to_caniot(&zframe, &frame);
 					log_caniot_frame(&frame);
@@ -294,7 +304,7 @@ static void thread(void *_a, void *_b, void *_c)
 				if (qx != NULL) {
 					__ASSERT_NO_MSG(qx->timeout != CANIOT_TIMEOUT_FOREVER);
 
-					ret = caniot_controller_query_send(&ctrl, qx->did,
+					ret = caniot_controller_query(&ctrl, qx->did,
 									   qx->query, qx->timeout);
 					log_caniot_frame(qx->query);
 
@@ -302,7 +312,7 @@ static void thread(void *_a, void *_b, void *_c)
 						/* pending query registered */
 						qx->handle = (uint8_t) ret;
 
-						sys_dlist_append(&qx_dlist, &qx->_node);
+						caniot_controller_handle_set_user_data(&ctrl, qx->handle, qx);
 
 						LOG_DBG("Query %p registered", qx);
 					} else {
@@ -375,13 +385,7 @@ int ha_ciot_ctrl_query(struct caniot_frame *__RESTRICT req,
 
 	/* wait for response */
 	ret = k_sem_take(&qx->_sem, K_MSEC(qx->timeout + 10000U));
-	if (ret != 0) {
-		LOG_ERR("FATAL ERROR, ct_controller stuck (didn't gave semaphore in time %u ms)", qx->timeout);
-		goto exit;
-	}
-	// __ASSERT_NO_MSG(ret == 0);
-
-
+	__ASSERT(ret == 0, "k_sem_take shouldn't timeout");
 
 	if (qx->status == SYNCQ_ANSWERED) {
 		ret = 0;
@@ -400,4 +404,11 @@ exit:
 	}
 
 	return ret;
+}
+
+int ha_ciot_ctrl_send(struct caniot_frame *__RESTRICT req,
+		      caniot_did_t did)
+{
+	/* this is safe because no context is allocated */
+	return caniot_controller_send(&ctrl, did, req);
 }

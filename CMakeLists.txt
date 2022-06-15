@@ -8,8 +8,7 @@ include($ENV{ZEPHYR_BASE}/cmake/app/boilerplate.cmake NO_POLICY_SCOPE)
 project(caniot-controller)
 
 # ======= SOURCE FILES =======
-FILE(GLOB_RECURSE app_sources src/*.c*)
-target_sources(app PRIVATE ${app_sources})
+add_subdirectory(src)
 
 # ======= INCLUDE FILES =======
 zephyr_include_directories(src/mbedtls_config)

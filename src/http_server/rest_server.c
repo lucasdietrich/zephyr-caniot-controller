@@ -590,7 +590,7 @@ int rest_caniot_query_telemetry(struct http_request *req,
 	caniot_build_query_telemetry(&query, CANIOT_ENDPOINT_BOARD_CONTROL);
 	const caniot_did_t did = CANIOT_DID(CANIOT_DEVICE_CLASS0, CANIOT_DEVICE_SID4);
 	
-	int ret = ha_ciot_ctrl_query(&query, &response, did, 2000U);
+	ha_ciot_ctrl_query(&query, &response, did, 2000U);
 	
-	return ret;
+	return 0;
 }

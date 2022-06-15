@@ -49,7 +49,7 @@ static void can_thread(const struct device *dev,
 	struct zcan_filter filter = {
 		.id_type = CAN_ID_STD, /* currently we ignore extended IDs */
 	};
-	ret = can_attach_msgq(dev, &ha_ciot_ctrl_rx_msgq, &filter);
+	ret = can_attach_msgq(CAN1_DEVICE, &ha_ciot_ctrl_rx_msgq, &filter);
 	if (ret) {
 		LOG_ERR("can_attach_msgq failed: %d", ret);
 		return;
