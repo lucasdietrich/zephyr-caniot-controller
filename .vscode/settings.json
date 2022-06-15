@@ -91,7 +91,9 @@
                 "controller.h": "c",
                 "datatype.h": "c",
                 "list_gen.h": "c",
-                "dlist.h": "c"
+                "dlist.h": "c",
+                "stdbool.h": "c",
+                "ha_controller.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

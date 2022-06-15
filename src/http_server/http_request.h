@@ -43,7 +43,7 @@ struct http_request
 
 	/* HTTP content location */
         struct {
-                const char *loc;
+                char *loc;
                 size_t len;
         } payload;
 };

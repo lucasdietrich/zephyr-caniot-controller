@@ -26,3 +26,12 @@ GET http://{{host}}/404
 ###
 
 GET http://{{host}}/devices/caniot/24/ll/3/query_telemetry
+
+###
+
+POST http://{{host}}/devices/garage
+
+{
+    "left_door": "set",
+    "right_door": "none"
+}

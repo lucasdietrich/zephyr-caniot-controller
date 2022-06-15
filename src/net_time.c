@@ -54,8 +54,8 @@ static void sntp_handler(struct k_work *work)
 
 		ret = k_condvar_broadcast(&ctx->condvar);
 
-		LOG_INF("SNTP time from %s:123 = %llu, %d thread(s) signaled",
-			log_strdup(ctx->server), time.seconds, ret);
+		LOG_INF("SNTP time from %s:123 = %u, %d thread(s) signaled",
+			log_strdup(ctx->server), (uint32_t)time.seconds, ret);
 	} else {
 		ctx->failures++;
 

@@ -20,6 +20,10 @@ int rest_encode_response_json_array(const struct json_obj_descr *descr,
 
 /*___________________________________________________________________________*/
 
+/* That saves time but it's a bad practice for sure :') */
+#define REST_HANDLE_DECL(name) \
+	int rest_##name(struct http_request *req, struct http_response *resp)
+
 int rest_index(struct http_request *req,
                struct http_response *resp);
 
@@ -43,5 +47,9 @@ int rest_caniot_command(struct http_request *req,
 
 int rest_caniot_query_telemetry(struct http_request *req,
 				struct http_response *resp);
+
+REST_HANDLE_DECL(devices_garage_get);
+REST_HANDLE_DECL(devices_garage_post);
+
 
 #endif

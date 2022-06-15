@@ -77,7 +77,7 @@ int on_body(struct http_parser *parser, const char *at, size_t length)
         /* can be called several times */
         struct http_request *req = CONNECTION_FROM_PARSER(parser)->req;
         if (req->payload.loc == NULL) {
-                req->payload.loc = at;
+		req->payload.loc = (char *)at;
                 req->payload.len = 0;
         } else {
                 req->payload.len += length;

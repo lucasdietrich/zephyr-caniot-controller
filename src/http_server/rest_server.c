@@ -22,6 +22,7 @@
 #include "ha/devices.h"
 
 #include <caniot/caniot.h>
+#include <caniot/datatype.h>
 #include <ha/caniot_controller.h>
 
 #include "uart_ipc/ipc.h"
@@ -31,6 +32,8 @@
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_DBG);
+
+#define FIELD_SET(ret, n) (((ret) & (1 << (n))) != 0)
 
 int rest_encode_response_json(const struct json_obj_descr *descr,
 			      size_t descr_len, const void *val,
@@ -594,5 +597,83 @@ int rest_caniot_query_telemetry(struct http_request *req,
 	
 	ha_ciot_ctrl_query(&query, &response, did, 1000U);
 	
+	return 0;
+}
+
+/*___________________________________________________________________________*/
+
+int rest_devices_garage_get(struct http_request *req,
+			    struct http_response *resp)
+{
+	return 0;
+}
+
+/* REST_HANDLE_DECL(devices_garage_get) { } */
+
+struct json_garage_post {
+	const char* left_door;
+	const char* right_door;
+};
+
+const struct json_obj_descr json_garage_post_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_garage_post, left_door, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_garage_post, right_door, JSON_TOK_STRING),
+};
+
+static int parse_string_in_list(const char *str, const char *const *list)
+{
+	int ret = -1;
+	
+	if (str != NULL) {
+		for (size_t i = 0; list[i] != NULL; i++) {
+			if (strcmp(str, list[i]) == 0) {
+				ret = i;
+				break;
+			}
+		}
+	}
+
+	return ret;
+}
+
+static inline int parse_ss_command(const char *str)
+{
+	static const char *const cmds[] = {
+		"none",
+		"set",
+		NULL
+	};
+	return parse_string_in_list(str, cmds);
+}
+
+int rest_devices_garage_post(struct http_request *req,
+			     struct http_response *resp)
+{
+	int ret;
+	struct json_garage_post post;
+
+	int map = json_obj_parse(req->payload.loc, req->len,
+				 json_garage_post_descr,
+				 ARRAY_SIZE(json_garage_post_descr),
+				 &post);
+
+	if (map > 0) {
+		struct ha_dev_garage_cmd cmd;
+
+		if (FIELD_SET(map, 0U) && ((ret = parse_ss_command(post.left_door)) > 0)) {
+			cmd.actuate_left = 1U;
+		}
+
+		if (FIELD_SET(map, 1U) && ((ret = parse_ss_command(post.right_door)) > 0)) {
+			cmd.actuate_right = 1U;
+		}
+
+		ha_dev_garage_cmd_send(&cmd);
+
+		resp->status_code = 200U;
+	} else {
+		resp->status_code = 400U;
+	}
+
 	return 0;
 }

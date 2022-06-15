@@ -215,4 +215,14 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 				     caniot_did_t did,
 				     struct caniot_board_control_telemetry *data);
 
+/*___________________________________________________________________________*/
+
+struct ha_dev_garage_cmd
+{
+	uint8_t actuate_left: 1;
+	uint8_t actuate_right: 1;
+};
+
+int ha_dev_garage_cmd_send(const struct ha_dev_garage_cmd *cmd);
+
 #endif /* _HA_DEVS_H_ */

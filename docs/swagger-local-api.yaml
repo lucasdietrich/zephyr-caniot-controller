@@ -18,8 +18,10 @@ info:
 tags:
   - name: general
     description: General operations
+  - name: devices
+    description: Device operations (BLE, CAN, etc.)
   - name: caniot
-    description: CANIOT operations
+    description: CANIOT general informations
   - name: caniot-low-level
     description: CANIOT Low Level operations
 
@@ -27,6 +29,36 @@ security:
   - BasicAuth: []
 
 paths:
+
+  /devices/garage:
+    get:
+      summary: Get the garage doors positions
+      tags:
+        - devices
+      responses:
+        '200':
+          description: The garage doors positions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GarageInfo'
+        '404':
+          description: Garage Device not found
+    
+    post:
+      summary: Command garage doors
+      tags:
+        - devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GarageCommands'
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Malformed command
 
   /devices/caniot:    
     get:
@@ -41,31 +73,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    id:
-                      type: integer
-                      example: 24
-                    timestamp:
-                      type: integer
-                      example: 1653726896
-                    temperatures:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          repr:
-                            type: string
-                            example: "24.20"
-                          value: 
-                            type: integer
-                            example: 2400
-                          sens_type:
-                            type: integer
-                            example: 4
-                    dio:
-                      type: integer
-                      example: 240
+                  $ref: '#/components/schemas/CANIOTInfo'
 
   /devices/caniot/{did}:
     get:
@@ -82,7 +90,7 @@ paths:
                 $ref: '#/components/schemas/DeviceInfo'
         '404':
           description: CANIOT device not found
-  
+
   /devices/caniot/{did}/ll/attributes/{attr}:
     parameters:
       - $ref: '#/components/parameters/DeviceID'
@@ -238,6 +246,34 @@ components:
           type: integer
           example: 0
 
+    CANIOTInfo:
+      description: CANIOT device informations
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 24
+        timestamp:
+          type: integer
+          example: 1653726896
+        temperatures:
+          type: array
+          items:
+            type: object
+            properties:
+              repr:
+                type: string
+                example: "24.20"
+              value: 
+                type: integer
+                example: 2400
+              sens_type:
+                type: integer
+                example: 4
+        dio:
+          type: integer
+          example: 240
+
     XPSCommand:
       description: CANIOT device "Complex Digital Command" XPS command
       type: string
@@ -247,6 +283,39 @@ components:
       description: CANIOT device "Two State" command
       type: string
       enum: [none, set, reset, toggle]
+
+    SSCommand:
+      description: CANIOT device "One Action" command
+      type: string
+      enum: [none, do]
+
+    DoorStatus:
+      description: Garage device door status
+      type: string
+      enum: [open, close]
+
+    GarageInfo:
+      description: Garage door informations
+      type: object
+      properties:
+        left_door:
+          $ref: "#/components/schemas/DoorStatus"
+        right_door:
+          $ref: "#/components/schemas/DoorStatus"
+        gate:
+          $ref: "#/components/schemas/DoorStatus"
+
+        _caniot:
+          $ref: "#/components/schemas/CANIOTInfo"
+          
+    GarageCommands:
+      description: Garage door commands
+      type: object
+      properties:
+        left_door:
+          $ref: "#/components/schemas/SSCommand"
+        right_door:
+          $ref: "#/components/schemas/SSCommand"
 
   parameters:
     DeviceID:
