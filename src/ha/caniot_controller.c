@@ -10,7 +10,7 @@
 #include <sys/dlist.h>
 #include <assert.h>
 
-#include "ct_controller.h"
+#include "caniot_controller.h"
 #include "devices.h"
 #include "net_time.h"
 #include "utils.h"
@@ -30,7 +30,7 @@ static ha_ciot_ctrl_did_cb_t did_callbacks[CANIOT_DID_MAX_VALUE];
 static void thread(void *_a, void *_b, void *_c);
 
 K_THREAD_DEFINE(ha_ciot_thread, 0x800, thread, NULL, NULL, NULL,
-		K_PRIO_COOP(5), 0U, 0U);
+		K_PRIO_COOP(2), 0U, 0U);
 
 static int z_can_init(void)
 {

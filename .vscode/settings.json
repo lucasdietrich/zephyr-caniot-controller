@@ -88,7 +88,6 @@
                 "xiaomi_record.h": "c",
                 "rpmsg_multi_instance.h": "c",
                 "leds.h": "c",
-                "ct_controller.h": "c",
                 "controller.h": "c",
                 "datatype.h": "c",
                 "list_gen.h": "c",

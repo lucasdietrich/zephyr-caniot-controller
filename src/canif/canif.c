@@ -2,7 +2,7 @@
 #include <poll.h>
 
 #include <caniot/caniot.h>
-#include <ha/ct_controller.h>
+#include <ha/caniot_controller.h>
 
 #include "canif/canif.h"
 #include "dispatcher.h"

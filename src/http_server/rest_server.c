@@ -22,7 +22,7 @@
 #include "ha/devices.h"
 
 #include <caniot/caniot.h>
-#include <ha/ct_controller.h>
+#include <ha/caniot_controller.h>
 
 #include "uart_ipc/ipc.h"
 
@@ -587,10 +587,12 @@ int rest_caniot_query_telemetry(struct http_request *req,
 {
 	struct caniot_frame query, response;
 
-	caniot_build_query_telemetry(&query, CANIOT_ENDPOINT_BOARD_CONTROL);
+	uint64_t buf = 1U;
+
+	caniot_build_query_command(&query, CANIOT_ENDPOINT_APP, (uint8_t *)&buf, sizeof(buf));
 	const caniot_did_t did = CANIOT_DID(CANIOT_DEVICE_CLASS0, CANIOT_DEVICE_SID4);
 	
-	ha_ciot_ctrl_query(&query, &response, did, 2000U);
+	ha_ciot_ctrl_query(&query, &response, did, 1000U);
 	
 	return 0;
 }
