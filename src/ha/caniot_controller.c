@@ -305,7 +305,7 @@ static void thread(void *_a, void *_b, void *_c)
 					__ASSERT_NO_MSG(qx->timeout != CANIOT_TIMEOUT_FOREVER);
 
 					ret = caniot_controller_query(&ctrl, qx->did,
-									   qx->query, qx->timeout);
+								      qx->query, qx->timeout);
 					log_caniot_frame(qx->query);
 
 					if (ret > 0) {
@@ -336,7 +336,7 @@ static void thread(void *_a, void *_b, void *_c)
 					}
 				}
 			}
-		} else if (ret == -EAGAIN) {
+		} else if (ret == -EAGAIN) { /* k_poll timed out */
 			const uint32_t delta = k_uptime_delta32(&reftime);
 			caniot_controller_process_single(&ctrl, delta, NULL);
 		} else {

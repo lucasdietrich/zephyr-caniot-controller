@@ -12,6 +12,8 @@
 /**
  * @brief Send a CANIOT query, non-blocking
  * 
+ * Note: Thread safe
+ * 
  * @param req 
  * @param did 
  * @return int 
@@ -20,6 +22,8 @@ int ha_ciot_ctrl_send(struct caniot_frame *__RESTRICT req,
 		      caniot_did_t did);
 /**
  * @brief Do a CANIOT query, blocking (if timeout != 0)
+ * 
+ * Note: Thread safe
  * 
  * @param frame 
  * @return int 

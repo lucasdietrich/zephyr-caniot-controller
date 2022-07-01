@@ -8,7 +8,8 @@
             "westPath": "../.venv/bin/west",
             "netToolsPath": "../tools/net-tools",
             "board": "nucleo_f429zi",
-            "serialNumber": "303636434646343935323534373037383637323031333233"
+            "serialNumber": "303636434646343935323534373037383637323031333233",
+            "cmake_generator": "Ninja", // "Unix Makefiles", "Ninja"
         }
     },
     "tasks": [
@@ -42,6 +43,7 @@
                 "build",
                 "--board=${board}",
                 "--",
+                "-G'${cmake_generator}'",
                 "-DDTC_OVERLAY_FILE=\"nucleo_f429zi.overlay ipc_to_custom_acn52840.overlay\"",
             ],
             "group": "build",

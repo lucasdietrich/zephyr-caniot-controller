@@ -217,11 +217,14 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 
 /*___________________________________________________________________________*/
 
+/* move to specific header */
 struct ha_dev_garage_cmd
 {
 	uint8_t actuate_left: 1;
 	uint8_t actuate_right: 1;
 };
+
+void ha_dev_garage_cmd_init(struct ha_dev_garage_cmd *cmd);
 
 int ha_dev_garage_cmd_send(const struct ha_dev_garage_cmd *cmd);
 

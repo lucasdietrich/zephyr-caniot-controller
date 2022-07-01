@@ -659,6 +659,7 @@ int rest_devices_garage_post(struct http_request *req,
 
 	if (map > 0) {
 		struct ha_dev_garage_cmd cmd;
+		ha_dev_garage_cmd_init(&cmd);
 
 		if (FIELD_SET(map, 0U) && ((ret = parse_ss_command(post.left_door)) > 0)) {
 			cmd.actuate_left = 1U;

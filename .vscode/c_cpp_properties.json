@@ -6,6 +6,18 @@
     },
     "configurations": [
         {
+            "name": "cmake build commands",
+            "compileCommands": "${workspaceRoot}/build/compile_commands.json",
+            "intelliSenseMode": "gcc-arm",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}"
+                ]
+            },
+            "cStandard": "c11",
+            "cppStandard": "c++17"
+        },
+        {
             "name": "PlatformIO",
             "includePath": [
                 "${workspaceFolder}/build",

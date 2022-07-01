@@ -10,6 +10,13 @@
 
 static const caniot_did_t garage_did = CANIOT_DID(CANIOT_DEVICE_CLASS0, CANIOT_DEVICE_SID4);
 
+void ha_dev_garage_cmd_init(struct ha_dev_garage_cmd *cmd)
+{
+	if (cmd != NULL) {
+		memset(cmd, 0, sizeof(struct ha_dev_garage_cmd));
+	}
+}
+
 static void ha_dev_garage_payload_build(struct caniot_board_control_command *payload,
 					const struct ha_dev_garage_cmd *cmd)
 {

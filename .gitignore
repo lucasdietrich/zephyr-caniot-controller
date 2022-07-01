@@ -3,6 +3,6 @@
 docs/html
 docs/latex
 
-tmp
+/tmp
 
 /build
