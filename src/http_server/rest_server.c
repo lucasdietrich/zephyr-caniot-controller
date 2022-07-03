@@ -1,6 +1,7 @@
 #include "rest_server.h"
 
 #include <kernel.h>
+#include <assert.h>
 
 #include <string.h>
 
@@ -87,6 +88,24 @@ int rest_encode_response_json_array(const struct json_obj_descr *descr,
 	}
 
 exit:
+	return ret;
+}
+
+static int route_arg_get(struct http_request *req,
+			 uint32_t index,
+			 uint32_t *arg)
+{
+	__ASSERT_NO_MSG(req != NULL);
+	__ASSERT_NO_MSG(req->route != NULL);
+	__ASSERT_NO_MSG(arg != NULL);
+
+	int ret = -EINVAL;
+
+	if (index < req->route->path_args_count) {
+		*arg = (*req->route_args)[index];
+		ret = 0;
+	}
+
 	return ret;
 }
 
@@ -675,6 +694,19 @@ int rest_devices_garage_post(struct http_request *req,
 	} else {
 		resp->status_code = 400U;
 	}
+
+	return 0;
+}
+
+int rest_devices_caniot_telemetry(struct http_request *req,
+				  struct http_response *resp)
+{
+	uint32_t did, ep;
+
+	route_arg_get(req, 0U, &did);
+	route_arg_get(req, 1U, &ep);
+
+	LOG_INF("GET /devices/caniot/%u/endpoints/%u/telemetry", did, ep);
 
 	return 0;
 }

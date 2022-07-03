@@ -93,7 +93,9 @@
                 "list_gen.h": "c",
                 "dlist.h": "c",
                 "stdbool.h": "c",
-                "ha_controller.h": "c"
+                "ha_controller.h": "c",
+                "stm32f4xx_hal_def.h": "c",
+                "assert.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

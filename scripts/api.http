@@ -35,3 +35,7 @@ POST http://{{host}}/devices/garage
     "left_door": "set",
     "right_door": "none"
 }
+
+###
+
+GET http://{{host}}/devices/caniot/32/endpoints/3/telemetry

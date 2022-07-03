@@ -22,7 +22,9 @@ struct http_request
         size_t url_len;
 
 	/* route for the current request */
-	const struct http_route *route;
+	const http_route_t *route;
+
+	http_route_args_t *route_args;
 
 	/* parsed authentification */
 	/*

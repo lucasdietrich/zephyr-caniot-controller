@@ -6,6 +6,10 @@
 
 #include "http_utils.h"
 
+typedef uint32_t http_route_args_t[3];
+
+#define HTTP_ROUTE_ARGS_MAX_SIZE (sizeof(http_route_args_t)  / sizeof(uint32_t))
+
 typedef enum {
 	HTTP_REST_SERVER = 0,
 	HTTP_WEB_SERVER,
@@ -26,11 +30,17 @@ struct http_route
 	http_server_t server; /* HTTP_REST_SERVER, HTTP_WEB_SERVER, HTTP_PROMETHEUS_CLIENT */
 	http_handler_t handler; /* handler to call */
 	http_content_type_t default_content_type; /* route default content type */
+	uint32_t path_args_count; /* number of arguments in path e.g. "/devices/caniot/%u/endpoints/%u/telemetry" */
 };
 
-const struct http_route *route_resolve(struct http_request *req);
+typedef struct http_route http_route_t;
 
-http_content_type_t http_get_route_default_content_type(const struct http_route *route);
+const struct http_route *route_resolve(enum http_method method,
+				       const char *url,
+				       size_t url_len,
+				       http_route_args_t *rargs);
+
+http_content_type_t http_route_get_default_content_type(const struct http_route *route);
 
 
 #endif /* _HTTP_SERVER_ROUTES_H_ */

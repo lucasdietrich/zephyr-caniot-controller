@@ -20,9 +20,9 @@ tags:
     description: General operations
   - name: devices
     description: Device operations (BLE, CAN, etc.)
-  - name: caniot
+  - name: devices-caniot
     description: CANIOT general informations
-  - name: caniot-low-level
+  - name: caniot
     description: CANIOT Low Level operations
 
 security:
@@ -64,7 +64,7 @@ paths:
     get:
       summary: Retrieves caniot devices measurements
       tags:
-        - "caniot"
+        - "devices-caniot"
       responses:
         '200':
           description: OK
@@ -78,7 +78,7 @@ paths:
   /devices/caniot/{did}:
     get:
       tags:
-        - "caniot"
+        - "devices-caniot"
       parameters:
         - $ref: '#/components/parameters/DeviceID'
       responses:
@@ -91,13 +91,13 @@ paths:
         '404':
           description: CANIOT device not found
 
-  /devices/caniot/{did}/ll/attributes/{attr}:
+  /devices/caniot/{did}/attributes/{attr}:
     parameters:
       - $ref: '#/components/parameters/DeviceID'
       - $ref: "#/components/parameters/AttributeAddr"
-    post:
+    put:
       tags:
-        - "caniot-low-level"
+        - "caniot"
       requestBody:
         required: true
         description: Attribute value to write in
@@ -128,7 +128,7 @@ paths:
 
     get:
       tags:
-        - "caniot-low-level"
+        - "caniot"
       responses:
         '200':
           description: OK
@@ -139,13 +139,13 @@ paths:
         '404':
           description: CANIOT device not found
 
-  /devices/caniot/{did}/ll/endpoint/{ep}/command:
+  /devices/caniot/{did}/endpoints/{ep}/command:
     parameters:
       - $ref: '#/components/parameters/DeviceID'
       - $ref: '#/components/parameters/EndpointID'
     post:
       tags:
-        - "caniot-low-level"
+        - "caniot"
       requestBody:
         required: true
         description: Command to send
@@ -198,13 +198,13 @@ paths:
           description: Request malformed
     
 
-  /devices/caniot/{did}/ll/endpoint/{ep}/request_telemetry:
+  /devices/caniot/{did}/endpoints/{ep}/telemetry:
     parameters:
       - $ref: '#/components/parameters/DeviceID'
       - $ref: '#/components/parameters/EndpointID'
-    post:
+    get:
       tags:
-        - "caniot-low-level"
+        - "caniot"
       responses:
         '200':
           description: OK

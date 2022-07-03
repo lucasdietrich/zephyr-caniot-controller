@@ -495,14 +495,15 @@ static int process_request(struct http_request *req,
 			   struct http_response *resp)
 {
 	int ret;
-	const struct http_route *route = route_resolve(req);
+	const struct http_route *route = route_resolve(req->method, req->url,
+						       req->url_len, req->route_args);
 
 	if (route != NULL) {
 		/* associate route with request */
 		req->route = route;
 
 		/* set default content type in function of the route */
-		resp->content_type = http_get_route_default_content_type(route);
+		resp->content_type = http_route_get_default_content_type(route);
 
 		if (route->handler != NULL) {
 			ret = route->handler(req, resp);
@@ -531,17 +532,22 @@ static int process_request(struct http_request *req,
 
 static void handle_conn(http_connection_t *conn)
 {
+	static http_route_args_t route_args;
+
         /* initialized one time only !*/
         static struct http_request req = {
                 .buffer = {
                         .buf = buffer.request,
                         .size = sizeof(buffer.request)
                 },
+		.route_args = &route_args,
         };
+
         static struct http_response resp = {
                 .buf = buffer.response.payload,
                 .buf_size = sizeof(buffer.response.payload)
         };
+	
 
         const int sock = conn_get_sock(conn);
 

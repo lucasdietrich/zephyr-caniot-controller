@@ -17,7 +17,6 @@ int rest_encode_response_json_array(const struct json_obj_descr *descr,
 				    size_t descr_len, const void *val,
 				    struct http_response *resp);
 
-
 /*___________________________________________________________________________*/
 
 /* That saves time but it's a bad practice for sure :') */
@@ -48,8 +47,14 @@ int rest_caniot_command(struct http_request *req,
 int rest_caniot_query_telemetry(struct http_request *req,
 				struct http_response *resp);
 
-REST_HANDLE_DECL(devices_garage_get);
-REST_HANDLE_DECL(devices_garage_post);
+int rest_devices_garage_get(struct http_request *req,
+			    struct http_response *resp);
+
+int rest_devices_garage_post(struct http_request *req,
+			     struct http_response *resp);
+
+int rest_devices_caniot_telemetry(struct http_request *req,
+				  struct http_response *resp);
 
 
 #endif
