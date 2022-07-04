@@ -110,6 +110,22 @@ static int route_arg_get(struct http_request *req,
 	return ret;
 }
 
+static int parse_string_in_list(const char *str, const char *const *list)
+{
+	int ret = -1;
+
+	if (str != NULL) {
+		for (size_t i = 0; list[i] != NULL; i++) {
+			if (strcmp(str, list[i]) == 0) {
+				ret = i;
+				break;
+			}
+		}
+	}
+
+	return ret;
+}
+
 /*___________________________________________________________________________*/
 
 
@@ -267,7 +283,7 @@ struct json_info
 	struct json_info_controller_status status;
 	struct json_info_iface interface;
 	struct net_stats net_stats;
-	
+
 #if defined(CONFIG_SYSTEM_MONITORING)
 	struct json_info_mbedtls_stats mbedtls_stats;
 #endif
@@ -530,7 +546,7 @@ struct caniot_records_encoding_context
 	 * y = temperatures per device
 	 * z = string length
 	 */
-	char temp_repr[HA_CANIOT_MAX_DEVICES][HA_CANIOT_MAX_TEMPERATURES][9U]; 
+	char temp_repr[HA_CANIOT_MAX_DEVICES][HA_CANIOT_MAX_TEMPERATURES][9U];
 };
 
 static void caniot_device_cb(ha_dev_t *dev,
@@ -542,7 +558,7 @@ static void caniot_device_cb(ha_dev_t *dev,
 	struct ha_caniot_dataset *const dt = &dev->data.caniot;
 
 	rec->base.timestamp = dev->data.measurements_timestamp;
-	rec->did = (uint32_t) dev->addr.mac.addr.caniot;
+	rec->did = (uint32_t)dev->addr.mac.addr.caniot;
 	rec->temperatures_count = 0U;
 	rec->dio = dev->data.caniot.dio;
 	rec->pdio = dev->data.caniot.pdio;
@@ -622,10 +638,10 @@ int rest_caniot_query_telemetry(struct http_request *req,
 
 	caniot_build_query_command(&query, CANIOT_ENDPOINT_APP, (uint8_t *)&buf, sizeof(buf));
 	const caniot_did_t did = CANIOT_DID(CANIOT_DEVICE_CLASS0, CANIOT_DEVICE_SID4);
-	
+
 	uint32_t timeout = 1000U;
 	ha_ciot_ctrl_query(&query, &response, did, &timeout);
-	
+
 	return 0;
 }
 
@@ -640,8 +656,8 @@ int rest_devices_garage_get(struct http_request *req,
 /* REST_HANDLE_DECL(devices_garage_get) { } */
 
 struct json_garage_post {
-	const char* left_door;
-	const char* right_door;
+	const char *left_door;
+	const char *right_door;
 };
 
 const struct json_obj_descr json_garage_post_descr[] = {
@@ -649,30 +665,18 @@ const struct json_obj_descr json_garage_post_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_garage_post, right_door, JSON_TOK_STRING),
 };
 
-static int parse_string_in_list(const char *str, const char *const *list)
-{
-	int ret = -1;
-	
-	if (str != NULL) {
-		for (size_t i = 0; list[i] != NULL; i++) {
-			if (strcmp(str, list[i]) == 0) {
-				ret = i;
-				break;
-			}
-		}
-	}
-
-	return ret;
-}
-
-static inline int parse_ss_command(const char *str)
+static int parse_ss_command(const char *str)
 {
 	static const char *const cmds[] = {
 		"none",
 		"set",
 		NULL
 	};
-	return parse_string_in_list(str, cmds);
+	int ss = parse_string_in_list(str, cmds);
+	if (ss < 0) {
+		ss = 0;
+	}
+	return ss;
 }
 
 int rest_devices_garage_post(struct http_request *req,
@@ -710,6 +714,7 @@ int rest_devices_garage_post(struct http_request *req,
 
 static const struct json_obj_descr json_caniot_query_telemetry_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, did, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, base.timestamp, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, duration, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, dio, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, pdio, JSON_TOK_NUMBER),
@@ -717,53 +722,158 @@ static const struct json_obj_descr json_caniot_query_telemetry_descr[] = {
 		json_caniot_temperature_record_descr, ARRAY_SIZE(json_caniot_temperature_record_descr)),
 };
 
-/* 
+/*
 [lucas@fedora stm32f429zi-caniot-controller]$ python3 scripts/api.py
 <Response [200]>
 200
 {'did': 32, 'dio': 240, 'duration': 2006, 'pdio': 0, 'temperatures': []}
 */
 
+static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
+					     struct http_response *resp,
+					     uint32_t timeout)
+{
+	struct json_caniot_record json = {
+		.did = CANIOT_DID(r->id.cls, r->id.sid),
+		.base = {
+			.timestamp = net_time_get(),
+		},
+		.duration = timeout,
+		.dio = AS_BOARD_CONTROL_TELEMETRY(r->buf)->dio,
+		.pdio = AS_BOARD_CONTROL_TELEMETRY(r->buf)->pdio,
+		.temperatures_count = 0U, /* TODO temperatures */
+	};
+	resp->status_code = 200U;
+
+	return rest_encode_response_json(json_caniot_query_telemetry_descr,
+					 ARRAY_SIZE(json_caniot_query_telemetry_descr),
+					 &json, resp);
+}
+
 int rest_devices_caniot_telemetry(struct http_request *req,
 				  struct http_response *resp)
 {
 	uint32_t did = 0, ep = 0;
-
 	route_arg_get(req, 0U, &did);
 	route_arg_get(req, 1U, &ep);
-
-	/* TODO, check data did and ep are valid */
 
 	struct caniot_frame q, r;
 	caniot_build_query_telemetry(&q, ep);
 
 	uint32_t timeout = MIN(req->timeout_ms, 5000U);
 	int ret = ha_ciot_ctrl_query(&q, &r, did, &timeout);
-	if (ret == 0) {
-		struct json_caniot_record json = {
-			.did = did,
-			.base = {
-				.timestamp = net_time_get(),
-			},
-			.duration = timeout,
-			.dio = AS_BOARD_CONTROL_TELEMETRY(r.buf)->dio,
-			.pdio = AS_BOARD_CONTROL_TELEMETRY(r.buf)->pdio,
-			.temperatures_count = 0U, /* TODO temperatures */
-		};
+	if (ret == 1) {
+		ret = json_format_caniot_telemetry_resp(&r, resp, timeout);
+	} else if (ret == 0) {
+		/* timeout = 0 */
+	} else if (ret == 2) {
+		/* returned with error */
+	} else if ((ret == -EAGAIN)) {
 		resp->status_code = 200U;
-
-		ret = rest_encode_response_json(json_caniot_query_telemetry_descr,
-						ARRAY_SIZE(json_caniot_query_telemetry_descr),
-						&json, resp);
-	} else if ((ret == -EAGAIN) ) {
-		resp->status_code = 200U;
-	} else if ((ret == -EINVAL) ) {
+	} else if ((ret == -EINVAL)) {
 		resp->status_code = 400U;
 	} else {
 		resp->status_code = 500U;
 	}
 
 	LOG_INF("GET /devices/caniot/%u/endpoints/%u/telemetry -> %d [in %u ms]", did, ep, ret, timeout);
+
+	return 0;
+}
+
+
+struct json_caniot_blcommand_post {
+	const char *oc1;
+	const char *oc2;
+	const char *rl1;
+	const char *rl2;
+};
+
+const struct json_obj_descr json_caniot_blcommand_post_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, oc1, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, oc2, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, rl1, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, rl2, JSON_TOK_STRING),
+};
+
+static int parse_xps_command(const char *str)
+{
+	static const char *const cmds[] = {
+		"none",
+		"set_on",
+		"set_off",
+		"toggle",
+		"reset",
+		"pulse_on",
+		"pulse_off",
+		"pulse_cancel",
+		NULL
+	};
+	int xps = parse_string_in_list(str, cmds);
+	if (xps < 0) {
+		xps = 0;
+	}
+	return xps;
+}
+
+int rest_devices_caniot_command(struct http_request *req,
+				struct http_response *resp)
+{
+	int ret = 0;
+	struct json_caniot_blcommand_post post;
+
+	int map = json_obj_parse(req->payload.loc, req->len,
+				 json_caniot_blcommand_post_descr,
+				 ARRAY_SIZE(json_caniot_blcommand_post_descr),
+				 &post);
+
+	if (map > 0) {
+		/* build command */
+		struct caniot_board_control_command cmd;
+		caniot_board_control_command_init(&cmd);
+
+		if (FIELD_SET(map, 0U)) {
+			cmd.coc1 = parse_xps_command(post.oc1);
+		}
+
+		if (FIELD_SET(map, 1U)) {
+			cmd.coc2 = parse_xps_command(post.oc2);
+		}
+
+		if (FIELD_SET(map, 2U)) {
+			cmd.crl1 = parse_xps_command(post.rl1);
+		}
+
+		if (FIELD_SET(map, 3U)) {
+			cmd.crl2 = parse_xps_command(post.rl2);
+		}
+
+		/* add support for reset commands + config reset */
+
+		uint32_t did = 0, ep = 0;
+
+		route_arg_get(req, 0U, &did);
+		route_arg_get(req, 1U, &ep);
+
+		struct caniot_frame q, r;
+		caniot_build_query_command(&q, ep, (uint8_t *)&cmd, sizeof(cmd));
+
+		uint32_t timeout = MIN(req->timeout_ms, 5000U);
+		int ret = ha_ciot_ctrl_query(&q, &r, did, &timeout);
+		if (ret == 0) {
+			ret = json_format_caniot_telemetry_resp(&r, resp, timeout);
+		} else if ((ret == -EAGAIN)) {
+			resp->status_code = 200U;
+		} else if ((ret == -EINVAL)) {
+			resp->status_code = 400U;
+		} else {
+			resp->status_code = 500U;
+		}
+
+		LOG_INF("GET /devices/caniot/%u/endpoints/%u/command -> %d [in %u ms]", did, ep, ret, timeout);
+	} else {
+		resp->status_code = 400U;
+	}
 
 	return ret;
 }

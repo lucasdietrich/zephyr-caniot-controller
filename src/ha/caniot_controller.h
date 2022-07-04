@@ -29,12 +29,13 @@ int ha_ciot_ctrl_send(struct caniot_frame *__RESTRICT req,
  * @param resp
  * @param did
  * @param timeout Timeout in milliseconds (on success, contain the actual time spent in the call)
- * @retval 0 on success
+ * @retval 0 Query sent but not answered because of null timeout
+ * @retval 1 Query sent and answered (delta is written in timeout variable)
+ * @retval 2 Query sent and answered by a device caniot error (delta is written in timeout variable)
  * @retval -EINVAL Invalid data supplied
  * @retval -ENOMEM No memory available for allocating context
- * @retval -EBUSY Returned without waiting.
  * @retval -EAGAIN Waiting period timed out.
- * @retval CANIOT error (errors below -CANIOT_ERROR_BASE)
+ * @retval any other CANIOT error
  */
 int ha_ciot_ctrl_query(struct caniot_frame *__RESTRICT req,
 		       struct caniot_frame *__RESTRICT resp,

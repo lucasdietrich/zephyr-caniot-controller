@@ -19,6 +19,8 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(caniot, LOG_LEVEL_INF);
 
+#define HA_CIOT_QUERY_TIMEOUT_TOLERANCE_MS 50
+
 CAN_DEFINE_MSGQ(can_rxq, 4U);
 
 const struct device *can_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
@@ -79,40 +81,32 @@ K_FIFO_DEFINE(fifo_queries);
 // K_FIFO_DEFINE(fifo_waiting);
 
 typedef enum {
-	SYNCQ_UNDEFINED = 0,
-	SYNCQ_WAITING,
-	SYNCQ_QUEUED,
-	SYNCQ_ANSWERED,
-	SYNCQ_ALREADY,
-	SYNCQ_NOWAIT,
-	SYNCQ_TIMEOUT,
-	SYNCQ_CANIOT_ERROR,
-	SYNCQ_ERROR,
+	SYNCQ_IMMEDIATE, /* Query but returned immediately (as timeout was 0) */
+	SYNCQ_ANSWERED, /* Query answered with a valid response */
+	SYNCQ_ANSWERED_WITH_ERROR, /* Query answered with a CANIOT error */
+	SYNCQ_TIMEOUT, /* Query timed out */
+	SYNCQ_CANCELLED, /* Query cancelled */
+	SYNCQ_ERROR, /* Error during querying */
 } syncq_status_t;
 
 // convert syncq_status_t to string
 static const char *syncq_status_to_str(syncq_status_t event)
 {
 	switch (event) {
-	case SYNCQ_WAITING:
-		return "SYNCQ_WAITING";
-	case SYNCQ_QUEUED:
-		return "SYNCQ_QUEUED";
+	case SYNCQ_IMMEDIATE:
+		return "SYNCQ_IMMEDIATE";
 	case SYNCQ_ANSWERED:
 		return "SYNCQ_ANSWERED";
-	case SYNCQ_ALREADY:
-		return "SYNCQ_ALREADY";
-	case SYNCQ_NOWAIT:
-		return "SYNCQ_NOWAIT";
+	case SYNCQ_ANSWERED_WITH_ERROR:
+		return "SYNCQ_ANSWERED_WITH_ERROR";
 	case SYNCQ_TIMEOUT:
 		return "SYNCQ_TIMEOUT";
-	case SYNCQ_CANIOT_ERROR:
-		return "SYNCQ_CANIOT_ERROR";
+	case SYNCQ_CANCELLED:
+		return "SYNCQ_CANCELLED";
 	case SYNCQ_ERROR:
 		return "SYNCQ_ERROR";
-	case SYNCQ_UNDEFINED:
 	default:
-		return "SYNCQ_UNDEFINED";
+		return "<unknown syncq_status_t>";
 	}
 }
 
@@ -125,9 +119,13 @@ struct syncq
 	
 	struct k_sem _sem;
 
-	/* query waiting to be queued */
+	/* Query status */
 	syncq_status_t status;
 
+	/* error in case caniot_controller_query() returned immediately
+	 */
+	int query_error;
+	
 	/* query queued to be answered */
 	struct caniot_frame *query;
 
@@ -225,16 +223,23 @@ bool event_cb(const caniot_controller_event_t *ev,
 	}
 
 	struct syncq *const qx = ev->user_data;
-	if ((qx != NULL) &&
-	    (ev->context == CANIOT_CONTROLLER_EVENT_CONTEXT_QUERY)) {
+	if ((ev->context == CANIOT_CONTROLLER_EVENT_CONTEXT_QUERY) &&
+	    (qx != NULL)) {
 		LOG_DBG("Query %p answered", qx);
 
-		if (ev->status == CANIOT_CONTROLLER_EVENT_STATUS_OK) {
+		switch (ev->status) {
+		case CANIOT_CONTROLLER_EVENT_STATUS_OK:
 			qx->status = SYNCQ_ANSWERED;
-		} else if (ev->status == CANIOT_CONTROLLER_EVENT_STATUS_ERROR) {
-			qx->status = SYNCQ_CANIOT_ERROR;
-		} else {
+			break;
+		case CANIOT_CONTROLLER_EVENT_STATUS_ERROR:
+			qx->status = SYNCQ_ANSWERED_WITH_ERROR;
+			break;
+		case CANIOT_CONTROLLER_EVENT_STATUS_TIMEOUT:
 			qx->status = SYNCQ_TIMEOUT;
+			break;
+		case CANIOT_CONTROLLER_EVENT_STATUS_CANCELLED:
+			qx->status = SYNCQ_CANCELLED;
+			break;
 		}
 
 		if (response_is_set == true) {
@@ -299,41 +304,36 @@ static void thread(void *_a, void *_b, void *_c)
 			const uint32_t delta = k_uptime_delta32(&reftime);
 			caniot_controller_process_single(&ctrl, delta, resp);
 
-			if (events[1].state == K_POLL_STATE_FIFO_DATA_AVAILABLE) {
-				struct syncq *qx = k_fifo_get(&fifo_queries, K_NO_WAIT);
-				if (qx != NULL) {
-					__ASSERT_NO_MSG(qx->timeout != CANIOT_TIMEOUT_FOREVER);
+			struct syncq *qx;
+			if ((events[1].state == K_POLL_STATE_FIFO_DATA_AVAILABLE) &&
+			    ((qx = k_fifo_get(&fifo_queries, K_NO_WAIT)) != NULL)) {
 
-					ret = caniot_controller_query(&ctrl, qx->did,
-								      qx->query, qx->timeout);
-					log_caniot_frame(qx->query);
+				__ASSERT_NO_MSG(qx->timeout != CANIOT_TIMEOUT_FOREVER);
 
-					if (ret > 0) {
-						/* pending query registered */
-						qx->handle = (uint8_t) ret;
+				ret = caniot_controller_query(&ctrl, qx->did,
+							      qx->query, qx->timeout);
+				log_caniot_frame(qx->query);
 
-						caniot_controller_handle_set_user_data(&ctrl, qx->handle, qx);
-
-						LOG_DBG("Query %p registered", qx);
+				if (ret > 0) {
+					/* pending query registered */
+					qx->handle = (uint8_t)ret;
+					caniot_controller_handle_set_user_data(&ctrl,
+									       qx->handle,
+									       qx);
+				} else {
+					/* no context allocated, return immediately */
+					if (ret == 0) {
+						/* Query sent but returned immediately 
+						 * as timeout is null */
+						qx->status = SYNCQ_IMMEDIATE;
 					} else {
-						if (ret == 0) {
-							qx->status = SYNCQ_NOWAIT;
-
-						} else if (ret == -CANIOT_EAGAIN) {
-							qx->status = SYNCQ_ALREADY;
-							LOG_WRN("Query SYNCQ_ALREADY pending: %d", qx->did);
-							/* requeue the frame for later */
-						} else if (ret < 0) {
-							qx->status = SYNCQ_ERROR;
-							LOG_ERR("Query SYNCQ_ERROR : %d", qx->did);
-						} else {
-							qx->status = SYNCQ_UNDEFINED;
-						}
-
-						qx->delta = k_uptime_delta32(&qx->uptime);
-
-						k_sem_give(&qx->_sem);
+						/* Error */
+						qx->status = SYNCQ_ERROR;
+						qx->query_error = ret;
 					}
+
+					qx->delta = k_uptime_delta32(&qx->uptime);
+					k_sem_give(&qx->_sem);
 				}
 			}
 		} else if (ret == -EAGAIN) { /* k_poll timed out */
@@ -380,26 +380,50 @@ int ha_ciot_ctrl_query(struct caniot_frame *__RESTRICT req,
 	qx->response = resp;
 	qx->timeout = *timeout;
 	qx->uptime = k_uptime_get_32();
+	qx->query_error = 0;
 
 	/* queue synchronous query */
 	k_fifo_put(&fifo_queries, qx);
 
 	/* wait for response */
-	ret = k_sem_take(&qx->_sem, K_MSEC(qx->timeout));
+	ret = k_sem_take(&qx->_sem, K_MSEC(qx->timeout + HA_CIOT_QUERY_TIMEOUT_TOLERANCE_MS));
 	__ASSERT(ret == 0, "k_sem_take shouldn't timeout");
-
-	if (qx->status == SYNCQ_ANSWERED) {
-
-		/* actual time the query took */
-		*timeout = qx->delta;
-
-		ret = 0;
-		LOG_INF("Sync query completed in %u ms with status : %s",
-			qx->delta, syncq_status_to_str(qx->status));
-	} else { /* other error */
-		LOG_WRN("Sync query completed in %u ms with status : %s",
-			qx->delta, syncq_status_to_str(qx->status));
+	if (ret == -EAGAIN) {
+		ret = -EAGAIN;
+		LOG_ERR("k_sem_take( ...) Should not timeout (%u)", qx->timeout);
+		goto exit;
 	}
+	
+	switch (qx->status) {
+	case SYNCQ_IMMEDIATE:
+		ret = 0;
+		*timeout = 0;
+		break;
+	case SYNCQ_ANSWERED:
+		ret = 1;
+		break;
+	case SYNCQ_ANSWERED_WITH_ERROR:
+		ret = 2;
+		break;
+	case SYNCQ_TIMEOUT:
+		ret = -EAGAIN;
+		break;
+	case SYNCQ_ERROR:
+		ret = qx->query_error;
+		break;
+	case SYNCQ_CANCELLED:
+		ret = -ECANCELED;
+		break;
+	default:
+		LOG_ERR("Unhandled error ret=%d", ret);
+		ret = -1; /* any unhandled error */
+		break;
+	}
+
+	*timeout = qx->delta; /* actual time the query took */
+
+	LOG_DBG("Sync query completed in %u ms with status %s (ret = %d)",
+		qx->delta, syncq_status_to_str(qx->status), ret);
 
 exit:
 	/* cleanup */

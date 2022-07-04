@@ -372,29 +372,26 @@ components:
           $ref: "#/components/schemas/XPSCommand"
         rl2:
           $ref: "#/components/schemas/XPSCommand"
-        special:
-          type: object
-          description: Device management commands
-          properties:
-            hr:
-              description: "Hardware Reset"
-              type: boolean
-              default: false
-            sr:
-              description: "Software Reset"
-              type: boolean
-              default: false
-            wr:
-              description: "Rest by Watchdog"
-              type: boolean
-              default: false
-            wdt:
-              description: "Watchdog configuration"
-              $ref: "#/components/schemas/TSCommand"
-            cfgr:
-              description: "Configuration reset"
-              type: boolean
-              default: false
+        
+        hardware_reset:
+          description: "Hardware Reset"
+          type: boolean
+          default: false
+        software_reset:
+          description: "Software Reset"
+          type: boolean
+          default: false
+        wdt_reset:
+          description: "Rest by Watchdog"
+          type: boolean
+          default: false
+        wdt:
+          description: "Watchdog configuration"
+          $ref: "#/components/schemas/TSCommand"
+        config_reset:
+          description: "Configuration reset"
+          type: boolean
+          default: false
 
   parameters:
     DeviceID:

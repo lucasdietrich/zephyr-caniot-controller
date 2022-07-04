@@ -56,5 +56,7 @@ int rest_devices_garage_post(struct http_request *req,
 int rest_devices_caniot_telemetry(struct http_request *req,
 				  struct http_response *resp);
 
+int rest_devices_caniot_command(struct http_request *req,
+				struct http_response *resp);
 
 #endif
