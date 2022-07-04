@@ -555,7 +555,7 @@ static void caniot_device_cb(ha_dev_t *dev,
 	struct caniot_records_encoding_context *const ctx =
 		(struct caniot_records_encoding_context *)user_data;
 	struct json_caniot_record *const rec = &ctx->arr.records[ctx->arr.count];
-	struct ha_caniot_dataset *const dt = &dev->data.caniot;
+	struct ha_caniot_blt_dataset *const dt = &dev->data.caniot;
 
 	rec->base.timestamp = dev->data.measurements_timestamp;
 	rec->did = (uint32_t)dev->addr.mac.addr.caniot;
@@ -712,6 +712,11 @@ int rest_devices_garage_post(struct http_request *req,
 	return 0;
 }
 
+static const struct json_obj_descr json_caniot_query_telemetry_temperature_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_temperature_record, repr, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_temperature_record, value, JSON_TOK_NUMBER),
+};
+
 static const struct json_obj_descr json_caniot_query_telemetry_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, did, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, base.timestamp, JSON_TOK_NUMBER),
@@ -719,7 +724,7 @@ static const struct json_obj_descr json_caniot_query_telemetry_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, dio, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, pdio, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_record, temperatures, HA_CANIOT_MAX_TEMPERATURES, temperatures_count,
-		json_caniot_temperature_record_descr, ARRAY_SIZE(json_caniot_temperature_record_descr)),
+		json_caniot_query_telemetry_temperature_descr, ARRAY_SIZE(json_caniot_query_telemetry_temperature_descr)),
 };
 
 /*
@@ -733,6 +738,8 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 					     struct http_response *resp,
 					     uint32_t timeout)
 {
+	char temp_repr[HA_CANIOT_MAX_TEMPERATURES][9U];
+
 	struct json_caniot_record json = {
 		.did = CANIOT_DID(r->id.cls, r->id.sid),
 		.base = {
@@ -741,8 +748,21 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 		.duration = timeout,
 		.dio = AS_BOARD_CONTROL_TELEMETRY(r->buf)->dio,
 		.pdio = AS_BOARD_CONTROL_TELEMETRY(r->buf)->pdio,
-		.temperatures_count = 0U, /* TODO temperatures */
+		.temperatures_count = HA_CANIOT_MAX_TEMPERATURES, /* TODO temperatures */
 	};
+
+	json.temperatures[0].value = caniot_dt_T10_to_T16(AS_BOARD_CONTROL_TELEMETRY(r->buf)->int_temperature);
+	json.temperatures[1].value = caniot_dt_T10_to_T16(AS_BOARD_CONTROL_TELEMETRY(r->buf)->ext_temperature);
+	json.temperatures[2].value = caniot_dt_T10_to_T16(AS_BOARD_CONTROL_TELEMETRY(r->buf)->ext_temperature2);
+	json.temperatures[3].value = caniot_dt_T10_to_T16(AS_BOARD_CONTROL_TELEMETRY(r->buf)->ext_temperature3);
+
+	for (uint8_t i = 0; i < HA_CANIOT_MAX_TEMPERATURES; i++) {
+		json.temperatures[i].repr = temp_repr[i];
+
+		sprintf(temp_repr[i], "%.2f",
+			json.temperatures[i].value / 100.0);
+	}
+
 	resp->status_code = 200U;
 
 	return rest_encode_response_json(json_caniot_query_telemetry_descr,
@@ -750,20 +770,18 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 					 &json, resp);
 }
 
-int rest_devices_caniot_telemetry(struct http_request *req,
-				  struct http_response *resp)
+/* QUERY CANIOT COMMAND/TELEMETRY and BUILD JSON RESPONSE */
+int q_ct_to_json_resp(struct caniot_frame *q,
+		      caniot_did_t did,
+		      uint32_t *timeout,
+		      struct http_response *resp)
 {
-	uint32_t did = 0, ep = 0;
-	route_arg_get(req, 0U, &did);
-	route_arg_get(req, 1U, &ep);
+	struct caniot_frame r;
 
-	struct caniot_frame q, r;
-	caniot_build_query_telemetry(&q, ep);
+	int ret = ha_ciot_ctrl_query(q, &r, did, timeout);
 
-	uint32_t timeout = MIN(req->timeout_ms, 5000U);
-	int ret = ha_ciot_ctrl_query(&q, &r, did, &timeout);
 	if (ret == 1) {
-		ret = json_format_caniot_telemetry_resp(&r, resp, timeout);
+		ret = json_format_caniot_telemetry_resp(&r, resp, *timeout);
 	} else if (ret == 0) {
 		/* timeout = 0 */
 	} else if (ret == 2) {
@@ -776,6 +794,24 @@ int rest_devices_caniot_telemetry(struct http_request *req,
 		resp->status_code = 500U;
 	}
 
+	return 0;
+}
+
+int rest_devices_caniot_telemetry(struct http_request *req,
+				  struct http_response *resp)
+{
+	/* get ids */
+	uint32_t did = 0, ep = 0;
+	route_arg_get(req, 0U, &did);
+	route_arg_get(req, 1U, &ep);
+
+	/* build CANIOT query */
+	struct caniot_frame q;
+	caniot_build_query_telemetry(&q, ep);
+
+	/* execute and build appropriate response */
+	uint32_t timeout = MIN(req->timeout_ms, 5000U);
+	int ret = q_ct_to_json_resp(&q, did, &timeout, resp);
 	LOG_INF("GET /devices/caniot/%u/endpoints/%u/telemetry -> %d [in %u ms]", did, ep, ret, timeout);
 
 	return 0;
@@ -827,53 +863,50 @@ int rest_devices_caniot_command(struct http_request *req,
 				 ARRAY_SIZE(json_caniot_blcommand_post_descr),
 				 &post);
 
-	if (map > 0) {
-		/* build command */
-		struct caniot_board_control_command cmd;
-		caniot_board_control_command_init(&cmd);
-
-		if (FIELD_SET(map, 0U)) {
-			cmd.coc1 = parse_xps_command(post.oc1);
-		}
-
-		if (FIELD_SET(map, 1U)) {
-			cmd.coc2 = parse_xps_command(post.oc2);
-		}
-
-		if (FIELD_SET(map, 2U)) {
-			cmd.crl1 = parse_xps_command(post.rl1);
-		}
-
-		if (FIELD_SET(map, 3U)) {
-			cmd.crl2 = parse_xps_command(post.rl2);
-		}
-
-		/* add support for reset commands + config reset */
-
-		uint32_t did = 0, ep = 0;
-
-		route_arg_get(req, 0U, &did);
-		route_arg_get(req, 1U, &ep);
-
-		struct caniot_frame q, r;
-		caniot_build_query_command(&q, ep, (uint8_t *)&cmd, sizeof(cmd));
-
-		uint32_t timeout = MIN(req->timeout_ms, 5000U);
-		int ret = ha_ciot_ctrl_query(&q, &r, did, &timeout);
-		if (ret == 0) {
-			ret = json_format_caniot_telemetry_resp(&r, resp, timeout);
-		} else if ((ret == -EAGAIN)) {
-			resp->status_code = 200U;
-		} else if ((ret == -EINVAL)) {
-			resp->status_code = 400U;
-		} else {
-			resp->status_code = 500U;
-		}
-
-		LOG_INF("GET /devices/caniot/%u/endpoints/%u/command -> %d [in %u ms]", did, ep, ret, timeout);
-	} else {
+	/* if no commands are given, we do nothing */
+	if (map <= 0) {
 		resp->status_code = 400U;
+		goto exit;
+	}
+		
+	/* build command */
+	struct caniot_board_control_command cmd;
+	caniot_board_control_command_init(&cmd);
+
+	if (FIELD_SET(map, 0U)) {
+		cmd.coc1 = parse_xps_command(post.oc1);
 	}
 
+	if (FIELD_SET(map, 1U)) {
+		cmd.coc2 = parse_xps_command(post.oc2);
+	}
+
+	if (FIELD_SET(map, 2U)) {
+		cmd.crl1 = parse_xps_command(post.rl1);
+	}
+
+	if (FIELD_SET(map, 3U)) {
+		cmd.crl2 = parse_xps_command(post.rl2);
+	}
+
+	/* TODO add support for reset commands + config reset */
+
+	/* parse did, ep */
+	uint32_t did = 0, ep = 0;
+
+	route_arg_get(req, 0U, &did);
+	route_arg_get(req, 1U, &ep);
+
+	/* build CANIOT query */
+	struct caniot_frame q;
+	caniot_build_query_command(&q, ep, (uint8_t *)&cmd, sizeof(cmd));
+
+	/* execute and build appropriate response */
+	uint32_t timeout = MIN(req->timeout_ms, 5000U);
+	ret = q_ct_to_json_resp(&q, did, &timeout, resp);
+
+	LOG_INF("GET /devices/caniot/%u/endpoints/%u/command -> %d [in %u ms]", did, ep, ret, timeout);
+
+exit:
 	return ret;
 }

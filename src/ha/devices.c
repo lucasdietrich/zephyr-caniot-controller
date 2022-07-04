@@ -261,12 +261,7 @@ static int handle_ble_xiaomi_record(xiaomi_record_t *rec)
 
 	/* device does exist now, update it measurements */
 	dev->data.measurements_timestamp = rec->time;
-	dev->data.xiaomi.rssi = rec->measurements.rssi;
-	dev->data.xiaomi.temperature.type = HA_DEV_SENSOR_TYPE_EMBEDDED;
-	dev->data.xiaomi.temperature.value = rec->measurements.temperature;
-	dev->data.xiaomi.humidity = rec->measurements.humidity;
-	dev->data.xiaomi.battery_mv = rec->measurements.battery_mv;
-	dev->data.xiaomi.battery_level = rec->measurements.battery_level;
+	ha_data_ble_to_xiaomi(&dev->data.xiaomi, rec);
 
 	return 0;
 }
@@ -355,31 +350,6 @@ exit:
 	return ret;
 }
 
-static int save_caniot_temperature(ha_dev_t *dev,
-				   uint8_t temp_index,
-				   uint16_t temperature,
-				   ha_dev_sensor_type_t sens_type)
-{
-	int ret = -EINVAL;
-
-	if ((dev != NULL) &&
-	    (dev->addr.type == HA_DEV_TYPE_CANIOT) &&
-	    (temp_index < ARRAY_SIZE(dev->data.caniot.temperatures))) {
-		if (CANIOT_DT_VALID_T10_TEMP(temperature)) {
-			dev->data.caniot.temperatures[temp_index].type = sens_type;
-			dev->data.caniot.temperatures[temp_index].value =
-				caniot_dt_T10_to_T16(temperature);
-			ret = 1U;
-		} else {
-			dev->data.caniot.temperatures[temp_index].type =
-				HA_DEV_SENSOR_TYPE_NONE;
-			ret = 0U;
-		}
-	}
-
-	return ret;
-}
-
 int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 				     caniot_did_t did,
 				     struct caniot_board_control_telemetry *data)
@@ -407,18 +377,7 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 
 	/* device does exist now, update it measurements */
 	dev->data.measurements_timestamp = timestamp;
-
-	save_caniot_temperature(dev, 0U, data->int_temperature,
-				HA_DEV_SENSOR_TYPE_EMBEDDED);
-	save_caniot_temperature(dev, 1U, data->ext_temperature,
-				HA_DEV_SENSOR_TYPE_EXTERNAL1);
-	save_caniot_temperature(dev, 2U, data->ext_temperature2,
-				HA_DEV_SENSOR_TYPE_EXTERNAL2);
-	save_caniot_temperature(dev, 3U, data->ext_temperature3,
-				HA_DEV_SENSOR_TYPE_EXTERNAL3);
-
-	dev->data.caniot.dio = AS_BOARD_CONTROL_TELEMETRY(data)->dio;
-	dev->data.caniot.pdio = AS_BOARD_CONTROL_TELEMETRY(data)->pdio;
+	ha_data_can_to_blt(&dev->data.caniot, data);
 
 	LOG_INF("Registered CANIOT record for device 0x%hhx", did);
 

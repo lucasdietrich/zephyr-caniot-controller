@@ -3,12 +3,4 @@
 
 #include <zephyr.h>
 
-#define HA_CANIOT_MAX_DEVICES 5U
-#define HA_XIAOMI_MAX_DEVICES 15U
-
-#define HA_MAX_DEVICES (HA_CANIOT_MAX_DEVICES + HA_XIAOMI_MAX_DEVICES)
-
-// TODO move to CANIOT library
-#define HA_CANIOT_MAX_TEMPERATURES 4U
-
 #endif /* _APP_CONFIG_H_ */

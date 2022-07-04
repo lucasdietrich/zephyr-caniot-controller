@@ -107,7 +107,10 @@
                 "cstdlib": "c",
                 "net_ip.h": "c",
                 "array": "c",
-                "string_view": "c"
+                "string_view": "c",
+                "data.h": "c",
+                "ranges": "c",
+                "span": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",
