@@ -152,50 +152,21 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                oc1:
-                  $ref: "#/components/schemas/XPSCommand"
-                oc2:
-                  $ref: "#/components/schemas/XPSCommand"
-                rl1:
-                  $ref: "#/components/schemas/XPSCommand"
-                rl2:
-                  $ref: "#/components/schemas/XPSCommand"
-                special:
-                  type: object
-                  description: Device management commands
-                  properties:
-                    hr:
-                      description: "Hardware Reset"
-                      type: boolean
-                      default: false
-                    sr:
-                      description: "Software Reset"
-                      type: boolean
-                      default: false
-                    wr:
-                      description: "Rest by Watchdog"
-                      type: boolean
-                      default: false
-                    wdt:
-                      description: "Watchdog configuration"
-                      $ref: "#/components/schemas/TSCommand"
-                    cfgr:
-                      description: "Configuration reset"
-                      type: boolean
-                      default: false
-
-          # application/json:
-          # any JSON object
+              $ref: "#/components/schemas/BoardLevelCommand"
 
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoardLevelTelemetry"
         '404':
           description: CANIOT device or endpoint not found
         '400':
           description: Request malformed
+        '500':
+          description: Server error (memory, args, ...)
     
 
   /devices/caniot/{did}/endpoints/{ep}/telemetry:
@@ -208,6 +179,10 @@ paths:
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoardLevelTelemetry"
         '404':
           description: CANIOT device or endpoint not found
         '400':
@@ -316,6 +291,110 @@ components:
           $ref: "#/components/schemas/SSCommand"
         right_door:
           $ref: "#/components/schemas/SSCommand"
+
+    BoardLevelTelemetry:
+      description: Board level telemetry
+      type: object
+      properties:
+        timestamp:
+          type: integer
+          example: 1653726896
+        duration:
+          description: "Duration in mc"
+          type: integer
+          example: 6
+        dio:
+          type: integer
+          example: 240
+        pdio:
+          type: integer
+          example: 0
+        temperatures:
+          type: array
+          items:
+            type: object
+            properties:
+              repr:
+                type: string
+                example: "24.20"
+              value: 
+                type: integer
+                example: 2400
+              sens_type:
+                type: integer
+                example: 4
+        # oc1: 
+        #   type: integer
+        #   example: 0
+        # oc2:
+        #   type: integer
+        #   example: 0
+        # rl1:
+        #   type: integer
+        #   example: 0
+        # rl2:
+        #   type: integer
+        #   example: 0
+        # in1:
+        #   type: integer
+        #   example: 0
+        # in2:
+        #   type: integer
+        #   example: 0
+        # in3:
+        #   type: integer
+        #   example: 0
+        # in4:
+        #   type: integer
+        #   example: 0
+        # poc1:
+        #   type: integer
+        #   example: 0
+        # poc2:
+        #   type: integer
+        #   example: 0
+        # prl1:
+        #   type: integer
+        #   example: 0
+        # prl2:
+        #   type: integer
+        #   example: 0
+
+    BoardLevelCommand:
+      description: CANIOT Board level command
+      type: object
+      properties:
+        oc1:
+          $ref: "#/components/schemas/XPSCommand"
+        oc2:
+          $ref: "#/components/schemas/XPSCommand"
+        rl1:
+          $ref: "#/components/schemas/XPSCommand"
+        rl2:
+          $ref: "#/components/schemas/XPSCommand"
+        special:
+          type: object
+          description: Device management commands
+          properties:
+            hr:
+              description: "Hardware Reset"
+              type: boolean
+              default: false
+            sr:
+              description: "Software Reset"
+              type: boolean
+              default: false
+            wr:
+              description: "Rest by Watchdog"
+              type: boolean
+              default: false
+            wdt:
+              description: "Watchdog configuration"
+              $ref: "#/components/schemas/TSCommand"
+            cfgr:
+              description: "Configuration reset"
+              type: boolean
+              default: false
 
   parameters:
     DeviceID:

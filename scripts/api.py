@@ -1,3 +1,4 @@
+from lib2to3.pgen2.token import OP
 import requests
 from requests.auth import HTTPBasicAuth
 from typing import List, Iterable, Tuple, Dict, Union, Any, Optional, Callable
@@ -44,36 +45,54 @@ class Controller:
 
         self.url = URL(f"{self.host}:{self.port}", secure=self.secure)
 
-    def write_attribute(self, did: int, attr: int, value: Union[int, bytes]):
-        method, path = urls[API.WriteAttribute]
+        self.headers = {
+            "Timeout-ms": str(int(self.timeout * 1000)),
+        }
+
+    def _request(self, api: API, json: Optional[Dict], args: Dict = None, headers: Dict = None):
+        method, path = urls[api]
+
+        if args is None:
+            args = dict()
+
+        if headers is None:
+            headers = dict()
 
         return requests.request(
             method=method.name,
-            url=(self.url + path).project(did=did, attr=attr),
-            data=value,
-            timeout=self.timeout,
-            json={
-                "value": BytesToU32(value)
-            }
+            url=(self.url + path).project(**args),
+            json=json,
+            timeout=self.get_req_timeout(),
+            headers=self.headers | headers
         )
+
+    def get_req_timeout(self) -> float:
+        return self.timeout + 2.0
+
+    def write_attribute(self, did: int, attr: int, value: Union[int, bytes]):
+
+        data = {
+            "value": BytesToU32(value)
+        }
+
+        args = {
+            "did": did,
+            "attr": attr
+        }
+
+        return self._request(API.WriteAttribute, data, args)
 
     def read_attribute(self, did: int, attr: int) -> requests.Response:
-        method, path = urls[API.ReadAttribute]
-
-        return requests.request(
-            method=method.name,
-            url=(self.url + path).project(did=did, attr=attr),
-            timeout=self.timeout
-        )
+        return self._request(API.ReadAttribute, None, {
+            "did": did,
+            "attr": attr
+        })
 
     def request_telemetry(self, did: int, ep: int) -> requests.Response:
-        method, path = urls[API.RequestTelemetry]
-
-        return requests.request(
-            method=method.name,
-            url=(self.url + path).project(did=did, ep=ep),
-            timeout=self.timeout
-        )
+        return self._request(API.RequestTelemetry, None, {
+            "did": did,
+            "ep": ep
+        })
 
     def __enter__(self, did: int) -> DeviceContext:
         return DeviceContext(did)
@@ -84,14 +103,16 @@ if __name__ == "__main__":
 
     did = 0x20
     ep = 3
+    n = 1
 
-    res = ctrl.request_telemetry(did, ep)
+    for i in range(n):
+        res = ctrl.request_telemetry(did, ep)
 
-    print(res)
-    if res is not None:
-        print(res.status_code)
+        print(res)
+        if res is not None:
+            print(res.status_code)
 
-        try:
-            pprint.pprint(res.json())
-        except:
-            print(res.text)
+            try:
+                pprint.pprint(res.json())
+            except:
+                print(res.text)

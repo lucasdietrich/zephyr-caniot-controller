@@ -3,6 +3,10 @@ cmake_minimum_required(VERSION 3.13.1)
 # set the variables before calling the cmake command
 set(ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/modules/uart_ipc ${CMAKE_CURRENT_SOURCE_DIR}/modules/caniot-lib)
 
+if (DTC_OVERLAY_FILE STREQUAL "")
+    set(DTC_OVERLAY_FILE "nucleo_f429zi.overlay ipc_to_custom_acn52840.overlay")
+endif()
+
 include($ENV{ZEPHYR_BASE}/cmake/app/boilerplate.cmake NO_POLICY_SCOPE)
 
 project(caniot-controller)

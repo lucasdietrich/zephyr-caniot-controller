@@ -418,6 +418,7 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 				HA_DEV_SENSOR_TYPE_EXTERNAL3);
 
 	dev->data.caniot.dio = AS_BOARD_CONTROL_TELEMETRY(data)->dio;
+	dev->data.caniot.pdio = AS_BOARD_CONTROL_TELEMETRY(data)->pdio;
 
 	LOG_INF("Registered CANIOT record for device 0x%hhx", did);
 

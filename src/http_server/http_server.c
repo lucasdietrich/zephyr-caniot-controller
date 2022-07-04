@@ -557,6 +557,7 @@ static void handle_conn(http_connection_t *conn)
         /* reset req and resp values */
         req.payload.loc = NULL;
         req.payload.len = 0;
+	req.timeout_ms = 0;
 
         resp.content_len = 0,
         resp.status_code = 200;

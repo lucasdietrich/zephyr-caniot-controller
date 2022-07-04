@@ -120,6 +120,8 @@ struct ha_caniot_dataset
 		};
 		uint8_t dio;
 	};
+
+	uint8_t pdio;
 };
 
 struct ha_f429zi_dataset

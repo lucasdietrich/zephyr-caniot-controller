@@ -8,7 +8,6 @@
 #include <caniot/caniot.h>
 #include <caniot/device.h>
 
-
 /**
  * @brief Send a CANIOT query, non-blocking
  * 
@@ -16,7 +15,8 @@
  * 
  * @param req 
  * @param did 
- * @return int 
+ * @retval 0 on success
+ * @retval CANIOT error (errors below -CANIOT_ERROR_BASE)
  */
 int ha_ciot_ctrl_send(struct caniot_frame *__RESTRICT req,
 		      caniot_did_t did);
@@ -25,13 +25,21 @@ int ha_ciot_ctrl_send(struct caniot_frame *__RESTRICT req,
  * 
  * Note: Thread safe
  * 
- * @param frame 
- * @return int 
+ * @param req
+ * @param resp
+ * @param did
+ * @param timeout Timeout in milliseconds (on success, contain the actual time spent in the call)
+ * @retval 0 on success
+ * @retval -EINVAL Invalid data supplied
+ * @retval -ENOMEM No memory available for allocating context
+ * @retval -EBUSY Returned without waiting.
+ * @retval -EAGAIN Waiting period timed out.
+ * @retval CANIOT error (errors below -CANIOT_ERROR_BASE)
  */
 int ha_ciot_ctrl_query(struct caniot_frame *__RESTRICT req,
 		       struct caniot_frame *__RESTRICT resp,
 		       caniot_did_t did,
-		       uint32_t timeout);
+		       uint32_t *timeout);
 
 typedef void (*ha_ciot_ctrl_did_cb_t)(caniot_did_t did,
 				      const struct caniot_frame *frame,

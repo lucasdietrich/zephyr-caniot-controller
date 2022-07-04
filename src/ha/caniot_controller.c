@@ -17,7 +17,7 @@
 #include "../utils.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(caniot, LOG_LEVEL_WRN);
+LOG_MODULE_REGISTER(caniot, LOG_LEVEL_INF);
 
 CAN_DEFINE_MSGQ(can_rxq, 4U);
 
@@ -42,7 +42,7 @@ static int z_can_init(void)
 
 	/* attach message q */
 	struct zcan_filter filter = {
-		.id_type = CAN_ID_STD, /* currently we ignore extended IDs */
+		.id_type = 0, /* currently we ignore extended IDs */
 	};
 
 	int ret = can_attach_msgq(can_dev, &can_rxq, &filter);
@@ -151,7 +151,7 @@ struct syncq
 		/* contain update on creation */
 		uint32_t uptime;
 
-		/* and duration when answered (or timeout) */
+		/* Duration if answered (or timeout) */
 		uint32_t delta;
 	};	
 };
@@ -352,24 +352,25 @@ static void thread(void *_a, void *_b, void *_c)
 int ha_ciot_ctrl_query(struct caniot_frame *__RESTRICT req,
 		       struct caniot_frame *__RESTRICT resp,
 		       caniot_did_t did,
-		       uint32_t timeout)
+		       uint32_t *timeout)
 {
 	int ret = -EINVAL;
 	struct syncq *qx = NULL;
 
-	if ((req == NULL) || (resp == NULL)) {
+	if ((req == NULL) || (resp == NULL) || (timeout == NULL)) {
 		goto exit;
 	}
 
 	/* forever wait not supported */
-	if (timeout == CANIOT_TIMEOUT_FOREVER) {
+	if (*timeout == CANIOT_TIMEOUT_FOREVER) {
 		goto exit;
-	} else if (timeout == 0) {
+	} else if (*timeout == 0) {
 		LOG_WRN("Timeout=%d not recommended, use ha_ciot_ctrl_send() instead", 0);
 	}
 
 	/* alloc and prepare */
-	if (k_mem_slab_alloc(&sq_pool, (void **)&qx, K_NO_WAIT) != 0) {
+	ret = k_mem_slab_alloc(&sq_pool, (void **)&qx, K_NO_WAIT);
+	if (ret != 0) {
 		goto exit;
 	}
 
@@ -377,22 +378,25 @@ int ha_ciot_ctrl_query(struct caniot_frame *__RESTRICT req,
 	qx->did = did;
 	qx->query = req;
 	qx->response = resp;
-	qx->timeout = timeout;
+	qx->timeout = *timeout;
 	qx->uptime = k_uptime_get_32();
 
 	/* queue synchronous query */
 	k_fifo_put(&fifo_queries, qx);
 
 	/* wait for response */
-	ret = k_sem_take(&qx->_sem, K_MSEC(qx->timeout + 10000U));
+	ret = k_sem_take(&qx->_sem, K_MSEC(qx->timeout));
 	__ASSERT(ret == 0, "k_sem_take shouldn't timeout");
 
 	if (qx->status == SYNCQ_ANSWERED) {
+
+		/* actual time the query took */
+		*timeout = qx->delta;
+
 		ret = 0;
 		LOG_INF("Sync query completed in %u ms with status : %s",
 			qx->delta, syncq_status_to_str(qx->status));
 	} else { /* other error */
-		ret = -1;
 		LOG_WRN("Sync query completed in %u ms with status : %s",
 			qx->delta, syncq_status_to_str(qx->status));
 	}

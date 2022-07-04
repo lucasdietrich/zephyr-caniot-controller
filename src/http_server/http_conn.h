@@ -8,9 +8,25 @@
 #include <net/net_ip.h>
 #include <net/http_parser.h>
 
+#include <sys/dlist.h>
+
 #include "http_request.h"
 
-typedef struct
+struct http_connection;
+
+struct http_request_header
+{
+	/* header anem "Timeout", ... */
+	const char *name;
+
+	uint16_t len;
+
+	int (*handler)(const struct http_request_header *hdr,
+		       struct http_connection *conn,
+		       const char *value);
+};
+
+struct http_connection
 {
         /* INTERNAL */
         struct sockaddr addr;
@@ -22,14 +38,11 @@ typedef struct
 	 * and not the connection structure, this solves also above problem */
         struct http_parser parser;
 
-        enum {
-                HEADER_NONE = 0,
-                HEADER_CONNECTION,
-                HEADER_AUTH,
+	/* Haader currently being parsed */
+	const struct http_request_header *_parsing_cur_header;
 
-		/* TODO : https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive */
-		HEADER_KEEP_ALIVE,
-        } parsing_header;
+	/* headers values (dynamically allocated and freed, using HEAP/MEMSLAB ) */
+	sys_dlist_t _headers;
 
         /* tells if HTTP request is complete */
         uint8_t complete : 1;
@@ -47,7 +60,9 @@ typedef struct
 
         struct http_request *req;
         struct http_response *resp;
-} http_connection_t;
+};
+
+typedef struct http_connection http_connection_t;
 
 void http_conn_init_pool(void);
 

@@ -17,6 +17,11 @@ struct http_request
 	 */
         enum http_method method;
 
+	/* Timeout of the request in ms (to be used by the app)
+	 * - Timeout of 0 means no timeout
+	 */
+	uint32_t timeout_ms;
+
 	/* parsed url */
         char url[64U];
         size_t url_len;

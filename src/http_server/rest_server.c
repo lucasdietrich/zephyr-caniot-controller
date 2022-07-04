@@ -30,6 +30,7 @@
 
 #include "system.h"
 #include "config.h"
+#include "net_time.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_DBG);
@@ -483,23 +484,31 @@ static const struct json_obj_descr json_caniot_temperature_record_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_temperature_record, sens_type, JSON_TOK_NUMBER),
 };
 
+/* todo, rename to json_caniot_telemetry */
 struct json_caniot_record
 {
 	uint32_t did;
 
+	/* device base data */
 	struct json_device_base base;
+
+	/* request duration (in case of a request) */
+	uint32_t duration;
+
+	uint32_t dio;
+	uint32_t pdio;
 
 	struct json_caniot_temperature_record temperatures[HA_CANIOT_MAX_TEMPERATURES];
 	uint32_t temperatures_count;
-	uint32_t dio;
 };
 
 static const struct json_obj_descr json_caniot_record_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, did, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM_NAMED(struct json_caniot_record, "timestamp", base.timestamp, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, dio, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, pdio, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_record, temperatures, HA_CANIOT_MAX_TEMPERATURES, temperatures_count,
 		json_caniot_temperature_record_descr, ARRAY_SIZE(json_caniot_temperature_record_descr)),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, dio, JSON_TOK_NUMBER),
 };
 
 
@@ -535,6 +544,8 @@ static void caniot_device_cb(ha_dev_t *dev,
 	rec->base.timestamp = dev->data.measurements_timestamp;
 	rec->did = (uint32_t) dev->addr.mac.addr.caniot;
 	rec->temperatures_count = 0U;
+	rec->dio = dev->data.caniot.dio;
+	rec->pdio = dev->data.caniot.pdio;
 
 	/* encode temperatures */
 	for (size_t i = 0; i < HA_CANIOT_MAX_TEMPERATURES; i++) {
@@ -552,8 +563,6 @@ static void caniot_device_cb(ha_dev_t *dev,
 			rec->temperatures_count++;
 		}
 	}
-
-	rec->dio = dev->data.caniot.dio;
 
 	ctx->arr.count++;
 }
@@ -614,7 +623,8 @@ int rest_caniot_query_telemetry(struct http_request *req,
 	caniot_build_query_command(&query, CANIOT_ENDPOINT_APP, (uint8_t *)&buf, sizeof(buf));
 	const caniot_did_t did = CANIOT_DID(CANIOT_DEVICE_CLASS0, CANIOT_DEVICE_SID4);
 	
-	ha_ciot_ctrl_query(&query, &response, did, 1000U);
+	uint32_t timeout = 1000U;
+	ha_ciot_ctrl_query(&query, &response, did, &timeout);
 	
 	return 0;
 }
@@ -698,15 +708,62 @@ int rest_devices_garage_post(struct http_request *req,
 	return 0;
 }
 
+static const struct json_obj_descr json_caniot_query_telemetry_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, did, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, duration, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, dio, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, pdio, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_record, temperatures, HA_CANIOT_MAX_TEMPERATURES, temperatures_count,
+		json_caniot_temperature_record_descr, ARRAY_SIZE(json_caniot_temperature_record_descr)),
+};
+
+/* 
+[lucas@fedora stm32f429zi-caniot-controller]$ python3 scripts/api.py
+<Response [200]>
+200
+{'did': 32, 'dio': 240, 'duration': 2006, 'pdio': 0, 'temperatures': []}
+*/
+
 int rest_devices_caniot_telemetry(struct http_request *req,
 				  struct http_response *resp)
 {
-	uint32_t did, ep;
+	uint32_t did = 0, ep = 0;
 
 	route_arg_get(req, 0U, &did);
 	route_arg_get(req, 1U, &ep);
 
-	LOG_INF("GET /devices/caniot/%u/endpoints/%u/telemetry", did, ep);
+	/* TODO, check data did and ep are valid */
 
-	return 0;
+	struct caniot_frame q, r;
+	caniot_build_query_telemetry(&q, ep);
+
+	uint32_t timeout = MIN(req->timeout_ms, 5000U);
+	int ret = ha_ciot_ctrl_query(&q, &r, did, &timeout);
+	if (ret == 0) {
+		struct json_caniot_record json = {
+			.did = did,
+			.base = {
+				.timestamp = net_time_get(),
+			},
+			.duration = timeout,
+			.dio = AS_BOARD_CONTROL_TELEMETRY(r.buf)->dio,
+			.pdio = AS_BOARD_CONTROL_TELEMETRY(r.buf)->pdio,
+			.temperatures_count = 0U, /* TODO temperatures */
+		};
+		resp->status_code = 200U;
+
+		ret = rest_encode_response_json(json_caniot_query_telemetry_descr,
+						ARRAY_SIZE(json_caniot_query_telemetry_descr),
+						&json, resp);
+	} else if ((ret == -EAGAIN) ) {
+		resp->status_code = 200U;
+	} else if ((ret == -EINVAL) ) {
+		resp->status_code = 400U;
+	} else {
+		resp->status_code = 500U;
+	}
+
+	LOG_INF("GET /devices/caniot/%u/endpoints/%u/telemetry -> %d [in %u ms]", did, ep, ret, timeout);
+
+	return ret;
 }

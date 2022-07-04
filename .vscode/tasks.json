@@ -52,7 +52,7 @@
             },
             "options": {
                 "statusbar": {
-                    "hide": false
+                    "hide": true
                 }
             },
             "problemMatcher": []
