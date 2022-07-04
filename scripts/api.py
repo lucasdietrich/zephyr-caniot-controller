@@ -93,6 +93,19 @@ class Controller:
             "did": did,
             "ep": ep
         })
+    
+    def command(self, did: int, ep: int, coc1: int = 0, coc2: int = 0, crl1: int = 0, crl2: int = 0) -> requests.Response:
+        XPS = ["none", "set_on", "set_off", "toggle", "reset", "pulse_on", "pulse_off", "pulse_cancel"]
+        
+        return self._request(API.Command, json={
+            "coc1": XPS[coc1],
+            "coc2": XPS[coc2],
+            "crl1": XPS[crl1],
+            "crl2": XPS[crl2]
+        }, args={
+            "did": did,
+            "ep": ep,
+        })
 
     def __enter__(self, did: int) -> DeviceContext:
         return DeviceContext(did)
@@ -105,14 +118,19 @@ if __name__ == "__main__":
     ep = 3
     n = 1
 
-    for i in range(n):
-        res = ctrl.request_telemetry(did, ep)
+    res = ctrl.command(did, ep)
 
-        print(res)
-        if res is not None:
-            print(res.status_code)
+    print(res, res.status_code)
+    pprint.pprint(res.json())
 
-            try:
-                pprint.pprint(res.json())
-            except:
-                print(res.text)
+    # for i in range(n):
+    #     res = ctrl.request_telemetry(did, ep)
+
+    #     print(res)
+    #     if res is not None:
+    #         print(res.status_code)
+
+    #         try:
+    #             pprint.pprint(res.json())
+    #         except:
+    #             print(res.text)

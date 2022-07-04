@@ -36,6 +36,8 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_DBG);
 
+#define REST_CANIOT_QUERY_MAX_TIMEOUT_MS		(5000U)
+
 #define FIELD_SET(ret, n) (((ret) & (1 << (n))) != 0)
 
 int rest_encode_response_json(const struct json_obj_descr *descr,
@@ -715,7 +717,7 @@ int rest_devices_garage_post(struct http_request *req,
 
 static const struct json_obj_descr json_caniot_query_telemetry_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, did, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, base.timestamp, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM_NAMED(struct json_caniot_record, "timestamp", base.timestamp, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, duration, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, dio, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, pdio, JSON_TOK_NUMBER),
@@ -811,7 +813,7 @@ int rest_devices_caniot_telemetry(struct http_request *req,
 	caniot_build_query_telemetry(&q, ep);
 
 	/* execute and build appropriate response */
-	uint32_t timeout = MIN(req->timeout_ms, 5000U);
+	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
 	int ret = q_ct_to_json_resp(&q, did, &timeout, resp);
 	LOG_INF("GET /devices/caniot/%u/endpoints/%u/telemetry -> %d [in %u ms]", did, ep, ret, timeout);
 
@@ -820,17 +822,17 @@ int rest_devices_caniot_telemetry(struct http_request *req,
 
 
 struct json_caniot_blcommand_post {
-	const char *oc1;
-	const char *oc2;
-	const char *rl1;
-	const char *rl2;
+	const char *coc1;
+	const char *coc2;
+	const char *crl1;
+	const char *crl2;
 };
 
 const struct json_obj_descr json_caniot_blcommand_post_descr[] = {
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, oc1, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, oc2, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, rl1, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, rl2, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, coc1, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, coc2, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, crl1, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, crl2, JSON_TOK_STRING),
 };
 
 static int parse_xps_command(const char *str)
@@ -875,26 +877,25 @@ int rest_devices_caniot_command(struct http_request *req,
 	caniot_board_control_command_init(&cmd);
 
 	if (FIELD_SET(map, 0U)) {
-		cmd.coc1 = parse_xps_command(post.oc1);
+		cmd.coc1 = parse_xps_command(post.coc1);
 	}
 
 	if (FIELD_SET(map, 1U)) {
-		cmd.coc2 = parse_xps_command(post.oc2);
+		cmd.coc2 = parse_xps_command(post.coc2);
 	}
 
 	if (FIELD_SET(map, 2U)) {
-		cmd.crl1 = parse_xps_command(post.rl1);
+		cmd.crl1 = parse_xps_command(post.crl1);
 	}
 
 	if (FIELD_SET(map, 3U)) {
-		cmd.crl2 = parse_xps_command(post.rl2);
+		cmd.crl2 = parse_xps_command(post.crl2);
 	}
 
 	/* TODO add support for reset commands + config reset */
 
 	/* parse did, ep */
 	uint32_t did = 0, ep = 0;
-
 	route_arg_get(req, 0U, &did);
 	route_arg_get(req, 1U, &ep);
 
@@ -903,7 +904,7 @@ int rest_devices_caniot_command(struct http_request *req,
 	caniot_build_query_command(&q, ep, (uint8_t *)&cmd, sizeof(cmd));
 
 	/* execute and build appropriate response */
-	uint32_t timeout = MIN(req->timeout_ms, 5000U);
+	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
 	ret = q_ct_to_json_resp(&q, did, &timeout, resp);
 
 	LOG_INF("GET /devices/caniot/%u/endpoints/%u/command -> %d [in %u ms]", did, ep, ret, timeout);

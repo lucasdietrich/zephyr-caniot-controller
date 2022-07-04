@@ -56,11 +56,10 @@ static const struct http_route routes[] = {
 	PROM(GET, "/metrics_demo", prometheus_metrics_demo),
 
 	REST(GET, "/devices/caniot/%u/endpoints/%u/telemetry", rest_devices_caniot_telemetry, 2U),
-	REST(GET, "/devices/caniot/%u/endpoints/%u/command", rest_devices_caniot_command, 2U),
+	REST(POST, "/devices/caniot/%u/endpoints/%u/command", rest_devices_caniot_command, 2U),
 
-	// REST(GET, "/devices/caniot/{did}/", rest_caniot_info),
-	// REST(GET, "/devices/caniot/24/ll/3/query_telemetry", rest_caniot_query_telemetry),
-	// REST(GET, "/devices/caniot/24/ll/3/command", rest_caniot_command),
+	REST(GET, "/devices/caniot/%u/attributes/%u/attr", NULL, 2U),
+	REST(PUT, "/devices/caniot/%u/attributes/%u/attr", NULL, 2U),
 };
 
 static inline const struct http_route *first(void)

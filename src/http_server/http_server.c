@@ -520,7 +520,8 @@ static int process_request(struct http_request *req,
 			resp->status_code = 404U;
 		}
 	} else {
-		LOG_WRN("No route found for %s", log_strdup(req->url));
+		LOG_WRN("No route found for %s %s", 
+			log_strdup(http_method_str(req->method)), log_strdup(req->url));
 
 		/* Not Found */
 		resp->status_code = 404U;

@@ -364,13 +364,13 @@ components:
       description: CANIOT Board level command
       type: object
       properties:
-        oc1:
+        coc1:
           $ref: "#/components/schemas/XPSCommand"
-        oc2:
+        coc2:
           $ref: "#/components/schemas/XPSCommand"
-        rl1:
+        crl1:
           $ref: "#/components/schemas/XPSCommand"
-        rl2:
+        crl2:
           $ref: "#/components/schemas/XPSCommand"
         
         hardware_reset:
