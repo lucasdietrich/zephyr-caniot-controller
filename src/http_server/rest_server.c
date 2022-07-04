@@ -21,6 +21,7 @@
 
 #include <bluetooth/addr.h>
 #include "ha/devices.h"
+#include "ha/data.h"
 
 #include <caniot/caniot.h>
 #include <caniot/datatype.h>
@@ -712,11 +713,6 @@ int rest_devices_garage_post(struct http_request *req,
 	return 0;
 }
 
-static const struct json_obj_descr json_caniot_query_telemetry_temperature_descr[] = {
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_temperature_record, repr, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_temperature_record, value, JSON_TOK_NUMBER),
-};
-
 static const struct json_obj_descr json_caniot_query_telemetry_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, did, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, base.timestamp, JSON_TOK_NUMBER),
@@ -724,7 +720,7 @@ static const struct json_obj_descr json_caniot_query_telemetry_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, dio, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, pdio, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_record, temperatures, HA_CANIOT_MAX_TEMPERATURES, temperatures_count,
-		json_caniot_query_telemetry_temperature_descr, ARRAY_SIZE(json_caniot_query_telemetry_temperature_descr)),
+		json_caniot_temperature_record_descr, ARRAY_SIZE(json_caniot_temperature_record_descr)),
 };
 
 /*
@@ -738,7 +734,8 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 					     struct http_response *resp,
 					     uint32_t timeout)
 {
-	char temp_repr[HA_CANIOT_MAX_TEMPERATURES][9U];
+	struct ha_caniot_blt_dataset blt;
+	ha_data_can_to_blt(&blt, AS_BOARD_CONTROL_TELEMETRY(r->buf));
 
 	struct json_caniot_record json = {
 		.did = CANIOT_DID(r->id.cls, r->id.sid),
@@ -746,21 +743,25 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 			.timestamp = net_time_get(),
 		},
 		.duration = timeout,
-		.dio = AS_BOARD_CONTROL_TELEMETRY(r->buf)->dio,
-		.pdio = AS_BOARD_CONTROL_TELEMETRY(r->buf)->pdio,
-		.temperatures_count = HA_CANIOT_MAX_TEMPERATURES, /* TODO temperatures */
+		.dio = blt.dio,
+		.pdio = blt.dio,
+		.temperatures_count = 0U, /* TODO temperatures */
 	};
 
-	json.temperatures[0].value = caniot_dt_T10_to_T16(AS_BOARD_CONTROL_TELEMETRY(r->buf)->int_temperature);
-	json.temperatures[1].value = caniot_dt_T10_to_T16(AS_BOARD_CONTROL_TELEMETRY(r->buf)->ext_temperature);
-	json.temperatures[2].value = caniot_dt_T10_to_T16(AS_BOARD_CONTROL_TELEMETRY(r->buf)->ext_temperature2);
-	json.temperatures[3].value = caniot_dt_T10_to_T16(AS_BOARD_CONTROL_TELEMETRY(r->buf)->ext_temperature3);
+	char temp_repr[HA_CANIOT_MAX_TEMPERATURES][9U];
+	for (size_t i = 0; i < HA_CANIOT_MAX_TEMPERATURES; i++) {
+		if (blt.temperatures[i].type == HA_DEV_SENSOR_TYPE_NONE) {
+			continue;
+		}
 
-	for (uint8_t i = 0; i < HA_CANIOT_MAX_TEMPERATURES; i++) {
-		json.temperatures[i].repr = temp_repr[i];
+		const size_t j = json.temperatures_count++;
 
-		sprintf(temp_repr[i], "%.2f",
-			json.temperatures[i].value / 100.0);
+		sprintf(temp_repr[j], "%.2f",
+			blt.temperatures[i].value / 100.0);
+
+		json.temperatures[j].repr = temp_repr[j];
+		json.temperatures[j].sens_type = blt.temperatures[i].type;
+		json.temperatures[j].value = blt.temperatures[i].value;
 	}
 
 	resp->status_code = 200U;

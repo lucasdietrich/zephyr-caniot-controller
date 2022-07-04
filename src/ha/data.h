@@ -115,7 +115,7 @@ void ha_data_ble_to_xiaomi(struct ha_xiaomi_dataset *xiaomi,
 
 /* feed a board level telemetry dataset from a received CAN buffer */
 void ha_data_can_to_blt(struct ha_caniot_blt_dataset *blt,
-			struct caniot_board_control_telemetry *can_buf);
+			const struct caniot_board_control_telemetry *can_buf);
 
 
 #endif /* _HA_DATA_H_ */

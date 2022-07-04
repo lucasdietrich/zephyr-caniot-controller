@@ -40,7 +40,7 @@ static int save_caniot_temperature(struct ha_caniot_blt_dataset *blt,
 
 /* feed a board level telemetry dataset from a received CAN buffer */
 void ha_data_can_to_blt(struct ha_caniot_blt_dataset *blt,
-			struct caniot_board_control_telemetry *can_buf)
+			const struct caniot_board_control_telemetry *can_buf)
 {
 	save_caniot_temperature(blt, 0U, can_buf->int_temperature,
 				HA_DEV_SENSOR_TYPE_EMBEDDED);
