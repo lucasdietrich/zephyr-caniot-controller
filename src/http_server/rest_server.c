@@ -40,9 +40,9 @@ LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_DBG);
 
 #define FIELD_SET(ret, n) (((ret) & (1 << (n))) != 0)
 
-int rest_encode_response_json(const struct json_obj_descr *descr,
-			      size_t descr_len, const void *val,
-			      struct http_response *resp)
+int rest_encode_response_json(struct http_response *resp, const void *val,
+			      const struct json_obj_descr *descr,
+			      size_t descr_len)
 {
 	int ret = -EINVAL;
 	ssize_t json_len;
@@ -69,9 +69,9 @@ exit:
 	return ret;
 }
 
-int rest_encode_response_json_array(const struct json_obj_descr *descr,
-				    size_t descr_len, const void *val,
-				    struct http_response *resp)
+int rest_encode_response_json_array(struct http_response *resp, const void *val, 
+				    const struct json_obj_descr *descr,
+				    size_t descr_len)
 {
 	int ret = -EINVAL;
 
@@ -383,8 +383,7 @@ int rest_info(struct http_request *req,
 #endif
 
 	/* rencode response */
-	return rest_encode_response_json(info_descr, ARRAY_SIZE(info_descr),
-					 &data, resp);
+	return rest_encode_response_json(resp, &data, info_descr, ARRAY_SIZE(info_descr));
 }
 
 /*___________________________________________________________________________*/
@@ -485,9 +484,8 @@ int rest_xiaomi_records(struct http_request *req,
 
 	ha_dev_xiaomi_iterate(xiaomi_device_cb, &ctx);
 
-	return rest_encode_response_json_array(json_xiaomi_record_array_descr,
-					       ARRAY_SIZE(json_xiaomi_record_array_descr),
-					       &ctx.arr, resp);
+	return rest_encode_response_json_array(resp, &ctx.arr, json_xiaomi_record_array_descr,
+					       ARRAY_SIZE(json_xiaomi_record_array_descr));
 }
 
 struct json_caniot_temperature_record
@@ -504,7 +502,7 @@ static const struct json_obj_descr json_caniot_temperature_record_descr[] = {
 };
 
 /* todo, rename to json_caniot_telemetry */
-struct json_caniot_record
+struct json_caniot_telemetry
 {
 	uint32_t did;
 
@@ -521,30 +519,30 @@ struct json_caniot_record
 	uint32_t temperatures_count;
 };
 
-static const struct json_obj_descr json_caniot_record_descr[] = {
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, did, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM_NAMED(struct json_caniot_record, "timestamp", base.timestamp, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, dio, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, pdio, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_record, temperatures, HA_CANIOT_MAX_TEMPERATURES, temperatures_count,
+static const struct json_obj_descr json_caniot_telemetry_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_telemetry, did, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM_NAMED(struct json_caniot_telemetry, "timestamp", base.timestamp, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_telemetry, dio, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_telemetry, pdio, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_telemetry, temperatures, HA_CANIOT_MAX_TEMPERATURES, temperatures_count,
 		json_caniot_temperature_record_descr, ARRAY_SIZE(json_caniot_temperature_record_descr)),
 };
 
 
-struct json_caniot_record_array
+struct json_caniot_telemetry_array
 {
-	struct json_caniot_record records[HA_CANIOT_MAX_DEVICES];
+	struct json_caniot_telemetry records[HA_CANIOT_MAX_DEVICES];
 	size_t count;
 };
 
-const struct json_obj_descr json_caniot_record_array_descr[] = {
-  JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_record_array, records, HA_CANIOT_MAX_DEVICES,
-	count, json_caniot_record_descr, ARRAY_SIZE(json_caniot_record_descr))
+const struct json_obj_descr json_caniot_telemetry_array_descr[] = {
+  JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_telemetry_array, records, HA_CANIOT_MAX_DEVICES,
+	count, json_caniot_telemetry_descr, ARRAY_SIZE(json_caniot_telemetry_descr))
 };
 
 struct caniot_records_encoding_context
 {
-	struct json_caniot_record_array arr;
+	struct json_caniot_telemetry_array arr;
 	/* x = devices
 	 * y = temperatures per device
 	 * z = string length
@@ -557,7 +555,7 @@ static void caniot_device_cb(ha_dev_t *dev,
 {
 	struct caniot_records_encoding_context *const ctx =
 		(struct caniot_records_encoding_context *)user_data;
-	struct json_caniot_record *const rec = &ctx->arr.records[ctx->arr.count];
+	struct json_caniot_telemetry *const rec = &ctx->arr.records[ctx->arr.count];
 	struct ha_caniot_blt_dataset *const dt = &dev->data.caniot;
 
 	rec->base.timestamp = dev->data.measurements_timestamp;
@@ -595,9 +593,8 @@ int rest_caniot_records(struct http_request *req,
 
 	ha_dev_caniot_iterate(caniot_device_cb, &ctx);
 
-	return rest_encode_response_json_array(json_caniot_record_array_descr,
-					       ARRAY_SIZE(json_caniot_record_array_descr),
-					       &ctx.arr, resp);
+	return rest_encode_response_json_array(resp, &ctx.arr, json_caniot_telemetry_array_descr,
+					       ARRAY_SIZE(json_caniot_telemetry_array_descr));
 }
 
 struct json_device_repr {
@@ -716,12 +713,12 @@ int rest_devices_garage_post(struct http_request *req,
 }
 
 static const struct json_obj_descr json_caniot_query_telemetry_descr[] = {
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, did, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM_NAMED(struct json_caniot_record, "timestamp", base.timestamp, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, duration, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, dio, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_record, pdio, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_record, temperatures, HA_CANIOT_MAX_TEMPERATURES, temperatures_count,
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_telemetry, did, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM_NAMED(struct json_caniot_telemetry, "timestamp", base.timestamp, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_telemetry, duration, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_telemetry, dio, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_telemetry, pdio, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_telemetry, temperatures, HA_CANIOT_MAX_TEMPERATURES, temperatures_count,
 		json_caniot_temperature_record_descr, ARRAY_SIZE(json_caniot_temperature_record_descr)),
 };
 
@@ -739,7 +736,7 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 	struct ha_caniot_blt_dataset blt;
 	ha_data_can_to_blt(&blt, AS_BOARD_CONTROL_TELEMETRY(r->buf));
 
-	struct json_caniot_record json = {
+	struct json_caniot_telemetry json = {
 		.did = CANIOT_DID(r->id.cls, r->id.sid),
 		.base = {
 			.timestamp = net_time_get(),
@@ -768,33 +765,131 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 
 	resp->status_code = 200U;
 
-	return rest_encode_response_json(json_caniot_query_telemetry_descr,
-					 ARRAY_SIZE(json_caniot_query_telemetry_descr),
-					 &json, resp);
+	return rest_encode_response_json(resp, &json, json_caniot_query_telemetry_descr,
+					 ARRAY_SIZE(json_caniot_query_telemetry_descr));
+}
+
+/* Example: 
+{
+  "addr": 8208,
+  "repr": "2010",
+  "value": 0
+}
+*/
+
+struct json_caniot_attr {
+	uint32_t key;
+	char *key_repr;
+	uint32_t value;
+	char *value_repr;
+};
+
+static const struct json_obj_descr json_caniot_attr_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, key, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, key_repr, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, value, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, value_repr, JSON_TOK_STRING),
+};
+
+static int json_format_caniot_attr_resp(struct caniot_frame *r,
+					struct http_response *resp,
+					uint32_t timeout)
+{
+	char key_repr[sizeof("0xFFFF")];
+	char val_repr[sizeof("0xFFFFFFFF")];
+
+	snprintf(key_repr, sizeof(key_repr), "0x%04X", r->attr.key);
+	snprintf(val_repr, sizeof(val_repr), "0x%04X", r->attr.val);
+
+	struct json_caniot_attr json = {
+		.key = r->attr.key,
+		.key_repr = key_repr,
+		.value = r->attr.val,
+		.value_repr = val_repr,
+	};
+
+	rest_encode_response_json(resp, &json, json_caniot_attr_descr,
+				  ARRAY_SIZE(json_caniot_attr_descr));
+
+	return 0;
 }
 
 /* QUERY CANIOT COMMAND/TELEMETRY and BUILD JSON RESPONSE */
-int q_ct_to_json_resp(struct caniot_frame *q,
-		      caniot_did_t did,
-		      uint32_t *timeout,
-		      struct http_response *resp)
+int caniot_q_ct_to_json_resp(struct caniot_frame *q,
+			     caniot_did_t did,
+			     uint32_t *timeout,
+			     struct http_response *resp)
 {
 	struct caniot_frame r;
 
 	int ret = ha_ciot_ctrl_query(q, &r, did, timeout);
 
-	if (ret == 1) {
-		ret = json_format_caniot_telemetry_resp(&r, resp, *timeout);
-	} else if (ret == 0) {
-		/* timeout = 0 */
-	} else if (ret == 2) {
-		/* returned with error */
-	} else if ((ret == -EAGAIN)) {
+	switch (ret) {
+	case 1:
+		/* Ok */
 		resp->status_code = 200U;
-	} else if ((ret == -EINVAL)) {
+		ret = json_format_caniot_telemetry_resp(&r, resp, *timeout);
+		break;
+	case 0:
+		/* No response expected */
+		resp->status_code = 204U;
+		break;
+	case 2:	
+		/* returned but with error */
+		resp->status_code = 204U;
+		break;
+	case -EAGAIN:
+		/* timeout */
+		resp->status_code = 404U;
+		break;
+	case -EINVAL:
+		/* Invalid arguments */
 		resp->status_code = 400U;
-	} else {
+		break;
+	default:
+		/* Other unhandled error */
 		resp->status_code = 500U;
+		break;
+	}
+
+	return 0;
+}
+
+int caniot_q_attr_to_json_resp(struct caniot_frame *q,
+			       caniot_did_t did,
+			       uint32_t *timeout,
+			       struct http_response *resp)
+{
+	struct caniot_frame r;
+
+	int ret = ha_ciot_ctrl_query(q, &r, did, timeout);
+
+	switch (ret) {
+	case 1:
+		/* Ok */
+		resp->status_code = 200U;
+		ret = json_format_caniot_attr_resp(&r, resp, *timeout);
+		break;
+	case 0:
+		/* No response expected */
+		resp->status_code = 204U;
+		break;
+	case 2:	
+		/* returned but with error */
+		resp->status_code = 204U;
+		break;
+	case -EAGAIN:
+		/* timeout */
+		resp->status_code = 404U;
+		break;
+	case -EINVAL:
+		/* Invalid arguments */
+		resp->status_code = 400U;
+		break;
+	default:
+		/* Other unhandled error */
+		resp->status_code = 500U;
+		break;
 	}
 
 	return 0;
@@ -814,7 +909,7 @@ int rest_devices_caniot_telemetry(struct http_request *req,
 
 	/* execute and build appropriate response */
 	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
-	int ret = q_ct_to_json_resp(&q, did, &timeout, resp);
+	int ret = caniot_q_ct_to_json_resp(&q, did, &timeout, resp);
 	LOG_INF("GET /devices/caniot/%u/endpoints/%u/telemetry -> %d [in %u ms]", did, ep, ret, timeout);
 
 	return 0;
@@ -905,9 +1000,75 @@ int rest_devices_caniot_command(struct http_request *req,
 
 	/* execute and build appropriate response */
 	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
-	ret = q_ct_to_json_resp(&q, did, &timeout, resp);
+	ret = caniot_q_ct_to_json_resp(&q, did, &timeout, resp);
 
 	LOG_INF("GET /devices/caniot/%u/endpoints/%u/command -> %d [in %u ms]", did, ep, ret, timeout);
+
+exit:
+	return ret;
+}
+
+int rest_devices_caniot_attr_read(struct http_request *req,
+				  struct http_response *resp)
+{
+	int ret = 0;
+	uint32_t did = 0, key = 0;
+	route_arg_get(req, 0U, &did);
+	route_arg_get(req, 1U, &key);
+
+	/* If doesn't fit in a uint16_t, we reject */
+	if (key >> 16) {
+		resp->status_code = 400U;
+		goto exit;
+	}
+
+	struct caniot_frame q;
+	caniot_build_query_read_attribute(&q, (uint16_t)key);
+
+	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
+	ret = caniot_q_attr_to_json_resp(&q, did, &timeout, resp);
+
+exit:
+	return ret;
+}
+
+struct json_caniot_attr_write_value {
+	uint32_t value;
+};
+
+const struct json_obj_descr json_caniot_attr_write_value_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr_write_value, value, JSON_TOK_NUMBER),
+};
+
+int rest_devices_caniot_attr_write(struct http_request *req,
+				   struct http_response *resp)
+{
+	int ret = 0;
+	uint32_t did = 0, key = 0;
+	route_arg_get(req, 0U, &did);
+	route_arg_get(req, 1U, &key);
+
+	/* default status code */
+	resp->status_code = 400U;
+
+	/* If doesn't fit in a uint16_t, we reject */
+	if (key >> 16) {
+		goto exit;
+	}
+
+	/* try to parse content */
+	uint32_t value;
+	int map = json_obj_parse(req->payload.loc, req->len,
+				 json_caniot_blcommand_post_descr,
+				 ARRAY_SIZE(json_caniot_blcommand_post_descr),
+				 &value);
+	if ((map > 0) && FIELD_SET(map, 0U)) {
+		struct caniot_frame q;
+		caniot_build_query_write_attribute(&q, (uint16_t)key, value);
+
+		uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
+		ret = caniot_q_attr_to_json_resp(&q, did, &timeout, resp);
+	}
 
 exit:
 	return ret;

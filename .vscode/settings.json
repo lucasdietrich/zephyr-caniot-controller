@@ -110,7 +110,11 @@
                 "string_view": "c",
                 "data.h": "c",
                 "ranges": "c",
-                "span": "c"
+                "span": "c",
+                "ostream": "c",
+                "system_error": "c",
+                "tuple": "c",
+                "utility": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

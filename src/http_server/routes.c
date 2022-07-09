@@ -58,8 +58,8 @@ static const struct http_route routes[] = {
 	REST(GET, "/devices/caniot/%u/endpoints/%u/telemetry", rest_devices_caniot_telemetry, 2U),
 	REST(POST, "/devices/caniot/%u/endpoints/%u/command", rest_devices_caniot_command, 2U),
 
-	REST(GET, "/devices/caniot/%u/attributes/%u/attr", NULL, 2U),
-	REST(PUT, "/devices/caniot/%u/attributes/%u/attr", NULL, 2U),
+	REST(GET, "/devices/caniot/%u/attributes/%x", rest_devices_caniot_attr_read, 2U),
+	REST(PUT, "/devices/caniot/%u/attributes/%x", rest_devices_caniot_attr_write, 2U),
 };
 
 static inline const struct http_route *first(void)
@@ -94,6 +94,8 @@ const struct http_route *route_resolve(enum http_method method,
 		if (route->method != method) {
 			continue;
 		}
+
+		/* use va_list */
 
 		if (route->path_args_count == 0U) {
 			if (url_match_noarg(route, url, url_len) == true) {

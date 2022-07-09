@@ -211,15 +211,18 @@ components:
       description: CANIOT device attribute informations
       type: object
       properties:
-        addr:
+        key:
           type: integer
           example: 8208
-        repr:
+        key_repr:
           type: string
-          example: x2010
+          example: "0x2010"
         value:
           type: integer
           example: 0
+        value_repr:
+          type: string
+          example: "0x0000"
 
     CANIOTInfo:
       description: CANIOT device informations
@@ -412,7 +415,7 @@ components:
       required: true
       schema:
         type: string
-        example: "x2010"
+        example: "2010"
 
     EndpointID:
       name: ep

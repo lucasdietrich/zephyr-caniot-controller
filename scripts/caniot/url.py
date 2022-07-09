@@ -6,17 +6,26 @@ import urllib.parse
 
 
 class URL:
-    def __init__(self, host: str, path: Union[str, List[str]] = [], query: str = "", secure: bool = False):
-        self.ip = host
+    def __init__(self, hostname: str, path: Union[str, List[str]] = [], query: str = "", secure: bool = False):
+        self.hostname = hostname
+
         if isinstance(path, list):
             path = "/".join(path)
+
         self.path = path
         self.query = query
         self.secure = secure
         self.proto = "https" if secure else "http"
 
     def get(self) -> str:
-        return urllib.parse.urlunparse((self.proto, self.ip, self.path, None, self.query, None))
+        return urllib.parse.urlunparse((
+            self.proto,
+            self.hostname,
+            self.path,
+            None,
+            self.query,
+            None
+        ))
 
     def sub(self, path: str = "") -> URL:
         result = urllib.parse.urlparse(
@@ -39,3 +48,8 @@ class URL:
 
     def __repr__(self) -> str:
         return self.__str__()
+
+if __name__ == "__main__":
+    url = URL("caniotctrl.local", ["config", "{section}"], "n={n}", True)
+    res = url(section="network", n=18)
+    print(res)

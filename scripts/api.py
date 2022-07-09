@@ -22,8 +22,8 @@ class API(IntEnum):
     RequestTelemetry = 3
 
 urls = {
-    API.WriteAttribute: (Method.GET, "devices/caniot/{did}/attributes/{attr:x}"),
-    API.ReadAttribute: (Method.PUT, "devices/caniot/{did}/attributes/{attr:x}"),
+    API.WriteAttribute: (Method.PUT, "devices/caniot/{did}/attributes/{attr:x}"),
+    API.ReadAttribute: (Method.GET, "devices/caniot/{did}/attributes/{attr:x}"),
     API.Command: (Method.POST, "devices/caniot/{did}/endpoints/{ep}/command"),
     API.RequestTelemetry: (Method.GET, "devices/caniot/{did}/endpoints/{ep}/telemetry"),
 }
@@ -118,10 +118,18 @@ if __name__ == "__main__":
     ep = 3
     n = 1
 
-    res = ctrl.command(did, ep)
+    x = 0
 
-    print(res, res.status_code)
-    pprint.pprint(res.json())
+    for i in range(0xFFF<<4):
+        ctrl.read_attribute(did, i);
+
+    # res = ctrl.command(did, ep)
+
+    # while True:
+    #     # print(res, res.status_code)
+    #     # pprint.pprint(res.json())
+    #     res = ctrl.command(did, ep)
+    #     print(res.json()["duration"], "ms")
 
     # for i in range(n):
     #     res = ctrl.request_telemetry(did, ep)

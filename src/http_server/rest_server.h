@@ -9,13 +9,15 @@
 #include "http_utils.h"
 #include "http_request.h"
 
-int rest_encode_response_json(const struct json_obj_descr *descr,
-                              size_t descr_len, const void *val,
-                              struct http_response *resp);
+int rest_encode_response_json(struct http_response *resp,
+			      const void *val,
+			      const struct json_obj_descr *descr,
+			      size_t descr_len);
 
-int rest_encode_response_json_array(const struct json_obj_descr *descr,
-				    size_t descr_len, const void *val,
-				    struct http_response *resp);
+int rest_encode_response_json_array(struct http_response *resp,
+				    const void *val,
+				    const struct json_obj_descr *descr,
+				    size_t descr_len);
 
 /*___________________________________________________________________________*/
 
@@ -58,5 +60,11 @@ int rest_devices_caniot_telemetry(struct http_request *req,
 
 int rest_devices_caniot_command(struct http_request *req,
 				struct http_response *resp);
+
+int rest_devices_caniot_attr_read(struct http_request *req,
+				  struct http_response *resp);
+
+int rest_devices_caniot_attr_write(struct http_request *req,
+				   struct http_response *resp);
 
 #endif
