@@ -10,8 +10,10 @@
 #include "userio/leds.h"
 #include "userio/button.h"
 
+#ifndef CONFIG_BOARD_QEMU_X86
 #include "ha/devices.h"
 #include "ha/ble_controller.h"
+#endif /* CONFIG_BOARD_QEMU_X86 */
 
 #include <mbedtls/memory_buffer_alloc.h>
 
@@ -23,19 +25,10 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_NONE);
 #if DT_HAS_COMPAT_STATUS_OKAY(st_stm32_temp)
 #define TEMP_NODE DT_INST(0, st_stm32_temp)
 #else
-#error "Could not find a compatible temperature sensor"
+// #error "Could not find a compatible temperature sensor"
 #endif
 
-static void debug_mbedtls_memory(void)
-{
-        size_t cur_used, cur_blocks, max_used, max_blocks;
-        mbedtls_memory_buffer_alloc_cur_get(&cur_used, &cur_blocks);
-        mbedtls_memory_buffer_alloc_max_get(&max_used, &max_blocks);
-
-        LOG_DBG("MAX %u (%u) CUR %u (%u)", max_used,
-                max_blocks, cur_used, cur_blocks);
-}
-
+#ifdef TEMP_NODE
 static const struct device *die_temp_dev = DEVICE_DT_GET(TEMP_NODE);
 
 static int die_temp_dev_init(void)
@@ -78,17 +71,35 @@ exit:
 	return rc;
 }
 
+#endif /* TEMP_NODE */
+
+static void debug_mbedtls_memory(void)
+{
+        size_t cur_used, cur_blocks, max_used, max_blocks;
+        mbedtls_memory_buffer_alloc_cur_get(&cur_used, &cur_blocks);
+        mbedtls_memory_buffer_alloc_max_get(&max_used, &max_blocks);
+
+        LOG_DBG("MAX %u (%u) CUR %u (%u)", max_used,
+                max_blocks, cur_used, cur_blocks);
+}
+
 void main(void)
 {
+#ifndef CONFIG_BOARD_QEMU_X86
 	leds_init();
 	button_init();
+#endif
 
 	crypto_mbedtls_heap_init();
 	net_interface_init();
 
+#ifndef CONFIG_BOARD_QEMU_X86
 	ha_ble_controller_init();
+#endif /* CONFIG_BOARD_QEMU_X86 */
 
+#ifdef TEMP_NODE
 	die_temp_dev_init();
+#endif /* TEMP_NODE */
 
 	uint32_t counter = 0;
 
@@ -98,7 +109,9 @@ void main(void)
 
 		/* 10 second tasks */
 		if (counter % 10 == 0) {
+#ifdef TEMP_NODE
 			die_temp_fetch();
+#endif /* TEMP_NODE */
 		}
 
 		/* 1min tasks */
@@ -106,8 +119,8 @@ void main(void)
 
 		}
 
-		/* 10min tasks */
-		if (counter % 600 == 0) {
+		/* 10min tasks but 5 seconds after startup*/
+		if (counter % 600 == 5) {
 			net_time_show();
 			debug_mbedtls_memory();
 		}

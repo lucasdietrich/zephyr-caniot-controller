@@ -169,7 +169,7 @@
 	status = "okay";
 
         // Note: Clean and rebuild when changing this value !
-	current-speed = < 1000000 >; // 1200, 115200, 1000000 
+	current-speed = < 19200 >; // 1200, 115200, 1000000 
 	// hw-flow-control;
 	pinctrl-0 = <&uart7_tx_pe8 &uart7_rx_pe7>;
 
@@ -187,7 +187,7 @@
 	// - tests/drivers/uart/uart_async_api/boards/nucleo_f207zg.overlay
 
 
-        /* dma channel stream-slot channel-config features */
+        // dma channel stream-slot channel-config features
 	dmas =  < &dma1 1 5 0x440 0x3>, 
 		< &dma1 3 5 0x480 0x3>; 
 	dma-names = "tx", "rx";

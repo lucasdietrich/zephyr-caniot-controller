@@ -59,7 +59,8 @@ config CANIOT_CONTROLLER
 # read : https://github.com/zephyrproject-rtos/zephyr/issues/37543
 config MY_STM32_HAL
         bool "Enable STM32 HAL drivers (custom)"
-        default y
+        default n
+        depends on SOC_FAMILY_STM32
         select USE_STM32_HAL_CRC
         select USE_STM32_HAL_GPIO
 

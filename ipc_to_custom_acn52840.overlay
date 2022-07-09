@@ -1,4 +1,0 @@
-&uart7
-{
-        current-speed = < 19200 >;
-};

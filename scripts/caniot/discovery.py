@@ -43,7 +43,7 @@ class DiscoveryClient:
 if __name__ == "__main__":
     client = DiscoveryClient()
 
-    addr, raw, parsed = client.lookup()
+    addr, raw, parsed = client.lookup("192.0.2.1")
 
     print(f"Received {len(raw)} bytes from {addr} : parse = {parsed}")
     print(f"\t REST server http://{addr[0]}")

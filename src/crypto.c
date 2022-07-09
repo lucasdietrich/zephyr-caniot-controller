@@ -3,6 +3,11 @@
 #include <linker/sections.h>
 #include <mbedtls/memory_buffer_alloc.h>
 
+/* __ccm_noinit_section config in CONFIG_ARM context */
+#if !defined(__ccm_noinit_section)
+#	define __ccm_noinit_section __attribute__((section(".noinit")))
+#endif
+
 static unsigned char __ccm_noinit_section mbedtls_heap[0x10000];
 
 void crypto_mbedtls_heap_init(void)

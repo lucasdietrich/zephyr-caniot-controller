@@ -7,19 +7,17 @@
             "venvPath": "../.venv",
             "westPath": "../.venv/bin/west",
             "netToolsPath": "../tools/net-tools",
-            "board": "nucleo_f429zi",
             "serialNumber": "303636434646343935323534373037383637323031333233",
         }
     },
     "tasks": [
         {
             "label": "Build",
-            "detail": "west build --board=${board}",
+            "detail": "west build",
             "type": "shell",
-            "command": "${westPath}",
+            "command": "${westPath} build",
             "args": [
-                "build",
-                "--board=${board}"
+
             ],
             "group": "build",
             "presentation": {
@@ -34,16 +32,12 @@
             "problemMatcher": []
         },
         {
-            "label": "Build (w\\ ACN52840)",
-            "detail": "west build --board=${board}",
+            "label": "Build QEMU",
+            "detail": "make build_qemu",
             "type": "shell",
-            "command": "${westPath}",
+            "command": "source ${venvPath}/bin/activate && make build_qemu",
             "args": [
-                "build",
-                "--board=${board}",
-                "--",
-                "-G'Ninja'",
-                "-DDTC_OVERLAY_FILE=\"nucleo_f429zi.overlay ipc_to_custom_acn52840.overlay\"",
+
             ],
             "group": "build",
             "presentation": {
@@ -52,7 +46,24 @@
             },
             "options": {
                 "statusbar": {
-                    "hide": true
+                    "hide": false
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run",
+            "detail": "Run (QEMU)",
+            "type": "shell",
+            "command": "${westPath} build -t run",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "options": {
+                "statusbar": {
+                    "hide": false
                 }
             },
             "problemMatcher": []
@@ -100,10 +111,9 @@
             "label": "debugserver",
             "detail": "west debugserver",
             "type": "shell",
-        	"command": "${westPath}",
+        	"command": "ninja debugserver -C build",
             "group": "build",
             "args": [
-                "debugserver"
             ],
             "options": {
                 "statusbar": {

@@ -10,15 +10,18 @@ GEN_CMD=ninja
 GEN_OPT=
 endif
 
-
 all: build make
 
 tmp:
 	mkdir -p tmp
 
 # Activate python env variable before building: "source ../.venv/bin/activate "
+# add option "--cmake-only" to not build immediately
 build:
-	west build --board=nucleo_f429zi --cmake-only -- -DDTC_OVERLAY_FILE="nucleo_f429zi.overlay ipc_to_custom_acn52840.overlay" -G"$(GENERATOR)"
+	west build --board=nucleo_f429zi -- -DDTC_OVERLAY_FILE="boards/nucleo_f429zi.overlay" -DCONF_FILE="prj.conf" -DOVERLAY_CONFIG="prj_nucleo_f429zi.conf" -G"$(GENERATOR)"
+
+build_qemu:
+	west build --board=qemu_x86 -- -DDTC_OVERLAY_FILE="boards/qemu_x86.overlay" -DCONF_FILE="prj.conf" -DOVERLAY_CONFIG="prj_qemu_x86.conf" -G"$(GENERATOR)"
 
 flash:
 	west flash
@@ -29,6 +32,12 @@ make: build
 reports: tmp
 	${GEN_CMD} -C build ram_report $(GEN_OPT) > tmp/ram_report.txt
 	${GEN_CMD} -C build rom_report $(GEN_OPT) > tmp/rom_report.txt
+
+debugserver:
+	ninja debugserver -C build
+
+run:
+	west build -t run
 
 clean:
 	rm -rf build

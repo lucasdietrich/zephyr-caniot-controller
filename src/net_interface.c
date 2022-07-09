@@ -34,7 +34,9 @@ static void show_ipv4(void)
                                                &ifcfg->ip.ipv4->unicast[i].address.in_addr,
                                                buf, sizeof(buf));
                 LOG_INF("Your address: %s", log_strdup(ipv4_str));
+#if defined(CONFIG_NET_DHCPV4)
                 LOG_INF("Lease time: %u seconds", ifcfg->dhcpv4.lease_time);
+#endif
                 LOG_INF("Subnet: %s",
                         log_strdup(net_addr_ntop(AF_INET,
                                                  &ifcfg->ip.ipv4->netmask,
@@ -66,20 +68,26 @@ static void net_event_handler(struct net_mgmt_event_callback *cb,
         case NET_EVENT_IF_UP:
         {
                 LOG_DBG("NET_EVENT_IF_UP (%u)", mgmt_event);
+#ifndef CONFIG_BOARD_QEMU_X86
 		leds_set_blinking(LED_NET, 200U * USEC_PER_MSEC);
+#endif
                 break;
         }
         case NET_EVENT_IF_DOWN:
         {
                 LOG_DBG("NET_EVENT_IF_DOWN (%u)", mgmt_event);
+#ifndef CONFIG_BOARD_QEMU_X86
 		leds_set(LED_NET, LED_OFF);
+#endif
                 break;
         }
         case NET_EVENT_IPV4_ADDR_ADD:
         {
                 LOG_DBG("NET_EVENT_IPV4_ADDR_ADD (%u)", mgmt_event);
+#ifndef CONFIG_BOARD_QEMU_X86
                 leds_set(LED_NET, LED_ON);
-                net_time_sync();
+		net_time_sync();
+#endif
                 show_ipv4();
                 break;
         }
@@ -91,8 +99,10 @@ static void net_event_handler(struct net_mgmt_event_callback *cb,
                 break;
         case NET_EVENT_IPV4_DHCP_BOUND:
                 LOG_DBG("NET_EVENT_IPV4_DHCP_BOUND (%u)", mgmt_event);
+#ifndef CONFIG_BOARD_QEMU_X86
                 leds_set(LED_NET, LED_ON);
                 net_time_sync();
+#endif
                 break;
         case NET_EVENT_IPV4_DHCP_STOP:
                 LOG_DBG("NET_EVENT_IPV4_DHCP_STOP (%u)", mgmt_event);
@@ -133,5 +143,11 @@ void net_interface_init(void)
 
         LOG_INF("net interface %p UP ! ", iface);
 
+#if defined(CONFIG_NET_DHCPV4)
         net_dhcpv4_start(iface);
+#endif 
+
+#if defined(CONFIG_BOARD_QEMU_X86)
+	net_time_sync();
+#endif
 }

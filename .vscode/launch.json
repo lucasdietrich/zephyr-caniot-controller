@@ -17,6 +17,51 @@
 			"svdFile": "./STM32F429.svd"
 		},
 		{
+            "name": "(gdb) QEMU x86",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/zephyr/zephyr.elf",
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+
+            // Find a way to not wait for ninja debugser to finish
+            // "preLaunchTask": "Ninja debugserver",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "miDebuggerServerAddress": "localhost:1234",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) QEMU ARM",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/zephyr/zephyr.elf",
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/arm-none-eabi-gdb",
+            "miDebuggerServerAddress": "localhost:1234",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+		{
 			"name": "ATTACH cortex-debug OpenOCD",
 			"cwd": "${workspaceRoot}",
 			"executable": "./build/zephyr/zephyr.elf",
