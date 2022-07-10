@@ -27,7 +27,9 @@
 #include <caniot/datatype.h>
 #include <ha/caniot_controller.h>
 
+#if defined(CONFIG_UART_IPC)
 #include <uart_ipc/ipc.h>
+#endif /* CONFIG_UART_IPC */
 
 #include "system.h"
 #include "config.h"
@@ -113,7 +115,7 @@ static int route_arg_get(struct http_request *req,
 	return ret;
 }
 
-static int parse_string_in_list(const char *str, const char *const *list)
+static int string_get_index_in_list(const char *str, const char *const *list)
 {
 	int ret = -1;
 
@@ -127,6 +129,32 @@ static int parse_string_in_list(const char *str, const char *const *list)
 	}
 
 	return ret;
+}
+
+static int parse_ss_command(const char *str)
+{
+	static const char *const cmds[] = {
+		"none",
+		"set",
+		NULL
+	};
+	return MAX(0, string_get_index_in_list(str, cmds));
+}
+
+static int parse_xps_command(const char *str)
+{
+	static const char *const cmds[] = {
+		"none",
+		"set_on",
+		"set_off",
+		"toggle",
+		"reset",
+		"pulse_on",
+		"pulse_off",
+		"pulse_cancel",
+		NULL
+	};
+	return MAX(0, string_get_index_in_list(str, cmds));
 }
 
 /*___________________________________________________________________________*/
@@ -628,9 +656,8 @@ int rest_caniot_command(struct http_request *req,
 
 	return -EINVAL;
 }
-
-int rest_caniot_query_telemetry(struct http_request *req,
-				struct http_response *resp)
+int rest_test_caniot_query_telemetry(struct http_request *req,
+				     struct http_response *resp)
 {
 	struct caniot_frame query, response;
 
@@ -646,6 +673,8 @@ int rest_caniot_query_telemetry(struct http_request *req,
 }
 
 /*___________________________________________________________________________*/
+
+#if defined(CONFIG_CANIOT_CONTROLLER)
 
 int rest_devices_garage_get(struct http_request *req,
 			    struct http_response *resp)
@@ -664,20 +693,6 @@ const struct json_obj_descr json_garage_post_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_garage_post, left_door, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_PRIM(struct json_garage_post, right_door, JSON_TOK_STRING),
 };
-
-static int parse_ss_command(const char *str)
-{
-	static const char *const cmds[] = {
-		"none",
-		"set",
-		NULL
-	};
-	int ss = parse_string_in_list(str, cmds);
-	if (ss < 0) {
-		ss = 0;
-	}
-	return ss;
-}
 
 int rest_devices_garage_post(struct http_request *req,
 			     struct http_response *resp)
@@ -930,26 +945,6 @@ const struct json_obj_descr json_caniot_blcommand_post_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, crl2, JSON_TOK_STRING),
 };
 
-static int parse_xps_command(const char *str)
-{
-	static const char *const cmds[] = {
-		"none",
-		"set_on",
-		"set_off",
-		"toggle",
-		"reset",
-		"pulse_on",
-		"pulse_off",
-		"pulse_cancel",
-		NULL
-	};
-	int xps = parse_string_in_list(str, cmds);
-	if (xps < 0) {
-		xps = 0;
-	}
-	return xps;
-}
-
 int rest_devices_caniot_command(struct http_request *req,
 				struct http_response *resp)
 {
@@ -1073,3 +1068,5 @@ int rest_devices_caniot_attr_write(struct http_request *req,
 exit:
 	return ret;
 }
+
+#endif /* CONFIG_CANIOT_CONTROLLER */

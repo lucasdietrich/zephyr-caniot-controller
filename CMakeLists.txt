@@ -10,6 +10,8 @@ endif()
 
 if (BOARD STREQUAL "nucleo_f429zi")
     set(ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/modules/uart_ipc ${CMAKE_CURRENT_SOURCE_DIR}/modules/caniot-lib)
+elseif(BOARD STREQUAL "qemu_x86")
+    set(ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/modules/caniot-lib)
 endif()
 
 include($ENV{ZEPHYR_BASE}/cmake/app/boilerplate.cmake NO_POLICY_SCOPE)

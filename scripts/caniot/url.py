@@ -31,7 +31,7 @@ class URL:
         result = urllib.parse.urlparse(
             urllib.parse.urljoin(self.get() + "/", str(path)))
 
-        return URL(self.ip, result.path, result.query, secure=self.secure)
+        return URL(self.hostname, result.path, result.query, secure=self.secure)
 
     def __add__(self, path: str) -> URL:
         assert isinstance(path, str)

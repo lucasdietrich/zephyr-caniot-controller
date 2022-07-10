@@ -349,8 +349,8 @@ static void thread(void *_a, void *_b, void *_c)
 	}
 }
 
-int ha_ciot_ctrl_query(struct caniot_frame *__RESTRICT req,
-		       struct caniot_frame *__RESTRICT resp,
+int ha_ciot_ctrl_query(struct caniot_frame *__restrict req,
+		       struct caniot_frame *__restrict resp,
 		       caniot_did_t did,
 		       uint32_t *timeout)
 {
@@ -434,7 +434,7 @@ exit:
 	return ret;
 }
 
-int ha_ciot_ctrl_send(struct caniot_frame *__RESTRICT req,
+int ha_ciot_ctrl_send(struct caniot_frame *__restrict req,
 		      caniot_did_t did)
 {
 	/* this is safe because no context is allocated */

@@ -25,6 +25,10 @@ config DISCOVERY_SERVER_LOG_LEVEL
         help
                 NONE(0) ERR(1) WRN (2) INF(3) DBG(4)
 
+config BLE_CONTROLLER
+        bool "Enable BLE controller"
+        default y
+
 config HTTP_SERVER_NONSECURE
         bool "Allow non secure HTTP server"
         default y
@@ -44,13 +48,13 @@ config SYSTEM_MONITORING
                 Enable system monitoring e.g. (mbedTLS heap usage, ...)
 
 config CANTCP_SERVER
-        bool "Enable CANTCP server"
+        bool "Enable CANTCP server (DEPRECATED)"
         default n
         help
                 Enable CANTCP server thread (for CAN over TCP)
 
 config CANIOT_CONTROLLER
-        bool "Enable CANIOT controller"
+        bool "Enable CANIOT controller (DEPRECATED)"
         default n
         help
                 Enable CANIOT controller redirection for CAN messages

@@ -7,7 +7,7 @@ from enum import IntEnum
 import struct
 import pprint
 
-from url import URL
+from caniot.url import URL
 
 class Method(IntEnum):
     GET = 0
@@ -112,7 +112,8 @@ class Controller:
 
 
 if __name__ == "__main__":
-    ctrl = Controller("192.168.10.240", 80, False)
+    # "192.0.2.2"
+    ctrl = Controller("192.0.2.2", 80, False)
 
     did = 0x20
     ep = 3

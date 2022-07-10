@@ -18,7 +18,7 @@
  * @retval 0 on success
  * @retval CANIOT error (errors below -CANIOT_ERROR_BASE)
  */
-int ha_ciot_ctrl_send(struct caniot_frame *__RESTRICT req,
+int ha_ciot_ctrl_send(struct caniot_frame *__restrict req,
 		      caniot_did_t did);
 /**
  * @brief Do a CANIOT query, blocking (if timeout != 0)
@@ -37,8 +37,8 @@ int ha_ciot_ctrl_send(struct caniot_frame *__RESTRICT req,
  * @retval -EAGAIN Waiting period timed out.
  * @retval any other CANIOT error
  */
-int ha_ciot_ctrl_query(struct caniot_frame *__RESTRICT req,
-		       struct caniot_frame *__RESTRICT resp,
+int ha_ciot_ctrl_query(struct caniot_frame *__restrict req,
+		       struct caniot_frame *__restrict resp,
 		       caniot_did_t did,
 		       uint32_t *timeout);
 

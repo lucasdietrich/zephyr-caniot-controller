@@ -46,8 +46,8 @@ int rest_caniot_info(struct http_request *req,
 int rest_caniot_command(struct http_request *req,
 			struct http_response *resp);
 
-int rest_caniot_query_telemetry(struct http_request *req,
-				struct http_response *resp);
+int rest_test_caniot_query_telemetry(struct http_request *req,
+				     struct http_response *resp);
 
 int rest_devices_garage_get(struct http_request *req,
 			    struct http_response *resp);
