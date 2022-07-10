@@ -12,13 +12,45 @@
 
 struct http_request
 {
+	/* One parser per request, in order to process them asynchronously */
+        struct http_parser parser;
+
+	/* enabled if keep-alive is set in the request */
+	uint8_t keep_alive : 1;
+
+        /* tells if HTTP request is complete */
+        uint8_t complete : 1;
+	
+	/**
+	 * @brief Is the request sended using "chunk" encoding, if yes we should
+	 * handle the request as a stream.
+	 */
+	uint8_t chunked: 1;
+
+	/**
+	 * @brief Process the request as a stream 
+	 * Note: If chunked is set or if content-length is larger 
+	 *       than HTTP_REQUEST_PAYLOAD_MAX_SIZE
+	 */
+	uint8_t stream: 1;
+
 	/**
 	 * @brief Request method (GET, POST, PUT, DELETE)
 	 */
         enum http_method method;
 
-	/* Timeout of the request in ms (to be used by the app)
-	 * - Timeout of 0 means no timeout
+	/* Header currently being parsed */
+	const struct http_request_header *_parsing_cur_header;
+
+	/* TODO headers values (dynamically allocated and freed, using HEAP/MEMSLAB ) */
+	sys_dlist_t _headers;
+	
+	/* Request content type */
+	http_content_type_t content_type;
+
+	/**
+	 * @brief Timeout of the request in ms (to be used by the app)
+	 * Note: Timeout of 0 means no timeout value defined (FOREVER or NONE)
 	 */
 	uint32_t timeout_ms;
 
@@ -71,5 +103,8 @@ struct http_response
         uint16_t status_code;
 	http_content_type_t content_type;
 };
+
+typedef struct http_request http_request_t;
+typedef struct http_response http_response_t;
 
 #endif

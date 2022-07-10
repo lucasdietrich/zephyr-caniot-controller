@@ -14,42 +14,16 @@
 
 struct http_connection;
 
-struct http_request_header
-{
-	/* header anem "Timeout", ... */
-	const char *name;
-
-	uint16_t len;
-
-	int (*handler)(const struct http_request_header *hdr,
-		       struct http_connection *conn,
-		       const char *value);
-};
-
 struct http_connection
 {
         /* INTERNAL */
         struct sockaddr addr;
 
         /* struct sockaddr_in addr; */
-	/* TODO parser could be shared among all connections as requests 
-	 * are parsed as a whole. */
-	/* TODO parser should belongs to the http_request structure 
-	 * and not the connection structure, this solves also above problem */
-        struct http_parser parser;
-
-	/* Haader currently being parsed */
-	const struct http_request_header *_parsing_cur_header;
-
-	/* headers values (dynamically allocated and freed, using HEAP/MEMSLAB ) */
-	sys_dlist_t _headers;
-
-        /* tells if HTTP request is complete */
-        uint8_t complete : 1;
 
 	struct {
-		/* enabled if keep-alive is set in the request */
-		uint8_t enabled : 1;
+		/* keep alive enabled */
+		uint8_t enabled: 1;
 
 		/* in ms */
 		uint32_t timeout;
@@ -58,8 +32,8 @@ struct http_connection
 		uint32_t last_activity;
 	} keep_alive;
 
-        struct http_request *req;
-        struct http_response *resp;
+        http_request_t *req;
+        http_response_t *resp;
 };
 
 typedef struct http_connection http_connection_t;

@@ -15,8 +15,8 @@
 #define HTML_QUICK_URL(url) HTML_URL(url, url)
 #define HTML_LI(content) "<li>" content "</li>"
 
-int web_server_index_html(struct http_request *req,
-			  struct http_response *resp)
+int web_server_index_html(http_request_t *req,
+			  http_response_t *resp)
 {
 	buffer_append_string(&resp->buffer, HTML_BEGIN_TO_TITLE
 			     "stm32f429zi index.html" HTML_TITLE_TO_BODY);

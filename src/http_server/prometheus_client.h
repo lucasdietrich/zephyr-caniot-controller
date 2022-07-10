@@ -7,14 +7,14 @@
 
 #include "ha/devices.h"
 
-int prometheus_metrics_demo(struct http_request *req,
-			    struct http_response *resp);
+int prometheus_metrics_demo(http_request_t *req,
+			    http_response_t *resp);
 
-int prometheus_metrics(struct http_request *req,
-		       struct http_response *resp);
+int prometheus_metrics(http_request_t *req,
+		       http_response_t *resp);
 
-int prometheus_metrics_controller(struct http_request *req,
-				  struct http_response *resp);
+int prometheus_metrics_controller(http_request_t *req,
+				  http_response_t *resp);
 
 const char *prom_myd_medium_to_str(ha_dev_medium_type_t medium);
 

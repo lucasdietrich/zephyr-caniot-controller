@@ -461,8 +461,8 @@ __attribute__((used)) static const struct prom_metric_descr demo_descr[] = {
 	PROM_METRIC_DESCR(struct prom_demo_struct, c, VALUE_ENCODING_TYPE_INT32, NULL),
 };
 
-int prometheus_metrics_demo(struct http_request *req,
-			    struct http_response *resp)
+int prometheus_metrics_demo(http_request_t *req,
+			    http_response_t *resp)
 {
 	const char *tags1[] = {
 		"BLE"
@@ -682,8 +682,8 @@ static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
 	}
 }
 
-int prometheus_metrics(struct http_request *req,
-		       struct http_response *resp)
+int prometheus_metrics(http_request_t *req,
+		       http_response_t *resp)
 {
 	ha_dev_filter_t filter = {
 		.type = HA_DEV_FILTER_NONE,
@@ -698,8 +698,8 @@ int prometheus_metrics(struct http_request *req,
 	return 0;
 }
 
-int prometheus_metrics_controller(struct http_request *req,
-				  struct http_response *resp)
+int prometheus_metrics_controller(http_request_t *req,
+				  http_response_t *resp)
 {
 	return -EINVAL;
 }

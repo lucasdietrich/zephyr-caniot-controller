@@ -16,8 +16,8 @@ typedef enum {
 	HTTP_PROMETHEUS_CLIENT
 } http_server_t;
 
-struct http_response;
 struct http_request;
+struct http_response;
 
 typedef int (*http_handler_t) (struct http_request *req,
 			       struct http_response *resp);

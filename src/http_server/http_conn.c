@@ -29,12 +29,9 @@ http_connection_t *http_conn_get(int index)
 
 static void clear_conn(http_connection_t *conn)
 {
-        http_parser_init(&conn->parser, HTTP_REQUEST);
-
         conn->req = NULL;
         conn->resp = NULL;
-
-        conn->complete = 0;
+	
         conn->keep_alive.enabled = 0;
 }
 

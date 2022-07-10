@@ -19,7 +19,7 @@
 #include "creds/credentials.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(http_server, LOG_LEVEL_WRN); /* INF */
+LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF); /* INF */
 
 /*___________________________________________________________________________*/
 
@@ -355,7 +355,7 @@ static int recv_request(http_connection_t *conn)
         size_t parsed;
         ssize_t rc;
         int sock = conn_get_sock(conn);
-        struct http_request *req = conn->req;
+        http_request_t *req = conn->req;
         int remaining = req->buffer.size;
 
         req->len = 0;
@@ -383,7 +383,7 @@ static int recv_request(http_connection_t *conn)
                         LOG_INF("(%d) Connection closed by peer", sock);
                         goto exit;
                 } else {
-                        parsed = http_parser_execute(&conn->parser,
+                        parsed = http_parser_execute(&conn->req->parser,
                                                      &settings,
                                                      &req->buffer.buf[req->len],
                                                      rc);
@@ -391,8 +391,12 @@ static int recv_request(http_connection_t *conn)
                         req->len += rc;
                         remaining -= rc;
 
-                        if (conn->complete) {
-				/* if request is complete, we only expect a following request */
+                        if (conn->req->complete) {
+				/* We update the connection keep_alive configuration
+				 * based on the request.
+				 */
+				conn->keep_alive.enabled = conn->req->keep_alive;
+
                                 break;
                         }
                 }
@@ -431,13 +435,13 @@ exit:
 }
 
 // static int encode_response_headers(http_connection_t *conn,
-// 				   struct http_response *resp)
+// 				   http_response_t *resp)
 // {
 // 	return 0;
 // }
 
 static int send_response(http_connection_t *conn,
-                           struct http_response *resp)
+                           http_response_t *resp)
 {
         int ret, sent;
         char *b = buffer.response.internal;
@@ -491,8 +495,8 @@ exit:
         return ret;
 }
 
-static int process_request(struct http_request *req,
-			   struct http_response *resp)
+static int process_request(http_request_t *req,
+			   http_response_t *resp)
 {
 	int ret;
 	const struct http_route *route = route_resolve(req->method, req->url,
@@ -536,7 +540,7 @@ static void handle_conn(http_connection_t *conn)
 	static http_route_args_t route_args;
 
         /* initialized one time only !*/
-        static struct http_request req = {
+        static http_request_t req = {
                 .buffer = {
                         .buf = buffer.request,
                         .size = sizeof(buffer.request)
@@ -544,12 +548,11 @@ static void handle_conn(http_connection_t *conn)
 		.route_args = &route_args,
         };
 
-        static struct http_response resp = {
+        static http_response_t resp = {
                 .buf = buffer.response.payload,
                 .buf_size = sizeof(buffer.response.payload)
         };
 	
-
         const int sock = conn_get_sock(conn);
 
         conn->req = &req;
@@ -557,16 +560,21 @@ static void handle_conn(http_connection_t *conn)
 
         /* reset req and resp values */
         req.payload.loc = NULL;
-        req.payload.len = 0;
-	req.timeout_ms = 0;
+        req.payload.len = 0U;
+	req.timeout_ms = 0U;
+	req.chunked = 0U;
+	req.content_type = HTTP_CONTENT_TYPE_APPLICATION_JSON;
+        req.complete = 0U;
+	req.keep_alive = 0U;
+	
 
-        resp.content_len = 0,
-        resp.status_code = 200;
+	http_parser_init(&req.parser, HTTP_REQUEST);
+
+        resp.content_len = 0U,
+        resp.status_code = 200U;
 	resp.content_type = HTTP_CONTENT_TYPE_TEXT_PLAIN;
 
-        conn->keep_alive.enabled = 0;
-        conn->complete = 0;
-
+        conn->keep_alive.enabled = 0U;
         if (recv_request(conn) <= 0) {
                 goto close;
         }
