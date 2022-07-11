@@ -8,12 +8,15 @@
                 "User-Agent": "vscode-restclient",
                 "Content-Type": "application/json",
                 "Connection": "close",
-                // "Authorization": "Basic Lucas bff0f240"
         },
         "rest-client.environmentVariables": {
                 "$shared": {
                         "port": "80",
                         "host": "192.168.10.240",
+                },
+                "qemu": {
+                        "port": "80",
+                        "host": "192.0.2.1",
                 },
         },
         "files.associations": {
@@ -116,7 +119,8 @@
                 "tuple": "c",
                 "utility": "c",
                 "stm32_crc32.h": "c",
-                "http_server.h": "c"
+                "http_server.h": "c",
+                "files_server.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

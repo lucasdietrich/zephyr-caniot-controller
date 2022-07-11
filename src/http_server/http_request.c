@@ -6,6 +6,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "http_utils.h"
+#include "http_server.h"
+
 #include <logging/log.h>
 LOG_MODULE_REGISTER(http_req, LOG_LEVEL_DBG);
 
@@ -122,11 +125,31 @@ static int header_content_type_handler(http_request_t *req,
 				       const struct header *hdr,
 				       const char *value)
 {
-#define CONTENT_TYPE_MULTIPART_STR "multipart/form-data"
+#define CONTENT_TYPE_APPLICATION_OCTET_STREAM_STR "application/octet-stream"
+#define CONTENT_TYPE_MULTIPART_FORM_DATA_STR "multipart/form-data"
 
-	if (strncicmp(value, CONTENT_TYPE_MULTIPART_STR, strlen(CONTENT_TYPE_MULTIPART_STR) == 0)) {
-		LOG_INF("(%p) Content-Type " CONTENT_TYPE_MULTIPART_STR, req);
-		req->content_type = HTTP_CONTENT_TYPE_MULTIPART;
+	if (strncicmp(value, CONTENT_TYPE_APPLICATION_OCTET_STREAM_STR,
+		      strlen(CONTENT_TYPE_APPLICATION_OCTET_STREAM_STR) == 0)) {
+		LOG_INF("(%p) Content-Type " CONTENT_TYPE_APPLICATION_OCTET_STREAM_STR, req);
+		req->content_type = HTTP_CONTENT_TYPE_APPLICATION_OCTET_STREAM;
+	} else if (strncicmp(value, CONTENT_TYPE_MULTIPART_FORM_DATA_STR,
+			     strlen(CONTENT_TYPE_MULTIPART_FORM_DATA_STR) == 0)) {
+		LOG_INF("(%p) Content-Type " CONTENT_TYPE_MULTIPART_FORM_DATA_STR, req);
+		req->content_type = HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA;
+	}
+
+	return 0;
+}
+
+static int header_content_length_handler(http_request_t *req,
+				       const struct header *hdr,
+				       const char *value)
+{
+
+	uint32_t content_length;
+	if (sscanf(value, "%u", &content_length) == 1) {
+		LOG_INF("(%p) Content-length : %u B", req, content_length);
+		req->parsed_content_length = content_length;
 	}
 
 	return 0;
@@ -138,6 +161,7 @@ static const struct header headers[] = {
 	HEADER("Timeout-ms", header_timeout_handler),
 	HEADER("Transfer-Encoding", header_transfer_encoding_handler),
 	HEADER("Content-Type", header_content_type_handler),
+	HEADER("Content-Length", header_content_length_handler),
 };
 
 int on_header_field(struct http_parser *parser, const char *at, size_t length)
@@ -177,17 +201,33 @@ int on_header_value(struct http_parser *parser, const char *at, size_t length)
 
 int on_headers_complete(struct http_parser *parser)
 {
-	
 	http_request_t *const req = REQUEST_FROM_PARSER(parser);
+
+	/* Resolve route as we enough information */
+	const struct http_route *route =
+		route_resolve(req->method, req->url,
+			      req->url_len, req->route_args);
+
 	
-	/* TODO if multipart or content length to long or chunk -> stream */
+	if (route_is_valid(route) == true) {
+		req->discard = 0U;
+		
+		/* We decide to process the request as a stream or a message */
+		req->stream =
+			(route->server == HTTP_FILES_SERVER) ||
+			(req->content_type == HTTP_CONTENT_TYPE_APPLICATION_OCTET_STREAM) ||
+			(req->parsed_content_length == HTTP_REQUEST_PAYLOAD_MAX_SIZE) ||
+			(req->chunked == 1U);
+	} else {
+		req->discard = 1U;
+	}
 
-	/* HERE we should decide to process the request as a stream or a message */
-	bool process_as_stream = false;
+	req->route = route;
+	req->headers_complete = 1U;
 
-
-
-	LOG_DBG("on_headers_complete (%d)", 0);
+	LOG_INF("on_headers_complete, discard=%d stream=%d",
+		req->discard, req->stream);
+	
 	return 0;
 }
 
@@ -199,9 +239,9 @@ int on_body(struct http_parser *parser, const char *at, size_t length)
         if (req->payload.loc == NULL) {
 		req->payload.loc = (char *)at;
                 req->payload.len = 0;
-        } else {
-                req->payload.len += length;
         }
+
+	req->payload.len += length;
         
         LOG_DBG("on_body at=%p len=%u (content-len = %llu)",
                 at, length, parser->content_length);

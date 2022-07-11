@@ -26,11 +26,14 @@ def get_chunk_length(chunk_id):
 def get_file(size = 2049):
     return gen_data(0, size)
 
+# "application/octet-stream"
+
 m = MultipartEncoder(
-  fields = {
-    "KEY1": "VALUE___AA",
-    "file1": ("myfile.bin", get_file(1024)),
-  }
+    fields={
+        "KEY1": "VALUE___AA",
+        "file1": ("myfile.bin", get_file(1024)),
+    },
+    boundary="----WebKitFormBoundary7MA4YWxkTrZu0gW",
 )
 
 def file_chunks_generator():
@@ -44,7 +47,8 @@ def file_chunks_generator():
             break
 
 
-response = requests.post(f"http://{ip}/chunked",
+
+response = requests.post(f"http://{ip}/files",
                          data=file_chunks_generator(),
                          headers={"Content-Type": m.content_type})
 print(response.status_code)

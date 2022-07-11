@@ -12,10 +12,12 @@ LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 #include "rest_server.h"
 #include "web_server.h"
 #include "prometheus_client.h"
+#include "files_server.h"
 
 #define REST REST_RESSOURCE
 #define WEB WEB_RESSOURCE
 #define PROM PROM_RESSOURCE
+#define FILE FILE_RESSOURCE
 
 #define DELETE HTTP_DELETE
 #define GET HTTP_GET
@@ -36,6 +38,7 @@ LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 #define REST_RESSOURCE(m, r, h, k) HTTP_ROUTE(m, r, h, HTTP_REST_SERVER, HTTP_CONTENT_TYPE_APPLICATION_JSON, k)
 #define WEB_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_WEB_SERVER, HTTP_CONTENT_TYPE_TEXT_HTML, 0U)
 #define PROM_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_PROMETHEUS_CLIENT, HTTP_CONTENT_TYPE_TEXT_PLAIN, 0U)
+#define FILE_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_FILES_SERVER, HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA, 0U)
 
 static const struct http_route routes[] = {
 	WEB(GET, "", web_server_index_html),
@@ -51,6 +54,8 @@ static const struct http_route routes[] = {
 	REST(GET, "/devices", rest_devices_list, 0U),
 	REST(GET, "/devices/xiaomi", rest_xiaomi_records, 0U),
 	REST(GET, "/devices/caniot", rest_caniot_records, 0U),
+
+	FILE_RESSOURCE(POST, "/files", http_file_upload),
 
 #if defined(CONFIG_CANIOT_CONTROLLER)
 	REST(GET, "/devices/garage", rest_devices_garage_get, 0U),
@@ -125,6 +130,11 @@ const struct http_route *route_resolve(enum http_method method,
 	}
 
 	return NULL;
+}
+
+bool route_is_valid(const struct http_route *route)
+{
+	return (route != NULL) && (route->handler != NULL);
 }
 
 http_content_type_t http_route_get_default_content_type(const struct http_route *route)

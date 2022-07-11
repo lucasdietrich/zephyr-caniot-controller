@@ -79,6 +79,12 @@ int http_encode_header_content_type(char *buf,
 	case HTTP_CONTENT_TYPE_APPLICATION_JSON:
 		content_type_str = "application/json";
 		break;
+	case HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA:
+		content_type_str = "multipart/form-data";
+		break;
+	case HTTP_CONTENT_TYPE_APPLICATION_OCTET_STREAM:
+		content_type_str = "application/octet-stream";
+		break;
 	case HTTP_CONTENT_TYPE_TEXT_PLAIN:
 	default:
 		content_type_str = "text/plain";
@@ -102,4 +108,23 @@ int http_encode_header_end(char *buf, size_t len)
 bool http_code_has_payload(uint16_t status_code)
 {
         return (status_code == 200);
+}
+
+const char *http_content_type_to_str(http_content_type_t content_type)
+{
+	switch (content_type) {
+	case HTTP_CONTENT_TYPE_NONE:
+		return "{notset}";
+	case HTTP_CONTENT_TYPE_TEXT_HTML:
+		return "text/html";
+	case HTTP_CONTENT_TYPE_APPLICATION_JSON:
+		return "application/json";
+	case HTTP_CONTENT_TYPE_APPLICATION_OCTET_STREAM:
+		return "application/octet-stream";
+	case HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA:
+		return "multipart/form-data";
+	case HTTP_CONTENT_TYPE_TEXT_PLAIN:
+	default:
+		return "text/plain";
+	}
 }

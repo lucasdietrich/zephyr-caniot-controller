@@ -700,7 +700,7 @@ int rest_devices_garage_post(http_request_t *req,
 	int ret;
 	struct json_garage_post post;
 
-	int map = json_obj_parse(req->payload.loc, req->len,
+	int map = json_obj_parse(req->payload.loc, req->payload.len,
 				 json_garage_post_descr,
 				 ARRAY_SIZE(json_garage_post_descr),
 				 &post);

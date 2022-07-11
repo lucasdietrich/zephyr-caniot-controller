@@ -12,13 +12,20 @@
 
 struct http_request
 {
+	/* TODO socket id will be required if requests are intended to be processed 
+	 * in parallel. workqueue, ...*/
+	int _sock;
+	
 	/* One parser per request, in order to process them asynchronously */
         struct http_parser parser;
 
 	/* enabled if keep-alive is set in the request */
 	uint8_t keep_alive : 1;
 
-        /* tells if HTTP request is complete */
+	/* flag telling whether HTTP headers are complete */
+	uint8_t headers_complete: 1;
+
+        /* flag telling whether HTTP request is complete */
         uint8_t complete : 1;
 	
 	/**
@@ -33,6 +40,18 @@ struct http_request
 	 *       than HTTP_REQUEST_PAYLOAD_MAX_SIZE
 	 */
 	uint8_t stream: 1;
+
+	/**
+	 * @brief Tells if the body should be discarded because cannot be processed
+	 * Note: Determined when headers are parsed.
+	 */
+	uint32_t discard: 1;
+
+	/**
+	 * @brief Parsed content length, TODO should be compared against "len" 
+	 * when the request was totally received
+	 */
+	uint16_t parsed_content_length;
 
 	/**
 	 * @brief Request method (GET, POST, PUT, DELETE)
@@ -77,7 +96,9 @@ struct http_request
                 size_t size;
         } buffer;
 
-	/* Request length */
+	http_chunk_t chunk;
+
+	/* Received length */
         size_t len;
 
 	/* HTTP content location */
@@ -99,7 +120,6 @@ struct http_response
 		};
 	};
 	
-        
         uint16_t status_code;
 	http_content_type_t content_type;
 };

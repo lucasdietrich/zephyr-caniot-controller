@@ -1,4 +1,5 @@
-GET http://{{host}}/
+GET http://{{host}}
+content-type: application/json
 
 ###
 
