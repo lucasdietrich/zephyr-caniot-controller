@@ -10,9 +10,6 @@
 #include "http_request.h"
 
 int http_file_upload(struct http_request *req,
-		     struct http_response *resp)
-{
-	return 0;
-}
+		     struct http_response *resp);
 
 #endif /* _HTTP_FILES_SERVER_H_ */

@@ -8,6 +8,7 @@
 
 #include "http_utils.h"
 #include "http_request.h"
+#include "http_response.h"
 
 int rest_encode_response_json(http_response_t *resp,
 			      const void *val,

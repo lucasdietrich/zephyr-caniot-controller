@@ -2,9 +2,12 @@ import socket
 import time
 from random import shuffle
 
-n = 3
+# "192.168.10.240"
+ip = "192.0.2.1"
+parallel_requests = 5
+requests_count = 5
 
-req = b"""GET /path/2 HTTP/1.1
+req = b"""GET /info HTTP/1.1
 Host: 192.168.10.240
 User-Agent: python-requests/2.26.0
 Accept-Encoding: gzip, deflate
@@ -20,12 +23,12 @@ req.replace(b"\n", b"\r\n")
 
 a = time.time()
 
-sock = [0] * n
+sock = [0] * parallel_requests
 
-for i in range(n):
+for i in range(parallel_requests):
         sock[i] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock[i].settimeout(5.0)
-        sock[i].connect(("192.168.10.240", 80))
+        sock[i].connect((ip, 80))
 
 b = time.time()
 
@@ -33,17 +36,18 @@ b = time.time()
 
 shuffle(sock)
 
-for j in range(5):
-        for i in range(n):
+for j in range(requests_count):
+        for i in range(parallel_requests):
                 sock[i].send(req)
                 data = sock[i].recv(1024)
                 print(f"[{len(data)}] {data}")
 
                 # time.sleep(0.25)
+        shuffle(sock)
 
 c = time.time()
 
-for i in range(n):
+for i in range(parallel_requests):
         sock[i].close()
 
 d = time.time()

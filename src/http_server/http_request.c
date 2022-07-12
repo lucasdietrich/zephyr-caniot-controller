@@ -10,7 +10,7 @@
 #include "http_server.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(http_req, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(http_req, LOG_LEVEL_INF);
 
 /* parsing */
 
@@ -22,30 +22,30 @@ LOG_MODULE_REGISTER(http_req, LOG_LEVEL_DBG);
 
 int on_message_begin(struct http_parser *parser)
 {
-        LOG_DBG("on_message_begin (%d)", 0);
-        return 0;
+	LOG_DBG("on_message_begin (%d)", 0);
+	return 0;
 }
 
 int on_url(struct http_parser *parser, const char *at, size_t length)
 {
 	http_request_t *req = REQUEST_FROM_PARSER(parser);
 
-        if (length >= sizeof(req->url)) {
-                LOG_ERR("(%p) URL too long (%d >= %u)",
-                        req, length, sizeof(req->url));
+	if (length >= sizeof(req->url)) {
+		LOG_ERR("(%p) URL too long (%d >= %u)",
+			req, length, sizeof(req->url));
 
-                return -EINVAL;
-        }
+		return -EINVAL;
+	}
 
-        LOG_HEXDUMP_DBG(at, length, "url");
+	LOG_HEXDUMP_DBG(at, length, "url");
 
-        memcpy(req->url, at, length);
-        req->url[length] = '\0';
-        req->url_len = length;
+	memcpy(req->url, at, length);
+	req->url[length] = '\0';
+	req->url_len = length;
 
-        req->method = parser->method;
-                
-        return 0;
+	req->method = parser->method;
+
+	return 0;
 }
 
 struct http_request_header
@@ -142,8 +142,8 @@ static int header_content_type_handler(http_request_t *req,
 }
 
 static int header_content_length_handler(http_request_t *req,
-				       const struct header *hdr,
-				       const char *value)
+					 const struct header *hdr,
+					 const char *value)
 {
 
 	uint32_t content_length;
@@ -181,12 +181,12 @@ int on_header_field(struct http_parser *parser, const char *at, size_t length)
 		}
 	}
 
-        return 0;
+	return 0;
 }
 
 int on_header_value(struct http_parser *parser, const char *at, size_t length)
 {
-        http_request_t *const req = REQUEST_FROM_PARSER(parser);
+	http_request_t *const req = REQUEST_FROM_PARSER(parser);
 
 	const struct header *const hdr = req->_parsing_cur_header;
 
@@ -208,10 +208,10 @@ int on_headers_complete(struct http_parser *parser)
 		route_resolve(req->method, req->url,
 			      req->url_len, req->route_args);
 
-	
+
 	if (route_is_valid(route) == true) {
 		req->discard = 0U;
-		
+
 		/* We decide to process the request as a stream or a message */
 		req->stream =
 			(route->server == HTTP_FILES_SERVER) ||
@@ -225,64 +225,103 @@ int on_headers_complete(struct http_parser *parser)
 	req->route = route;
 	req->headers_complete = 1U;
 
+	req->chunk.id = 0U;
+
 	LOG_INF("on_headers_complete, discard=%d stream=%d",
 		req->discard, req->stream);
-	
+
 	return 0;
 }
 
 int on_body(struct http_parser *parser, const char *at, size_t length)
 {
-        /* can be called several times */
-        http_request_t *req = REQUEST_FROM_PARSER(parser);
+	/* can be called several times */
+	http_request_t *req = REQUEST_FROM_PARSER(parser);
 
-        if (req->payload.loc == NULL) {
-		req->payload.loc = (char *)at;
-                req->payload.len = 0;
-        }
+	if (req->stream) {
+		req->chunk.loc = (char *)at;
+		req->chunk.len = length;
 
-	req->payload.len += length;
-        
-        LOG_DBG("on_body at=%p len=%u (content-len = %llu)",
-                at, length, parser->content_length);
+		__ASSERT(req->route != NULL, "route is NULL");
+		__ASSERT(req->route->handler != NULL, "route handler is null");
 
-	LOG_HEXDUMP_DBG(at, length, "body");
-        return 0;
+		int ret = req->route->handler(req, NULL);
+		if (ret == 0) {
+			req->chunk._offset += length;
+		} else {
+			req->discard = 1U;
+		}
+	} else {
+		if (req->payload.loc == NULL) {
+			req->payload.loc = (char *)at;
+			req->payload.len = 0;
+		}
+
+		req->payload.len += length;
+	}
+
+	LOG_DBG("on_body at=%p len=%u (content-len = %llu)",
+		at, length, parser->content_length);
+
+	// LOG_HEXDUMP_DBG(at, length, "body");
+	return 0;
 }
 
 int on_message_complete(struct http_parser *parser)
 {
 	http_request_t *const req = REQUEST_FROM_PARSER(parser);
-	
-	req->complete = 1U;
 
-        LOG_DBG("on_message_complete (%d)", 0);
-        return 0;
+	req->request_complete = 1U;
+
+	LOG_INF("on_message_complete, payload len=%u (%p)", 
+		req->payload.len, req);
+	
+	return 0;
 }
 
 int on_chunk_header(struct http_parser *parser)
 {
-        LOG_DBG("on_chunk_header (%p)", parser);
-        return 0;
+	http_request_t *const req = REQUEST_FROM_PARSER(parser);
+
+	if (req->stream) {
+		/* reset chunk vars */
+		req->chunk._offset = 0U;
+		req->chunk.len = 0U;
+		req->chunk.loc = NULL;
+
+		LOG_DBG("on_chunk_header chunk=%u (%p)", req->chunk.id, req);
+	}
+
+	return 0;
 }
 
 int on_chunk_complete(struct http_parser *parser)
 {
-        LOG_DBG("on_chunk_complete (%p)", parser);
-        return 0;
+	http_request_t *const req = REQUEST_FROM_PARSER(parser);
+
+	if (req->stream) {
+		/* increment chunk id */
+		req->chunk.id++;
+
+		req->payload.len += req->chunk._offset;
+
+		LOG_DBG("on_chunk_complete chunk=%u len=%u (%p)",
+			req->chunk.id, req->chunk.len, parser);
+	}
+
+	return 0;
 }
 
-const struct http_parser_settings settings = {
-        .on_status = NULL, /* no status for requests */
-        .on_url = on_url,
-        .on_header_field = on_header_field,
-        .on_header_value = on_header_value,
-        .on_headers_complete = on_headers_complete,
-        .on_message_begin = on_message_begin,
-        .on_message_complete = on_message_complete,
-        .on_body = on_body,
+const struct http_parser_settings parser_settings = {
+	.on_status = NULL, /* no status for requests */
+	.on_url = on_url,
+	.on_header_field = on_header_field,
+	.on_header_value = on_header_value,
+	.on_headers_complete = on_headers_complete,
+	.on_message_begin = on_message_begin,
+	.on_message_complete = on_message_complete,
+	.on_body = on_body,
 
-        /* not supported for now */
-        .on_chunk_header = on_chunk_header,
-        .on_chunk_complete = on_chunk_complete
+	.on_chunk_header = on_chunk_header,
+	.on_chunk_complete = on_chunk_complete
 };

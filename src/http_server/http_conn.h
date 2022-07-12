@@ -10,7 +10,11 @@
 
 #include <sys/dlist.h>
 
+#include <sys/dlist.h>
+#include <sys/slist.h>
+
 #include "http_request.h"
+#include "http_response.h"
 
 struct http_connection;
 
@@ -18,6 +22,19 @@ struct http_connection
 {
         /* INTERNAL */
         struct sockaddr addr;
+	
+	union {
+		/* Handle when allocated */
+		sys_dnode_t _handle;
+
+		/* Handle in the free list for allocation */
+		sys_snode_t _alloc_handle;
+	};
+
+	/**
+	 * @brief Socket id (-1 if undefined)
+	 */
+	int sock;
 
         /* struct sockaddr_in addr; */
 
@@ -38,22 +55,16 @@ struct http_connection
 
 typedef struct http_connection http_connection_t;
 
-void http_conn_init_pool(void);
-
-http_connection_t *http_conn_get(int index);
-
-int http_conn_get_index(http_connection_t *conn);
+void http_conn_init(void);
 
 http_connection_t *http_conn_alloc(void);
 
+http_connection_t *http_conn_get_by_sock(int sock_fd);
+
 void http_conn_free(http_connection_t *conn);
 
-bool http_conn_closed(http_connection_t *conn);
+bool http_conn_is_closed(http_connection_t *conn);
 
-// iterate over the connections
-void http_conn_iterate(void (*callback)(http_connection_t *conn,
-					void *user_data),
-		       void *user_data);
 
 bool http_conn_is_outdated(http_connection_t *conn);
 

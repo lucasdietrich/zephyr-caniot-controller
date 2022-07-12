@@ -24,21 +24,22 @@ LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 #define POST HTTP_POST
 #define PUT HTTP_PUT
 
-#define HTTP_ROUTE(m, r, h, t, c, k) \
+#define HTTP_ROUTE(m, r, h, t, c, k, s) \
 	{ \
 		.route = r, \
 		.route_len = sizeof(r) - 1, \
 		.method = m, \
+		.support_stream = s, \
 		.server = t, \
 		.handler = h, \
 		.default_content_type = c, \
 		.path_args_count = k \
 	}
 
-#define REST_RESSOURCE(m, r, h, k) HTTP_ROUTE(m, r, h, HTTP_REST_SERVER, HTTP_CONTENT_TYPE_APPLICATION_JSON, k)
-#define WEB_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_WEB_SERVER, HTTP_CONTENT_TYPE_TEXT_HTML, 0U)
-#define PROM_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_PROMETHEUS_CLIENT, HTTP_CONTENT_TYPE_TEXT_PLAIN, 0U)
-#define FILE_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_FILES_SERVER, HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA, 0U)
+#define REST_RESSOURCE(m, r, h, k) HTTP_ROUTE(m, r, h, HTTP_REST_SERVER, HTTP_CONTENT_TYPE_APPLICATION_JSON, k, false)
+#define WEB_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_WEB_SERVER, HTTP_CONTENT_TYPE_TEXT_HTML, 0U, false)
+#define PROM_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_PROMETHEUS_CLIENT, HTTP_CONTENT_TYPE_TEXT_PLAIN, 0U, false)
+#define FILE_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_FILES_SERVER, HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA, 0U, true)
 
 static const struct http_route routes[] = {
 	WEB(GET, "", web_server_index_html),

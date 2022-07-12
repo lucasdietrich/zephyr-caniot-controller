@@ -27,12 +27,13 @@ bool http_code_has_payload(uint16_t status_code);
 
 const char *http_content_type_to_str(http_content_type_t content_type);
 
-typedef struct
-{
-	uint8_t *loc;
-	uint16_t len;
-	uint16_t id;
-} http_chunk_t;
+// typedef struct
+// {
+// 	uint8_t *buf;
+// 	uint16_t 
+// 	uint16_t len;
+// 	uint16_t id;
+// } http_chunk_t;
 
  
 

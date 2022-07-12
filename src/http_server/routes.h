@@ -17,11 +17,24 @@ typedef enum {
 	HTTP_FILES_SERVER,
 } http_server_t;
 
+typedef enum
+{
+	HTTP_REQUEST_AS_MESSAGE,
+	HTTP_REQUEST_AS_STREAM,
+} http_request_handling_type_t;
+
 struct http_request;
 struct http_response;
-
-typedef int (*http_handler_t) (struct http_request *req,
-			       struct http_response *resp);
+ 
+/**
+ * @brief Route handler function.
+ * @param req The request (NULL when finished to process a stream request)
+ * @param res The response (NULL when processing a stream chunk)
+ * @param args The route arguments.
+ * @return 0 on success, any other value on error.
+ */
+typedef int (*http_handler_t) (struct http_request *__restrict req,
+			       struct http_response *__restrict resp);
 
 struct http_route
 {
@@ -49,6 +62,11 @@ struct http_route
 	 */
 	enum http_method method;
 
+	/**
+	 * @brief Tells if route support HTTP stream request
+	 */
+	bool support_stream;
+
 	/*___________________________________________________________________*/
 
 	/**
@@ -64,7 +82,7 @@ struct http_route
 	http_server_t server;
 
 	/**
-	 * @brief Handler to call when the route is matched
+	 * @brief Handler to call to process the request
 	 */
 	http_handler_t handler;
 

@@ -21,9 +21,9 @@ def get_chunk_length(chunk_id):
     if chunk_id < len(chunks_length):
         return chunks_length[chunk_id]
     else:
-        return 512
+        return 1024
 
-def get_file(size = 2049):
+def get_file(size = 1024):
     return gen_data(0, size)
 
 # "application/octet-stream"
@@ -31,7 +31,7 @@ def get_file(size = 2049):
 m = MultipartEncoder(
     fields={
         "KEY1": "VALUE___AA",
-        "file1": ("myfile.bin", get_file(1024)),
+        "file1": ("myfile.bin", get_file(300000)),
     },
     boundary="----WebKitFormBoundary7MA4YWxkTrZu0gW",
 )

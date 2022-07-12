@@ -10,23 +10,35 @@
 #include "http_utils.h"
 #include "routes.h"
 
+struct http_connection;
+typedef struct http_connection http_connection_t;
+
 struct http_request
 {
-	/* TODO socket id will be required if requests are intended to be processed 
-	 * in parallel. workqueue, ...*/
-	int _sock;
+	/**
+	 * @brief Connection currently owning the current request
+	 */
+	http_connection_t *_conn;
 	
-	/* One parser per request, in order to process them asynchronously */
+	/**
+	 * @brief One parser per request, in order to process them asynchronously
+	 */
         struct http_parser parser;
 
-	/* enabled if keep-alive is set in the request */
+	/**
+	 * @brief Flag telling whether keep-alive is set in the request
+	 */
 	uint8_t keep_alive : 1;
 
-	/* flag telling whether HTTP headers are complete */
+	/**
+	 * @brief Flag telling whether HTTP headers are complete
+	 */
 	uint8_t headers_complete: 1;
 
-        /* flag telling whether HTTP request is complete */
-        uint8_t complete : 1;
+        /**
+         * @brief Flag telling whether HTTP request is complete
+         */
+        uint8_t request_complete : 1;
 	
 	/**
 	 * @brief Is the request sended using "chunk" encoding, if yes we should
@@ -42,7 +54,12 @@ struct http_request
 	uint8_t stream: 1;
 
 	/**
-	 * @brief Tells if the body should be discarded because cannot be processed
+	 * @brief Tells if the rest of the request should be discarded
+	 * 
+	 * Reasons could be:
+	 * - The request is too large
+	 * - Error in parsing the request
+	 * 
 	 * Note: Determined when headers are parsed.
 	 */
 	uint32_t discard: 1;
@@ -90,41 +107,46 @@ struct http_request
         };
 	*/
 
-	/* Buffer used to store the received bytes */
-        struct {
-                char* buf;
-                size_t size;
-        } buffer;
+	/* payload / chunk */
+	struct {
+		/**
+		 * @brief Current chunk of data being parsed
+		 */
+		uint16_t id;
 
-	http_chunk_t chunk;
+		/**
+		 * @brief Current chunk data buffer location
+		 */
+		char *loc;
 
-	/* Received length */
-        size_t len;
+		/**
+		 * @brief Number of bytes in the data buffer
+		 */
+		uint16_t len;
 
-	/* HTTP content location */
-        struct {
-                char *loc;
-                size_t len;
-        } payload;
-};
+		/**
+		 * @brief Offset of the data being parsed within the buffer
+		 */
+		uint16_t _offset;
+	} chunk;
 
-struct http_response
-{
-	union {
-		/* This is as VERY DANGEROUS trick */
-		buffer_t buffer;
-		struct {
-			char *buf;
-			size_t buf_size;
-			size_t content_len;
-		};
-	};
-	
-        uint16_t status_code;
-	http_content_type_t content_type;
+	struct {
+		/**
+		 * @brief Current payload data buffer location
+		 */
+		char *loc;
+
+		/**
+		 * @brief Number of bytes in the data buffer
+		 */
+		uint32_t len;
+	} payload;
+
+
+	/* Total received length */
+        // size_t len;
 };
 
 typedef struct http_request http_request_t;
-typedef struct http_response http_response_t;
 
 #endif

@@ -55,13 +55,8 @@ K_THREAD_DEFINE(http_server, 0x1000, http_srv_thread,
  *
  * Same buffer for HTTP request and HTTP response
  */
-__noinit union {
-	char request[0x3000]; /* TODO Reduce this size */
-	struct {
-		char internal[0x200];
-		char payload[0x3000 - 0x200];
-	} response;
-} buffer;
+__noinit char buffer[0x3000];
+__noinit char buffer_internal[0x800]; /* For encoding response headers */
 
 /**
  * @brief
@@ -82,24 +77,14 @@ static union
 } fds;
 
 static int listening_count = 0;
-extern int conns_count;
+static int clients_count = 0;
 
-extern const struct http_parser_settings settings;
-
-struct pollfd *conn_get_pfd(http_connection_t *conn)
-{
-	return &fds.cli[http_conn_get_index(conn)];
-}
-
-int conn_get_sock(http_connection_t *conn)
-{
-	return conn_get_pfd(conn)->fd;
-}
+extern const struct http_parser_settings parser_settings;
 
 /* debug functions */
 static void show_pfd(void)
 {
-	LOG_DBG("listening_count=%d conns_count=%d", listening_count, conns_count);
+	LOG_DBG("listening_count=%d clients_count=%d", listening_count, clients_count);
 	for (struct pollfd *pfd = fds.array;
 	     pfd < fds.array + ARRAY_SIZE(fds.array); pfd++) {
 		LOG_DBG("\tfd=%d ev=%d", pfd->fd, (int)pfd->events);
@@ -196,29 +181,30 @@ int setup_sockets(void)
 		goto exit;
 	}
 
-	conns_count = 0;
+	clients_count = 0;
 exit:
 	return -1;
 }
 
 static void remove_pollfd_by_index(uint_fast8_t index)
 {
-	LOG_DBG("Compress fds count = %u", conns_count);
+	LOG_DBG("Compress fds count = %u", clients_count);
 
-	// show_pfd();
-
-	if (index >= CONFIG_MAX_HTTP_CONNECTIONS) {
+	if (index >= clients_count) {
 		return;
 	}
-	int move_count = conns_count - index;
+
+	int move_count = clients_count - index;
 	if (move_count > 0) {
 		memmove(&fds.cli[index],
 			&fds.cli[index + 1],
 			move_count * sizeof(struct pollfd));
 	}
 
-	memset(&fds.cli[conns_count], 0U,
+	memset(&fds.cli[clients_count], 0U,
 	       sizeof(struct pollfd));
+
+	clients_count--;
 
 	show_pfd();
 }
@@ -258,10 +244,17 @@ static int srv_accept(int serv_sock)
 		LOG_INF("(%d) Connection accepted from %s:%d, cli sock = %d", serv_sock,
 			log_strdup(ipv4_str), htons(addr.sin_port), sock);
 
+		__ASSERT_NO_MSG(clients_count < CONFIG_MAX_HTTP_CONNECTIONS);
 
-		conn_get_pfd(conn)->fd = sock;
-		conn_get_pfd(conn)->events = POLLIN;
+		struct pollfd *pfd = &fds.cli[clients_count++];
 
+		pfd->fd = sock;
+		pfd->events = POLLIN;
+
+		/* reference connection socket */
+		conn->sock = sock;
+
+		/* initialize keep-alive context */
 		conn->keep_alive.timeout = KEEP_ALIVE_DEFAULT_TIMEOUT_MS;
 		conn->keep_alive.last_activity = k_uptime_get_32();
 	}
@@ -285,8 +278,7 @@ void http_srv_thread(void *_a, void *_b, void *_c)
 
 	int ret, timeout;
 
-	/* initialize connection pool */
-	http_conn_init_pool();
+	http_conn_init();
 
 	ret = setup_sockets();
 
@@ -296,7 +288,7 @@ void http_srv_thread(void *_a, void *_b, void *_c)
 		timeout = http_conn_get_duration_to_next_outdated_conn();
 		LOG_DBG("zsock_poll timeout: %d ms", timeout);
 
-		ret = zsock_poll(fds.array, conns_count + listening_count, timeout);
+		ret = zsock_poll(fds.array, clients_count + listening_count, timeout);
 		if (ret >= 0) {
 #if CONFIG_HTTP_SERVER_NONSECURE
 			if (fds.srv.revents & POLLIN) {
@@ -312,20 +304,21 @@ void http_srv_thread(void *_a, void *_b, void *_c)
 			 * or if the connection has timeout.
 			 */
 			uint_fast8_t idx = 0;
-			while (idx < conns_count) {
-				http_connection_t *conn = http_conn_get(idx);
+			while (idx < clients_count) {
+				http_connection_t *conn = http_conn_get_by_sock(fds.cli[idx].fd);
+
+				__ASSERT_NO_MSG(conn != NULL);
 
 				if (fds.cli[idx].revents & POLLIN) { /* data available */
 					handle_request(conn);
 				} else if (http_conn_is_outdated(conn)) { /* check if the connection has timed out */
-					const int sock = conn_get_sock(conn);
-					zsock_close(sock);
+					zsock_close(conn->sock);
 					http_conn_free(conn);
-					LOG_WRN("(%d) Closing outdated connection %p", sock, conn);
+					LOG_WRN("(%d) Closing outdated connection %p", conn->sock, conn);
 				}
 
-				/* if connection was closed, remove the socket from the pollfd array */
-				if (http_conn_closed(conn)) {
+				/* if connection is closed, remove the socket from the pollfd array */
+				if (http_conn_is_closed(conn)) {
 					remove_pollfd_by_index(idx);
 					show_pfd();
 					continue;
@@ -335,7 +328,7 @@ void http_srv_thread(void *_a, void *_b, void *_c)
 			}
 		} else {
 			LOG_ERR("unexpected poll(%p, %d, %d) return value = %d",
-				&fds, conns_count + listening_count, SYS_FOREVER_MS, ret);
+				&fds, clients_count + listening_count, SYS_FOREVER_MS, ret);
 
 			/* TODO remove, sleep 1 sec here */
 			k_sleep(K_MSEC(5000));
@@ -347,68 +340,6 @@ void http_srv_thread(void *_a, void *_b, void *_c)
 #endif /* CONFIG_HTTP_SERVER_NONSECURE */
 
 	zsock_close(fds.sec.fd);
-}
-
-static int recv_request(http_connection_t *conn)
-{
-	size_t parsed;
-	ssize_t rc;
-	int sock = conn_get_sock(conn);
-	http_request_t *const req = conn->req;
-	int remaining = req->buffer.size;
-
-	req->len = 0;
-
-	for (;;) {
-		if (remaining <= 0) {
-			LOG_WRN("(%d) Recv buffer full, closing connection ...",
-				sock);
-			rc = -ENOMEM;
-			goto exit;
-		}
-
-		rc = zsock_recv(sock, &req->buffer.buf[req->len],
-				remaining, 0);
-		if (rc < 0) {
-			if (rc == -EAGAIN) {
-				LOG_WRN("-EAGAIN = %d", -EAGAIN);
-				continue;
-			}
-
-			LOG_ERR("recv failed = %d", rc);
-			goto exit;
-		} else if (rc == 0) {
-			LOG_INF("(%d) Connection closed by peer", sock);
-			goto exit;
-		} else {
-			parsed = http_parser_execute(&req->parser,
-						     &settings,
-						     &req->buffer.buf[req->len],
-						     rc);
-			req->len += rc;
-			remaining -= rc;
-
-			if (req->headers_complete && req->discard) {
-				/* TODO, properly discard the request
-				 * without closing the connection
-				 */
-				LOG_WRN("(%d) Discarding request (close - TODO -> 404)", sock);
-				rc = 0;
-				goto exit;
-			} else if (req->complete) {
-				/* We update the connection keep_alive configuration
-				 * based on the request.
-				 */
-				conn->keep_alive.enabled = req->keep_alive;
-
-				break;
-			}
-		}
-	}
-
-	rc = req->len;
-exit:
-	return rc;
 }
 
 static int sendall(int sock, char *buf, size_t len)
@@ -448,11 +379,9 @@ static int send_response(http_connection_t *conn,
 			 http_response_t *resp)
 {
 	int ret, sent;
-	char *b = buffer.response.internal;
-	const size_t buf_size = sizeof(buffer.response.internal);
+	char *b = buffer_internal;
+	const size_t buf_size = sizeof(buffer_internal);
 	int encoded = 0;
-
-	int sock = conn_get_sock(conn);
 
 	ret = http_encode_status(b + encoded, buf_size - encoded,
 				 resp->status_code);
@@ -475,7 +404,7 @@ static int send_response(http_connection_t *conn,
 	encoded += ret;
 
 	/* send headers */
-	ret = sendall(sock, b, encoded);
+	ret = sendall(conn->sock, b, encoded);
 	if (ret < 0) {
 		goto exit;
 	}
@@ -484,7 +413,7 @@ static int send_response(http_connection_t *conn,
 
 	/* send body */
 	if (http_code_has_payload(resp->status_code)) {
-		ret = sendall(sock, resp->buf, resp->content_len);
+		ret = sendall(conn->sock, resp->buf, resp->content_len);
 		if (ret < 0) {
 			goto exit;
 		}
@@ -542,22 +471,24 @@ static void init_request(http_request_t *req)
 
 	memset(req, 0, sizeof(http_request_t));
 
-	req->buffer.buf = buffer.request;
-	req->buffer.size = sizeof(buffer.request);
 	req->route_args = &route_args;
 
-	req->payload.loc = NULL;
-	req->payload.len = 0U;
+	req->chunk.loc = NULL;
+	req->chunk.len = 0U;
+	req->chunk.id = 0U;
 
 	req->keep_alive = 0U;
 	req->timeout_ms = 0U;
 	req->chunked = 0U;
 	req->content_type = HTTP_CONTENT_TYPE_NONE;
 
-	req->complete = 0U;
+	req->request_complete = 0U;
 	req->headers_complete = 0U;
 	req->discard = 0U;
 	req->stream = 0U;
+
+	req->payload.len = 0U;
+	req->payload.loc = NULL;
 
 	req->parsed_content_length = 0U;
 
@@ -568,8 +499,8 @@ static void init_response(http_response_t *resp)
 {
 	memset(resp, 0, sizeof(http_response_t));
 
-	resp->buf = buffer.response.payload;
-	resp->buf_size = sizeof(buffer.response.payload);
+	resp->buf = buffer;
+	resp->buf_size = sizeof(buffer);
 
 	/* default response */
 	resp->content_len = 0U,
@@ -586,8 +517,8 @@ static void handle_request(http_connection_t *conn)
 	init_request(&req);
 	init_response(&resp);
 
-	const int sock = conn_get_sock(conn);
-	req._sock = sock;
+	const int sock = conn->sock;
+	req._conn = conn;
 
 	conn->req = &req;
 	conn->resp = &resp;
@@ -595,14 +526,71 @@ static void handle_request(http_connection_t *conn)
 	/* reset keep alive flag */
 	conn->keep_alive.enabled = 0U;
 	
-	// while (conn->req->complete == 0U)
-	// {
+	while (conn->req->request_complete == 0U) {
 
-	// }
-	
-	if (recv_request(conn) <= 0) { /* Including 0 is important ! */
-		goto close;
+		uint8_t *buf = buffer;
+		size_t buf_remaining = sizeof(buffer);
+
+		size_t received = 0U;
+		size_t parsed = 0U;
+
+		ssize_t rc;
+
+		for (;;) {
+			if (buf_remaining <= 0) {
+				LOG_WRN("(%d) Recv buffer full, closing connection ...",
+					sock);
+				rc = -ENOMEM;
+				goto close;
+			}
+
+			rc = zsock_recv(sock, &buffer[received], buf_remaining, 0);
+			if (rc < 0) {
+				if (rc == -EAGAIN) {
+					LOG_WRN("-EAGAIN = %d", -EAGAIN);
+					continue;
+				}
+
+				LOG_ERR("recv failed = %d", rc);
+				goto close;
+			} else if (rc == 0) {
+				LOG_INF("(%d) Connection closed by peer", sock);
+				goto close;
+			} else {
+				parsed = http_parser_execute(&req.parser,
+							     &parser_settings,
+							     &buffer[received],
+							     rc);
+
+				if (req.stream || req.discard) {
+					/* reset buffer as the stream handler has
+					 * already consumed the data */
+					buf = buffer;
+					buf_remaining = sizeof(buffer);
+				}
+
+				if (req.headers_complete && req.discard) {
+					/* TODO, properly discard the request
+					 * without closing the connection
+					 */
+					LOG_WRN("(%d) Discarding request (close - TODO -> 404)", sock);
+					rc = 0;
+					goto close;
+				} else if (req.request_complete) {
+					/* We update the connection keep_alive configuration
+					 * based on the request.
+					 */
+					conn->keep_alive.enabled = req.keep_alive;
+
+					break;
+				}
+			}
+		}
 	}
+	
+	// if (recv_request(conn) <= 0) { /* Including 0 is important ! */
+	// 	goto close;
+	// }
 
 	if (conn->req->stream == 0U) {
 		if (conn->req->payload.len == conn->req->parsed_content_length) {
@@ -613,9 +601,9 @@ static void handle_request(http_connection_t *conn)
 		}
 	}
 
-	if (process_chunk(&req, &resp) != 0) {
-		goto close;
-	}
+	// if (process_chunk(&req, &resp) != 0) {
+	// 	goto close;
+	// }
 
 	/* in prepare response set content-type, length, ... */
 	// if (encode_response_headers(&req, &resp) != 0) {
@@ -627,8 +615,8 @@ static void handle_request(http_connection_t *conn)
 		goto close;
 	}
 
-	LOG_INF("(%d) Processing req total len %u B resp status %d len %u B (keep"
-		"-alive = %d)", sock, req.len, resp.status_code,
+	LOG_INF("(%d) Processing req total len %u B status %d len %u B (keep"
+		"-alive=%d)", sock, req.payload.len, resp.status_code,
 		sent, conn->keep_alive.enabled);
 
 	if (conn->keep_alive.enabled) {
@@ -637,7 +625,7 @@ static void handle_request(http_connection_t *conn)
 	}
 
 close:
-	zsock_close(sock);
+	zsock_close(conn->sock);
 	http_conn_free(conn);
 	LOG_INF("(%d) Closing sock conn %p", sock, conn);
 }

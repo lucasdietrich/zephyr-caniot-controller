@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "http_response.h"
 #include "http_request.h"
 
 int web_server_index_html(http_request_t *req,
