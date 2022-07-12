@@ -40,6 +40,12 @@ config MAX_HTTP_CONNECTIONS
         help
                 Maximum number of HTTP connections supported by the HTTP server
 
+config HTTP_TEST_SERVER
+        bool "Enable HTTP test server"
+        default n
+        help
+                Enable test server and corresponding routes
+
 config SYSTEM_MONITORING
         bool "Enable system monitoring"
         select CONFIG_MBEDTLS_MEMORY_DEBUG

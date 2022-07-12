@@ -49,7 +49,7 @@ int rest_encode_response_json(http_response_t *resp, const void *val,
 	int ret = -EINVAL;
 	ssize_t json_len;
 
-	if (!resp || !resp->buf || !http_code_has_payload(resp->status_code)) {
+	if (!resp || !resp->buffer.data || !http_code_has_payload(resp->status_code)) {
 		LOG_WRN("unexpected payload for code %d or buffer not set !",
 			resp->status_code);
 		goto exit;
@@ -58,13 +58,13 @@ int rest_encode_response_json(http_response_t *resp, const void *val,
 	/* calculate needed size to encode the response */
 	json_len = json_calc_encoded_len(descr, descr_len, val);
 
-	if (json_len <= resp->buf_size) {
+	if (json_len <= resp->buffer.size) {
 
-		/* set response content-length */
-		resp->content_len = json_len;
+		/* set response "content-length" */
+		resp->buffer.filling = json_len;
 
 		ret = json_obj_encode_buf(descr, descr_len, val,
-					  resp->buf, resp->buf_size);
+					  resp->buffer.data, resp->buffer.size);
 	}
 
 exit:
@@ -77,7 +77,7 @@ int rest_encode_response_json_array(http_response_t *resp, const void *val,
 {
 	int ret = -EINVAL;
 
-	if (!resp || !resp->buf || !http_code_has_payload(resp->status_code)) {
+	if (!resp || !resp->buffer.data || !http_code_has_payload(resp->status_code)) {
 		LOG_WRN("unexpected payload for code %d or buffer not set !",
 			resp->status_code);
 		goto exit;
@@ -85,12 +85,12 @@ int rest_encode_response_json_array(http_response_t *resp, const void *val,
 
 	ret = json_arr_encode_buf(descr,
 				  val,
-				  resp->buf,
-				  resp->buf_size);
+				  resp->buffer.data,
+				  resp->buffer.size);
 
 	if (ret == 0) {
 		/* set response content-length */
-		resp->content_len = strlen(resp->buf);
+		resp->buffer.filling = strlen(resp->buffer.data);
 	}
 
 exit:
@@ -108,7 +108,7 @@ static int route_arg_get(http_request_t *req,
 	int ret = -EINVAL;
 
 	if (index < req->route->path_args_count) {
-		*arg = (*req->route_args)[index];
+		*arg = req->route_args[index];
 		ret = 0;
 	}
 
@@ -164,7 +164,7 @@ int rest_index(http_request_t *req,
 	       http_response_t *resp)
 {
 	resp->status_code = 200;
-	resp->content_len = 0;
+	resp->buffer.filling = 0;
 
 	return 0;
 }

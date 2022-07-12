@@ -1,6 +1,7 @@
 #include "http_server.h"
 
 #include <stdio.h>
+#include <stddef.h>
 
 #include <net/socket.h>
 #include <net/net_core.h>
@@ -22,8 +23,6 @@
 LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF); /* INF */
 
 /*___________________________________________________________________________*/
-
-#define HTTP_FD_INDEX   0
 
 #define HTTP_PORT       80
 #define HTTPS_PORT      443
@@ -69,14 +68,14 @@ static union
 	struct pollfd array[CONFIG_MAX_HTTP_CONNECTIONS + SERVER_FD_COUNT];
 	struct {
 #if CONFIG_HTTP_SERVER_NONSECURE
-		struct pollfd srv;      /* non secure server socket */
+		struct pollfd srv;      /* unsecure server socket */
 #endif
 		struct pollfd sec;      /* secure server socket */
 		struct pollfd cli[CONFIG_MAX_HTTP_CONNECTIONS];
 	};
 } fds;
 
-static int listening_count = 0;
+static int servers_count = 0;
 static int clients_count = 0;
 
 extern const struct http_parser_settings parser_settings;
@@ -84,7 +83,7 @@ extern const struct http_parser_settings parser_settings;
 /* debug functions */
 static void show_pfd(void)
 {
-	LOG_DBG("listening_count=%d clients_count=%d", listening_count, clients_count);
+	LOG_DBG("servers_count=%d clients_count=%d", servers_count, clients_count);
 	for (struct pollfd *pfd = fds.array;
 	     pfd < fds.array + ARRAY_SIZE(fds.array); pfd++) {
 		LOG_DBG("\tfd=%d ev=%d", pfd->fd, (int)pfd->events);
@@ -94,7 +93,7 @@ static void show_pfd(void)
 /*___________________________________________________________________________*/
 
 // forward declarations 
-static void handle_request(http_connection_t *conn);
+static void process_request(http_connection_t *conn);
 
 /*___________________________________________________________________________*/
 
@@ -145,9 +144,9 @@ static int setup_socket(struct pollfd *pfd, bool secure)
 	pfd->fd = sock;
 	pfd->events = POLLIN;
 
-	listening_count++;
+	servers_count++;
 
-	return sock;
+	ret = sock;
 exit:
 	return ret;
 }
@@ -280,15 +279,15 @@ void http_srv_thread(void *_a, void *_b, void *_c)
 
 	http_conn_init();
 
-	ret = setup_sockets();
+	setup_sockets();
 
 	for (;;) {
 		show_pfd();
 
-		timeout = http_conn_get_duration_to_next_outdated_conn();
+		timeout = http_conn_time_to_next_outdated();
 		LOG_DBG("zsock_poll timeout: %d ms", timeout);
 
-		ret = zsock_poll(fds.array, clients_count + listening_count, timeout);
+		ret = zsock_poll(fds.array, clients_count + servers_count, timeout);
 		if (ret >= 0) {
 #if CONFIG_HTTP_SERVER_NONSECURE
 			if (fds.srv.revents & POLLIN) {
@@ -310,7 +309,7 @@ void http_srv_thread(void *_a, void *_b, void *_c)
 				__ASSERT_NO_MSG(conn != NULL);
 
 				if (fds.cli[idx].revents & POLLIN) { /* data available */
-					handle_request(conn);
+					process_request(conn);
 				} else if (http_conn_is_outdated(conn)) { /* check if the connection has timed out */
 					zsock_close(conn->sock);
 					http_conn_free(conn);
@@ -321,14 +320,13 @@ void http_srv_thread(void *_a, void *_b, void *_c)
 				if (http_conn_is_closed(conn)) {
 					remove_pollfd_by_index(idx);
 					show_pfd();
-					continue;
 				} else {
 					idx++;
 				}
 			}
 		} else {
 			LOG_ERR("unexpected poll(%p, %d, %d) return value = %d",
-				&fds, clients_count + listening_count, SYS_FOREVER_MS, ret);
+				&fds, clients_count + servers_count, SYS_FOREVER_MS, ret);
 
 			/* TODO remove, sleep 1 sec here */
 			k_sleep(K_MSEC(5000));
@@ -348,7 +346,7 @@ static int sendall(int sock, char *buf, size_t len)
 	size_t sent = 0;
 
 	while (sent < len) {
-		ret = zsock_send(sock, &buf[sent], len - sent, 0);
+		ret = zsock_send(sock, &buf[sent], len - sent, 0U);
 		if (ret < 0) {
 			if (ret == -EAGAIN) {
 				LOG_INF("-EAGAIN (%d)", sock);
@@ -363,25 +361,21 @@ static int sendall(int sock, char *buf, size_t len)
 		}
 	}
 
-	return sent;
+	ret = sent;
 
 exit:
 	return ret;
 }
 
-// static int encode_response_headers(http_connection_t *conn,
-// 				   http_response_t *resp)
-// {
-// 	return 0;
-// }
-
-static int send_response(http_connection_t *conn,
-			 http_response_t *resp)
+static int send_response(http_connection_t *conn)
 {
 	int ret, sent;
 	char *b = buffer_internal;
 	const size_t buf_size = sizeof(buffer_internal);
+	http_response_t *resp = conn->resp;
+	
 	int encoded = 0;
+
 
 	ret = http_encode_status(b + encoded, buf_size - encoded,
 				 resp->status_code);
@@ -396,7 +390,7 @@ static int send_response(http_connection_t *conn,
 
 	encoded += ret;
 	ret = http_encode_header_content_length(b + encoded, buf_size - encoded,
-						resp->content_len);
+						resp->content_length);
 
 	encoded += ret;
 	ret = http_encode_header_end(b + encoded, buf_size - encoded);
@@ -413,111 +407,35 @@ static int send_response(http_connection_t *conn,
 
 	/* send body */
 	if (http_code_has_payload(resp->status_code)) {
-		ret = sendall(conn->sock, resp->buf, resp->content_len);
+		ret = sendall(conn->sock, resp->buffer.data, resp->buffer.filling);
 		if (ret < 0) {
 			goto exit;
 		}
 		sent += ret;
-	} else if (resp->content_len) {
+	} else if (resp->content_length > 0) {
 		LOG_WRN("Trying to send a content for invalid response "
 			"code (%d != 200)", resp->status_code);
 	}
 
-	return sent;
+	ret = sent;
 exit:
 	return ret;
 }
 
-static int process_chunk(http_request_t *req,
-			   http_response_t *resp)
+static void process_request(http_connection_t *conn)
 {
-	const http_route_t *const route = req->route; /* Route should be set at this point */
-
-	/* Check if the route is set */
-	if (route == NULL) {
-		LOG_WRN("No route found for %s %s",
-			log_strdup(http_method_str(req->method)), log_strdup(req->url));
-		resp->status_code = 404U;
-		goto exit;
-	}
-
-	/* Check if handler is set */
-	if (route->handler == NULL) {
-		LOG_ERR("No handler for route %s", log_strdup(req->url));
-		resp->status_code = 404U;
-		goto exit;
-	}
-
-	/* set default content type in function of the route */
-	resp->content_type = http_route_get_default_content_type(route);
-
-	/* call handler */
-	int ret = route->handler(req, resp);
-	if (ret != 0) {
-		LOG_ERR("Handler failed: err = %d", ret);
-
-		/* encode HTTP internal server error */
-		resp->status_code = 500U;
-	}
-
-exit:
-	/* post check on payload to send */
-	return 0;
-}
-
-static void init_request(http_request_t *req)
-{
-	static http_route_args_t route_args;
-
-	memset(req, 0, sizeof(http_request_t));
-
-	req->route_args = &route_args;
-
-	req->chunk.loc = NULL;
-	req->chunk.len = 0U;
-	req->chunk.id = 0U;
-
-	req->keep_alive = 0U;
-	req->timeout_ms = 0U;
-	req->chunked = 0U;
-	req->content_type = HTTP_CONTENT_TYPE_NONE;
-
-	req->request_complete = 0U;
-	req->headers_complete = 0U;
-	req->discard = 0U;
-	req->stream = 0U;
-
-	req->payload.len = 0U;
-	req->payload.loc = NULL;
-
-	req->parsed_content_length = 0U;
-
-	http_parser_init(&req->parser, HTTP_REQUEST);
-}
-
-static void init_response(http_response_t *resp)
-{
-	memset(resp, 0, sizeof(http_response_t));
-
-	resp->buf = buffer;
-	resp->buf_size = sizeof(buffer);
-
-	/* default response */
-	resp->content_len = 0U,
-		resp->status_code = 200U;
-	resp->content_type = HTTP_CONTENT_TYPE_TEXT_PLAIN;
-}
-
-static void handle_request(http_connection_t *conn)
-{
-	static http_route_args_t route_args;
 	static http_request_t req;
 	static http_response_t resp;
 
-	init_request(&req);
-	init_response(&resp);
+	http_request_init(&req);
+	http_response_init(&resp);
+
+	resp.buffer.data = buffer;
+	resp.buffer.size = sizeof(buffer);
 
 	const int sock = conn->sock;
+
+	/* (TODO refactor) Not very elegant */
 	req._conn = conn;
 
 	conn->req = &req;
@@ -525,98 +443,109 @@ static void handle_request(http_connection_t *conn)
 
 	/* reset keep alive flag */
 	conn->keep_alive.enabled = 0U;
-	
-	while (conn->req->request_complete == 0U) {
+
+	while (conn->req->complete == 0U) {
 
 		uint8_t *buf = buffer;
 		size_t buf_remaining = sizeof(buffer);
 
 		size_t received = 0U;
-		size_t parsed = 0U;
 
-		ssize_t rc;
-
-		for (;;) {
-			if (buf_remaining <= 0) {
-				LOG_WRN("(%d) Recv buffer full, closing connection ...",
-					sock);
-				rc = -ENOMEM;
-				goto close;
+		ssize_t rc = zsock_recv(sock, buf, buf_remaining, 0);
+		if (rc < 0) {
+			if (rc == -EAGAIN) {
+				LOG_WRN("-EAGAIN = %d", -EAGAIN);
+				continue;
 			}
 
-			rc = zsock_recv(sock, &buffer[received], buf_remaining, 0);
-			if (rc < 0) {
-				if (rc == -EAGAIN) {
-					LOG_WRN("-EAGAIN = %d", -EAGAIN);
-					continue;
-				}
-
-				LOG_ERR("recv failed = %d", rc);
-				goto close;
-			} else if (rc == 0) {
-				LOG_INF("(%d) Connection closed by peer", sock);
-				goto close;
-			} else {
-				parsed = http_parser_execute(&req.parser,
-							     &parser_settings,
-							     &buffer[received],
-							     rc);
-
-				if (req.stream || req.discard) {
-					/* reset buffer as the stream handler has
-					 * already consumed the data */
-					buf = buffer;
-					buf_remaining = sizeof(buffer);
-				}
-
-				if (req.headers_complete && req.discard) {
-					/* TODO, properly discard the request
-					 * without closing the connection
-					 */
-					LOG_WRN("(%d) Discarding request (close - TODO -> 404)", sock);
-					rc = 0;
-					goto close;
-				} else if (req.request_complete) {
-					/* We update the connection keep_alive configuration
-					 * based on the request.
-					 */
-					conn->keep_alive.enabled = req.keep_alive;
-
-					break;
-				}
-			}
-		}
-	}
-	
-	// if (recv_request(conn) <= 0) { /* Including 0 is important ! */
-	// 	goto close;
-	// }
-
-	if (conn->req->stream == 0U) {
-		if (conn->req->payload.len == conn->req->parsed_content_length) {
-			LOG_INF("Content-length = %d", conn->req->parsed_content_length);
+			LOG_ERR("recv failed = %d", rc);
+			goto close;
+		} else if (rc == 0) {
+			LOG_INF("(%d) Connection closed by peer", sock);
+			goto close;
 		} else {
-			LOG_ERR("actually rcv length = %u / %u content-length header",
-				conn->req->payload.len, conn->req->parsed_content_length);
+			int parsed = http_request_handle_received_data(&req, buf, rc);
+			if (parsed < 0) {
+				LOG_ERR("(%d) Parsing failed err = ", parsed);
+				goto close;
+			}
+
+			__ASSERT_NO_MSG(parsed == rc);
+
+			/* Prepare buffer for next receiving.
+			*
+			* Only shift the position in the buffer if we are
+			* handling a "message" request
+			*
+			* (if stream) reset buffer as the stream route
+			* handler has already consumed the data, so no need to
+			* update it */
+			if (http_request_is_message(&req)) {
+				if (received >= buf_remaining) {
+					LOG_WRN("(%d) Recv buffer full, closing connection ...",
+						sock);
+					rc = -ENOMEM;
+					goto close;
+				}
+
+				buf += rc;
+				buf_remaining -= rc;
+			}
 		}
 	}
 
-	// if (process_chunk(&req, &resp) != 0) {
-	// 	goto close;
-	// }
+	if (http_request_is_discarded(&req)) {
+		switch(req.discard_reason) {
+		case HTTP_REQUEST_ROUTE_UNKNOWN:
+			resp.status_code = HTTP_NOT_FOUND;
+			break;
+		case HTTP_REQUEST_ROUTE_NO_HANDLER:
+			resp.status_code = HTTP_NOT_IMPLEMENTED;
+			break;
+		case HTTP_REQUEST_STREAMING_UNSUPPORTED:
+			resp.status_code = HTTP_NOT_IMPLEMENTED;
+			break;
+		case HTTP_REQUEST_PAYLOAD_TOO_LARGE:
+			resp.status_code = HTTP_REQUEST_PAYLOAD_TOO_LARGE;
+			break;
+		default:
+		case HTTP_REQUEST_STREAM_PROCESSING_ERROR:
+			resp.status_code = HTTP_INTERNAL_SERVER_ERROR;
+			break;
+		}
+	} else {
 
-	/* in prepare response set content-type, length, ... */
-	// if (encode_response_headers(&req, &resp) != 0) {
-	// 	goto close;
-	// }
+		resp.content_type = http_route_get_default_content_type(req.route);
 
-	int sent = send_response(conn, &resp);
+		if (http_request_is_message(&req)) {
+			if (conn->req->payload.len == conn->req->parsed_content_length) {
+				LOG_INF("Content-length = %d", conn->req->parsed_content_length);
+			} else {
+				LOG_ERR("actually rcv length = %u / %u content-length header",
+					conn->req->payload.len, conn->req->parsed_content_length);
+			}
+		}
+
+		int ret = req.route->handler(&req, &resp);
+		if (ret != 0) {
+			resp.status_code = HTTP_INTERNAL_SERVER_ERROR;
+			LOG_ERR("(%d) Request processing failed = %d", sock, ret);
+		}
+
+		req.calls_count++;
+	}
+
+	/* Set content-length according to the buffer filling */
+	/* TODO check for request type : stream/data */
+	resp.content_length = resp.buffer.filling;
+
+	int sent = send_response(conn);
 	if (sent < 0) {
 		goto close;
 	}
 
 	LOG_INF("(%d) Processing req total len %u B status %d len %u B (keep"
-		"-alive=%d)", sock, req.payload.len, resp.status_code,
+		"-alive=%d)", sock, req.len, resp.status_code,
 		sent, conn->keep_alive.enabled);
 
 	if (conn->keep_alive.enabled) {

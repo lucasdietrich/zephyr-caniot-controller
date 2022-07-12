@@ -11,6 +11,9 @@ chunks_length = [1024, 10, 234, 342]
 def gen_data(offset, size):
     return b"".join(f"{x:04X}".encode('utf-8') for x in range(offset, offset + size, 4))
 
+def gen_data2(offset, size):
+    return bytes(size)
+
 def chunks_generator(lengths):
     pos = 0
     for chunk, length in enumerate(lengths):
@@ -21,17 +24,17 @@ def get_chunk_length(chunk_id):
     if chunk_id < len(chunks_length):
         return chunks_length[chunk_id]
     else:
-        return 1024
+        return 512
 
-def get_file(size = 1024):
-    return gen_data(0, size)
+def get_file(size = 8192):
+    return gen_data2(0, size)
 
 # "application/octet-stream"
 
 m = MultipartEncoder(
     fields={
         "KEY1": "VALUE___AA",
-        "file1": ("myfile.bin", get_file(300000)),
+        "file1": ("myfile.bin", get_file(1000000)),
     },
     boundary="----WebKitFormBoundary7MA4YWxkTrZu0gW",
 )
@@ -48,7 +51,7 @@ def file_chunks_generator():
 
 
 
-response = requests.post(f"http://{ip}/files",
+response = requests.post(f"http://{ip}/test/streaming",
                          data=file_chunks_generator(),
                          headers={"Content-Type": m.content_type})
 print(response.status_code)

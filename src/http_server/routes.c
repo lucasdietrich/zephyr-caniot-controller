@@ -13,6 +13,7 @@ LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 #include "web_server.h"
 #include "prometheus_client.h"
 #include "files_server.h"
+#include "test_server.h"
 
 #define REST REST_RESSOURCE
 #define WEB WEB_RESSOURCE
@@ -36,10 +37,13 @@ LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 		.path_args_count = k \
 	}
 
-#define REST_RESSOURCE(m, r, h, k) HTTP_ROUTE(m, r, h, HTTP_REST_SERVER, HTTP_CONTENT_TYPE_APPLICATION_JSON, k, false)
-#define WEB_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_WEB_SERVER, HTTP_CONTENT_TYPE_TEXT_HTML, 0U, false)
-#define PROM_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_PROMETHEUS_CLIENT, HTTP_CONTENT_TYPE_TEXT_PLAIN, 0U, false)
-#define FILE_RESSOURCE(m, r, h) HTTP_ROUTE(m, r, h, HTTP_FILES_SERVER, HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA, 0U, true)
+#define MESSAGING_RESSOURCE(m, r, h, t, c, k) HTTP_ROUTE(m, r, h, t, c, k, false)
+#define STREAMING_RESSOURCE(m, r, h, t, c, k) HTTP_ROUTE(m, r, h, t, c, k, true)
+
+#define REST_RESSOURCE(m, r, h, k) MESSAGING_RESSOURCE(m, r, h, HTTP_REST_SERVER, HTTP_CONTENT_TYPE_APPLICATION_JSON, k)
+#define WEB_RESSOURCE(m, r, h) MESSAGING_RESSOURCE(m, r, h, HTTP_WEB_SERVER, HTTP_CONTENT_TYPE_TEXT_HTML, 0U)
+#define PROM_RESSOURCE(m, r, h) MESSAGING_RESSOURCE(m, r, h, HTTP_PROMETHEUS_CLIENT, HTTP_CONTENT_TYPE_TEXT_PLAIN, 0U)
+#define FILE_RESSOURCE(m, r, h) STREAMING_RESSOURCE(m, r, h, HTTP_FILES_SERVER, HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA, 0U)
 
 static const struct http_route routes[] = {
 	WEB(GET, "", web_server_index_html),
@@ -61,14 +65,21 @@ static const struct http_route routes[] = {
 #if defined(CONFIG_CANIOT_CONTROLLER)
 	REST(GET, "/devices/garage", rest_devices_garage_get, 0U),
 	REST(POST, "/devices/garage", rest_devices_garage_post, 0U),
-	
+
 	REST(GET, "/devices/caniot/%u/endpoints/%u/telemetry", rest_devices_caniot_telemetry, 2U),
 	REST(POST, "/devices/caniot/%u/endpoints/%u/command", rest_devices_caniot_command, 2U),
 
 	REST(GET, "/devices/caniot/%u/attributes/%x", rest_devices_caniot_attr_read, 2U),
 	REST(PUT, "/devices/caniot/%u/attributes/%x", rest_devices_caniot_attr_write, 2U),
 #endif
+
+#if defined(CONFIG_HTTP_TEST_SERVER)
+	HTTP_TEST_MESSAGING_ROUTE,
+	HTTP_TEST_STREAMING_ROUTE,
+#endif 
 };
+
+
 
 static inline const struct http_route *first(void)
 {

@@ -69,6 +69,6 @@ bool http_conn_is_closed(http_connection_t *conn);
 bool http_conn_is_outdated(http_connection_t *conn);
 
 // Function to get the next time we need to process an outdated connection
-int http_conn_get_duration_to_next_outdated_conn(void);
+int http_conn_time_to_next_outdated(void);
 
 #endif

@@ -87,7 +87,7 @@ bool http_conn_is_outdated(http_connection_t *conn)
 	return (now - conn->keep_alive.last_activity) > conn->keep_alive.timeout;
 }
 
-int http_conn_get_duration_to_next_outdated_conn(void)
+int http_conn_time_to_next_outdated(void)
 {
 	const uint32_t now = k_uptime_get_32();
 	int timeout = SYS_FOREVER_MS;

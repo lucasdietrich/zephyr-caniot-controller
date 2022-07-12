@@ -15,13 +15,8 @@ typedef enum {
 	HTTP_WEB_SERVER,
 	HTTP_PROMETHEUS_CLIENT,
 	HTTP_FILES_SERVER,
+	HTTP_TEST_SERVER,
 } http_server_t;
-
-typedef enum
-{
-	HTTP_REQUEST_AS_MESSAGE,
-	HTTP_REQUEST_AS_STREAM,
-} http_request_handling_type_t;
 
 struct http_request;
 struct http_response;
