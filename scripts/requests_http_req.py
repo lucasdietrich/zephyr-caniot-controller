@@ -5,7 +5,7 @@ import time
 
 ip = "192.168.10.240"
 ip = "192.0.2.1"
-proto = "http"
+proto = "https"
 
 req = {
         "method": "GET",
@@ -21,10 +21,9 @@ req = {
 }
 a = time.time()
 with requests.session() as sess:
+    for i in range(10):
         resp = sess.request(**req)
-        print(resp)
-        resp = sess.request(**req)
-        print(resp)
+        print(resp.status_code, resp.text[:50])
 
 b = time.time()
 

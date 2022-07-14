@@ -3,14 +3,41 @@ import requests
 from hexdump import hexdump
 from requests_toolbelt import MultipartEncoder
 from pprint import pprint
+import random
 
 from caniot.controller import Controller, Method
 from caniot.utils import data_gen_zeros
 
 class TestClient(Controller):
 
+    def test_parallel(self, parralel: int = 5, count: int = 5):
+        sessions = [requests.Session() for _ in range(parralel)]
+        conn_refused = 0
+
+        for reqid in range(count):
+            for clientid, s in enumerate(sessions):
+                req = self.default_req | {
+                    "method": Method.GET.name,
+                    "url": self.url + "info",
+                    "json": { "clientid": clientid, "reqid": reqid},
+                    "timeout": self.get_req_timeout(),
+                    "headers": self.default_headers
+                }
+                try:
+                    resp = s.request(**req)
+                except requests.exceptions.ConnectionError:
+                    conn_refused += 1
+                    sessions.remove(s)
+
+                print(resp.status_code, resp.text[:50])
+
+            random.shuffle(sessions)
+
+        print("Connection refused:", conn_refused)
+            
+
     def test_session(self, count: int = 3):
-        with requests.sessions.Session(verify=False) as s:
+        with requests.sessions.Session() as s:
             for i in range(count):
                 req = self.default_req | {
                     "method": Method.GET.name,
@@ -72,4 +99,4 @@ class TestClient(Controller):
             "url": (self.url + "test/route_args/{a}/{b}/{c}").project(a=a, b=b, c=c),
             "headers": self.default_headers
         }
-        return requests.get(**req)
+        return requests.request(**req)

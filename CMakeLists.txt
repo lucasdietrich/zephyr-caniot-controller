@@ -14,7 +14,7 @@ elseif(BOARD STREQUAL "qemu_x86")
     set(ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/modules/caniot-lib)
 endif()
 
-include($ENV{ZEPHYR_BASE}/cmake/app/boilerplate.cmake NO_POLICY_SCOPE)
+find_package(Zephyr)
 
 project(caniot-controller)
 

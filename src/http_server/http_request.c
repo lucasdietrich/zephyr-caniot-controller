@@ -333,9 +333,6 @@ static int on_headers_complete(struct http_parser *parser)
 
 	LOG_INF("Parser flags %hhx", parser->flags);
 
-	LOG_INF("on_headers_complete, handling_method = %u",
-		req->handling_method);
-
 	return 0;
 }
 
@@ -372,6 +369,9 @@ static int on_body_messaging(struct http_parser *parser,
 {
 	/* can be called several times */
 	http_request_t *req = REQUEST_FROM_PARSER(parser);
+
+	LOG_DBG("at=%p len=%u (payload loc=%p len=%u)", at, length, 
+		req->payload.loc, req->payload.len);
 
 	if (req->payload.loc == NULL) {
 		/* If not a stream request and this is the first call of the callbaclk,

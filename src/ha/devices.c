@@ -251,7 +251,7 @@ static int handle_ble_xiaomi_record(xiaomi_record_t *rec)
 
 	ha_dev_t *dev = ha_dev_get_or_register(&record_addr);
 	if (dev == NULL) {
-		LOG_ERR("Failed to register device, list full %hhu / %lu",
+		LOG_ERR("Failed to register device, list full %hhu / %u",
 			devices.count,
 			ARRAY_SIZE(devices.list));
 		return -ENOMEM;
@@ -331,7 +331,7 @@ int ha_dev_register_die_temperature(uint32_t timestamp,
 
 	ha_dev_t *dev = ha_dev_get_or_register(&record_addr);
 	if (dev == NULL) {
-		LOG_ERR("Failed to register device, list full %hhu / %lu",
+		LOG_ERR("Failed to register device, list full %hhu / %u",
 			devices.count,
 			ARRAY_SIZE(devices.list));
 		ret = -ENOMEM;
@@ -366,7 +366,7 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 
 	ha_dev_t *dev = ha_dev_get_or_register(&addr);
 	if (dev == NULL) {
-		LOG_ERR("Failed to register device, list full %hhu / %lu",
+		LOG_ERR("Failed to register device, list full %hhu / %u",
 			devices.count,
 			ARRAY_SIZE(devices.list));
 		ret = -ENOMEM;

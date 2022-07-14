@@ -449,11 +449,11 @@ static bool process_request(http_connection_t *conn)
 	conn->req = &req;
 	conn->resp = &resp;
 
-	while (conn->req->complete == 0U) {
-		uint8_t *buf = buffer;
-		size_t buf_remaining = sizeof(buffer);
+	uint8_t *buf = buffer;
+	size_t buf_remaining = sizeof(buffer);
 
-		size_t received = 0U;
+	while (conn->req->complete == 0U) {
+		size_t total_received = 0U;
 
 		ssize_t rc = zsock_recv(conn->sock, buf, buf_remaining, 0);
 		LOG_DBG("zsock_recv(%d, %p, %d, 0) = %d", conn->sock, buf, buf_remaining, rc);
@@ -498,7 +498,7 @@ static bool process_request(http_connection_t *conn)
 			* handler has already consumed the data, so no need to
 			* update it */
 			if (http_request_is_message(&req)) {
-				if (received >= buf_remaining) {
+				if (total_received >= buf_remaining) {
 					LOG_WRN("(%d) Recv buffer full, closing connection ...",
 						conn->sock);
 					rc = -ENOMEM;
@@ -507,6 +507,7 @@ static bool process_request(http_connection_t *conn)
 
 				buf += rc;
 				buf_remaining -= rc;
+				total_received += rc;
 			}
 		}
 	}
@@ -565,7 +566,7 @@ static bool process_request(http_connection_t *conn)
 		goto close;
 	}
 
-	LOG_INF("(%d) Processing req total len %u B status %d len %u B (keep"
+	LOG_INF("(%d) Processing req total len %u B resp status %d len %u B (keep"
 		"-alive=%d)", conn->sock, req.len, resp.status_code,
 		sent, conn->keep_alive.enabled);
 
