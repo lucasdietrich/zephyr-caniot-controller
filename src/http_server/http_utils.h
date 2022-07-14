@@ -48,7 +48,7 @@ typedef enum {
 
 } http_status_code_t;
 
-int http_encode_status(char *buf, size_t len, uint16_t status_code);
+int http_encode_status(char *buf, size_t len, http_status_code_t status_code);
 
 int http_encode_header_content_length(char *buf, size_t len, size_t content_length);
 

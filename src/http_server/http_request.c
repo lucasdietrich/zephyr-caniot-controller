@@ -102,20 +102,11 @@ void http_request_init(http_request_t *req)
 	req->route = 0;
 	req->calls_count = 0;
 
-	http_parser_init(&req->parser, HTTP_REQUEST);
 	req->parser_settings = &parser_settings_messaging;
 }
 
-
-int http_request_handle_received_data(http_request_t *req,
-				      const char *data,
-				      size_t len)
-{
-	return http_parser_execute(&req->parser, req->parser_settings, data, len);
-}
-
-void http_request_mark_discarded(http_request_t *req,
-				http_request_discard_reason_t reason)
+static void mark_discarded(http_request_t *req,
+			   http_request_discard_reason_t reason)
 {
 	req->handling_method = HTTP_REQUEST_DISCARD;
 	req->discard_reason = reason;
@@ -124,13 +115,18 @@ void http_request_mark_discarded(http_request_t *req,
 
 /*_____________________________________________________________________________________*/
 
-#define REQUEST_FROM_PARSER(p_parser) \
-        ((http_request_t *) \
-        CONTAINER_OF(p_parser, http_request_t, parser))
+#define CONN_FROM_PARSER(p_parser) \
+        ((http_connection_t *) \
+        CONTAINER_OF(p_parser, http_connection_t, parser))
+
+#define REQUEST_FROM_PARSER(p_parser) ((http_request_t *) p_parser->data)
 
 int on_message_begin(struct http_parser *parser)
 {
+	// http_request_t *req = REQUEST_FROM_PARSER(parser);
+
 	LOG_DBG("on_message_begin (%d)", 0);
+
 	return 0;
 }
 
@@ -317,13 +313,13 @@ static int on_headers_complete(struct http_parser *parser)
 			      req->url_len, &req->route_args);
 
 	if (route == NULL) {
-		http_request_mark_discarded(req, HTTP_REQUEST_ROUTE_UNKNOWN);
+		mark_discarded(req, HTTP_REQUEST_ROUTE_UNKNOWN);
 		LOG_WRN("(%p) Route not found, discarding ...", req);
 	} else if (route->handler == NULL) {
-		http_request_mark_discarded(req, HTTP_REQUEST_ROUTE_NO_HANDLER);
+		mark_discarded(req, HTTP_REQUEST_ROUTE_NO_HANDLER);
 		LOG_WRN("(%p) Route missing handler, discarding ...", req);
 	} else if (http_request_is_stream(req) && !route->support_stream) {
-		http_request_mark_discarded(req, HTTP_REQUEST_STREAMING_UNSUPPORTED);
+		mark_discarded(req, HTTP_REQUEST_STREAMING_UNSUPPORTED);
 		LOG_WRN("(%p) Stream requested but route does not support it, discarding ...",
 			req);
 	}
@@ -335,10 +331,7 @@ static int on_headers_complete(struct http_parser *parser)
 	req->route = route;
 	req->headers_complete = 1U;
 
-	/* We update the connection keep_alive configuration
-	 * based on the request.
-	 */
-	req->_conn->keep_alive.enabled = req->keep_alive;
+	LOG_INF("Parser flags %hhx", parser->flags);
 
 	LOG_INF("on_headers_complete, handling_method = %u",
 		req->handling_method);
@@ -362,7 +355,7 @@ static int on_body_streaming(struct http_parser *parser,
 	if (ret == 0) {
 		req->chunk._offset += length;
 	} else {
-		http_request_mark_discarded(req, HTTP_REQUEST_STREAM_PROCESSING_ERROR);
+		mark_discarded(req, HTTP_REQUEST_STREAM_PROCESSING_ERROR);
 		LOG_ERR("Stream processing error %d, discarding ...", ret);
 	}
 
@@ -374,8 +367,8 @@ static int on_body_streaming(struct http_parser *parser,
 }
 
 static int on_body_messaging(struct http_parser *parser,
-			  const char *at,
-			  size_t length)
+			     const char *at,
+			     size_t length)
 {
 	/* can be called several times */
 	http_request_t *req = REQUEST_FROM_PARSER(parser);
@@ -391,8 +384,9 @@ static int on_body_messaging(struct http_parser *parser,
 		__ASSERT_NO_MSG(req->payload.loc + req->payload.len == (char *)at);
 
 		req->payload.len += length;
-		req->len += length;
 	}
+	
+	req->len += length;
 
 	LOG_DBG("on_body at=%p len=%u (content-len = %llu)",
 		at, length, parser->content_length);
@@ -419,11 +413,24 @@ static int on_message_complete(struct http_parser *parser)
 {
 	http_request_t *const req = REQUEST_FROM_PARSER(parser);
 
+	/* Mark request as complete */
 	req->complete = 1U;
+
+	/* Force the parser to pause and give control back to the application 
+	 * so that it can process it and send the response.
+	 * 
+	 * Note: in case of bad implementation of the HTTP client :
+	 * If two HTTP requests are being received and parsed in the
+	 * same "http_parser_execute" call, before a reponse is sent from the current
+	 * server for the 1st request. Then it means that the client sent (TCP) two HTTP
+	 * requests while not waiting for the response for the 1st request. 
+	 * If this case happens the current server will closes the connection.
+	 */
+	http_parser_pause(parser, 1);
 
 	LOG_INF("on_message_complete, message received len=%u (%p)",
 		req->len, req);
-
+	
 	return 0;
 }
 
@@ -458,4 +465,23 @@ static int on_chunk_complete(struct http_parser *parser)
 		req->chunk.id, req->chunk.len, parser);
 
 	return 0;
+}
+
+
+int http_request_route_arg_get(http_request_t *req,
+			       uint32_t index,
+			       uint32_t *arg)
+{
+	__ASSERT_NO_MSG(req != NULL);
+	__ASSERT_NO_MSG(req->route != NULL);
+	__ASSERT_NO_MSG(arg != NULL);
+
+	int ret = -EINVAL;
+
+	if (index < req->route->path_args_count) {
+		*arg = req->route_args[index];
+		ret = 0;
+	}
+
+	return ret;
 }

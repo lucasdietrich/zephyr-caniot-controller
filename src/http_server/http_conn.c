@@ -24,12 +24,9 @@ static void clear_conn(http_connection_t *conn)
 	/* TODO, optimize the init */
 	memset(conn, 0, sizeof(*conn));
 
-        conn->req = NULL;
-        conn->resp = NULL;
-	
-        conn->keep_alive.enabled = 0;
-
 	conn->sock = -1;
+
+	http_parser_init(&conn->parser, HTTP_REQUEST);
 }
 
 http_connection_t *http_conn_alloc(void)
@@ -49,8 +46,11 @@ http_connection_t *http_conn_alloc(void)
 void http_conn_free(http_connection_t *conn)
 {
 	if (conn != NULL) {
-		conn->sock = -1;
+		
 		sys_dlist_remove(&conn->_handle);
+
+		conn->sock = -1;
+
 		sys_slist_append(&conns_free_list, &conn->_alloc_handle);
 	}
 }

@@ -32,7 +32,7 @@ struct http_connection
 	};
 
 	/**
-	 * @brief Socket id (-1 if undefined)
+	 * @brief Socket id (-1 if undefined/closed)
 	 */
 	int sock;
 
@@ -49,8 +49,20 @@ struct http_connection
 		uint32_t last_activity;
 	} keep_alive;
 
+	/**
+	 * @brief One parser per connection
+	 * - In order to process connections asynchronously
+	 * - And a parser can parse several requests in a row
+	 */
+        struct http_parser parser;
+
         http_request_t *req;
         http_response_t *resp;
+
+	/* STATS */
+	size_t requests_count;
+	size_t rx_bytes;
+	size_t tx_bytes;
 };
 
 typedef struct http_connection http_connection_t;

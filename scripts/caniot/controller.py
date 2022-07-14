@@ -1,4 +1,3 @@
-from lib2to3.pgen2.token import OP
 import requests
 from requests.auth import HTTPBasicAuth
 from typing import List, Iterable, Tuple, Dict, Union, Any, Optional, Callable
@@ -7,47 +6,52 @@ from enum import IntEnum
 import struct
 import pprint
 
+from .utils import Method, BytesToU32
 from caniot.url import URL
 
-class Method(IntEnum):
-    GET = 0
-    POST = 1
-    PUT = 2
-    DELETE = 3
-
 class API(IntEnum):
+    Info = 0
     WriteAttribute = 0
     ReadAttribute = 1
     Command = 2
     RequestTelemetry = 3
 
 urls = {
+    API.Info: (Method.GET, "info"),
+
     API.WriteAttribute: (Method.PUT, "devices/caniot/{did}/attributes/{attr:x}"),
     API.ReadAttribute: (Method.GET, "devices/caniot/{did}/attributes/{attr:x}"),
     API.Command: (Method.POST, "devices/caniot/{did}/endpoints/{ep}/command"),
     API.RequestTelemetry: (Method.GET, "devices/caniot/{did}/endpoints/{ep}/telemetry"),
 }
 
-def BytesToU32(b: bytes) -> int:
-    return struct.unpack("<L", b)[0]
-
 class DeviceContext:
     def __init__(self, did: int) -> None:
         self.did = did
 
 class Controller:
-    def __init__(self, host: str, port: int, secure: bool = False) -> None:
+    def __init__(self, host: str = "192.0.2.1", secure: bool = False) -> None:
         self.host = host
-        self.port = port
+        self.port = 443 if secure else 80
         self.secure = secure
 
         self.timeout = 5.0
 
         self.url = URL(f"{self.host}:{self.port}", secure=self.secure)
 
-        self.headers = {
+        self.default_headers = {
             "Timeout-ms": str(int(self.timeout * 1000)),
         }
+
+        self.default_req = {
+            "verify": False,
+        }
+
+    def info(self) -> requests.Response:
+        return self._request(API.Command, None, {
+            "did": 0,
+            "ep": 0,
+        })
 
     def _request(self, api: API, json: Optional[Dict], args: Dict = None, headers: Dict = None):
         method, path = urls[api]
@@ -58,13 +62,15 @@ class Controller:
         if headers is None:
             headers = dict()
 
-        return requests.request(
-            method=method.name,
-            url=(self.url + path).project(**args),
-            json=json,
-            timeout=self.get_req_timeout(),
-            headers=self.headers | headers
-        )
+        req = self.default_req | {
+            "method": method.name,
+            "url": (self.url + path).project(**args),
+            "json": json,
+            "headers": self.default_headers | headers,
+            "timeout": self.get_req_timeout(),
+        }
+
+        return requests.request(**req)
 
     def get_req_timeout(self) -> float:
         return self.timeout + 2.0
@@ -113,33 +119,5 @@ class Controller:
 
 if __name__ == "__main__":
     # "192.0.2.2"
-    ctrl = Controller("192.0.2.2", 80, False)
+    ctrl = Controller("192.0.2.1", 80, False)
 
-    did = 0x20
-    ep = 3
-    n = 1
-
-    x = 0
-
-    for i in range(0xFFF<<4):
-        ctrl.read_attribute(did, i);
-
-    # res = ctrl.command(did, ep)
-
-    # while True:
-    #     # print(res, res.status_code)
-    #     # pprint.pprint(res.json())
-    #     res = ctrl.command(did, ep)
-    #     print(res.json()["duration"], "ms")
-
-    # for i in range(n):
-    #     res = ctrl.request_telemetry(did, ep)
-
-    #     print(res)
-    #     if res is not None:
-    #         print(res.status_code)
-
-    #         try:
-    #             pprint.pprint(res.json())
-    #         except:
-    #             print(res.text)

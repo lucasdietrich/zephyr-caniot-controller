@@ -12,23 +12,36 @@ LOG_MODULE_REGISTER(http_utils, LOG_LEVEL_DBG);
 
 struct code_str
 {
-        uint16_t code;
+        http_status_code_t code;
         char *str;
 };
 
 static const struct code_str status[] = {
-        {200, "OK"},
-        {201, "Created"},
-        {202, "Accepted"},
-        {204, "No Content"},
-        {400, "Bad Request"},
-        {401, "Unauthorized"},
-        {404, "Not Found"},
-        {500, "Internal Server Error"},
-        {501, "Not Implemented"}
+	{HTTP_OK, "OK"},
+	{HTTP_CREATED, "Created"},
+	{HTTP_ACCEPTED, "Accepted"},
+	{HTTP_NO_CONTENT, "No Content"},
+
+	{HTTP_BAD_REQUEST, "Bad Request"},
+	{HTTP_UNAUTHORIZED, "Unauthorized"},
+	{HTTP_FORBIDDEN, "Forbidden"},
+	{HTTP_NOT_FOUND, "Not Found"},
+	{HTTP_REQUEST_TIMEOUT, "Request Timeout"},
+	{HTTP_LENGTH_REQUIRED, "Length Required"},
+	{HTTP_REQUEST_ENTITY_TOO_LARGE, "Request Entity Too Large"},
+	{HTTP_REQUEST_URI_TOO_LONG, "Request-URI Too Long"},
+	{HTTP_UNSUPPORTED_MEDIA_TYPE, "Unsupported Media Type"},
+
+	{HTTP_INTERNAL_SERVER_ERROR, "Internal Server Error"},
+	{HTTP_NOT_IMPLEMENTED, "Not Implemented"},
+	{HTTP_BAD_GATEWAY, "Bad Gateway"},
+	{HTTP_SERVICE_UNAVAILABLE, "Service Unavailable"},
+	{HTTP_GATEWAY_TIMEOUT, "Gateway Timeout"},
+	{HTTP_HTTP_VERSION_NOT_SUPPORTED, "HTTP Version Not Supported"},
+	{HTTP_INSUFFICIENT_STORAGE, "Insufficient Storage"},
 };
 
-static const char *get_status_code_str(uint16_t status_code)
+static const char *get_status_code_str(http_status_code_t status_code)
 {
         for (const struct code_str *p = status;
              p <= &status[ARRAY_SIZE(status) - 1]; p++) {
@@ -39,7 +52,7 @@ static const char *get_status_code_str(uint16_t status_code)
         return NULL;
 }
 
-int http_encode_status(char *buf, size_t len, uint16_t status_code)
+int http_encode_status(char *buf, size_t len, http_status_code_t status_code)
 {
         const char *code_str = get_status_code_str(status_code);
         if (code_str == NULL) {

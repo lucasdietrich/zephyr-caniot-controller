@@ -42,6 +42,8 @@ LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_DBG);
 
 #define FIELD_SET(ret, n) (((ret) & (1 << (n))) != 0)
 
+#define route_arg_get http_request_route_arg_get
+
 int rest_encode_response_json(http_response_t *resp, const void *val,
 			      const struct json_obj_descr *descr,
 			      size_t descr_len)
@@ -94,24 +96,6 @@ int rest_encode_response_json_array(http_response_t *resp, const void *val,
 	}
 
 exit:
-	return ret;
-}
-
-static int route_arg_get(http_request_t *req,
-			 uint32_t index,
-			 uint32_t *arg)
-{
-	__ASSERT_NO_MSG(req != NULL);
-	__ASSERT_NO_MSG(req->route != NULL);
-	__ASSERT_NO_MSG(arg != NULL);
-
-	int ret = -EINVAL;
-
-	if (index < req->route->path_args_count) {
-		*arg = req->route_args[index];
-		ret = 0;
-	}
-
 	return ret;
 }
 

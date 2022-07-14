@@ -4,7 +4,7 @@ from random import shuffle
 
 # "192.168.10.240"
 ip = "192.0.2.1"
-parallel_requests = 5
+parallel_requests = 1
 requests_count = 5
 
 req = b"""GET /info HTTP/1.1
@@ -16,6 +16,14 @@ Connection: keep-alive
 Content-Length: 17
 Content-Type: application/json
 Authorization: Basic bHVjYXM6cGFzc3dvcmQh
+
+{"user": "Lucas"}"""
+
+req = b"""GET /info HTTP/1.1
+Host: 192.168.10.240
+Connection: keep-alive
+Content-Length: 17
+Content-Type: application/json
 
 {"user": "Lucas"}"""
 
@@ -38,9 +46,11 @@ shuffle(sock)
 
 for j in range(requests_count):
         for i in range(parallel_requests):
+                print("Sent : ", len(req), req)
                 sock[i].send(req)
                 data = sock[i].recv(1024)
-                print(f"[{len(data)}] {data}")
+                # print(f"[{len(data)}] {data}")
+                print("Received :", len(data), data[:80])
 
                 # time.sleep(0.25)
         shuffle(sock)

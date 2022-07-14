@@ -59,3 +59,12 @@ int http_test_streaming(struct http_request *req,
 
 	return 0;
 }
+
+int http_test_route_args(struct http_request *req,
+			 struct http_response *resp)
+{
+	LOG_INF("arg1=%u, arg2=%u arg3=%u",
+		req->route_args[0], req->route_args[1], req->route_args[2]);
+
+	return 0;
+}

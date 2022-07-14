@@ -20,12 +20,7 @@
 
 #include <poll.h>
 
-#include "http_request.h"
-#include "http_conn.h"
-
 #define HTTP_REQUEST_PAYLOAD_MAX_SIZE 8192U
 #define HTTP_RESPONSE_PAYLOAD_MAX_SIZE 8192U
-
-void http_srv_thread(void *_a, void *_b, void *_c);
 
 #endif

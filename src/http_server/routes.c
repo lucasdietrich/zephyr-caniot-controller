@@ -76,6 +76,8 @@ static const struct http_route routes[] = {
 #if defined(CONFIG_HTTP_TEST_SERVER)
 	HTTP_TEST_MESSAGING_ROUTE,
 	HTTP_TEST_STREAMING_ROUTE,
+
+	HTTP_TEST_STREAMING_ROUTE_ARGS,
 #endif 
 };
 

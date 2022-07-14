@@ -12,6 +12,8 @@
 
 #include <net/http_parser.h>
 
+#include "http_response.h"
+#include "http_request.h"
 #include "http_utils.h"
 #include "http_conn.h"
 #include "routes.h"
@@ -42,6 +44,8 @@ static const sec_tag_t sec_tag_list[] = {
 #define KEEP_ALIVE_DEFAULT_TIMEOUT_MS  (30*1000)
 
 /*___________________________________________________________________________*/
+
+static void http_srv_thread(void *_a, void *_b, void *_c);
 
 K_THREAD_DEFINE(http_server, 0x1000, http_srv_thread,
 		NULL, NULL, NULL, K_PRIO_PREEMPT(8), 0, 0);
@@ -93,7 +97,7 @@ static void show_pfd(void)
 /*___________________________________________________________________________*/
 
 // forward declarations 
-static void process_request(http_connection_t *conn);
+static bool process_request(http_connection_t *conn);
 
 /*___________________________________________________________________________*/
 
@@ -269,7 +273,7 @@ exit:
 	return ret;
 }
 
-void http_srv_thread(void *_a, void *_b, void *_c)
+static void http_srv_thread(void *_a, void *_b, void *_c)
 {
 	ARG_UNUSED(_a);
 	ARG_UNUSED(_b);
@@ -308,16 +312,20 @@ void http_srv_thread(void *_a, void *_b, void *_c)
 
 				__ASSERT_NO_MSG(conn != NULL);
 
+				bool close = false;
+
 				if (fds.cli[idx].revents & POLLIN) { /* data available */
-					process_request(conn);
+					close = process_request(conn) != true;
 				} else if (http_conn_is_outdated(conn)) { /* check if the connection has timed out */
-					zsock_close(conn->sock);
-					http_conn_free(conn);
+					close = true;
 					LOG_WRN("(%d) Closing outdated connection %p", conn->sock, conn);
 				}
 
-				/* if connection is closed, remove the socket from the pollfd array */
-				if (http_conn_is_closed(conn)) {
+				/* Close the connection, remove the socket from the pollfd array */
+				if (close) {
+					LOG_INF("(%d) Closing sock conn %p", conn->sock, conn);
+					zsock_close(conn->sock);
+					http_conn_free(conn);
 					remove_pollfd_by_index(idx);
 					show_pfd();
 				} else {
@@ -344,6 +352,8 @@ static int sendall(int sock, char *buf, size_t len)
 {
 	int ret;
 	size_t sent = 0;
+
+	LOG_DBG("sendall(%d, %p, %u)", sock, buf, len);
 
 	while (sent < len) {
 		ret = zsock_send(sock, &buf[sent], len - sent, 0U);
@@ -375,7 +385,6 @@ static int send_response(http_connection_t *conn)
 	http_response_t *resp = conn->resp;
 	
 	int encoded = 0;
-
 
 	ret = http_encode_status(b + encoded, buf_size - encoded,
 				 resp->status_code);
@@ -422,36 +431,32 @@ exit:
 	return ret;
 }
 
-static void process_request(http_connection_t *conn)
+static bool process_request(http_connection_t *conn)
 {
 	static http_request_t req;
 	static http_response_t resp;
-
+	
 	http_request_init(&req);
 	http_response_init(&resp);
 
+	/* Buffer is shared between request and response */
 	resp.buffer.data = buffer;
 	resp.buffer.size = sizeof(buffer);
 
-	const int sock = conn->sock;
-
-	/* (TODO refactor) Not very elegant */
-	req._conn = conn;
+	/* User variable parser.data variable */
+	conn->parser.data = (void *) &req;
 
 	conn->req = &req;
 	conn->resp = &resp;
 
-	/* reset keep alive flag */
-	conn->keep_alive.enabled = 0U;
-
 	while (conn->req->complete == 0U) {
-
 		uint8_t *buf = buffer;
 		size_t buf_remaining = sizeof(buffer);
 
 		size_t received = 0U;
 
-		ssize_t rc = zsock_recv(sock, buf, buf_remaining, 0);
+		ssize_t rc = zsock_recv(conn->sock, buf, buf_remaining, 0);
+		LOG_DBG("zsock_recv(%d, %p, %d, 0) = %d", conn->sock, buf, buf_remaining, rc);
 		if (rc < 0) {
 			if (rc == -EAGAIN) {
 				LOG_WRN("-EAGAIN = %d", -EAGAIN);
@@ -461,16 +466,28 @@ static void process_request(http_connection_t *conn)
 			LOG_ERR("recv failed = %d", rc);
 			goto close;
 		} else if (rc == 0) {
-			LOG_INF("(%d) Connection closed by peer", sock);
+			LOG_INF("(%d) Connection closed by peer", conn->sock);
 			goto close;
 		} else {
-			int parsed = http_request_handle_received_data(&req, buf, rc);
-			if (parsed < 0) {
-				LOG_ERR("(%d) Parsing failed err = ", parsed);
+			size_t parsed = http_parser_execute(&conn->parser,
+							    conn->req->parser_settings,
+							    buf, rc);
+			if (parsed == rc) {
+				if (HTTP_PARSER_ERRNO(&conn->parser) == HPE_PAUSED) {
+					http_parser_pause(&conn->parser, 0);
+				} else {
+					__ASSERT(HTTP_PARSER_ERRNO(&conn->parser) == HPE_OK,
+						 "HTTP parser error");
+				}
+			} else if (HTTP_PARSER_ERRNO(&conn->parser) == HPE_PAUSED) {
+				LOG_ERR("(%p) More (unexpected) data to parse, parsed=%u / to parse=%d",
+					conn, parsed, rc);
+				goto close;
+			} else {
+				LOG_ERR("Parser error = %d",
+					HTTP_PARSER_ERRNO(&conn->parser));
 				goto close;
 			}
-
-			__ASSERT_NO_MSG(parsed == rc);
 
 			/* Prepare buffer for next receiving.
 			*
@@ -483,7 +500,7 @@ static void process_request(http_connection_t *conn)
 			if (http_request_is_message(&req)) {
 				if (received >= buf_remaining) {
 					LOG_WRN("(%d) Recv buffer full, closing connection ...",
-						sock);
+						conn->sock);
 					rc = -ENOMEM;
 					goto close;
 				}
@@ -514,6 +531,10 @@ static void process_request(http_connection_t *conn)
 			break;
 		}
 	} else {
+		/* We update the connection keep_alive configuration
+		* based on the request.
+		*/
+		conn->keep_alive.enabled = req.keep_alive;
 
 		resp.content_type = http_route_get_default_content_type(req.route);
 
@@ -529,7 +550,7 @@ static void process_request(http_connection_t *conn)
 		int ret = req.route->handler(&req, &resp);
 		if (ret != 0) {
 			resp.status_code = HTTP_INTERNAL_SERVER_ERROR;
-			LOG_ERR("(%d) Request processing failed = %d", sock, ret);
+			LOG_ERR("(%d) Request processing failed = %d", conn->sock, ret);
 		}
 
 		req.calls_count++;
@@ -545,18 +566,16 @@ static void process_request(http_connection_t *conn)
 	}
 
 	LOG_INF("(%d) Processing req total len %u B status %d len %u B (keep"
-		"-alive=%d)", sock, req.len, resp.status_code,
+		"-alive=%d)", conn->sock, req.len, resp.status_code,
 		sent, conn->keep_alive.enabled);
 
 	if (conn->keep_alive.enabled) {
 		conn->keep_alive.last_activity = k_uptime_get_32();
-		return;
+		return true;
 	}
 
 close:
-	zsock_close(conn->sock);
-	http_conn_free(conn);
-	LOG_INF("(%d) Closing sock conn %p", sock, conn);
+	return false;
 }
 
 /*___________________________________________________________________________*/

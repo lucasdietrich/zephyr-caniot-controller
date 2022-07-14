@@ -50,22 +50,6 @@ typedef enum {
 struct http_request
 {
 	/**
-	 * @brief Connection currently owning the current request
-	 */
-	http_connection_t *_conn;
-	
-	/**
-	 * @brief One parser per request, in order to process them asynchronously
-	 */
-        struct http_parser parser;
-
-	/**
-	 * @brief Parser settings, which may changed during handling the request
-	 * (e.g. Message, stream, discard)
-	 */
-	const struct http_parser_settings *parser_settings;
-
-	/**
 	 * @brief Flag telling whether keep-alive is set in the request
 	 * Note: determined in headers
 	 */
@@ -205,20 +189,19 @@ struct http_request
 		} payload;
 	};
 
-	/* Total received length */
+	/**
+	 * @brief Parser settings, which is reseted after each request
+	 * (e.g. Message, stream, discard)
+	 */
+	const struct http_parser_settings *parser_settings;
+
+	/* Total HTTP payload length */
         size_t len;
 };
 
 typedef struct http_request http_request_t;
 
 void http_request_init(http_request_t *req);
-
-int http_request_handle_received_data(http_request_t *req,
-				      const char *data,
-				      size_t len);
-
-void http_request_mark_discarded(http_request_t *req,
-				 http_request_discard_reason_t reason);
 
 static inline bool http_request_is_discarded(const http_request_t *req)
 {
@@ -234,5 +217,9 @@ static inline bool http_request_is_message(http_request_t *req)
 {
 	return req->handling_method == HTTP_REQUEST_AS_MESSAGE;
 }
+
+int http_request_route_arg_get(http_request_t *req,
+		       uint32_t index,
+		       uint32_t *arg);
 
 #endif

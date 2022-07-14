@@ -110,5 +110,4 @@ bool route_is_valid(const struct http_route *route);
 
 http_content_type_t http_route_get_default_content_type(const struct http_route *route);
 
-
 #endif /* _HTTP_SERVER_ROUTES_H_ */
