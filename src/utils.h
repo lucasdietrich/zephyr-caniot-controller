@@ -72,10 +72,16 @@ int strncicmp(char const *a, char const *b, size_t len);
 int get_repr_can_frame(struct zcan_frame *frame, char *buf, size_t len);
 
 typedef struct {
-	void *data;
+	char *data;
 	size_t size;
 	size_t filling;
 } buffer_t;
+
+#define BUFFER_STATIC_INIT(_buf, _size) { \
+	.data = _buf, \
+	.size = _size, \
+	.filling = 0 \
+}
 
 int buffer_init(buffer_t *buffer, void *data, size_t size);
 
@@ -86,5 +92,20 @@ ssize_t buffer_append(buffer_t *buffer, void *data, size_t size);
 ssize_t buffer_append_string(buffer_t *buffer, const char *string);
 
 ssize_t buffer_append_strings(buffer_t *buffer, const char **strings, size_t count);
+
+static inline size_t buffer_remaining(buffer_t *buffer)
+{
+	return buffer->size - buffer->filling;
+}
+
+static inline size_t buffer_full(buffer_t *buffer)
+{
+	return buffer->filling == buffer->size;
+}
+
+static inline void buffer_shift(buffer_t *buffer, size_t size)
+{
+	buffer->filling += MIN(size, buffer_remaining(buffer));
+}
 
 #endif /* _UTILS_H_ */

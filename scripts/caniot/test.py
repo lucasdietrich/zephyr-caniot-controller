@@ -10,8 +10,19 @@ from caniot.utils import data_gen_zeros
 
 class TestClient(Controller):
 
-    def test_parallel(self, parralel: int = 5, count: int = 5):
-        sessions = [requests.Session() for _ in range(parralel)]
+    def test_big_data(self, size = 32768) -> requests.Response:
+        data = data_gen_zeros(size)
+        req = self.default_req | {
+            "method": Method.POST.name,
+                "url": self.url + "test/big_payload",
+                "timeout": self.get_req_timeout(),
+                "headers": self.default_headers,
+                "data": data
+            }
+        return requests.request(**req)
+
+    def test_simultaneous(self, simultaneous: int = 5, count: int = 5):
+        sessions = [requests.Session() for _ in range(simultaneous)]
         conn_refused = 0
 
         for reqid in range(count):

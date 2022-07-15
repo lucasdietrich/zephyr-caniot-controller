@@ -96,10 +96,10 @@ struct http_request
 		 * Note: Determined when headers are parsed.
 		 */
 		HTTP_REQUEST_DISCARD,
-	} handling_method;
+	} handling_method : 2;
 
-	http_request_discard_reason_t discard_reason;
 
+	http_request_discard_reason_t discard_reason : 3;
 	/**
 	 * @brief Parsed content length, TODO should be compared against "len" 
 	 * when the request was totally received
@@ -114,7 +114,8 @@ struct http_request
 	/* Header currently being parsed */
 	const struct http_request_header *_parsing_cur_header;
 
-	/* TODO headers values (dynamically allocated and freed, using HEAP/MEMSLAB ) */
+	/* TODO headers values (dynamically allocated and freed, using HEAP/MEMSLAB ) 
+	 * like authentication, etc ... */
 	sys_dlist_t _headers;
 	
 	/* Request content type */
@@ -142,14 +143,6 @@ struct http_request
 	 *  to process a new request (if 0).
 	 */
 	size_t calls_count;
-	
-	/* parsed authentification */
-	/*
-        struct {
-                char user[16];
-                char password[16];
-        };
-	*/
 
 	union {
 		/* Chunk if "stream" is set */
@@ -189,14 +182,24 @@ struct http_request
 		} payload;
 	};
 
+	/* Buffer for handling the request data */
+	// buffer_t _buffer;
+
+	/* Total HTTP payload length (either in chunked and normal) */
+        size_t payload_len;
+
+	/**
+	 * @brief One parser per connection
+	 * - In order to process connections asynchronously
+	 * - And a parser can parse several requests in a row
+	 */
+        struct http_parser parser;
+
 	/**
 	 * @brief Parser settings, which is reseted after each request
 	 * (e.g. Message, stream, discard)
 	 */
 	const struct http_parser_settings *parser_settings;
-
-	/* Total HTTP payload length */
-        size_t len;
 };
 
 typedef struct http_request http_request_t;
@@ -219,7 +222,14 @@ static inline bool http_request_is_message(http_request_t *req)
 }
 
 int http_request_route_arg_get(http_request_t *req,
-		       uint32_t index,
-		       uint32_t *arg);
+			       uint32_t index,
+			       uint32_t *arg);
+
+bool http_request_parse(http_request_t *req,
+			const char *data,
+			size_t len);
+
+void http_request_discard(http_request_t *req,
+			  http_request_discard_reason_t reason);
 
 #endif

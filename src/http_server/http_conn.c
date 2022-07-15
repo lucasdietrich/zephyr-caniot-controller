@@ -25,8 +25,6 @@ static void clear_conn(http_connection_t *conn)
 	memset(conn, 0, sizeof(*conn));
 
 	conn->sock = -1;
-
-	http_parser_init(&conn->parser, HTTP_REQUEST);
 }
 
 http_connection_t *http_conn_alloc(void)

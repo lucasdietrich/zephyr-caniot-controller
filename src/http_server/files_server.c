@@ -11,11 +11,11 @@ int http_file_upload(struct http_request *req,
 		LOG_DBG("STREAM receiving chunk=%u len=%u (offset = %u)",
 			req->chunk.id, req->chunk.len, req->chunk._offset);
 
-		if (req->len > 30000) {
+		if (req->payload_len > 30000) {
 			return -1;
 		}
 	} else {
-		LOG_INF("STREAM complete received=%u, encoding response", req->len);
+		LOG_INF("STREAM complete received=%u, encoding response", req->payload_len);
 
 		__ASSERT(resp != NULL, "Resp should be set to prepare response");
 	}

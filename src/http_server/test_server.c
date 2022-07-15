@@ -41,7 +41,7 @@ int http_test_streaming(struct http_request *req,
 		/* Emulate problem */
 		switch (test_type) {
 		case TEST_PROCESSING_ERROR:
-			if (req->len > 30000) {
+			if (req->payload_len > 30000) {
 				return -1;
 			}
 		case TEST_SLOW_PROCESSING:
@@ -51,8 +51,8 @@ int http_test_streaming(struct http_request *req,
 		}
 
 	} else {
-		LOG_INF("STREAM complete received=%u, encoding response", req->len);
-		LOG_INF("zeros = %u / %u", zeros, req->len);
+		LOG_INF("STREAM complete received=%u, encoding response", req->payload_len);
+		LOG_INF("zeros = %u / %u", zeros, req->payload_len);
 
 		__ASSERT(resp != NULL, "Resp should be set to prepare response");
 	}
@@ -65,6 +65,14 @@ int http_test_route_args(struct http_request *req,
 {
 	LOG_INF("arg1=%u, arg2=%u arg3=%u",
 		req->route_args[0], req->route_args[1], req->route_args[2]);
+
+	return 0;
+}
+
+int http_test_big_payload(struct http_request *req,
+			  struct http_response *resp)
+{
+	LOG_INF("handling_method=%u", req->handling_method);
 
 	return 0;
 }

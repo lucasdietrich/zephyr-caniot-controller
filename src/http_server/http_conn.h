@@ -49,13 +49,6 @@ struct http_connection
 		uint32_t last_activity;
 	} keep_alive;
 
-	/**
-	 * @brief One parser per connection
-	 * - In order to process connections asynchronously
-	 * - And a parser can parse several requests in a row
-	 */
-        struct http_parser parser;
-
         http_request_t *req;
         http_response_t *resp;
 

@@ -435,28 +435,24 @@ static bool process_request(http_connection_t *conn)
 {
 	static http_request_t req;
 	static http_response_t resp;
+
+	static buffer_t buf;
 	
 	http_request_init(&req);
 	http_response_init(&resp);
-
+	
 	/* Buffer is shared between request and response */
-	resp.buffer.data = buffer;
-	resp.buffer.size = sizeof(buffer);
-
-	/* User variable parser.data variable */
-	conn->parser.data = (void *) &req;
+	buffer_init(&buf, buffer, sizeof(buffer));
+	buffer_init(&resp.buffer, buffer, sizeof(buffer));
 
 	conn->req = &req;
 	conn->resp = &resp;
 
-	uint8_t *buf = buffer;
-	size_t buf_remaining = sizeof(buffer);
-
 	while (conn->req->complete == 0U) {
-		size_t total_received = 0U;
+		__ASSERT_NO_MSG(buf.filling != buf.size);
 
-		ssize_t rc = zsock_recv(conn->sock, buf, buf_remaining, 0);
-		LOG_DBG("zsock_recv(%d, %p, %d, 0) = %d", conn->sock, buf, buf_remaining, rc);
+		ssize_t rc = zsock_recv(conn->sock, buf.data, buf.size - buf.filling, 0);
+		LOG_DBG("zsock_recv(%d, %p, %d, 0) = %d", conn->sock, buf.data, buf.size - buf.filling, rc);
 		if (rc < 0) {
 			if (rc == -EAGAIN) {
 				LOG_WRN("-EAGAIN = %d", -EAGAIN);
@@ -469,23 +465,7 @@ static bool process_request(http_connection_t *conn)
 			LOG_INF("(%d) Connection closed by peer", conn->sock);
 			goto close;
 		} else {
-			size_t parsed = http_parser_execute(&conn->parser,
-							    conn->req->parser_settings,
-							    buf, rc);
-			if (parsed == rc) {
-				if (HTTP_PARSER_ERRNO(&conn->parser) == HPE_PAUSED) {
-					http_parser_pause(&conn->parser, 0);
-				} else {
-					__ASSERT(HTTP_PARSER_ERRNO(&conn->parser) == HPE_OK,
-						 "HTTP parser error");
-				}
-			} else if (HTTP_PARSER_ERRNO(&conn->parser) == HPE_PAUSED) {
-				LOG_ERR("(%p) More (unexpected) data to parse, parsed=%u / to parse=%d",
-					conn, parsed, rc);
-				goto close;
-			} else {
-				LOG_ERR("Parser error = %d",
-					HTTP_PARSER_ERRNO(&conn->parser));
+			if (http_request_parse(&req, buf.data, rc) == false) {
 				goto close;
 			}
 
@@ -498,19 +478,20 @@ static bool process_request(http_connection_t *conn)
 			* handler has already consumed the data, so no need to
 			* update it */
 			if (http_request_is_message(&req)) {
-				if (total_received >= buf_remaining) {
-					LOG_WRN("(%d) Recv buffer full, closing connection ...",
+				if (buffer_full(&buf) == true) {
+					http_request_discard(&req, HTTP_REQUEST_PAYLOAD_TOO_LARGE);
+					LOG_WRN("(%d) Recv buffer full, discarding ...",
 						conn->sock);
-					rc = -ENOMEM;
-					goto close;
+				} else {
+					buffer_shift(&buf, rc);
 				}
-
-				buf += rc;
-				buf_remaining -= rc;
-				total_received += rc;
+			} else if (http_request_is_discarded(&req) == true) {
+				buffer_reset(&buf);
 			}
 		}
 	}
+
+	/* prepare response, move to a function */
 
 	if (http_request_is_discarded(&req)) {
 		switch(req.discard_reason) {
@@ -539,6 +520,7 @@ static bool process_request(http_connection_t *conn)
 
 		resp.content_type = http_route_get_default_content_type(req.route);
 
+		/* Useless */
 		if (http_request_is_message(&req)) {
 			if (conn->req->payload.len == conn->req->parsed_content_length) {
 				LOG_INF("Content-length = %d", conn->req->parsed_content_length);
@@ -567,7 +549,7 @@ static bool process_request(http_connection_t *conn)
 	}
 
 	LOG_INF("(%d) Processing req total len %u B resp status %d len %u B (keep"
-		"-alive=%d)", conn->sock, req.len, resp.status_code,
+		"-alive=%d)", conn->sock, req.payload_len, resp.status_code,
 		sent, conn->keep_alive.enabled);
 
 	if (conn->keep_alive.enabled) {

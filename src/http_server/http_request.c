@@ -103,6 +103,8 @@ void http_request_init(http_request_t *req)
 	req->calls_count = 0;
 
 	req->parser_settings = &parser_settings_messaging;
+
+	http_parser_init(&req->parser, HTTP_REQUEST);
 }
 
 static void mark_discarded(http_request_t *req,
@@ -115,11 +117,9 @@ static void mark_discarded(http_request_t *req,
 
 /*_____________________________________________________________________________________*/
 
-#define CONN_FROM_PARSER(p_parser) \
-        ((http_connection_t *) \
-        CONTAINER_OF(p_parser, http_connection_t, parser))
-
-#define REQUEST_FROM_PARSER(p_parser) ((http_request_t *) p_parser->data)
+#define REQUEST_FROM_PARSER(p_parser) \
+        ((http_request_t *) \
+        CONTAINER_OF(p_parser, http_request_t, parser))
 
 int on_message_begin(struct http_parser *parser)
 {
@@ -249,7 +249,6 @@ static int header_content_length_handler(http_request_t *req,
 					 const struct header *hdr,
 					 const char *value)
 {
-
 	uint32_t content_length;
 	if (sscanf(value, "%u", &content_length) == 1) {
 		LOG_INF("(%p) Content-length : %u B", req, content_length);
@@ -312,6 +311,9 @@ static int on_headers_complete(struct http_parser *parser)
 		route_resolve(req->method, req->url,
 			      req->url_len, &req->route_args);
 
+	LOG_DBG("content-length : %u / %llu parser content-length", 
+		req->parsed_content_length, parser->content_length);
+
 	if (route == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_UNKNOWN);
 		LOG_WRN("(%p) Route not found, discarding ...", req);
@@ -324,7 +326,7 @@ static int on_headers_complete(struct http_parser *parser)
 			req);
 	}
 
-	if (http_request_is_stream(req)) {
+	if (http_request_is_stream(req) == true) {
 		req->parser_settings = &parser_settings_streaming;
 	}
 
@@ -386,10 +388,7 @@ static int on_body_messaging(struct http_parser *parser,
 		req->payload.len += length;
 	}
 	
-	req->len += length;
-
-	LOG_DBG("on_body at=%p len=%u (content-len = %llu)",
-		at, length, parser->content_length);
+	req->payload_len += length;
 
 	return 0;
 }
@@ -402,7 +401,7 @@ static int on_body_discarding(struct http_parser *parser,
 
 	http_request_t *req = REQUEST_FROM_PARSER(parser);
 
-	req->len += length;
+	req->payload_len += length;
 
 	LOG_WRN("on_body DISCARDING %u bytes", length);
 
@@ -428,8 +427,8 @@ static int on_message_complete(struct http_parser *parser)
 	 */
 	http_parser_pause(parser, 1);
 
-	LOG_INF("on_message_complete, message received len=%u (%p)",
-		req->len, req);
+	LOG_INF("(%p) on_message_complete, message received len=%u",
+		req, req->payload_len);
 	
 	return 0;
 }
@@ -445,7 +444,7 @@ static int on_chunk_header(struct http_parser *parser)
 	req->chunk.len = 0U;
 	req->chunk.loc = NULL;
 
-	LOG_DBG("on_chunk_header chunk=%u (%p)", req->chunk.id, req);
+	LOG_DBG("(%p) on_chunk_header chunk=%u", req, req->chunk.id);
 
 	return 0;
 }
@@ -459,10 +458,10 @@ static int on_chunk_complete(struct http_parser *parser)
 	/* increment chunk id */
 	req->chunk.id++;
 
-	req->len += req->chunk._offset;
+	req->payload_len += req->chunk._offset;
 
-	LOG_DBG("on_chunk_complete chunk=%u len=%u (%p)",
-		req->chunk.id, req->chunk.len, parser);
+	LOG_DBG("(%p) on_chunk_complete chunk=%u len=%u",
+		req, req->chunk.id, req->chunk.len);
 
 	return 0;
 }
@@ -484,4 +483,37 @@ int http_request_route_arg_get(http_request_t *req,
 	}
 
 	return ret;
+}
+
+bool http_request_parse(http_request_t *req,
+			const char *data,
+			size_t received)
+{
+	size_t parsed = http_parser_execute(&req->parser,
+					    req->parser_settings,
+					    data, received);
+	if (parsed == received) {
+		if (HTTP_PARSER_ERRNO(&req->parser) == HPE_PAUSED) {
+			http_parser_pause(&req->parser, 0);
+		} else {
+			__ASSERT(HTTP_PARSER_ERRNO(&req->parser) == HPE_OK,
+				 "HTTP parser error");
+		}
+	} else if (HTTP_PARSER_ERRNO(&req->parser) == HPE_PAUSED) {
+		LOG_ERR("(%p) More (unexpected) data to parse, parsed=%u / to parse=%d",
+			req, parsed, received);
+		return false;
+	} else {
+		LOG_ERR("Parser error = %d",
+			HTTP_PARSER_ERRNO(&req->parser));
+		return false;
+	}
+
+	return true;
+}
+
+void http_request_discard(http_request_t *req,
+			  http_request_discard_reason_t reason)
+{
+	mark_discarded(req, reason);
 }
