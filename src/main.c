@@ -89,12 +89,11 @@ void main(void)
 	leds_init();
 	button_init();
 #endif
-	printk("App started\n");
 
 	crypto_mbedtls_heap_init();
 	net_interface_init();
 
-#ifndef CONFIG_BOARD_QEMU_X86
+#if defined(CONFIG_BLE_CONTROLLER)
 	ha_ble_controller_init();
 #endif /* CONFIG_BOARD_QEMU_X86 */
 
