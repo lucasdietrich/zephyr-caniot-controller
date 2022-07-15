@@ -23,8 +23,8 @@ static void can_thread(const struct device *dev,
 		       struct k_msgq *rx_msgq,
 		       struct k_msgq *tx_msgq);
 
-// CAN_DEFINE_MSGQ(rx_msgqueue, 4);
-CAN_DEFINE_MSGQ(tx_msgqueue, 4);
+// CAN_MSGQ_DEFINE(rx_msgqueue, 4);
+CAN_MSGQ_DEFINE(tx_msgqueue, 4);
 
 K_THREAD_DEFINE(cantid, 0x400, can_thread, CAN1_DEVICE,
 		&tx_msgqueue, NULL, K_PRIO_COOP(3), 0, 0);
@@ -49,9 +49,9 @@ static void can_thread(const struct device *dev,
 	struct zcan_filter filter = {
 		.id_type = CAN_ID_STD, /* currently we ignore extended IDs */
 	};
-	ret = can_attach_msgq(CAN1_DEVICE, &ha_ciot_ctrl_rx_msgq, &filter);
+	ret = can_add_rx_filter_msgq(CAN1_DEVICE, &ha_ciot_ctrl_rx_msgq, &filter);
 	if (ret) {
-		LOG_ERR("can_attach_msgq failed: %d", ret);
+		LOG_ERR("can_add_rx_filter_msgq failed: %d", ret);
 		return;
 	}
 

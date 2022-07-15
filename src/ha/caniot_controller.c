@@ -21,7 +21,7 @@ LOG_MODULE_REGISTER(caniot, LOG_LEVEL_INF);
 
 #define HA_CIOT_QUERY_TIMEOUT_TOLERANCE_MS 50
 
-CAN_DEFINE_MSGQ(can_rxq, 4U);
+CAN_MSGQ_DEFINE(can_rxq, 4U);
 
 const struct device *can_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
 
@@ -37,19 +37,19 @@ K_THREAD_DEFINE(ha_ciot_thread, 0x800, thread, NULL, NULL, NULL,
 static int z_can_init(void)
 {
 	/* wait for device ready */
-        while (!device_is_ready(can_dev)) {
-                LOG_WRN("CAN: Device %s not ready.\n", can_dev->name);
-                k_sleep(K_SECONDS(1));
-        }
+	while (!device_is_ready(can_dev)) {
+		LOG_WRN("CAN: Device %s not ready.\n", can_dev->name);
+		k_sleep(K_SECONDS(1));
+	}
 
 	/* attach message q */
 	struct zcan_filter filter = {
 		.id_type = 0, /* currently we ignore extended IDs */
 	};
 
-	int ret = can_attach_msgq(can_dev, &can_rxq, &filter);
+	int ret = can_add_rx_filter_msgq(can_dev, &can_rxq, &filter);
 	if (ret) {
-		LOG_ERR("can_attach_msgq failed: %d", ret);
+		LOG_ERR("can_add_rx_filter_msgq failed: %d", ret);
 	}
 
 	return ret;
@@ -116,7 +116,7 @@ struct syncq
 		void *_tie; /* for k_fifo_put */
 		sys_dnode_t _node;
 	};
-	
+
 	struct k_sem _sem;
 
 	/* Query status */
@@ -125,7 +125,7 @@ struct syncq
 	/* error in case caniot_controller_query() returned immediately
 	 */
 	int query_error;
-	
+
 	/* query queued to be answered */
 	struct caniot_frame *query;
 
@@ -151,7 +151,7 @@ struct syncq
 
 		/* Duration if answered (or timeout) */
 		uint32_t delta;
-	};	
+	};
 };
 
 K_MEM_SLAB_DEFINE(sq_pool, sizeof(struct syncq),
@@ -298,7 +298,7 @@ static void thread(void *_a, void *_b, void *_c)
 			}
 
 			/* we need to process the response before sending a query,
-			 * otherwise the query could timeout immediately because 
+			 * otherwise the query could timeout immediately because
 			 * the timeout queue was not shifted before
 			 */
 			const uint32_t delta = k_uptime_delta32(&reftime);
@@ -323,7 +323,7 @@ static void thread(void *_a, void *_b, void *_c)
 				} else {
 					/* no context allocated, return immediately */
 					if (ret == 0) {
-						/* Query sent but returned immediately 
+						/* Query sent but returned immediately
 						 * as timeout is null */
 						qx->status = SYNCQ_IMMEDIATE;
 					} else {
@@ -393,7 +393,7 @@ int ha_ciot_ctrl_query(struct caniot_frame *__restrict req,
 		LOG_ERR("k_sem_take( ...) Should not timeout (%u)", qx->timeout);
 		goto exit;
 	}
-	
+
 	switch (qx->status) {
 	case SYNCQ_IMMEDIATE:
 		ret = 0;

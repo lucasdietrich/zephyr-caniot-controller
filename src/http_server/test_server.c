@@ -65,11 +65,11 @@ int http_test_messaging(struct http_request *req,
 					 ARRAY_SIZE(json_test_result_message_descr));
 }
 
-static enum {
+typedef enum {
 	TEST_OK,
 	TEST_PROCESSING_ERROR,
 	TEST_SLOW_PROCESSING,
-} test_type = TEST_OK;
+} http_test_type_t;
 
 static const struct json_obj_descr json_test_result_stream_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_test_result, ok, JSON_TOK_NUMBER),

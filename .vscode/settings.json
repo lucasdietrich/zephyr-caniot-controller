@@ -18,6 +18,10 @@
                         "port": "80",
                         "host": "192.0.2.1",
                 },
+                "nucleo_f429zi": {
+                        "port": "80",
+                        "host": "192.168.10.240",
+                },
         },
         "files.associations": {
                 "*.asm": "avr",

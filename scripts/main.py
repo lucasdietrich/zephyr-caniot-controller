@@ -1,8 +1,8 @@
 from pprint import pprint
 from caniot.test import  TestClient, data_gen_zeros, ChunksGeneratorType
 
-ip = "192.0.2.1"
 ip = "192.168.10.240"
+ip = "192.0.2.1"
 
 t = TestClient(ip, False)
 
@@ -17,7 +17,7 @@ def simple_chunk_generator(size: int, chunks_size: int = 1024) -> ChunksGenerato
         yield bytes([1 for _ in range(tosend)])
         sent += tosend
 
-res = t.test_stream(simple_chunk_generator(1024*1024, 2048))
+res = t.test_stream(simple_chunk_generator(128*1024, 2048))
 
 
 # res = t.test_multipart(2048*1024, 4048, [1024, 10, 234, 342])

@@ -89,6 +89,7 @@ void main(void)
 	leds_init();
 	button_init();
 #endif
+	printk("App started\n");
 
 	crypto_mbedtls_heap_init();
 	net_interface_init();

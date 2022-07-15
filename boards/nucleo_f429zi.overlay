@@ -2,6 +2,7 @@
 
 &can1 {
         status = "okay";
+        pinctrl-names  = "default";
         pinctrl-0 = <&can1_rx_pd0 &can1_tx_pd1>;
         bus-speed = <500000>;
 
@@ -81,8 +82,9 @@
  */
 &timers3 {
         status = "okay";
+        st,prescaler = <8399>; /* depreciated, should be moved 1 layer above (i.e. to timers3) */
         tim3pwm: pwm {
-                st,prescaler = <8399>; /* depreciated, should be moved 1 layer above (i.e. to timers3) */
+                pinctrl-names  = "default";
                 status = "okay";
                 pinctrl-0 = <&tim3_ch3_pb0>;
         };
@@ -90,8 +92,9 @@
 
 &timers4 {
         status = "okay";
+        st,prescaler = <8399>; /* depreciated */
         tim4pwm: pwm {
-                st,prescaler = <8399>; /* depreciated */
+                pinctrl-names  = "default";
                 status = "okay";
                 pinctrl-0 = <&tim4_ch2_pb7>;
         };
@@ -104,8 +107,8 @@
 /*
 &timers8 {
         status = "okay";
+        st,prescaler = <8399>;  // depreciated
         tim8pwm: pwm {
-                st,prescaler = <8399>;  // depreciated
                 status = "okay";
                 pinctrl-0 = < &tim8_ch2n_pb14 >; // <&tim8_ch2n_pb14 &tim8_ch2_pc7>; STM32_PINMUX('B', 14, AF3)
         };
@@ -141,6 +144,7 @@
 	status = "okay";
 	current-speed = <1000000>; // 1000000
 	// hw-flow-control;
+        pinctrl-names  = "default";
 	pinctrl-0 = <&uart8_tx_pe1 &uart8_rx_pe0>;
 
 	// https://docs.zephyrproject.org/latest/reference/devicetree/bindings/dma/st%2Cstm32-dma-v1.html
@@ -171,6 +175,7 @@
         // Note: Clean and rebuild when changing this value !
 	current-speed = < 19200 >; // 1200, 115200, 1000000 
 	// hw-flow-control;
+        pinctrl-names  = "default";
 	pinctrl-0 = <&uart7_tx_pe8 &uart7_rx_pe7>;
 
 	// https://docs.zephyrproject.org/latest/build/dts/api/bindings/dma/st,stm32-dma.html
