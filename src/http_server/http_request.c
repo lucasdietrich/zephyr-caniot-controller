@@ -316,10 +316,12 @@ static int on_headers_complete(struct http_parser *parser)
 
 	if (route == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_UNKNOWN);
-		LOG_WRN("(%p) Route not found, discarding ...", req);
+		LOG_WRN("(%p) Route %s not found, discarding ...",
+			req, log_strdup(req->url));
 	} else if (route->handler == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_NO_HANDLER);
-		LOG_WRN("(%p) Route missing handler, discarding ...", req);
+		LOG_WRN("(%p) Route %s missing handler, discarding ...", 
+			req, log_strdup(req->url));
 	} else if (http_request_is_stream(req) && !route->support_stream) {
 		mark_discarded(req, HTTP_REQUEST_STREAMING_UNSUPPORTED);
 		LOG_WRN("(%p) Stream requested but route does not support it, discarding ...",
