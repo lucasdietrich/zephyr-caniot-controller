@@ -10,7 +10,7 @@
 #include "http_server.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(http_req, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(http_req, LOG_LEVEL_WRN);
 
 /* parsing */
 
@@ -92,7 +92,7 @@ void http_request_init(http_request_t *req)
 
 	req->complete = 0U;
 	req->headers_complete = 0U;
-	req->handling_method = HTTP_REQUEST_AS_MESSAGE;
+	req->handling_mode = HTTP_REQUEST_MESSAGE;
 
 	req->payload.len = 0U;
 	req->payload.loc = NULL;
@@ -110,7 +110,7 @@ void http_request_init(http_request_t *req)
 static void mark_discarded(http_request_t *req,
 			   http_request_discard_reason_t reason)
 {
-	req->handling_method = HTTP_REQUEST_DISCARD;
+	req->handling_mode = HTTP_REQUEST_DISCARD;
 	req->discard_reason = reason;
 	req->parser_settings = &parser_settings_discarding;
 }
@@ -123,9 +123,9 @@ static void mark_discarded(http_request_t *req,
 
 int on_message_begin(struct http_parser *parser)
 {
-	// http_request_t *req = REQUEST_FROM_PARSER(parser);
+	http_request_t *req = REQUEST_FROM_PARSER(parser);
 
-	LOG_DBG("on_message_begin (%d)", 0);
+	LOG_DBG("(%p) on_message_begin", req);
 
 	return 0;
 }
@@ -219,7 +219,7 @@ static int header_transfer_encoding_handler(http_request_t *req,
 
 	if ((strncicmp(value, CHUNKED_TRANSFERT_STR, strlen(CHUNKED_TRANSFERT_STR)) == 0)) {
 		LOG_INF("(%p) Header Transfer Encoding (= chunked) found !", req);
-		req->handling_method = HTTP_REQUEST_AS_STREAM;
+		req->handling_mode = HTTP_REQUEST_STREAM;
 	}
 
 	return 0;
@@ -311,8 +311,8 @@ static int on_headers_complete(struct http_parser *parser)
 		route_resolve(req->method, req->url,
 			      req->url_len, &req->route_args);
 
-	LOG_DBG("content-length : %u / %llu parser content-length", 
-		req->parsed_content_length, parser->content_length);
+	LOG_DBG("(%p) content-length : %u / %llu parser content-length, flags = %x",
+		req, req->parsed_content_length, parser->content_length, (uint32_t)parser->flags);
 
 	if (route == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_UNKNOWN);
@@ -333,8 +333,6 @@ static int on_headers_complete(struct http_parser *parser)
 	req->route = route;
 	req->headers_complete = 1U;
 
-	LOG_INF("Parser flags %hhx", parser->flags);
-
 	return 0;
 }
 
@@ -348,6 +346,7 @@ static int on_body_streaming(struct http_parser *parser,
 	/* set chunk location */
 	req->chunk.loc = (char *)at;
 	req->chunk.len = length;
+	req->payload_len += length;
 
 	/* route is necessarily valid at this point */
 	int ret = req->route->handler(req, NULL);
@@ -355,12 +354,12 @@ static int on_body_streaming(struct http_parser *parser,
 		req->chunk._offset += length;
 	} else {
 		mark_discarded(req, HTTP_REQUEST_STREAM_PROCESSING_ERROR);
-		LOG_ERR("Stream processing error %d, discarding ...", ret);
+		LOG_ERR("(%p) Stream processing error %d, discarding ...", req, ret);
 	}
 
 	req->calls_count++;
 
-	LOG_DBG("on_body at=%p len=%u", at, length);
+	LOG_DBG("(%p) on_body at=%p len=%u", req, at, length);
 
 	return 0;
 }
@@ -372,8 +371,8 @@ static int on_body_messaging(struct http_parser *parser,
 	/* can be called several times */
 	http_request_t *req = REQUEST_FROM_PARSER(parser);
 
-	LOG_DBG("at=%p len=%u (payload loc=%p len=%u)", at, length, 
-		req->payload.loc, req->payload.len);
+	LOG_INF("(%p) at=%p len=%u (payload loc=%p len=%u)",
+		req, at, length, req->payload.loc, req->payload.len);
 
 	if (req->payload.loc == NULL) {
 		/* If not a stream request and this is the first call of the callbaclk,
@@ -387,15 +386,15 @@ static int on_body_messaging(struct http_parser *parser,
 
 		req->payload.len += length;
 	}
-	
+
 	req->payload_len += length;
 
 	return 0;
 }
 
 static int on_body_discarding(struct http_parser *parser,
-			   const char *at,
-			   size_t length)
+			      const char *at,
+			      size_t length)
 {
 	ARG_UNUSED(at);
 
@@ -403,7 +402,7 @@ static int on_body_discarding(struct http_parser *parser,
 
 	req->payload_len += length;
 
-	LOG_WRN("on_body DISCARDING %u bytes", length);
+	LOG_WRN("(%p) on_body DISCARDING %u bytes", req, length);
 
 	return 0;
 }
@@ -415,21 +414,21 @@ static int on_message_complete(struct http_parser *parser)
 	/* Mark request as complete */
 	req->complete = 1U;
 
-	/* Force the parser to pause and give control back to the application 
+	/* Force the parser to pause and give control back to the application
 	 * so that it can process it and send the response.
-	 * 
+	 *
 	 * Note: in case of bad implementation of the HTTP client :
 	 * If two HTTP requests are being received and parsed in the
 	 * same "http_parser_execute" call, before a reponse is sent from the current
 	 * server for the 1st request. Then it means that the client sent (TCP) two HTTP
-	 * requests while not waiting for the response for the 1st request. 
+	 * requests while not waiting for the response for the 1st request.
 	 * If this case happens the current server will closes the connection.
 	 */
 	http_parser_pause(parser, 1);
 
 	LOG_INF("(%p) on_message_complete, message received len=%u",
 		req, req->payload_len);
-	
+
 	return 0;
 }
 
@@ -457,8 +456,6 @@ static int on_chunk_complete(struct http_parser *parser)
 
 	/* increment chunk id */
 	req->chunk.id++;
-
-	req->payload_len += req->chunk._offset;
 
 	LOG_DBG("(%p) on_chunk_complete chunk=%u len=%u",
 		req, req->chunk.id, req->chunk.len);
@@ -492,6 +489,7 @@ bool http_request_parse(http_request_t *req,
 	size_t parsed = http_parser_execute(&req->parser,
 					    req->parser_settings,
 					    data, received);
+	LOG_DBG("parsed = %u, received = %u", parsed, received);
 	if (parsed == received) {
 		if (HTTP_PARSER_ERRNO(&req->parser) == HPE_PAUSED) {
 			http_parser_pause(&req->parser, 0);
@@ -504,8 +502,8 @@ bool http_request_parse(http_request_t *req,
 			req, parsed, received);
 		return false;
 	} else {
-		LOG_ERR("Parser error = %d",
-			HTTP_PARSER_ERRNO(&req->parser));
+		LOG_ERR("(%p) Parser error = %d",
+			req, HTTP_PARSER_ERRNO(&req->parser));
 		return false;
 	}
 

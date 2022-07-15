@@ -80,7 +80,7 @@ int get_repr_can_frame(struct zcan_frame *frame, char *buf, size_t len)
 			frame->data[6], frame->data[7]);
 }
 
-int buffer_init(buffer_t *buffer, void *data, size_t size)
+int buffer_init(buffer_t *buffer, char *data, size_t size)
 {
 	int ret = -EINVAL;
 
@@ -108,7 +108,7 @@ int buffer_reset(buffer_t *buffer)
 	return ret;
 }
 
-ssize_t buffer_append(buffer_t *buffer, void *data, size_t size)
+ssize_t buffer_append(buffer_t *buffer, char *data, size_t size)
 {
 	int ret = -EINVAL;
 
@@ -144,4 +144,48 @@ ssize_t buffer_append_strings(buffer_t *buffer, const char **strings, size_t cou
 		total += appended;
 	}
 	return total;
+}
+
+/*___________________________________________________________________________*/
+
+int cursor_buffer_init(cursor_buffer_t *cbuf, char *buffer, size_t size)
+{
+	int ret = -EINVAL;
+
+	if ((buffer != NULL) && (size > 0U)) {
+		cbuf->buffer = buffer;
+		cbuf->cursor = buffer;
+		cbuf->size = size;
+
+		ret = 0;
+	}
+
+	return ret;
+}
+
+int cursor_buffer_reset(cursor_buffer_t *cbuf)
+{
+	int ret = -EINVAL;
+
+	if ((cbuf != NULL) && (cbuf->buffer != NULL)) {
+		cbuf->cursor = cbuf->buffer;
+
+		ret = 0;
+	}
+
+	return ret;
+}
+
+ssize_t cursor_buffer_append(cursor_buffer_t *cbuf, char *data, size_t size)
+{
+	int ret = -EINVAL;
+
+	if ((cbuf->cursor - cbuf->buffer) <= cbuf->size) {
+		memcpy((uint8_t *)cbuf->cursor, data, size);
+		cbuf->cursor += size;
+
+		ret = size;
+	}
+
+	return ret;
 }

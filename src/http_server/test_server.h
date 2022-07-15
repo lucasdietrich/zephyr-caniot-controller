@@ -23,10 +23,11 @@
 
 #include "http_utils.h"
 #include "http_request.h"
+#include "http_response.h"
 #include "routes.h"
 
 #define HTTP_TEST_MESSAGING_ROUTE MESSAGING_RESSOURCE(\
-	GET, \
+	POST, \
 	"/test/messaging", \
 	http_test_messaging, \
 	HTTP_TEST_SERVER, \

@@ -436,26 +436,27 @@ static bool process_request(http_connection_t *conn)
 	static http_request_t req;
 	static http_response_t resp;
 
-	static buffer_t buf;
+	static cursor_buffer_t cbuf;
 	
 	http_request_init(&req);
 	http_response_init(&resp);
 	
 	/* Buffer is shared between request and response */
-	buffer_init(&buf, buffer, sizeof(buffer));
+	cursor_buffer_init(&cbuf, buffer, sizeof(buffer));
 	buffer_init(&resp.buffer, buffer, sizeof(buffer));
 
 	conn->req = &req;
 	conn->resp = &resp;
 
 	while (conn->req->complete == 0U) {
-		__ASSERT_NO_MSG(buf.filling != buf.size);
+		__ASSERT_NO_MSG(cursor_buffer_full(&cbuf) == false);
 
-		ssize_t rc = zsock_recv(conn->sock, buf.data, buf.size - buf.filling, 0);
-		LOG_DBG("zsock_recv(%d, %p, %d, 0) = %d", conn->sock, buf.data, buf.size - buf.filling, rc);
+		ssize_t rc = zsock_recv(conn->sock, cbuf.cursor, cursor_buffer_remaining(&cbuf), 0);
+		LOG_DBG("zsock_recv(%d, %p, %d, 0) = %d", conn->sock, cbuf.cursor, cursor_buffer_remaining(&cbuf), rc);
 		if (rc < 0) {
 			if (rc == -EAGAIN) {
 				LOG_WRN("-EAGAIN = %d", -EAGAIN);
+				/* Todo, find a way to return to function caller */
 				continue;
 			}
 
@@ -465,7 +466,7 @@ static bool process_request(http_connection_t *conn)
 			LOG_INF("(%d) Connection closed by peer", conn->sock);
 			goto close;
 		} else {
-			if (http_request_parse(&req, buf.data, rc) == false) {
+			if (http_request_parse(&req, cbuf.cursor, rc) == false) {
 				goto close;
 			}
 
@@ -478,15 +479,17 @@ static bool process_request(http_connection_t *conn)
 			* handler has already consumed the data, so no need to
 			* update it */
 			if (http_request_is_message(&req)) {
-				if (buffer_full(&buf) == true) {
+				cursor_buffer_shift(&cbuf, rc);
+
+				if (cursor_buffer_full(&cbuf) == true) {
 					http_request_discard(&req, HTTP_REQUEST_PAYLOAD_TOO_LARGE);
 					LOG_WRN("(%d) Recv buffer full, discarding ...",
 						conn->sock);
-				} else {
-					buffer_shift(&buf, rc);
 				}
-			} else if (http_request_is_discarded(&req) == true) {
-				buffer_reset(&buf);
+			}
+
+			if (http_request_is_discarded(&req) == true) {
+				cursor_buffer_reset(&cbuf);
 			}
 		}
 	}
@@ -505,7 +508,7 @@ static bool process_request(http_connection_t *conn)
 			resp.status_code = HTTP_NOT_IMPLEMENTED;
 			break;
 		case HTTP_REQUEST_PAYLOAD_TOO_LARGE:
-			resp.status_code = HTTP_REQUEST_PAYLOAD_TOO_LARGE;
+			resp.status_code = HTTP_REQUEST_ENTITY_TOO_LARGE;
 			break;
 		default:
 		case HTTP_REQUEST_STREAM_PROCESSING_ERROR:
@@ -518,18 +521,9 @@ static bool process_request(http_connection_t *conn)
 		*/
 		conn->keep_alive.enabled = req.keep_alive;
 
-		resp.content_type = http_route_get_default_content_type(req.route);
+		resp.content_type = http_route_resp_default_content_type(req.route);
 
-		/* Useless */
-		if (http_request_is_message(&req)) {
-			if (conn->req->payload.len == conn->req->parsed_content_length) {
-				LOG_INF("Content-length = %d", conn->req->parsed_content_length);
-			} else {
-				LOG_ERR("actually rcv length = %u / %u content-length header",
-					conn->req->payload.len, conn->req->parsed_content_length);
-			}
-		}
-
+		/* process request, prepare response */
 		int ret = req.route->handler(&req, &resp);
 		if (ret != 0) {
 			resp.status_code = HTTP_INTERNAL_SERVER_ERROR;

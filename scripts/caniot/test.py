@@ -4,9 +4,12 @@ from hexdump import hexdump
 from requests_toolbelt import MultipartEncoder
 from pprint import pprint
 import random
+from typing import Callable, Iterator, List, Dict, Optional, Union
 
-from caniot.controller import Controller, Method
+from caniot.controller import Controller, Method, RouteType
 from caniot.utils import data_gen_zeros
+
+ChunksGeneratorType = Iterator[bytes]
 
 class TestClient(Controller):
 
@@ -14,7 +17,7 @@ class TestClient(Controller):
         data = data_gen_zeros(size)
         req = self.default_req | {
             "method": Method.POST.name,
-                "url": self.url + "test/big_payload",
+                "url": self.url + "test/messaging",
                 "timeout": self.get_req_timeout(),
                 "headers": self.default_headers,
                 "data": data
@@ -61,10 +64,22 @@ class TestClient(Controller):
                 resp = s.request(**req)
 
                 print(resp.status_code, resp.text[:50])
-    
-    def test_stream(self, size: int = 128768,
-                    chunk_length_default: int = 512,
-                    chunks_lengths: list = None) -> requests.Response:
+
+    def test_stream(self, chunks_generator: ChunksGeneratorType) -> requests.Response:
+        req = self.default_req | {
+            "method": Method.POST.name,
+            "url": self.url + "test/streaming",
+            "data": chunks_generator,
+            "headers": {
+                "Content-Type": "application/octet-stream"
+            },
+        }
+
+        return requests.request(**req)
+
+    def test_multipart(self, size: int = 128768,
+                       chunk_length_default: int = 512,
+                       chunks_lengths: list = None) -> requests.Response:
         if chunks_lengths is None:
             chunks_lengths = list()
 

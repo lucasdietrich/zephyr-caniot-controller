@@ -6,9 +6,9 @@
 
 #include "http_utils.h"
 
-typedef uint32_t http_route_args_t[3];
+#define HTTP_ROUTE_ARGS_MAX_COUNT 3
 
-#define HTTP_ROUTE_ARGS_MAX_SIZE (sizeof(http_route_args_t)  / sizeof(uint32_t))
+typedef uint32_t http_route_args_t[HTTP_ROUTE_ARGS_MAX_COUNT];
 
 typedef enum {
 	HTTP_REST_SERVER = 0,
@@ -84,7 +84,7 @@ struct http_route
 	/*___________________________________________________________________*/
 
 	/**
-	 * @brief Route default content-type if not explicitly set in the request header
+	 * @brief Route response default content-type
 	 */
 	http_content_type_t default_content_type;
 };
@@ -108,6 +108,6 @@ const struct http_route *route_resolve(enum http_method method,
 
 bool route_is_valid(const struct http_route *route);
 
-http_content_type_t http_route_get_default_content_type(const struct http_route *route);
+http_content_type_t http_route_resp_default_content_type(const struct http_route *route);
 
 #endif /* _HTTP_SERVER_ROUTES_H_ */

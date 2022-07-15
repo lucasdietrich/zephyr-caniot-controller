@@ -83,11 +83,11 @@ typedef struct {
 	.filling = 0 \
 }
 
-int buffer_init(buffer_t *buffer, void *data, size_t size);
+int buffer_init(buffer_t *buffer, char *data, size_t size);
 
 int buffer_reset(buffer_t *buffer);
 
-ssize_t buffer_append(buffer_t *buffer, void *data, size_t size);
+ssize_t buffer_append(buffer_t *buffer, char *data, size_t size);
 
 ssize_t buffer_append_string(buffer_t *buffer, const char *string);
 
@@ -103,9 +103,38 @@ static inline size_t buffer_full(buffer_t *buffer)
 	return buffer->filling == buffer->size;
 }
 
-static inline void buffer_shift(buffer_t *buffer, size_t size)
+/*___________________________________________________________________________*/
+
+typedef struct {
+	char *buffer;
+	size_t size;
+	char *cursor;
+} cursor_buffer_t;
+
+int cursor_buffer_init(cursor_buffer_t *cbuf, char *buffer, size_t size);
+
+int cursor_buffer_reset(cursor_buffer_t *cbuf);
+
+ssize_t cursor_buffer_append(cursor_buffer_t *cbuf, char *data, size_t size);
+
+static inline size_t cursor_buffer_filling(cursor_buffer_t *cbuf)
 {
-	buffer->filling += MIN(size, buffer_remaining(buffer));
+	return cbuf->cursor - cbuf->buffer;
+}
+
+static inline size_t cursor_buffer_remaining(cursor_buffer_t *cbuf)
+{
+	return cbuf->size - cursor_buffer_filling(cbuf);
+}
+
+static inline size_t cursor_buffer_full(cursor_buffer_t *cbuf)
+{
+	return cursor_buffer_filling(cbuf) == cbuf->size;
+}
+
+static inline void cursor_buffer_shift(cursor_buffer_t *cbuf, size_t size)
+{
+	cbuf->cursor += MIN(size, cursor_buffer_remaining(cbuf));
 }
 
 #endif /* _UTILS_H_ */

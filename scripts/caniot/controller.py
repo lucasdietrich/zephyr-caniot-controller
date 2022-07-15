@@ -25,6 +25,8 @@ urls = {
     API.RequestTelemetry: (Method.GET, "devices/caniot/{did}/endpoints/{ep}/telemetry"),
 }
 
+RouteType = Tuple[Method, str]
+
 class DeviceContext:
     def __init__(self, did: int) -> None:
         self.did = did

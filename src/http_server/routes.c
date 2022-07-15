@@ -124,19 +124,19 @@ const struct http_route *route_resolve(enum http_method method,
 				return route;
 			}
 		} else if ((route->path_args_count == 1U) &&
-			   (HTTP_ROUTE_ARGS_MAX_SIZE >= 1U)) {
+			   (HTTP_ROUTE_ARGS_MAX_COUNT >= 1U)) {
 			if (sscanf(url, route->route, &(*rargs)[0])
 			    == route->path_args_count) {
 				return route;
 			}
 		} else if ((route->path_args_count == 2U) &&
-			   (HTTP_ROUTE_ARGS_MAX_SIZE >= 2U)) {
+			   (HTTP_ROUTE_ARGS_MAX_COUNT >= 2U)) {
 			if (sscanf(url, route->route, &(*rargs)[0], &(*rargs)[1])
 			    == route->path_args_count) {
 				return route;
 			}
 		} else if ((route->path_args_count == 3U) &&
-			   (HTTP_ROUTE_ARGS_MAX_SIZE >= 3U)) {
+			   (HTTP_ROUTE_ARGS_MAX_COUNT >= 3U)) {
 			if (sscanf(url, route->route, &(*rargs)[0], &(*rargs)[1], &(*rargs)[2])
 			    == route->path_args_count) {
 				return route;
@@ -152,7 +152,7 @@ bool route_is_valid(const struct http_route *route)
 	return (route != NULL) && (route->handler != NULL);
 }
 
-http_content_type_t http_route_get_default_content_type(const struct http_route *route)
+http_content_type_t http_route_resp_default_content_type(const struct http_route *route)
 {
 	return route->default_content_type;
 }

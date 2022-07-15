@@ -24,26 +24,26 @@ typedef enum {
 	 * @brief Route matched, but no handler was found
 	 * Note: status code 501
 	 */
-	HTTP_REQUEST_ROUTE_NO_HANDLER,
+	 HTTP_REQUEST_ROUTE_NO_HANDLER,
 
-	/**
-	 * @brief Streaming not supported for the route or the global request
-	 * Note: status code 501
-	 */
-	HTTP_REQUEST_STREAMING_UNSUPPORTED,
+	 /**
+	  * @brief Streaming not supported for the route or the global request
+	  * Note: status code 501
+	  */
+	  HTTP_REQUEST_STREAMING_UNSUPPORTED,
 
-	/**
-	 * @brief Route OK, but payload is too large to be handled as
-	 *  as a single message (consider using chunk encoding = streaming)
-	 * Note: status code 413
-	 */
-	HTTP_REQUEST_PAYLOAD_TOO_LARGE,
+	  /**
+	   * @brief Route OK, but payload is too large to be handled as
+	   *  as a single message (consider using chunk encoding = streaming)
+	   * Note: status code 413
+	   */
+	   HTTP_REQUEST_PAYLOAD_TOO_LARGE,
 
-	/**
-	 * @brief Route OK, but processing of the stream request processing failed
-	 * Note: status code 500
-	 */
-	HTTP_REQUEST_STREAM_PROCESSING_ERROR,
+	   /**
+	    * @brief Route OK, but processing of the stream request processing failed
+	    * Note: status code 500
+	    */
+	    HTTP_REQUEST_STREAM_PROCESSING_ERROR,
 
 } http_request_discard_reason_t;
 
@@ -61,47 +61,47 @@ struct http_request
 	 */
 	uint8_t headers_complete : 1;
 
-        /**
-         * @brief Flag telling whether HTTP request is complete
-	 * 
-	 * Note: 
+	/**
+	 * @brief Flag telling whether HTTP request is complete
+	 *
+	 * Note:
 	 * - No more parsing is done after this flag is set
 	 * - This flag can be used to determine if a stream is complete
 	 */
-        uint8_t complete : 1;
+	uint8_t complete : 1;
 
 	enum {
 		/**
 		 * @brief Normal handling method, processed as a single message
-		 * 
+		 *
 		 * Route handler is called once in this case
 		 */
-		HTTP_REQUEST_AS_MESSAGE,
+		HTTP_REQUEST_MESSAGE,
 
 		/**
 		 * @brief Is the request sended using "chunk" encoding, if yes we should
 		 * handle the request as a stream.
-		 * 
+		 *
 		 * Note: determined in headers
 		 */
-		HTTP_REQUEST_AS_STREAM,
-		
-		/**
-		 * @brief Tells if the rest of the request should be discarded
-		 * 
-		 * Reasons could be:
-		 * - The request is too large
-		 * - Error in parsing the request
-		 * 
-		 * Note: Determined when headers are parsed.
-		 */
-		HTTP_REQUEST_DISCARD,
-	} handling_method : 2;
+		 HTTP_REQUEST_STREAM,
+
+		 /**
+		  * @brief Tells if the rest of the request should be discarded
+		  *
+		  * Reasons could be:
+		  * - The request is too large
+		  * - Error in parsing the request
+		  *
+		  * Note: Determined when headers are parsed.
+		  */
+		  HTTP_REQUEST_DISCARD,
+	} handling_mode : 2;
 
 
 	http_request_discard_reason_t discard_reason : 3;
 	/**
-	 * @brief Parsed content length, TODO should be compared against "len" 
+	 * @brief Parsed content length, TODO should be compared against "len"
 	 * when the request was totally received
 	 */
 	uint16_t parsed_content_length;
@@ -109,15 +109,15 @@ struct http_request
 	/**
 	 * @brief Request method (GET, POST, PUT, DELETE)
 	 */
-        enum http_method method;
+	enum http_method method;
 
 	/* Header currently being parsed */
 	const struct http_request_header *_parsing_cur_header;
 
-	/* TODO headers values (dynamically allocated and freed, using HEAP/MEMSLAB ) 
+	/* TODO headers values (dynamically allocated and freed, using HEAP/MEMSLAB )
 	 * like authentication, etc ... */
 	sys_dlist_t _headers;
-	
+
 	/* Request content type */
 	http_content_type_t content_type;
 
@@ -128,8 +128,8 @@ struct http_request
 	uint32_t timeout_ms;
 
 	/* parsed url */
-        char url[64U];
-        size_t url_len;
+	char url[64U];
+	size_t url_len;
 
 	/* route for the current request */
 	const http_route_t *route;
@@ -138,9 +138,13 @@ struct http_request
 
 	/**
 	 * @brief Number of times the request route handler has been called
-	 * 
+	 *
 	 * Note: Can help to used determine if the handler is called
 	 *  to process a new request (if 0).
+	 *
+	 * Note: It important to not use the chunk ID for this purpose,
+	 * because the chunk ID is not necessarily passed to the application as a whole
+	 * so the chunk.id is only incremented when the actual HTTP chunk is complete.
 	 */
 	size_t calls_count;
 
@@ -163,7 +167,7 @@ struct http_request
 			uint16_t len;
 
 			/**
-			 * @brief Offset of the data being parsed within the buffer
+			 * @brief Offset of the data being parsed within the HTTP chunk
 			 */
 			uint16_t _offset;
 		} chunk;
@@ -185,15 +189,20 @@ struct http_request
 	/* Buffer for handling the request data */
 	// buffer_t _buffer;
 
-	/* Total HTTP payload length (either in chunked and normal) */
-        size_t payload_len;
+	/**
+	 * @brief Total HTTP payload length (in both stream and message mode)
+	 *
+	 * Note: In streaming mode, it represents the length of the
+	 *  payload that has been received so far.
+	 */
+	size_t payload_len;
 
 	/**
 	 * @brief One parser per connection
 	 * - In order to process connections asynchronously
 	 * - And a parser can parse several requests in a row
 	 */
-        struct http_parser parser;
+	struct http_parser parser;
 
 	/**
 	 * @brief Parser settings, which is reseted after each request
@@ -208,17 +217,17 @@ void http_request_init(http_request_t *req);
 
 static inline bool http_request_is_discarded(const http_request_t *req)
 {
-	return req->handling_method == HTTP_REQUEST_DISCARD;
+	return req->handling_mode == HTTP_REQUEST_DISCARD;
 }
 
 static inline bool http_request_is_stream(http_request_t *req)
 {
-	return req->handling_method == HTTP_REQUEST_AS_STREAM;
+	return req->handling_mode == HTTP_REQUEST_STREAM;
 }
 
 static inline bool http_request_is_message(http_request_t *req)
 {
-	return req->handling_method == HTTP_REQUEST_AS_MESSAGE;
+	return req->handling_mode == HTTP_REQUEST_MESSAGE;
 }
 
 int http_request_route_arg_get(http_request_t *req,

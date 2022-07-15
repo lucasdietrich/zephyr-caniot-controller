@@ -122,7 +122,8 @@
                 "http_server.h": "c",
                 "files_server.h": "c",
                 "initializer_list": "c",
-                "http_response.h": "c"
+                "http_response.h": "c",
+                "test_server.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",
