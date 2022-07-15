@@ -253,7 +253,7 @@ static int handle_ble_xiaomi_record(xiaomi_record_t *rec)
 	if (dev == NULL) {
 		LOG_ERR("Failed to register device, list full %hhu / %u",
 			devices.count,
-			ARRAY_SIZE(devices.list));
+			(uint32_t) ARRAY_SIZE(devices.list));
 		return -ENOMEM;
 	}
 
@@ -333,7 +333,7 @@ int ha_dev_register_die_temperature(uint32_t timestamp,
 	if (dev == NULL) {
 		LOG_ERR("Failed to register device, list full %hhu / %u",
 			devices.count,
-			ARRAY_SIZE(devices.list));
+			(uint32_t) ARRAY_SIZE(devices.list));
 		ret = -ENOMEM;
 		goto exit;
 	}
@@ -368,7 +368,7 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 	if (dev == NULL) {
 		LOG_ERR("Failed to register device, list full %hhu / %u",
 			devices.count,
-			ARRAY_SIZE(devices.list));
+			(uint32_t) ARRAY_SIZE(devices.list));
 		ret = -ENOMEM;
 		goto exit;
 	}

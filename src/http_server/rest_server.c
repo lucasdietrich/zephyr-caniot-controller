@@ -935,7 +935,7 @@ int rest_devices_caniot_command(http_request_t *req,
 	int ret = 0;
 	struct json_caniot_blcommand_post post;
 
-	int map = json_obj_parse(req->payload.loc, req->len,
+	int map = json_obj_parse(req->payload.loc, req->payload.len,
 				 json_caniot_blcommand_post_descr,
 				 ARRAY_SIZE(json_caniot_blcommand_post_descr),
 				 &post);
@@ -1037,7 +1037,7 @@ int rest_devices_caniot_attr_write(http_request_t *req,
 
 	/* try to parse content */
 	uint32_t value;
-	int map = json_obj_parse(req->payload.loc, req->len,
+	int map = json_obj_parse(req->payload.loc, req->payload.len,
 				 json_caniot_blcommand_post_descr,
 				 ARRAY_SIZE(json_caniot_blcommand_post_descr),
 				 &value);

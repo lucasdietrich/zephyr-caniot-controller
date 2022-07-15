@@ -1,7 +1,10 @@
 from pprint import pprint
 from caniot.test import  TestClient, data_gen_zeros, ChunksGeneratorType
 
-t = TestClient("192.0.2.1", False)
+ip = "192.0.2.1"
+ip = "192.168.10.240"
+
+t = TestClient(ip, False)
 
 # t.test_simultaneous(7, 50)
 
