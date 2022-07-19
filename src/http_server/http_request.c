@@ -79,30 +79,12 @@ const struct http_parser_settings parser_settings_discarding = {
 
 void http_request_init(http_request_t *req)
 {
-	/* TODO optimize the way the request is initialized */
-	memset(req, 0x00U, sizeof(http_request_t));
-
-	req->chunk.loc = NULL;
-	req->chunk.len = 0U;
-	req->chunk.id = 0U;
-
-	req->keep_alive = 0U;
-	req->timeout_ms = 0U;
-	req->content_type = HTTP_CONTENT_TYPE_NONE;
-
-	req->complete = 0U;
-	req->headers_complete = 0U;
-	req->handling_mode = HTTP_REQUEST_MESSAGE;
-
-	req->payload.len = 0U;
-	req->payload.loc = NULL;
-
-	req->parsed_content_length = 0U;
-
-	req->route = 0;
-	req->calls_count = 0;
-
-	req->parser_settings = &parser_settings_messaging;
+	/* Rest of the request is initialize to 0 */
+	*req = (http_request_t) {
+		.content_type = HTTP_CONTENT_TYPE_NONE,
+		.handling_mode = HTTP_REQUEST_MESSAGE,
+		.parser_settings = &parser_settings_messaging,
+	};
 
 	http_parser_init(&req->parser, HTTP_REQUEST);
 }
