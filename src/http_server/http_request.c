@@ -322,7 +322,7 @@ static int on_headers_complete(struct http_parser *parser)
 		mark_discarded(req, HTTP_REQUEST_ROUTE_NO_HANDLER);
 		LOG_WRN("(%p) Route %s missing handler, discarding ...", 
 			req, log_strdup(req->url));
-	} else if (http_request_is_stream(req) && !route->support_stream) {
+	} else if (http_request_is_stream(req) && !route->support_streaming) {
 		mark_discarded(req, HTTP_REQUEST_STREAMING_UNSUPPORTED);
 		LOG_WRN("(%p) Stream requested but route does not support it, discarding ...",
 			req);

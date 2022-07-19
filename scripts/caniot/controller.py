@@ -6,7 +6,7 @@ from enum import IntEnum
 import struct
 import pprint
 
-from .utils import Method, BytesToU32
+from .utils import Method, BytesToU32, MakeChunks
 from caniot.url import URL
 
 class API(IntEnum):
@@ -15,6 +15,7 @@ class API(IntEnum):
     ReadAttribute = 1
     Command = 2
     RequestTelemetry = 3
+    Files = 4
 
 urls = {
     API.Info: (Method.GET, "info"),
@@ -23,6 +24,8 @@ urls = {
     API.ReadAttribute: (Method.GET, "devices/caniot/{did}/attributes/{attr:x}"),
     API.Command: (Method.POST, "devices/caniot/{did}/endpoints/{ep}/command"),
     API.RequestTelemetry: (Method.GET, "devices/caniot/{did}/endpoints/{ep}/telemetry"),
+
+    API.Files: (Method.POST, "files"),
 }
 
 RouteType = Tuple[Method, str]
@@ -50,12 +53,12 @@ class Controller:
         }
 
     def info(self) -> requests.Response:
-        return self._request(API.Command, None, {
+        return self._request_json(API.Command, None, {
             "did": 0,
             "ep": 0,
         })
 
-    def _request(self, api: API, json: Optional[Dict], args: Dict = None, headers: Dict = None):
+    def _request_json(self, api: API, json: Optional[Dict], args: Dict = None, headers: Dict = None):
         method, path = urls[api]
 
         if args is None:
@@ -88,16 +91,16 @@ class Controller:
             "attr": attr
         }
 
-        return self._request(API.WriteAttribute, data, args)
+        return self._request_json(API.WriteAttribute, data, args)
 
     def read_attribute(self, did: int, attr: int) -> requests.Response:
-        return self._request(API.ReadAttribute, None, {
+        return self._request_json(API.ReadAttribute, None, {
             "did": did,
             "attr": attr
         })
 
     def request_telemetry(self, did: int, ep: int) -> requests.Response:
-        return self._request(API.RequestTelemetry, None, {
+        return self._request_json(API.RequestTelemetry, None, {
             "did": did,
             "ep": ep
         })
@@ -105,7 +108,7 @@ class Controller:
     def command(self, did: int, ep: int, coc1: int = 0, coc2: int = 0, crl1: int = 0, crl2: int = 0) -> requests.Response:
         XPS = ["none", "set_on", "set_off", "toggle", "reset", "pulse_on", "pulse_off", "pulse_cancel"]
         
-        return self._request(API.Command, json={
+        return self._request_json(API.Command, json={
             "coc1": XPS[coc1],
             "coc2": XPS[coc2],
             "crl1": XPS[crl1],
@@ -114,6 +117,25 @@ class Controller:
             "did": did,
             "ep": ep,
         })
+
+    def upload(self, file: str, 
+               chunked: bool = True,
+               chunk_size: int = 1024) -> requests.Response:
+        method, path = urls[API.Files]
+
+        binary = open(file, "rb").read()
+        if chunked:
+            binary = MakeChunks(binary, chunk_size)
+
+        req = self.default_req | {
+            "method": method.name,
+            "url": (self.url + path).project(**{}),
+            "data": binary,
+            "headers": self.default_headers,
+            "timeout": self.get_req_timeout(),
+        }
+
+        return requests.request(**req)
 
     def __enter__(self, did: int) -> DeviceContext:
         return DeviceContext(did)

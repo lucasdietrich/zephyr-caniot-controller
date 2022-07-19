@@ -60,7 +60,12 @@ struct http_route
 	/**
 	 * @brief Tells if route support HTTP stream request
 	 */
-	bool support_stream;
+	uint8_t support_streaming: 1;
+
+	/**
+	 * @brief Tells if the route support HTTP message requests
+	 */
+	// uint8_t support_messaging: 1;
 
 	/*___________________________________________________________________*/
 

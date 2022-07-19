@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+int app_fs_stats(const char *abs_path);
+
 int app_fs_init(void);
 
 #endif /* _APP_FS_H_ */

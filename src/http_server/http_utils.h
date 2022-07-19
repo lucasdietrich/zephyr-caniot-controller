@@ -69,7 +69,6 @@ const char *http_content_type_to_str(http_content_type_t content_type);
 // 	uint16_t len;
 // 	uint16_t id;
 // } http_chunk_t;
-
  
 
 #endif

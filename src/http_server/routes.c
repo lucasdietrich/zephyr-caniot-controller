@@ -30,7 +30,7 @@ LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 		.route = r, \
 		.route_len = sizeof(r) - 1, \
 		.method = m, \
-		.support_stream = s, \
+		.support_streaming = s, \
 		.server = t, \
 		.handler = h, \
 		.default_content_type = c, \

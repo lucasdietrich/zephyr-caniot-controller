@@ -75,7 +75,7 @@ static int lsdir(const char *path)
 	return res;
 }
 
-static int fs_stats_show(const char *abs_path)
+int app_fs_stats(const char *abs_path)
 {
 	int rc;
 	struct fs_statvfs buf;
@@ -112,7 +112,7 @@ int app_fs_init(void)
 		goto exit;
 	}
 
-	fs_stats_show(mp.mnt_point);
+	app_fs_stats(mp.mnt_point);
 
 exit:
 	return rc;
