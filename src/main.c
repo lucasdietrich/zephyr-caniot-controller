@@ -10,10 +10,12 @@
 #include "userio/leds.h"
 #include "userio/button.h"
 
-#ifndef CONFIG_BOARD_QEMU_X86
+#include "appfs.h"
+
+#ifndef CONFIG_QEMU_TARGET
 #include "ha/devices.h"
 #include "ha/ble_controller.h"
-#endif /* CONFIG_BOARD_QEMU_X86 */
+#endif /* CONFIG_QEMU_TARGET */
 
 #include <mbedtls/memory_buffer_alloc.h>
 
@@ -85,7 +87,7 @@ static void debug_mbedtls_memory(void)
 
 void main(void)
 {
-#ifndef CONFIG_BOARD_QEMU_X86
+#ifndef CONFIG_QEMU_TARGET
 	leds_init();
 	button_init();
 #endif
@@ -93,9 +95,11 @@ void main(void)
 	crypto_mbedtls_heap_init();
 	net_interface_init();
 
+	app_fs_init();
+
 #if defined(CONFIG_BLE_CONTROLLER)
 	ha_ble_controller_init();
-#endif /* CONFIG_BOARD_QEMU_X86 */
+#endif /* CONFIG_QEMU_TARGET */
 
 #ifdef TEMP_NODE
 	die_temp_dev_init();

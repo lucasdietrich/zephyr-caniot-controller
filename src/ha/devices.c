@@ -9,7 +9,7 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_WRN);
 
-/*___________________________________________________________________________*/
+/*____________________________________________________________________________*/
 
 struct {
 	struct k_mutex mutex;
@@ -202,7 +202,7 @@ static bool ha_dev_match_filter(ha_dev_t *dev, ha_dev_filter_t *filter)
 	return false;
 }
 
-/*___________________________________________________________________________*/
+/*____________________________________________________________________________*/
 
 size_t ha_dev_iterate(void (*callback)(ha_dev_t *dev,
 				       void *user_data),
@@ -239,7 +239,7 @@ size_t ha_dev_iterate_filter_by_type(void (*callback)(ha_dev_t *dev,
 	return ha_dev_iterate(callback, &filter, user_data);
 }
 
-/*___________________________________________________________________________*/
+/*____________________________________________________________________________*/
 
 static int handle_ble_xiaomi_record(xiaomi_record_t *rec)
 {

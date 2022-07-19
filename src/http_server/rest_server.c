@@ -26,6 +26,7 @@
 #include <caniot/caniot.h>
 #include <caniot/datatype.h>
 #include <ha/caniot_controller.h>
+#include <ha/utils.h>
 
 #if defined(CONFIG_UART_IPC)
 #include <uart_ipc/ipc.h>
@@ -99,49 +100,7 @@ exit:
 	return ret;
 }
 
-static int string_get_index_in_list(const char *str, const char *const *list)
-{
-	int ret = -1;
-
-	if (str != NULL) {
-		for (size_t i = 0; list[i] != NULL; i++) {
-			if (strcmp(str, list[i]) == 0) {
-				ret = i;
-				break;
-			}
-		}
-	}
-
-	return ret;
-}
-
-static int parse_ss_command(const char *str)
-{
-	static const char *const cmds[] = {
-		"none",
-		"set",
-		NULL
-	};
-	return MAX(0, string_get_index_in_list(str, cmds));
-}
-
-static int parse_xps_command(const char *str)
-{
-	static const char *const cmds[] = {
-		"none",
-		"set_on",
-		"set_off",
-		"toggle",
-		"reset",
-		"pulse_on",
-		"pulse_off",
-		"pulse_cancel",
-		NULL
-	};
-	return MAX(0, string_get_index_in_list(str, cmds));
-}
-
-/*___________________________________________________________________________*/
+/*____________________________________________________________________________*/
 
 
 int rest_index(http_request_t *req,
@@ -153,7 +112,7 @@ int rest_index(http_request_t *req,
 	return 0;
 }
 
-/*___________________________________________________________________________*/
+/*____________________________________________________________________________*/
 
 struct json_info_controller_status
 {
@@ -398,7 +357,7 @@ int rest_info(http_request_t *req,
 	return rest_encode_response_json(resp, &data, info_descr, ARRAY_SIZE(info_descr));
 }
 
-/*___________________________________________________________________________*/
+/*____________________________________________________________________________*/
 
 struct json_device_base
 {
@@ -410,7 +369,7 @@ struct json_device_base
 	uint32_t timestamp;
 };
 
-/*___________________________________________________________________________*/
+/*____________________________________________________________________________*/
 
 struct json_xiaomi_record
 {
@@ -656,7 +615,7 @@ int rest_test_caniot_query_telemetry(http_request_t *req,
 	return 0;
 }
 
-/*___________________________________________________________________________*/
+/*____________________________________________________________________________*/
 
 #if defined(CONFIG_CANIOT_CONTROLLER)
 
@@ -693,11 +652,11 @@ int rest_devices_garage_post(http_request_t *req,
 		struct ha_dev_garage_cmd cmd;
 		ha_dev_garage_cmd_init(&cmd);
 
-		if (FIELD_SET(map, 0U) && ((ret = parse_ss_command(post.left_door)) > 0)) {
+		if (FIELD_SET(map, 0U) && ((ret = ha_parse_ss_command(post.left_door)) > 0)) {
 			cmd.actuate_left = 1U;
 		}
 
-		if (FIELD_SET(map, 1U) && ((ret = parse_ss_command(post.right_door)) > 0)) {
+		if (FIELD_SET(map, 1U) && ((ret = ha_parse_ss_command(post.right_door)) > 0)) {
 			cmd.actuate_right = 1U;
 		}
 
@@ -951,19 +910,19 @@ int rest_devices_caniot_command(http_request_t *req,
 	caniot_board_control_command_init(&cmd);
 
 	if (FIELD_SET(map, 0U)) {
-		cmd.coc1 = parse_xps_command(post.coc1);
+		cmd.coc1 = ha_parse_xps_command(post.coc1);
 	}
 
 	if (FIELD_SET(map, 1U)) {
-		cmd.coc2 = parse_xps_command(post.coc2);
+		cmd.coc2 = ha_parse_xps_command(post.coc2);
 	}
 
 	if (FIELD_SET(map, 2U)) {
-		cmd.crl1 = parse_xps_command(post.crl1);
+		cmd.crl1 = ha_parse_xps_command(post.crl1);
 	}
 
 	if (FIELD_SET(map, 3U)) {
-		cmd.crl2 = parse_xps_command(post.crl2);
+		cmd.crl2 = ha_parse_xps_command(post.crl2);
 	}
 
 	/* TODO add support for reset commands + config reset */

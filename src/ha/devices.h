@@ -106,7 +106,7 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 				     caniot_did_t did,
 				     struct caniot_board_control_telemetry *data);
 
-/*___________________________________________________________________________*/
+/*____________________________________________________________________________*/
 
 /* move to specific header */
 struct ha_dev_garage_cmd

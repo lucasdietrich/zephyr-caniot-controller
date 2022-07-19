@@ -146,7 +146,7 @@ ssize_t buffer_append_strings(buffer_t *buffer, const char **strings, size_t cou
 	return total;
 }
 
-/*___________________________________________________________________________*/
+/*____________________________________________________________________________*/
 
 int cursor_buffer_init(cursor_buffer_t *cbuf, char *buffer, size_t size)
 {

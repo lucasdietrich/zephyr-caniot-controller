@@ -4,12 +4,11 @@
     "recommendations": [
         "editorconfig.editorconfig",
         "humao.rest-client",
-        "platformio.platformio-ide",
         "actboy168.tasks",
         "arjun.swagger-viewer",
         "42crunch.vscode-openapi",
+        "nordic-semiconductor.nrf-kconfig"
     ],
     "unwantedRecommendations": [
-        "ms-vscode.cpptools-extension-pack"
     ]
 }

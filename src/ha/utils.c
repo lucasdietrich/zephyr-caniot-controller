@@ -32,3 +32,45 @@ int caniot_to_zcan(struct zcan_frame *zcan,
 
 	return 0U;
 }
+
+static int string_get_index_in_list(const char *str, const char *const *list)
+{
+	int ret = -1;
+
+	if (str != NULL) {
+		for (size_t i = 0; list[i] != NULL; i++) {
+			if (strcmp(str, list[i]) == 0) {
+				ret = i;
+				break;
+			}
+		}
+	}
+
+	return ret;
+}
+
+int ha_parse_ss_command(const char *str)
+{
+	static const char *const cmds[] = {
+		"none",
+		"set",
+		NULL
+	};
+	return MAX(0, string_get_index_in_list(str, cmds));
+}
+
+int ha_parse_xps_command(const char *str)
+{
+	static const char *const cmds[] = {
+		"none",
+		"set_on",
+		"set_off",
+		"toggle",
+		"reset",
+		"pulse_on",
+		"pulse_off",
+		"pulse_cancel",
+		NULL
+	};
+	return MAX(0, string_get_index_in_list(str, cmds));
+}

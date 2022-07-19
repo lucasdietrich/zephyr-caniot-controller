@@ -14,7 +14,7 @@
                     "${workspaceFolder}"
                 ]
             },
-            "cStandard": "c11",
+            "cStandard": "c99",
             "cppStandard": "c++17"
         },
         {
@@ -65,7 +65,7 @@
                 /* user defined */
                 "__FIRMWARE_VERSION__=1"
             ],
-            "cStandard": "c99",
+            "cStandard": "c11",
             "forcedInclude": [
                 "${buildDirectory}/zephyr/include/generated/autoconf.h",
                 "${zephyrDirectory}/include/toolchain/zephyr_stdint.h"

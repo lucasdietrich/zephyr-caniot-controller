@@ -127,7 +127,8 @@
                 "files_server.h": "c",
                 "initializer_list": "c",
                 "http_response.h": "c",
-                "test_server.h": "c"
+                "test_server.h": "c",
+                "littlefs.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",
@@ -154,5 +155,6 @@
                         "editorBracketPairGuide.activeBackground6": "#19f9d8",
                 }
         },
-        "devicetree.defaultBoard": "nucleo_f429zi"
+        "devicetree.defaultBoard": "nucleo_f429zi",
+        "editor.rulers": [80]
 }
