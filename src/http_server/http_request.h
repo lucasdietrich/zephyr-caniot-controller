@@ -26,24 +26,24 @@ typedef enum {
 	 */
 	 HTTP_REQUEST_ROUTE_NO_HANDLER,
 
-	 /**
-	  * @brief Streaming not supported for the route or the global request
-	  * Note: status code 501
-	  */
-	  HTTP_REQUEST_STREAMING_UNSUPPORTED,
+	/**
+	 * @brief Streaming not supported for the route or the global request
+	 * Note: status code 501
+	 */
+	 HTTP_REQUEST_STREAMING_UNSUPPORTED,
 
-	  /**
-	   * @brief Route OK, but payload is too large to be handled as
-	   *  as a single message (consider using chunk encoding = streaming)
-	   * Note: status code 413
-	   */
-	   HTTP_REQUEST_PAYLOAD_TOO_LARGE,
+	/**
+	 * @brief Route OK, but payload is too large to be handled as
+	 *  as a single message (consider using chunk encoding = streaming)
+	 * Note: status code 413
+	 */
+	 HTTP_REQUEST_PAYLOAD_TOO_LARGE,
 
-	   /**
-	    * @brief Route OK, but processing of the stream request processing failed
-	    * Note: status code 500
-	    */
-	    HTTP_REQUEST_STREAM_PROCESSING_ERROR,
+	/**
+	 * @brief Route OK, but processing of the stream request processing failed
+	 * Note: status code 500
+	 */
+	 HTTP_REQUEST_STREAM_PROCESSING_ERROR,
 
 } http_request_discard_reason_t;
 

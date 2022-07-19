@@ -107,12 +107,33 @@ void http_request_init(http_request_t *req)
 	http_parser_init(&req->parser, HTTP_REQUEST);
 }
 
+static const char *discard_reason_to_str(http_request_discard_reason_t reason)
+{
+	switch (reason) {
+	case HTTP_REQUEST_ROUTE_UNKNOWN:
+		return "Route unknown";
+	case HTTP_REQUEST_ROUTE_NO_HANDLER:
+		return "Route has no handler";
+	case HTTP_REQUEST_STREAMING_UNSUPPORTED:
+		return "Streaming unsupported";
+	case HTTP_REQUEST_PAYLOAD_TOO_LARGE:
+		return "Payload too large";
+	case HTTP_REQUEST_STREAM_PROCESSING_ERROR:
+		return "Stream processing error";
+	default:
+		return "<unknown discard reason>";
+	}
+}
+
 static void mark_discarded(http_request_t *req,
 			   http_request_discard_reason_t reason)
 {
 	req->handling_mode = HTTP_REQUEST_DISCARD;
 	req->discard_reason = reason;
 	req->parser_settings = &parser_settings_discarding;
+
+	LOG_WRN("(%p) Discarding request, reason: %s (%u)",
+		req, log_strdup(discard_reason_to_str(reason)), reason);
 }
 
 /*_____________________________________________________________________________________*/
@@ -316,16 +337,10 @@ static int on_headers_complete(struct http_parser *parser)
 
 	if (route == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_UNKNOWN);
-		LOG_WRN("(%p) Route %s not found, discarding ...",
-			req, log_strdup(req->url));
 	} else if (route->handler == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_NO_HANDLER);
-		LOG_WRN("(%p) Route %s missing handler, discarding ...", 
-			req, log_strdup(req->url));
 	} else if (http_request_is_stream(req) && !route->support_streaming) {
 		mark_discarded(req, HTTP_REQUEST_STREAMING_UNSUPPORTED);
-		LOG_WRN("(%p) Stream requested but route does not support it, discarding ...",
-			req);
 	}
 
 	if (http_request_is_stream(req) == true) {
@@ -356,7 +371,6 @@ static int on_body_streaming(struct http_parser *parser,
 		req->chunk._offset += length;
 	} else {
 		mark_discarded(req, HTTP_REQUEST_STREAM_PROCESSING_ERROR);
-		LOG_ERR("(%p) Stream processing error %d, discarding ...", req, ret);
 	}
 
 	req->calls_count++;
@@ -404,7 +418,7 @@ static int on_body_discarding(struct http_parser *parser,
 
 	req->payload_len += length;
 
-	LOG_WRN("(%p) on_body DISCARDING %u bytes", req, length);
+	LOG_DBG("(%p) on_body DISCARDING %u bytes", req, length);
 
 	return 0;
 }

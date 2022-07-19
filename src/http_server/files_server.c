@@ -11,6 +11,8 @@ LOG_MODULE_REGISTER(files_server, LOG_LEVEL_INF);
 int http_file_upload(struct http_request *req,
 		     struct http_response *resp)
 {
+	/* TODO remove file before returning in case of error */
+
 	int rc;
 	static FILE *file = NULL;
 	bool close_file = true;
@@ -46,7 +48,7 @@ int http_file_upload(struct http_request *req,
 	}
 
 	if (buf != NULL) {
-		LOG_INF("write loc=%p [%u] file=%p", buf, buf_len, file);
+		LOG_DBG("write loc=%p [%u] file=%p", buf, buf_len, file);
 		size_t written = fwrite(buf, 1, buf_len, file);
 		if (written != buf_len) {
 			LOG_ERR("Failed to write file %u != %u",
@@ -67,9 +69,12 @@ int http_file_upload(struct http_request *req,
 			LOG_ERR("Failed to close file = %d", errno);
 			return -1;
 		}
-	}
 
-	app_fs_stats("/RAM:/");
+		LOG_INF("File upload.txt uploaded [size = %u]", 
+			req->payload_len);
+
+		app_fs_stats("/RAM:/");
+	}
 
 	return 0;
 }
