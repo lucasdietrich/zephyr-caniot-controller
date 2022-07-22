@@ -7,14 +7,14 @@
 /* connections connections */
 
 // uint32_t conns_count = 0;
-static http_connection_t connections[CONFIG_MAX_HTTP_CONNECTIONS];
+static http_connection_t connections[CONFIG_HTTP_MAX_CONNECTIONS];
 
 static sys_dlist_t conns_list = SYS_DLIST_STATIC_INIT(&conns_list);
 static sys_slist_t conns_free_list = SYS_SLIST_STATIC_INIT(&conns_free_list);
 
 void http_conn_init(void)
 {
-	for (uint32_t i = 0; i < CONFIG_MAX_HTTP_CONNECTIONS; i++) {
+	for (uint32_t i = 0; i < CONFIG_HTTP_MAX_CONNECTIONS; i++) {
 		sys_slist_append(&conns_free_list, &connections[i]._alloc_handle);
 	}
 }

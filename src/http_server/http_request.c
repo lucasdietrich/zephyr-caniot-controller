@@ -8,6 +8,7 @@
 
 #include "http_utils.h"
 #include "http_server.h"
+#include "http_response.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(http_req, LOG_LEVEL_WRN);
@@ -87,6 +88,10 @@ void http_request_init(http_request_t *req)
 	};
 
 	http_parser_init(&req->parser, HTTP_REQUEST);
+
+#if defined(CONFIG_HTTP_TEST)
+	http_test_init_context(&req->_test_ctx);
+#endif
 }
 
 static const char *discard_reason_to_str(http_request_discard_reason_t reason)
@@ -329,6 +334,13 @@ static int on_headers_complete(struct http_parser *parser)
 		req->parser_settings = &parser_settings_streaming;
 	}
 
+#if defined(CONFIG_HTTP_TEST)
+	/* Here we decide if we want to test the
+	 * request as a stream or a message
+	 */
+	req->_test_ctx.stream = http_request_is_stream(req);
+#endif /* CONFIG_HTTP_TEST */
+
 	req->route = route;
 	req->headers_complete = 1U;
 
@@ -347,13 +359,17 @@ static int on_body_streaming(struct http_parser *parser,
 	req->chunk.len = length;
 	req->payload_len += length;
 
+#if defined(CONFIG_HTTP_TEST)
+	http_test_run(&req->_test_ctx, req, NULL);
+#endif /* CONFIG_HTTP_TEST */
+
 	/* route is necessarily valid at this point */
 	int ret = req->route->handler(req, NULL);
-	if (ret == 0) {
-		req->chunk._offset += length;
-	} else {
+	if (ret != 0) {
 		mark_discarded(req, HTTP_REQUEST_STREAM_PROCESSING_ERROR);
 	}
+
+	req->chunk._offset += length;
 
 	req->calls_count++;
 
@@ -436,11 +452,6 @@ static int on_chunk_header(struct http_parser *parser)
 
 	__ASSERT_NO_MSG(http_request_is_stream(req) == true);
 
-	/* reset chunk vars */
-	req->chunk._offset = 0U;
-	req->chunk.len = 0U;
-	req->chunk.loc = NULL;
-
 	LOG_DBG("(%p) on_chunk_header chunk=%u", req, req->chunk.id);
 
 	return 0;
@@ -454,6 +465,15 @@ static int on_chunk_complete(struct http_parser *parser)
 
 	/* increment chunk id */
 	req->chunk.id++;
+
+	/* Reset chunk buffer infos, this could be done in on_chunk_header(),
+	 * but when "on_chunk_complete" is called, chunk buffer addr should be NULL.
+	 * This is to avoid confusion from the application thinking
+	 * that there are actually available in a chunk on last call.
+	 */
+	req->chunk._offset = 0U;
+	req->chunk.len = 0U;
+	req->chunk.loc = NULL;
 
 	LOG_DBG("(%p) on_chunk_complete chunk=%u len=%u",
 		req, req->chunk.id, req->chunk.len);

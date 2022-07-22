@@ -1,0 +1,25 @@
+mainmenu "http-server"
+
+config HTTP_SERVER_NONSECURE
+        bool "Allow non secure HTTP server"
+        default y
+
+config HTTP_MAX_CONNECTIONS
+        int "Maximum number of HTTP connections"
+        default 3
+        range 0 5
+        help
+                Maximum number of HTTP connections supported by the HTTP server
+
+
+config HTTP_TEST
+        bool "Enable HTTP test"
+        default n
+        help
+                Enable HTTP test for all request, responses
+
+config HTTP_TEST_SERVER
+        bool "Enable HTTP test server"
+        default n
+        help
+                Enable test server and corresponding routes

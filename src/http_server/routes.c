@@ -14,6 +14,7 @@ LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 #include "prometheus_client.h"
 #include "files_server.h"
 #include "test_server.h"
+#include "http_utils.h"
 
 #define REST REST_RESSOURCE
 #define WEB WEB_RESSOURCE

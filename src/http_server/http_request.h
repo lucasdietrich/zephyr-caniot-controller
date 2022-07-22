@@ -209,6 +209,10 @@ struct http_request
 	 * (e.g. Message, stream, discard)
 	 */
 	const struct http_parser_settings *parser_settings;
+
+#if defined(CONFIG_HTTP_TEST)
+	struct http_test_context _test_ctx;
+#endif /* CONFIG_HTTP_TEST */
 };
 
 typedef struct http_request http_request_t;
@@ -240,5 +244,24 @@ bool http_request_parse(http_request_t *req,
 
 void http_request_discard(http_request_t *req,
 			  http_request_discard_reason_t reason);
+
+static inline bool http_stream_is_first(http_request_t *req)
+{
+	__ASSERT_NO_MSG(http_request_is_stream(req));
+	
+	return req->calls_count == 0;
+}
+
+static inline bool http_stream_is_finished(http_request_t *req)
+{
+	__ASSERT_NO_MSG(http_request_is_stream(req));
+
+	return req->complete;
+}
+
+static inline bool http_stream_has_chunk(http_request_t *req)
+{
+	return !http_stream_is_finished(req);
+}
 
 #endif

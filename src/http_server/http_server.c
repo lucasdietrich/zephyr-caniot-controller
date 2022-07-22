@@ -69,13 +69,13 @@ __noinit char buffer_internal[0x800]; /* For encoding response headers */
  */
 static union
 {
-	struct pollfd array[CONFIG_MAX_HTTP_CONNECTIONS + SERVER_FD_COUNT];
+	struct pollfd array[CONFIG_HTTP_MAX_CONNECTIONS + SERVER_FD_COUNT];
 	struct {
 #if CONFIG_HTTP_SERVER_NONSECURE
 		struct pollfd srv;      /* unsecure server socket */
 #endif
 		struct pollfd sec;      /* secure server socket */
-		struct pollfd cli[CONFIG_MAX_HTTP_CONNECTIONS];
+		struct pollfd cli[CONFIG_HTTP_MAX_CONNECTIONS];
 	};
 } fds;
 
@@ -247,7 +247,7 @@ static int srv_accept(int serv_sock)
 		LOG_INF("(%d) Connection accepted from %s:%d, cli sock = %d", serv_sock,
 			log_strdup(ipv4_str), htons(addr.sin_port), sock);
 
-		__ASSERT_NO_MSG(clients_count < CONFIG_MAX_HTTP_CONNECTIONS);
+		__ASSERT_NO_MSG(clients_count < CONFIG_HTTP_MAX_CONNECTIONS);
 
 		struct pollfd *pfd = &fds.cli[clients_count++];
 
@@ -431,6 +431,7 @@ exit:
 	return ret;
 }
 
+
 static bool process_request(http_connection_t *conn)
 {
 	static http_request_t req;
@@ -521,7 +522,18 @@ static bool process_request(http_connection_t *conn)
 		*/
 		conn->keep_alive.enabled = req.keep_alive;
 
+		/* Clear chunk buffer */
+		if (http_request_is_stream(&req)) {
+			req.chunk.loc = NULL;
+			req.chunk.len = 0;
+			req.chunk.id = 0;
+		}
+
 		resp.content_type = http_route_resp_default_content_type(req.route);
+
+#if defined(CONFIG_HTTP_TEST)
+		http_test_run(&req._test_ctx, &req, &resp);
+#endif /* CONFIG_HTTP_TEST */
 
 		/* process request, prepare response */
 		int ret = req.route->handler(&req, &resp);

@@ -69,6 +69,105 @@ const char *http_content_type_to_str(http_content_type_t content_type);
 // 	uint16_t len;
 // 	uint16_t id;
 // } http_chunk_t;
- 
+
+/*____________________________________________________________________________*/
+
+/* Test Utils */
+
+typedef enum {
+	HTTP_TEST_RESULT_OK = 0,
+	HTTP_TEST_NO_CONTEXT_GIVEN,
+	HTTP_TEST_RESULT_MESSAGE_EXPECTED,
+	HTTP_TEST_RESULT_STREAM_EXPECTED,
+	HTTP_TEST_RESULT_DISCARDING_BUT_CALLED,
+	HTTP_TEST_RESULT_REQ_EXPECTED,
+	HTTP_TEST_RESULT_RESP_EXPECTED,
+	HTTP_TEST_RESULT_ROUTE_EXPECTED,
+	HTTP_TEST_RESULT_METHOD_UNEXPECTED,
+	HTTP_TEST_RESULT_HEADERS_COMPLETE_EXPECTED,
+	HTTP_TEST_RESULT_CALLS_COUNT_IS_NOT_ZERO,
+	HTTP_TEST_RESULT_CALLS_COUNT_DISCONTINUITY,
+	HTTP_TEST_RESULT_CHUNK_ID_IS_NOT_ZERO,
+	HTTP_TEST_RESULT_CHUNK_ID_DISCONTINUITY,
+	HTTP_TEST_RESULT_CHUNK_LOC_EXPECTED,
+	HTTP_TEST_RESULT_CHUNK_LEN_EXPECTED,
+	HTTP_TEST_RESULT_CHUNK_LOC_UNEXPECTED,
+	HTTP_TEST_RESULT_CHUNK_LEN_UNEXPECTED,
+	HTTP_TEST_RESULT_CHUNK_OFFSET_INVALID,
+	HTTP_TEST_RESULT_PAYLOAD_LEN_INVALID,
+	HTTP_TEST_RESULT_RESP_BUFFER_EXPECTED,
+	HTTP_TEST_RESULT_REQ_PAYLOAD_EXPECTED,
+	HTTP_TEST_RESULT_MESSAGE_MODE_SINGLE_CALL_EXPECTED,
+	HTTP_TEST_RESULT_REQ_PAYLOAD_LEN_INVALID,
+} http_test_result_t;
+
+struct http_test_context {
+	uint32_t checksum;
+
+	enum {
+		HTTP_CHECKSUM_ALGO_NONE = 0,
+		HTTP_CHECKSUM_ALGO_ADD,
+	} checksum_algo;
+
+	uint32_t received_bytes;
+
+	uint32_t chunk_received_bytes;
+
+	/**
+	 * @brief When called in stream mode, this is the 
+	 * id of the last chunked processed.
+	 */
+	uint32_t last_chunk_id;
+	
+	union {
+		/**
+		 * @brief When called in stream mode, this is the 
+		 * expected value for "calls_count"
+		 */
+		uint32_t last_call_number;
+
+		/**
+		 * @brief When called in message mode, this is the
+		 * number of times the handler is called,
+		 * Should be called once only.
+		 */
+		uint32_t calls_count;
+	};
+
+	/**
+	 * @brief When called in stream mode:
+	 * - On first call, this is the uptime of the first call.
+	 * - On last call, this contain the difference between the first and last call.
+	 * 
+	 * Ignored in message mode.
+	 */
+	union {
+
+		uint32_t uptime_ms;
+		uint32_t delta_ms;
+	};
+
+	/**
+	 * @brief Expected request type stream or message
+	 * (decided on the first call)
+	 */
+	uint32_t stream: 1;
+
+	/**
+	 * @brief Current test result
+	 */
+	http_test_result_t result;
+};
+
+struct http_request;
+struct http_response;
+
+void http_test_init_context(struct http_test_context *ctx);
+
+http_test_result_t http_test_run(struct http_test_context *ctx,
+				 struct http_request *req,
+				 struct http_response *resp);
+
+const char *http_test_result_to_str(http_test_result_t result);
 
 #endif
