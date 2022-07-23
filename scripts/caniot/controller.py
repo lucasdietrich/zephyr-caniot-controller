@@ -6,7 +6,8 @@ from enum import IntEnum
 import struct
 import pprint
 
-from .utils import Method, BytesToU32, MakeChunks
+from .utils import Method, BytesToU32, MakeChunks,\
+    CheckEmbFATFSFilename, RegexpEmbFATFSFilename, Filepath2EmbFATFSFilename
 from caniot.url import URL
 
 class API(IntEnum):
@@ -35,6 +36,7 @@ class DeviceContext:
         self.did = did
 
 class Controller:
+
     def __init__(self, host: str = "192.0.2.1", secure: bool = False) -> None:
         self.host = host
         self.port = 443 if secure else 80
@@ -119,19 +121,30 @@ class Controller:
         })
 
     def upload(self, file: str, 
-               chunked: bool = True,
-               chunk_size: int = 1024) -> requests.Response:
+               chunks_size: int = 1024,
+               filename: str = None) -> requests.Response:
         method, path = urls[API.Files]
 
+        # validation and transformation on filename
+        if filename is not None:
+            if CheckEmbFATFSFilename(filename):
+                filename = filename
+            else:
+                raise ValueError(f"Invalid filename {filename} "
+                                 "regexp pattern is : {RegexpEmbFATFSFilename}")
+        filename = Filepath2EmbFATFSFilename(file)
+
         binary = open(file, "rb").read()
-        if chunked:
-            binary = MakeChunks(binary, chunk_size)
+        if chunks_size:
+            binary = MakeChunks(binary, chunks_size)
 
         req = self.default_req | {
             "method": method.name,
             "url": (self.url + path).project(**{}),
             "data": binary,
-            "headers": self.default_headers,
+            "headers": self.default_headers | {
+                "App-Upload-Filename": filename,
+            },
             "timeout": self.get_req_timeout(),
         }
 

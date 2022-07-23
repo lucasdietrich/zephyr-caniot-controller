@@ -8,6 +8,10 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(files_server, LOG_LEVEL_INF);
 
+/* Non-standard but convenient way to upload a file
+ * Send it by chunks as "application/octet-stream"
+ * File name to be created is in the header "App-Upload-Filename"
+ */
 int http_file_upload(struct http_request *req,
 		     struct http_response *resp)
 {

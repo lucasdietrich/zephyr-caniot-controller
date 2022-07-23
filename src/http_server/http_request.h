@@ -47,6 +47,15 @@ typedef enum {
 
 } http_request_discard_reason_t;
 
+#define HTTP_HEADER_FROM_HANDLE(hp) CONTAINER_OF(hp, struct http_header, handle)
+
+struct http_header
+{
+	sys_dnode_t handle;
+	const char *name;
+	char value[];
+};
+
 struct http_request
 {
 	/**
@@ -112,11 +121,11 @@ struct http_request
 	enum http_method method;
 
 	/* Header currently being parsed */
-	const struct http_request_header *_parsing_cur_header;
+	const struct http_header_handler *_parsing_cur_header;
 
 	/* TODO headers values (dynamically allocated and freed, using HEAP/MEMSLAB )
 	 * like authentication, etc ... */
-	sys_dlist_t _headers;
+	sys_dlist_t headers;
 
 	/* Request content type */
 	http_content_type_t content_type;
@@ -176,6 +185,9 @@ struct http_request
 		struct {
 			/**
 			 * @brief Current payload data buffer location
+			 * 
+			 * Note: Can be null if no payload is present.
+			 *  In this case payload_len and payload.len are 0.
 			 */
 			char *loc;
 

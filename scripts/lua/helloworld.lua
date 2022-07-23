@@ -1,0 +1,1 @@
+print('Hello from LUA running on Zephyr RTOS !')

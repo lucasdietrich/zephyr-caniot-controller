@@ -11,6 +11,12 @@ config HTTP_MAX_CONNECTIONS
         help
                 Maximum number of HTTP connections supported by the HTTP server
 
+config HTTP_REQUEST_HEADERS_BUFFER_SIZE
+        int "HTTP buffer size dedicated for request headers values"
+        default 352
+        range 0 2048
+        help
+                Size of the buffer used to store HTTP request headers values
 
 config HTTP_TEST
         bool "Enable HTTP test"

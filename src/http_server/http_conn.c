@@ -14,6 +14,9 @@ static sys_slist_t conns_free_list = SYS_SLIST_STATIC_INIT(&conns_free_list);
 
 void http_conn_init(void)
 {
+	/* Initialize the free list of blocks 
+	 * I think there is no zephyr structure that allows to do this.
+	 */
 	for (uint32_t i = 0; i < CONFIG_HTTP_MAX_CONNECTIONS; i++) {
 		sys_slist_append(&conns_free_list, &connections[i]._alloc_handle);
 	}

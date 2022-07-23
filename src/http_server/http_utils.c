@@ -300,13 +300,14 @@ http_test_result_t http_test_run(struct http_test_context *ctx,
 			result = HTTP_TEST_RESULT_MESSAGE_MODE_SINGLE_CALL_EXPECTED;
 			goto exit;
 		}
-		if (req->payload.loc == NULL) {
-			result = HTTP_TEST_RESULT_REQ_PAYLOAD_EXPECTED;
-			goto exit;
-		}
 
 		if (req->payload.len != req->payload_len) {
 			result = HTTP_TEST_RESULT_REQ_PAYLOAD_LEN_INVALID;
+			goto exit;
+		}
+
+		if ((req->payload.len != 0) && (req->payload.loc == NULL)) {
+			result = HTTP_TEST_RESULT_REQ_PAYLOAD_EXPECTED;
 			goto exit;
 		}
 

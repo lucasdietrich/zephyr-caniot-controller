@@ -156,3 +156,16 @@ int http_test_big_payload(struct http_request *req,
 
 	return 0;
 }
+
+int http_test_headers(struct http_request *req,
+		      struct http_response *resp)
+{
+	sys_dnode_t *node;
+	SYS_DLIST_FOR_EACH_NODE(&req->headers, node) {
+		struct http_header *header = HTTP_HEADER_FROM_HANDLE(node);
+		LOG_INF("[header] %s: %s", log_strdup(header->name), 
+			log_strdup(header->value));
+	}
+
+	return 0;
+}

@@ -5,13 +5,15 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <malloc.h>
 
 #include "http_utils.h"
 #include "http_server.h"
 #include "http_response.h"
 
+
 #include <logging/log.h>
-LOG_MODULE_REGISTER(http_req, LOG_LEVEL_WRN);
+LOG_MODULE_REGISTER(http_req, LOG_LEVEL_INF);
 
 /* parsing */
 
@@ -87,6 +89,8 @@ void http_request_init(http_request_t *req)
 		.parser_settings = &parser_settings_messaging,
 	};
 
+	sys_dlist_init(&req->headers);
+
 	http_parser_init(&req->parser, HTTP_REQUEST);
 
 #if defined(CONFIG_HTTP_TEST)
@@ -98,7 +102,7 @@ static const char *discard_reason_to_str(http_request_discard_reason_t reason)
 {
 	switch (reason) {
 	case HTTP_REQUEST_ROUTE_UNKNOWN:
-		return "Route unknown";
+		return "Unknown route";
 	case HTTP_REQUEST_ROUTE_NO_HANDLER:
 		return "Route has no handler";
 	case HTTP_REQUEST_STREAMING_UNSUPPORTED:
@@ -129,11 +133,17 @@ static void mark_discarded(http_request_t *req,
         ((http_request_t *) \
         CONTAINER_OF(p_parser, http_request_t, parser))
 
+/* forward declaration */
+static void reset_header_buffers_cursor(void);
+
 int on_message_begin(struct http_parser *parser)
 {
 	http_request_t *req = REQUEST_FROM_PARSER(parser);
 
 	LOG_DBG("(%p) on_message_begin", req);
+
+	/* Reset headers buffer context */
+	reset_header_buffers_cursor();
 
 	return 0;
 }
@@ -160,19 +170,20 @@ int on_url(struct http_parser *parser, const char *at, size_t length)
 	return 0;
 }
 
-struct http_request_header
+struct http_header_handler
 {
 	/* header anem "Timeout", ... */
 	const char *name;
 
 	uint16_t len;
-
+	
 	int (*handler)(http_request_t *req,
-		       const struct http_request_header *hdr,
-		       const char *value);
+		       const struct http_header_handler *hdr,
+		       const char *value,
+		       size_t length);
 };
 
-#define header http_request_header
+#define header http_header_handler
 
 typedef int (*header_value_handler_t)(http_request_t *req,
 				      const struct header *hdr,
@@ -185,16 +196,10 @@ typedef int (*header_value_handler_t)(http_request_t *req,
 		.handler = _handler, \
 	}
 
-static int header_default_handler(http_request_t *req,
-				  const struct header *hdr,
-				  const char *value)
-{
-	return 0;
-}
-
 static int header_keepalive_handler(http_request_t *req,
 				    const struct header *hdr,
-				    const char *value)
+				    const char *value,
+				    size_t length)
 {
 #define KEEPALIVE_STR "keep-alive"
 
@@ -208,7 +213,8 @@ static int header_keepalive_handler(http_request_t *req,
 
 static int header_timeout_handler(http_request_t *req,
 				  const struct header *hdr,
-				  const char *value)
+				  const char *value,
+				  size_t length)
 {
 	uint32_t timeout_ms;
 	if (sscanf(value, "%u", &timeout_ms) == 1) {
@@ -221,7 +227,8 @@ static int header_timeout_handler(http_request_t *req,
 
 static int header_transfer_encoding_handler(http_request_t *req,
 					    const struct header *hdr,
-					    const char *value)
+					    const char *value,
+					    size_t length)
 {
 #define CHUNKED_TRANSFERT_STR "chunked"
 
@@ -235,7 +242,8 @@ static int header_transfer_encoding_handler(http_request_t *req,
 
 static int header_content_type_handler(http_request_t *req,
 				       const struct header *hdr,
-				       const char *value)
+				       const char *value,
+				       size_t length)
 {
 #define CONTENT_TYPE_APPLICATION_OCTET_STREAM_STR "application/octet-stream"
 #define CONTENT_TYPE_MULTIPART_FORM_DATA_STR "multipart/form-data"
@@ -255,7 +263,8 @@ static int header_content_type_handler(http_request_t *req,
 
 static int header_content_length_handler(http_request_t *req,
 					 const struct header *hdr,
-					 const char *value)
+					 const char *value,
+					 size_t length)
 {
 	uint32_t content_length;
 	if (sscanf(value, "%u", &content_length) == 1) {
@@ -266,15 +275,89 @@ static int header_content_length_handler(http_request_t *req,
 	return 0;
 }
 
+/*____________________________________________________________________________*/
+
+static char hdrbuf[CONFIG_HTTP_REQUEST_HEADERS_BUFFER_SIZE];
+static size_t hdr_allocated = 0U;
+
+static struct http_header *alloc_header_buffer(size_t value_size)
+{
+	struct http_header *hdr = NULL;
+	const size_t allocsize = sizeof(struct http_header) + value_size;
+
+	if (hdr_allocated + allocsize <= sizeof(hdrbuf)) {
+		hdr = (struct http_header *)&hdrbuf[hdr_allocated];
+		hdr_allocated += allocsize;
+	}
+
+	return hdr;
+}
+
+static void reset_header_buffers_cursor(void)
+{
+	hdr_allocated = 0U;
+}
+
+/**
+ * @brief Store the header (name and value) to a buffer and keep it until 
+ *  the application finishes to process the request.
+ * 
+ * If cannot allocate context for the header, the request is discarded.
+ * 
+ * Header name and value are stored until a certain size.
+ * - Header name max size: 24
+ * - Header value max size: 64
+ * - Maximal number of headers: 8
+ * 
+ * @param req 
+ * @param hdr 
+ * @param value 
+ * @return int 
+ */
+static int header_keep(http_request_t *req,
+		       const struct header *hdr,
+		       const char *value,
+		       size_t length)
+{
+	/* We should include EOS in the length */
+	struct http_header *buf = alloc_header_buffer(length + 1U);
+
+	if (buf != NULL) {
+		buf->name = hdr->name;
+		memcpy(buf->value, value, length);
+		buf->value[length] = '\0';
+		sys_dlist_append(&req->headers, &buf->handle);
+	} else {
+		LOG_WRN("(%p) Cannot allocate header buffer for %s", 
+			req, log_strdup(hdr->name));
+	}
+
+	return 0;
+}
+
+/*____________________________________________________________________________*/
+
+/* All headers that are not handled by a handler are discarded. */
 static const struct header headers[] = {
 	HEADER("Connection", header_keepalive_handler),
-	HEADER("Authorization", header_default_handler),
 	HEADER("Timeout-ms", header_timeout_handler),
 	HEADER("Transfer-Encoding", header_transfer_encoding_handler),
 	HEADER("Content-Type", header_content_type_handler),
 	HEADER("Content-Length", header_content_length_handler),
+
+	HEADER("Authorization", header_keep),
+	HEADER("App-Upload-Filename", header_keep),
+	HEADER("App-Upload-Checksum", header_keep),
+
+#if defined(CONFIG_HTTP_TEST_SERVER)
+	HEADER("App-Test-Header1", header_keep),
+	HEADER("App-Test-Header2", header_keep),
+	HEADER("App-Test-Header3", header_keep),
+#endif /* CONFIG_HTTP_TEST_SERVER */
 };
 
+/* TODO check that the implementation leads only to a single call to the
+ * handler when a header value is parsed. */
 static int on_header_field(struct http_parser *parser, const char *at, size_t length)
 {
 	http_request_t *const req = REQUEST_FROM_PARSER(parser);
@@ -285,7 +368,7 @@ static int on_header_field(struct http_parser *parser, const char *at, size_t le
 	for (size_t i = 0; i < ARRAY_SIZE(headers); i++) {
 		const struct header *h = &headers[i];
 
-		if (length == strlen(h->name) &&
+		if ((length == h->len) &&
 		    !strncicmp(at, h->name, length)) {
 			req->_parsing_cur_header = h;
 			break;
@@ -304,7 +387,7 @@ static int on_header_value(struct http_parser *parser, const char *at, size_t le
 	int ret = 0;
 
 	if (hdr != NULL) {
-		ret = hdr->handler(req, hdr, at);
+		ret = hdr->handler(req, hdr, at, length);
 	}
 
 	return ret;
@@ -322,6 +405,11 @@ static int on_headers_complete(struct http_parser *parser)
 	LOG_DBG("(%p) content-length : %u / %llu parser content-length, flags = %x",
 		req, req->parsed_content_length, parser->content_length, (uint32_t)parser->flags);
 
+	LOG_INF("(%p) Headers complete url=%s stream=%u [hdr buf %u/%u]",
+		req, log_strdup(req->url), http_request_is_stream(req),
+		hdr_allocated, CONFIG_HTTP_REQUEST_HEADERS_BUFFER_SIZE);
+
+	/* TODO add explicit logs to know which route has not been found */
 	if (route == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_UNKNOWN);
 	} else if (route->handler == NULL) {

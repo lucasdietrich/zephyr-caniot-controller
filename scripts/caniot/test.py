@@ -126,3 +126,14 @@ class TestClient(Controller):
             "headers": self.default_headers
         }
         return requests.request(**req)
+
+    def test_headers(self, headers: dict = None):
+        if headers is None:
+            headers = {}
+
+        req = self.default_req | {
+            "method": Method.GET.name,
+            "url": (self.url + "test/headers"),
+            "headers": self.default_headers | headers
+        }
+        return requests.request(**req)
