@@ -60,18 +60,19 @@ struct http_request
 {
 	/**
 	 * @brief Flag telling whether keep-alive is set in the request
-	 * Note: determined in headers
+	 * Note: set in header "Connection"
 	 */
 	uint8_t keep_alive : 1;
 
 	/**
 	 * @brief Flag telling whether HTTP headers are complete
-	 * Note: determined in headers
+	 * Note: set in "on_headers_complete" callback
 	 */
 	uint8_t headers_complete : 1;
 
 	/**
-	 * @brief Flag telling whether HTTP request is complete
+	 * @brief Flag telling whether HTTP request is complete,
+	 * set in "on_message_complete" callback
 	 *
 	 * Note:
 	 * - No more parsing is done after this flag is set
@@ -107,8 +108,13 @@ struct http_request
 		  HTTP_REQUEST_DISCARD,
 	} handling_mode : 2;
 
-
+	/**
+	 * @brief Reason why the request is discarded
+	 * 
+	 * Valid in HTTP_REQUEST_DISCARD mode.
+	 */
 	http_request_discard_reason_t discard_reason : 3;
+
 	/**
 	 * @brief Parsed content length, TODO should be compared against "len"
 	 * when the request was totally received
@@ -127,7 +133,9 @@ struct http_request
 	 * like authentication, etc ... */
 	sys_dlist_t headers;
 
-	/* Request content type */
+	/**
+	 * @brief Request content type
+	 */
 	http_content_type_t content_type;
 
 	/**
@@ -147,6 +155,7 @@ struct http_request
 
 	/**
 	 * @brief Number of times the request route handler has been called
+	 * (particulary useful for stream handling)
 	 *
 	 * Note: Can help to used determine if the handler is called
 	 *  to process a new request (if 0).
@@ -225,6 +234,12 @@ struct http_request
 #if defined(CONFIG_HTTP_TEST)
 	struct http_test_context _test_ctx;
 #endif /* CONFIG_HTTP_TEST */
+
+	/**
+	 * @brief User data, which can be used by the application
+	 * - Particulary useful for stream handling
+	 */
+	void *user_data;
 };
 
 typedef struct http_request http_request_t;

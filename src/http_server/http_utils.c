@@ -223,10 +223,26 @@ http_test_result_t http_test_run(struct http_test_context *ctx,
 				result = HTTP_TEST_RESULT_CHUNK_ID_IS_NOT_ZERO;
 				goto exit;
 			}
-		} else if (req->calls_count != ++ctx->last_call_number) {
-			/* strictly monotonic */
-			result = HTTP_TEST_RESULT_CALLS_COUNT_DISCONTINUITY;
-			goto exit;
+
+			if (req->user_data != NULL) {
+				result = HTTP_TEST_RESULT_USER_DATA_IS_NOT_NULL;
+				goto exit;
+			}
+			
+			/* Check that user_data remains valid throughout the stream */
+			req->user_data = ctx;
+
+		} else {
+			if (req->calls_count != ++ctx->last_call_number) {
+				/* strictly monotonic */
+				result = HTTP_TEST_RESULT_CALLS_COUNT_DISCONTINUITY;
+				goto exit;
+			}
+
+			if (req->user_data != ctx) {
+				result = HTTP_TEST_RESULT_USER_DATA_IS_NOT_VALID;
+				goto exit;
+			}
 		}
 
 		if (http_stream_is_finished(req)) {
@@ -383,6 +399,10 @@ const char *http_test_result_to_str(http_test_result_t result)
 		return "MESSAGE_MODE_SINGLE_CALL_EXPECTED";
 	case HTTP_TEST_RESULT_REQ_PAYLOAD_LEN_INVALID:
 		return "REQ_PAYLOAD_LEN_INVALID";
+	case HTTP_TEST_RESULT_USER_DATA_IS_NOT_NULL:
+		return "USER_DATA_IS_NOT_NULL";
+	case HTTP_TEST_RESULT_USER_DATA_IS_NOT_VALID:
+		return "USER_DATA_IS_NOT_VALID";
 	default:
 		return "UNKNOWN";
 	}
