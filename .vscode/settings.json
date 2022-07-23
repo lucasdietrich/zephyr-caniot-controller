@@ -156,7 +156,10 @@
                 "streambuf": "c",
                 "cinttypes": "c",
                 "cstdbool": "c",
-                "memory.h": "c"
+                "memory.h": "c",
+                "errno.h": "c",
+                "libgen.h": "c",
+                "appfs.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

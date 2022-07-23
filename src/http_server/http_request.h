@@ -40,10 +40,18 @@ typedef enum {
 	 HTTP_REQUEST_PAYLOAD_TOO_LARGE,
 
 	/**
-	 * @brief Route OK, but processing of the stream request processing failed
+	 * @brief Route OK, but processing of the request failed
 	 * Note: status code 500
 	 */
 	 HTTP_REQUEST_STREAM_PROCESSING_ERROR,
+
+	/**
+	 * @brief Fatal error, not able to process the request
+	 * Closing immediately the connection
+	 * 
+	 * No HTTP response
+	 */
+	 HTTP_REQUEST_FATAL_ERROR,
 
 } http_request_discard_reason_t;
 
@@ -272,14 +280,14 @@ bool http_request_parse(http_request_t *req,
 void http_request_discard(http_request_t *req,
 			  http_request_discard_reason_t reason);
 
-static inline bool http_stream_is_first(http_request_t *req)
+static inline bool http_stream_begins(http_request_t *req)
 {
 	__ASSERT_NO_MSG(http_request_is_stream(req));
 	
-	return req->calls_count == 0;
+	return (req->complete == 0U) && (req->calls_count == 0);
 }
 
-static inline bool http_stream_is_finished(http_request_t *req)
+static inline bool http_stream_completes(http_request_t *req)
 {
 	__ASSERT_NO_MSG(http_request_is_stream(req));
 
@@ -288,7 +296,10 @@ static inline bool http_stream_is_finished(http_request_t *req)
 
 static inline bool http_stream_has_chunk(http_request_t *req)
 {
-	return !http_stream_is_finished(req);
+	return !http_stream_completes(req);
 }
+
+const char *http_header_get_value(http_request_t *req,
+				  const char *hdr_name);
 
 #endif

@@ -1,84 +1,142 @@
 #include "files_server.h"
 
-#include <stdlib.h>
-#include <errno.h>
+#include <libgen.h>
+
 #include <appfs.h>
-#include <unistd.h>
+#include <fs/fs.h>
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(files_server, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(files_server, LOG_LEVEL_DBG);
+
+struct file_upload_context
+{
+	const char *basename;
+	const char *dirname;
+	char filepath[40];
+	struct fs_file_t file;
+};
+
+/* TODO, dynamically allocate the context */
+static struct file_upload_context *sync_file_upload_context(struct http_request *req)
+{
+	static struct file_upload_context upload;
+
+	if (req->user_data == NULL) {
+		req->user_data = &upload;
+	}
+
+	return (struct file_upload_context *)req->user_data;
+}
 
 /* Non-standard but convenient way to upload a file
  * Send it by chunks as "application/octet-stream"
- * File name to be created is in the header "App-Upload-Filename"
+ * File name to be created is in the header "App-Upload-Filepath"
  */
 int http_file_upload(struct http_request *req,
 		     struct http_response *resp)
 {
-	/* TODO remove file before returning in case of error */
-
-	int rc;
-	static FILE *file = NULL;
+	int rc = 0;
 	bool close_file = true;
+	struct file_upload_context *u = sync_file_upload_context(req);
 
-	if (file == NULL) {
-		file = fopen("/RAM:/upload.txt", "w");
-		if (file == NULL) {
-			LOG_ERR("Failed to open file = %d", errno);
-			return -1;
+	if (http_stream_begins(req)) {
+		/* Get being uploaded file name */
+		const char *reqpath = http_header_get_value(req, "App-Upload-Filepath");
+		
+		u->basename = basename((char *) reqpath);
+		u->dirname = dirname((char *) reqpath);
+
+		if ((u->basename == NULL) || (u->basename[0] == '\0')) {
+			/* TODO generate an available filename */
+			u->basename = "UPLOAD.TXT";
 		}
 
-		// fs_truncate(file, 0);
+		/* Create file path */
+		if (u->dirname[0] == '.') {
+			snprintf(u->filepath, sizeof(u->filepath),
+				 "/RAM:/%s", u->basename);
+		} else {
+			/* Create directory if it doesn't exists */
+			char dirpath[40];
+			snprintf(dirpath, sizeof(dirpath),
+				 "/RAM:/%s", u->dirname);
+			rc = fs_mkdir(dirpath);
+			if (rc != 0) {
+				LOG_ERR("Failed to create directory %s", dirpath);
+				goto exit;
+			}
 
-		/* reset file pointer to the beginning of the file */
-		// rc = fseek(file, 0, SEEK_SET);
-		// if (rc) {
-		// 	LOG_ERR("Failed to seek file = %d", errno);
-		// 	return -1;
-		// }
+			snprintf(u->filepath, sizeof(u->filepath),
+				 "/RAM:/%s/%s", u->dirname, u->basename);
+		}
+
+		LOG_INF("Filepath: %s", log_strdup(u->filepath));
+
+		/* Prepare the file in the filesystem */
+		fs_file_t_init(&u->file);
+		rc = fs_open(&u->file,
+			     u->filepath,
+			     FS_O_CREATE | FS_O_WRITE);
+		if (rc != 0) {
+			LOG_ERR("fs_open failed: %d", rc);
+			goto exit;
+		}
+
+		/* Truncate file in case it already exists */
+		rc = fs_truncate(&u->file, 0U);
+		if (rc != 0) {
+			LOG_ERR("fs_truncate failed: %d", rc);
+			goto exit;
+		}
 	}
 
-	char *buf = NULL;
-	size_t buf_len = 0;
+	/* Prepare data to be written */
+	char *data = NULL;
+	size_t data_len = 0;
 
 	/* No more data when request is complete */
-	if (http_request_is_stream(req) && !req->complete) {
-		buf = req->chunk.loc;
-		buf_len = req->chunk.len;
+	if (http_request_is_stream(req) && http_stream_has_chunk(req)) {
+		data = req->chunk.loc;
+		data_len = req->chunk.len;
 		close_file = false;
 	} else if (http_request_is_message(req)) {
-		buf = req->payload.loc;
-		buf_len = req->payload.len;
+		/* In case we support message-based uploads,
+		 * we can use the payload */
+		data = req->payload.loc;
+		data_len = req->payload.len;
 	}
 
-	if (buf != NULL) {
-		LOG_DBG("write loc=%p [%u] file=%p", buf, buf_len, file);
-		size_t written = fwrite(buf, 1, buf_len, file);
-		if (written != buf_len) {
+	if (data != NULL) {
+		LOG_DBG("write loc=%p [%u] file=%p", data, data_len, &u->file);
+		ssize_t written = fs_write(&u->file, data, data_len);
+		if (written != data_len) {
 			LOG_ERR("Failed to write file %u != %u",
-				written, buf_len);
-			return -1;
-		}
-		rc = fflush(file);
-		if (rc) {
-			LOG_ERR("Failed to flush file = %d", errno);
-			return -1;
+				written, data_len);
+			rc = written;
+			goto exit;
 		}
 	}
 
 	if (close_file) {
-		rc = fclose(file);
-		file = NULL;
+		rc = fs_close(&u->file);
 		if (rc) {
-			LOG_ERR("Failed to close file = %d", errno);
-			return -1;
+			LOG_ERR("Failed to close file = %d", rc);
+			goto ret;
 		}
 
-		LOG_INF("File upload.txt uploaded [size = %u]", 
-			req->payload_len);
+		LOG_INF("File %s upload succeeded [size = %u]",
+			log_strdup(u->filepath), req->payload_len);
 
-		app_fs_stats("/RAM:/");
+		if (_LOG_LEVEL() >= LOG_LEVEL_INF) {
+			app_fs_stats("/RAM:/");
+		}
 	}
 
-	return 0;
+exit:
+	if (rc != 0) {
+		fs_close(&u->file);
+	}
+
+ret:
+	return rc;
 }

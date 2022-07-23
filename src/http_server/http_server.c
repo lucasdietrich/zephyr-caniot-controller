@@ -511,8 +511,9 @@ static bool process_request(http_connection_t *conn)
 		case HTTP_REQUEST_PAYLOAD_TOO_LARGE:
 			resp.status_code = HTTP_REQUEST_ENTITY_TOO_LARGE;
 			break;
-		default:
 		case HTTP_REQUEST_STREAM_PROCESSING_ERROR:
+		case HTTP_REQUEST_FATAL_ERROR:
+		default:
 			resp.status_code = HTTP_INTERNAL_SERVER_ERROR;
 			break;
 		}

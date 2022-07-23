@@ -1,3 +1,4 @@
+from fileinput import filename
 import requests
 from requests.auth import HTTPBasicAuth
 from typing import List, Iterable, Tuple, Dict, Union, Any, Optional, Callable
@@ -7,7 +8,7 @@ import struct
 import pprint
 
 from .utils import Method, BytesToU32, MakeChunks,\
-    CheckEmbFATFSFilename, RegexpEmbFATFSFilename, Filepath2EmbFATFSFilename
+    CheckEmbFATFSFilepath, RegexpEmbFATFSFilepath, Filepath2EmbFATFSFilepath
 from caniot.url import URL
 
 class API(IntEnum):
@@ -122,17 +123,24 @@ class Controller:
 
     def upload(self, file: str, 
                chunks_size: int = 1024,
-               filename: str = None) -> requests.Response:
+               filepath: str = None,
+               lfn: bool = False) -> requests.Response:
+        """
+        LFN length Is only checked against 255 and not actual length limited (if configured) 
+        """
         method, path = urls[API.Files]
 
         # validation and transformation on filename
-        if filename is not None:
-            if CheckEmbFATFSFilename(filename):
-                filename = filename
-            else:
-                raise ValueError(f"Invalid filename {filename} "
-                                 "regexp pattern is : {RegexpEmbFATFSFilename}")
-        filename = Filepath2EmbFATFSFilename(file)
+        if filepath is None:
+            filepath = file
+
+        if not CheckEmbFATFSFilepath(filepath, lfn):
+            print(f"Invalid filename {filepath} "
+                  f"regexp pattern is : {RegexpEmbFATFSFilepath.pattern}")
+
+        filepath = Filepath2EmbFATFSFilepath(filepath, lfn)
+
+        print(filepath)
 
         binary = open(file, "rb").read()
         if chunks_size:
@@ -143,7 +151,7 @@ class Controller:
             "url": (self.url + path).project(**{}),
             "data": binary,
             "headers": self.default_headers | {
-                "App-Upload-Filename": filename,
+                "App-Upload-Filepath": filepath,
             },
             "timeout": self.get_req_timeout(),
         }

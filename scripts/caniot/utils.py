@@ -1,3 +1,4 @@
+from curses.ascii import BS
 from email.mime import base
 from enum import IntEnum
 from random import randint
@@ -5,6 +6,8 @@ import struct
 from typing import Iterable
 import re
 import os.path
+
+from regex import B
 
 class Method(IntEnum):
     GET = 0
@@ -22,18 +25,45 @@ def MakeChunks(data: bytes, size: int) -> Iterable:
     for i in range(0, len(data), size):
         yield data[i:i+size]
 
-RegexpEmbFATFSFilename = re.compile(r"^([A-Z9-9-_.]+)$")
-RegexpEmbFATFSIllegalChars = re.compile(r"[^A-Z9-9-_.]")
-def CheckEmbFATFSFilename(filename: str) -> str:
-    return RegexpEmbFATFSFilename.match(filename) is not None
+RegexpEmbFATFSFilepath = re.compile(r"^(([A-Z0-9]{1,8}/)?[A-Z0-9]{1,8}(\.[A-Z0-9]{,3})?)$")
+RegexpEmbFATFSFilepathLFN = re.compile(r"^(([A-Z0-9]/)?[A-Z0-9]*(\.[A-Z0-9]{,3})?)$")
+RegexpEmbFATFSIllegalChars = re.compile(r"[^A-Z0-9.]")
+def CheckEmbFATFSFilepath(filename: str, lfn: bool) -> bool:
+    if lfn:
+        return RegexpEmbFATFSFilepathLFN.match(filename) is not None and len(filename) <= 255
+    else:
+        return RegexpEmbFATFSFilepath.match(filename) is not None
 
-def Filepath2EmbFATFSFilename(filepath: str) -> str:
+def Filepath2EmbFATFSFilepath(filepath: str, lfn: bool = False) -> str:
+    directory = os.path.dirname(filepath).split("/")[-1]
+
     basename = os.path.basename(filepath)
     basename = basename.upper()
-    basename = RegexpEmbFATFSIllegalChars.sub("_", basename)
-    basename = basename[:16]
+    basename = RegexpEmbFATFSIllegalChars.sub("", basename)
 
-    return basename
+    # "." should appear only once
+    dotcount = basename.count(".")
+    if dotcount > 1:
+        basename = basename.replace(".", "", dotcount - 1)
+
+        if basename[-1] == ".":
+            basename = basename[:-1]
+
+    if not lfn:
+        name, ext = basename.split(".")
+        name = name[:8]
+        if ext:
+            ext = ext[:3]
+            basename = f"{name}.{ext}"
+        else:
+            basename = name
+
+        directory = directory[:8]
+
+    if directory:
+        return f"{directory}/{basename}"
+    else:
+        return basename
 
 def genrdmhex(size: int) -> str:
     return "".join(["%02x" % randint(0, 0xFF) for i in range(size)])

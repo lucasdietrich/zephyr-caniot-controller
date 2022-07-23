@@ -44,7 +44,7 @@ LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 #define REST_RESSOURCE(m, r, h, k) MESSAGING_RESSOURCE(m, r, h, HTTP_REST_SERVER, HTTP_CONTENT_TYPE_APPLICATION_JSON, k)
 #define WEB_RESSOURCE(m, r, h) MESSAGING_RESSOURCE(m, r, h, HTTP_WEB_SERVER, HTTP_CONTENT_TYPE_TEXT_HTML, 0U)
 #define PROM_RESSOURCE(m, r, h) MESSAGING_RESSOURCE(m, r, h, HTTP_PROMETHEUS_CLIENT, HTTP_CONTENT_TYPE_TEXT_PLAIN, 0U)
-#define FILE_RESSOURCE(m, r, h) STREAMING_RESSOURCE(m, r, h, HTTP_FILES_SERVER, HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA, 0U)
+#define FILE_RESSOURCE(m, r, h, k) STREAMING_RESSOURCE(m, r, h, HTTP_FILES_SERVER, HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA, k)
 
 static const struct http_route routes[] = {
 	WEB(GET, "", web_server_index_html),
@@ -61,8 +61,7 @@ static const struct http_route routes[] = {
 	REST(GET, "/devices/xiaomi", rest_xiaomi_records, 0U),
 	REST(GET, "/devices/caniot", rest_caniot_records, 0U),
 
-	FILE_RESSOURCE(POST, "/files", http_file_upload),
-
+	FILE_RESSOURCE(POST, "/files", http_file_upload, 0U),
 #if defined(CONFIG_CANIOT_CONTROLLER)
 	REST(GET, "/devices/garage", rest_devices_garage_get, 0U),
 	REST(POST, "/devices/garage", rest_devices_garage_post, 0U),

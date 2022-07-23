@@ -9,7 +9,7 @@ ip = "192.0.2.1"
 t = TestClient(ip, False)
 
 res = t.test_headers({
-    "App-Upload-Filename": "HELLOWORLD.LUA",
+    "App-Upload-Filepath": "HELLOWORLD.LUA",
     "Authorization": genrdmhex(46),
     "App-Test-Header1": genrdmhex(20),
     "App-Test-Header2": genrdmhex(20),

@@ -111,6 +111,8 @@ static const char *discard_reason_to_str(http_request_discard_reason_t reason)
 		return "Payload too large";
 	case HTTP_REQUEST_STREAM_PROCESSING_ERROR:
 		return "Stream processing error";
+	case HTTP_REQUEST_FATAL_ERROR:
+		return "Fatal error";
 	default:
 		return "<unknown discard reason>";
 	}
@@ -346,7 +348,7 @@ static const struct header headers[] = {
 	HEADER("Content-Length", header_content_length_handler),
 
 	HEADER("Authorization", header_keep),
-	HEADER("App-Upload-Filename", header_keep),
+	HEADER("App-Upload-Filepath", header_keep),
 	HEADER("App-Upload-Checksum", header_keep),
 
 #if defined(CONFIG_HTTP_TEST_SERVER)
@@ -454,7 +456,7 @@ static int on_body_streaming(struct http_parser *parser,
 	/* route is necessarily valid at this point */
 	int ret = req->route->handler(req, NULL);
 	if (ret != 0) {
-		mark_discarded(req, HTTP_REQUEST_STREAM_PROCESSING_ERROR);
+		mark_discarded(req, HTTP_REQUEST_FATAL_ERROR);
 	}
 
 	req->chunk._offset += length;
@@ -620,4 +622,21 @@ void http_request_discard(http_request_t *req,
 			  http_request_discard_reason_t reason)
 {
 	mark_discarded(req, reason);
+}
+
+const char *http_header_get_value(http_request_t *req,
+				  const char *hdr_name)
+{
+	const char *value = NULL;
+
+	sys_dnode_t *node = NULL;
+	SYS_DLIST_FOR_EACH_NODE(&req->headers, node) {
+		struct http_header *hdr = HTTP_HEADER_FROM_HANDLE(node);
+		if (strcmp(hdr->name, hdr_name) == 0) {
+			value = (const char *)hdr->value;
+			break;
+		}
+	}
+
+	return value;
 }

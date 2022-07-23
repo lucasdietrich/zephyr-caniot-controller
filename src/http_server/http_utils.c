@@ -213,7 +213,7 @@ http_test_result_t http_test_run(struct http_test_context *ctx,
 
 	if (ctx->stream) {
 		/* check calls count */
-		if (http_stream_is_first(req)) {
+		if (http_stream_begins(req)) {
 			if (req->calls_count != 0) {
 				result = HTTP_TEST_RESULT_CALLS_COUNT_IS_NOT_ZERO;
 				goto exit;
@@ -228,9 +228,6 @@ http_test_result_t http_test_run(struct http_test_context *ctx,
 				result = HTTP_TEST_RESULT_USER_DATA_IS_NOT_NULL;
 				goto exit;
 			}
-			
-			/* Check that user_data remains valid throughout the stream */
-			req->user_data = ctx;
 
 		} else {
 			if (req->calls_count != ++ctx->last_call_number) {
@@ -238,14 +235,9 @@ http_test_result_t http_test_run(struct http_test_context *ctx,
 				result = HTTP_TEST_RESULT_CALLS_COUNT_DISCONTINUITY;
 				goto exit;
 			}
-
-			if (req->user_data != ctx) {
-				result = HTTP_TEST_RESULT_USER_DATA_IS_NOT_VALID;
-				goto exit;
-			}
 		}
 
-		if (http_stream_is_finished(req)) {
+		if (http_stream_completes(req)) {
 			if (req->chunk.loc != NULL) {
 				result = HTTP_TEST_RESULT_CHUNK_LOC_UNEXPECTED;
 				goto exit;
