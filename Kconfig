@@ -61,18 +61,16 @@ config MY_STM32_HAL
 
 if MBEDTLS
 
-config MBEDTLS_HEAP_SIZE
+config MBEDTLS_CUSTOM_HEAP_SIZE
         int "mbedTLS heap size"
         default 65536
         range 0 65536
-        depends on SYSTEM_MONITORING
         help
                 Set mbedTLS heap size in bytes
 
-config MBEDTLS_LOCATION_CCM
+config MBEDTLS_CUSTOM_HEAP_CCM
         bool "Place mbedTLS in CCM location"
         default y
-        depends on SYSTEM_MONITORING
         help
                 Place mbedTLS in CCM location
 
