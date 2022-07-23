@@ -13,7 +13,7 @@ with open("/tmp/test.txt", "wb") as f:
 
 res = t.upload("/tmp/test.txt",
                chunks_size=1024,
-               filepath="tmpd/sdf.big",
+               filepath="tmp/test.big",
                lfn=False)
 
 print(res, res.status_code)

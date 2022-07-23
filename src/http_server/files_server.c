@@ -31,6 +31,15 @@ static struct file_upload_context *sync_file_upload_context(struct http_request 
 /* Non-standard but convenient way to upload a file
  * Send it by chunks as "application/octet-stream"
  * File name to be created is in the header "App-Upload-Filepath"
+ * 
+ * TODO: Change function return value, we should be able to discard the request
+ *  from the handler, but the handler should still be called the discarded request 
+ *  is complete. In order to build a proper response (e.g. with a payload
+ *  indicating why the request was discarded)
+ * 
+ * TODO : In the case the file cannot be added to the FS, 
+ *  the status code of the http response should be 400 with a payload
+ *  indicating the reason.
  */
 int http_file_upload(struct http_request *req,
 		     struct http_response *resp)
@@ -56,14 +65,18 @@ int http_file_upload(struct http_request *req,
 			snprintf(u->filepath, sizeof(u->filepath),
 				 "/RAM:/%s", u->basename);
 		} else {
-			/* Create directory if it doesn't exists */
 			char dirpath[40];
 			snprintf(dirpath, sizeof(dirpath),
 				 "/RAM:/%s", u->dirname);
-			rc = fs_mkdir(dirpath);
-			if (rc != 0) {
-				LOG_ERR("Failed to create directory %s", dirpath);
-				goto exit;
+
+			/* Create directory if it doesn't exists */
+			struct fs_dirent dir;
+			if (fs_stat(dirpath, &dir) == -ENOENT) {
+				rc = fs_mkdir(dirpath);
+				if (rc != 0) {
+					LOG_ERR("Failed to create directory %s", dirpath);
+					goto exit;
+				}
 			}
 
 			snprintf(u->filepath, sizeof(u->filepath),
