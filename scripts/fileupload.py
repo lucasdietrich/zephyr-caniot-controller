@@ -1,8 +1,8 @@
 from pprint import pprint
 from caniot.controller import Controller
 
-ip = "192.168.10.240"
 ip = "192.0.2.1"
+ip = "192.168.10.240"
 
 t = Controller(ip, False)
 

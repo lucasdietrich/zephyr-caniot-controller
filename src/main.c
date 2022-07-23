@@ -17,6 +17,10 @@
 #include "ha/ble_controller.h"
 #endif /* CONFIG_QEMU_TARGET */
 
+#ifdef CONFIG_LUA
+#include "lua/utils.h"
+#endif
+
 #include <mbedtls/memory_buffer_alloc.h>
 
 #include <stdio.h>
@@ -104,6 +108,10 @@ void main(void)
 #ifdef TEMP_NODE
 	die_temp_dev_init();
 #endif /* TEMP_NODE */
+
+#ifdef CONFIG_LUA
+	lua_utils_string_test();
+#endif /* CONFIG_LUA */
 
 	uint32_t counter = 0;
 

@@ -8,7 +8,13 @@
 #	define __ccm_noinit_section __attribute__((section(".noinit")))
 #endif
 
-static unsigned char __ccm_noinit_section mbedtls_heap[0x10000];
+#ifdef CONFIG_MBEDTLS_LOCATION_CCM
+#	define mbedtls_heap_section __ccm_noinit_section
+#else
+#	define mbedtls_heap_section
+#endif /* CONFIG_MBEDTLS_LOCATION_CCM */
+
+static unsigned char mbedtls_heap_section mbedtls_heap[CONFIG_MBEDTLS_HEAP_SIZE];
 
 void crypto_mbedtls_heap_init(void)
 {

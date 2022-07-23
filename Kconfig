@@ -31,7 +31,6 @@ config BLE_CONTROLLER
         bool "Enable BLE controller"
         default y
 
-
 config SYSTEM_MONITORING
         bool "Enable system monitoring"
         select CONFIG_MBEDTLS_MEMORY_DEBUG
@@ -59,5 +58,24 @@ config MY_STM32_HAL
         depends on SOC_FAMILY_STM32
         select USE_STM32_HAL_CRC
         select USE_STM32_HAL_GPIO
+
+if MBEDTLS
+
+config MBEDTLS_HEAP_SIZE
+        int "mbedTLS heap size"
+        default 65536
+        range 0 65536
+        depends on SYSTEM_MONITORING
+        help
+                Set mbedTLS heap size in bytes
+
+config MBEDTLS_LOCATION_CCM
+        bool "Place mbedTLS in CCM location"
+        default y
+        depends on SYSTEM_MONITORING
+        help
+                Place mbedTLS in CCM location
+
+endif 
 
 source "Kconfig.zephyr"

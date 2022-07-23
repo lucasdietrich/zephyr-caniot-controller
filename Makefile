@@ -30,8 +30,8 @@ make: build
 	${GEN_CMD} -C build $(GEN_OPT)
 
 reports: tmp
-	${GEN_CMD} -C build ram_report $(GEN_OPT) > tmp/ram_report.txt
-	${GEN_CMD} -C build rom_report $(GEN_OPT) > tmp/rom_report.txt
+	${GEN_CMD} -C build ram_report $(GEN_OPT) > docs/ram_report.txt
+	${GEN_CMD} -C build rom_report $(GEN_OPT) > docs/rom_report.txt
 
 debugserver:
 	ninja debugserver -C build
