@@ -90,8 +90,13 @@ static void debug_mbedtls_memory(void)
                 max_blocks, cur_used, cur_blocks);
 }
 
+void appfs2_init(void);
+
 void main(void)
 {
+	// app_fs_init();
+	appfs2_init();
+
 #ifndef CONFIG_QEMU_TARGET
 	leds_init();
 	button_init();
@@ -99,8 +104,6 @@ void main(void)
 
 	crypto_mbedtls_heap_init();
 	net_interface_init();
-
-	app_fs_init();
 
 #if defined(CONFIG_BLE_CONTROLLER)
 	ha_ble_controller_init();

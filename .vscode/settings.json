@@ -159,7 +159,8 @@
                 "memory.h": "c",
                 "errno.h": "c",
                 "libgen.h": "c",
-                "appfs.h": "c"
+                "appfs.h": "c",
+                "devicetree.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

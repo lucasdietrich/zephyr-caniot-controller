@@ -12,7 +12,7 @@
     },
     "tasks": [
         {
-            "label": "Build nucleo",
+            "label": "Build",
             "detail": "Build for nucleo-f429zi",
             "type": "shell",
             "command": "${westPath} build",
