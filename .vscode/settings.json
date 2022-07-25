@@ -160,7 +160,10 @@
                 "errno.h": "c",
                 "libgen.h": "c",
                 "appfs.h": "c",
-                "devicetree.h": "c"
+                "devicetree.h": "c",
+                "udp.h": "c",
+                "ff.h": "c",
+                "ethernet_mgmt.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

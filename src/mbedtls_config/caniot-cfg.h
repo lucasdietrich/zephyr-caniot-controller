@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2022 Lucas Dietrich <ld.adecy@gmail.com>
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /* https://tls.mbed.org/kb/how-to/reduce-mbedtls-memory-and-storage-footprint */
 
 #define MBEDTLS_AES_ROM_TABLES

@@ -1,3 +1,9 @@
+#
+# Copyright (c) 2022 Lucas Dietrich <ld.adecy@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 def bin2c(data: bytes, name: str = "array"):
     cols = 16
 

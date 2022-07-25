@@ -1,3 +1,9 @@
+#
+# Copyright (c) 2022 Lucas Dietrich <ld.adecy@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 from curses.ascii import BS
 from email.mime import base
 from enum import IntEnum

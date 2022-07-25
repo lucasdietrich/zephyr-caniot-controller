@@ -1,3 +1,9 @@
+#
+# Copyright (c) 2022 Lucas Dietrich <ld.adecy@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 SET(app_sources http_server.c http_utils.c http_conn.c http_request.c http_response.c routes.c rest_server.c web_server.c prometheus_client.c files_server.c)
 target_sources(app PRIVATE ${app_sources})
 

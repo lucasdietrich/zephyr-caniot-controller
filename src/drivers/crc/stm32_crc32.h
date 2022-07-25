@@ -1,11 +1,14 @@
+/*
+ * Copyright (c) 2022 Lucas Dietrich <ld.adecy@gmail.com>
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /**
  * @file stm32_crc32.h
- * @author Dietrich Lucas (ld.adecy@gmail.com)
  * @brief Drivers for CRC32 calculation in Zephyr RTOS
  * @version 0.1
  * @date 2022-03-20
- * 
- * @copyright Copyright (c) 2022
  * 
  * This is an attempt to implement CRC32 calculation drivers in Zephyr RTOS.
  * 

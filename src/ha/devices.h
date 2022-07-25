@@ -1,11 +1,15 @@
+/*
+ * Copyright (c) 2022 Lucas Dietrich <ld.adecy@gmail.com>
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /**
  * @file ha_devs.h
- * @author Dietrich Lucas (ld.adecy@gmail.com)
  * @brief
  * @version 0.1
  * @date 2022-03-31
- *
- * @copyright Copyright (c) 2022
+ 
  *
  * TODO: shorten "ha_dev" to "mydev" or "myd"
  *

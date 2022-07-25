@@ -1,11 +1,14 @@
+/*
+ * Copyright (c) 2022 Lucas Dietrich <ld.adecy@gmail.com>
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /**
  * @file http_server.h
- * @author Dietrich Lucas (ld.adecy@gmail.com)
  * @brief 
  * @version 0.1
  * @date 2021-11-07
- * 
- * @copyright Copyright (c) 2021
  * 
  * Requirements
  * 

@@ -41,6 +41,17 @@ For CMakeLists.txt files
 
 ```
 
+For lua scripts:
+```
+--
+-- Copyright (c) 2022 Lucas Dietrich <ld.adecy@gmail.com>
+--
+-- SPDX-License-Identifier: Apache-2.0
+--
+
+
+```
+
 ## Stacks to CCM memory
 
 Find a way to place threads stack in CCM memory, idea :

@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2022 Lucas Dietrich <ld.adecy@gmail.com>
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #ifndef _BLE_XIAOMI_RECORD_H_
 #define _BLE_XIAOMI_RECORD_H_
 
