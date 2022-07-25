@@ -17,6 +17,30 @@
 - Test keepalive feature
 - Allow authentication using "username:password" and x509 certificates
 
+## Add license header to files:
+
+For c, cpp, h, hpp files:
+```
+/*
+ * Copyright (c) 2022 Lucas Dietrich <ld.adecy@gmail.com>
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+
+```
+For CMakeLists.txt files
+
+```
+#
+# Copyright (c) 2022 Lucas Dietrich <ld.adecy@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+
+```
+
 ## Stacks to CCM memory
 
 Find a way to place threads stack in CCM memory, idea :
