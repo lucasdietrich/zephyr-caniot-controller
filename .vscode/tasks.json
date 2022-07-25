@@ -12,8 +12,8 @@
     },
     "tasks": [
         {
-            "label": "Build",
-            "detail": "west build",
+            "label": "Build nucleo",
+            "detail": "Build for nucleo-f429zi",
             "type": "shell",
             "command": "${westPath} build",
             "args": [
@@ -31,6 +31,66 @@
             },
             "problemMatcher": []
         },
+        {
+            "label": "Build nucleo-f429zi RAM FATFS",
+            "detail": "Build for nucleo-f429zi with RAM FATFS",
+            "type": "shell",
+            "command": "source ${venvPath}/bin/activate && make build_nucleo_f429zi_ramfatfs",
+            "args": [
+
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "options": {
+                "statusbar": {
+                    "hide": true
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build nucleo-f429zi RAM FATFS + SHELL",
+            "detail": "Build for nucleo-f429zi with RAM FATFS and shell",
+            "type": "shell",
+            "command": "source ${venvPath}/bin/activate && make build_nucleo_f429zi_ramfatfs_shell",
+            "args": [
+
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "options": {
+                "statusbar": {
+                    "hide": true
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "nucleo+shell",
+            "detail": "Build for nucleo-f429zi with shell shell",
+            "type": "shell",
+            "command": "source ${venvPath}/bin/activate && make build_nucleo_f429zi_shell",
+            "args": [
+
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "options": {
+                "statusbar": {
+                    "hide": false
+                }
+            },
+            "problemMatcher": []
+        }
         {
             "label": "Build QEMU",
             "detail": "make build_qemu",

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stddef.h>
 
+#include <poll.h>
 #include <net/socket.h>
 #include <net/net_core.h>
 #include <net/net_ip.h>
@@ -12,6 +13,7 @@
 
 #include <net/http_parser.h>
 
+#include "app_sections.h"
 #include "http_response.h"
 #include "http_request.h"
 #include "http_utils.h"
@@ -47,8 +49,13 @@ static const sec_tag_t sec_tag_list[] = {
 
 static void http_srv_thread(void *_a, void *_b, void *_c);
 
-K_THREAD_DEFINE(http_server, 0x1000, http_srv_thread,
-		NULL, NULL, NULL, K_PRIO_PREEMPT(8), 0, 0);
+#define HTTP_SERVER_THREAD_STACK_SIZE (0x1000U)
+K_THREAD_DEFINE(http_thread,
+		HTTP_SERVER_THREAD_STACK_SIZE,
+		http_srv_thread, NULL, NULL, NULL,
+		K_PRIO_PREEMPT(8),
+		0, 0); 
+
 
 /*____________________________________________________________________________*/
 
@@ -58,8 +65,8 @@ K_THREAD_DEFINE(http_server, 0x1000, http_srv_thread,
  *
  * Same buffer for HTTP request and HTTP response
  */
-__noinit char buffer[0x3000];
-__noinit char buffer_internal[0x800]; /* For encoding response headers */
+__buf_noinit_section char buffer[0x3000];
+__buf_noinit_section char buffer_internal[0x800]; /* For encoding response headers */
 
 /**
  * @brief

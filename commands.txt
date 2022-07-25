@@ -1,3 +1,12 @@
+Linux:
+```
 curl http://192.0.2.1:80
 curl --insecure https://192.0.2.1:443
 curl http://192.0.2.1/info | jq
+```
+
+Makefile: Legacy build with west for nucleo_f429zi
+```
+build:
+	west build --board=nucleo_f429zi -- -DDTC_OVERLAY_FILE="boards/nucleo_f429zi.overlay" -DCONF_FILE="prj.conf" -DOVERLAY_CONFIG="nucleo_f429zi.conf boards/f429zi_ram_fatfs.conf" -G"$(GENERATOR)"
+```

@@ -5,13 +5,13 @@
 
 /* __ccm_noinit_section config in CONFIG_ARM context */
 #if !defined(__ccm_noinit_section)
-#	define __ccm_noinit_section __attribute__((section(".noinit")))
+#	define __ccm_noinit_section __noinit
 #endif
 
 #ifdef CONFIG_MBEDTLS_CUSTOM_HEAP_CCM
 #	define mbedtls_heap_section __ccm_noinit_section
 #else
-#	define mbedtls_heap_section
+#	define mbedtls_heap_section __noinit
 #endif /* CONFIG_MBEDTLS_CUSTOM_HEAP_CCM */
 
 static unsigned char mbedtls_heap_section mbedtls_heap[CONFIG_MBEDTLS_CUSTOM_HEAP_SIZE];

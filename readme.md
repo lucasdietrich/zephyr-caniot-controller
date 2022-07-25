@@ -1,11 +1,60 @@
-# TODO
+# Home Automation Controller for CAN/BLE devices - with ZephyrRTOS and stm32f4
 
-- Message/stream type requests
-- Stream request, response
-- Discard properly 
-- Move code to http_request.h file : Externalize http_request_t handling
-- Using workqueue to process requests
+## Introduction
 
+## Features
+
+- developped, in progress, incoming
+
+- HTTP
+  - Concurrent connections (up to 3)
+  - Keep-alive support
+  - HTTP/HTTPS (TLS 1.2)
+  - Chunked encoding for requests (stream)
+  - **TODO** Chunked encoding for responses (stream)
+  - REST server base
+  - WEB server base
+  - **TODO** Multipart parser
+  - Prometheus metrics client
+  - **TODO** File download
+  - WebServer
+- BLE controller
+  - Interface: IPC with nrf52840dk
+  - Data collector
+- CAN controller
+  - Interface
+  - CANIOT controller
+- LUA
+  - **TODO** orchestrator
+  - **TODO** OS module
+  - **TODO** Application programming interface (API)
+- Cloud
+  - **TODO** AWS IoT 
+    - Request/response
+    - Device update
+    - Device sync with Device Shadow
+- Filesystem
+  - **PoC** Settings (NVS)
+  - RAM FAT FS
+  - **PoC** SD FAT FS
+  - **TODO** SD FAT FS formatting
+- **PoC** HA abstraction layer 
+- UDP discovery server
+- Userio
+  - **PoC** LEDS
+  - **PoC** Button
+- Stats
+  - **TODO** HEAP usage (newlibc)
+  - MbedTLS memory usage
+  - Stacks usage
+- Sensors:
+  - I2C Temperature sensor
+
+Other ideas:
+- Thread/Matter
+- 
+
+---
 
 # Debug network remotely using Wireshark and tcpdump
 

@@ -26,8 +26,8 @@ def MakeChunks(data: bytes, size: int) -> Iterable:
         yield data[i:i+size]
 
 RegexpEmbFATFSFilepath = re.compile(r"^(([A-Z0-9]{1,8}/)?[A-Z0-9]{1,8}(\.[A-Z0-9]{,3})?)$")
-RegexpEmbFATFSFilepathLFN = re.compile(r"^(([A-Z0-9]/)?[A-Z0-9]*(\.[A-Z0-9]{,3})?)$")
-RegexpEmbFATFSIllegalChars = re.compile(r"[^A-Z0-9.]")
+RegexpEmbFATFSFilepathLFN = re.compile(r"^(([a-zA-Z0-9]*/)?[a-zA-Z0-9]*(\.[a-zA-Z0-9]{,3})?)$")
+RegexpEmbFATFSIllegalChars = re.compile(r"[^a-zA-Z0-9.]")
 def CheckEmbFATFSFilepath(filename: str, lfn: bool) -> bool:
     if lfn:
         return RegexpEmbFATFSFilepathLFN.match(filename) is not None and len(filename) <= 255
@@ -38,7 +38,8 @@ def Filepath2EmbFATFSFilepath(filepath: str, lfn: bool = False) -> str:
     directory = os.path.dirname(filepath).split("/")[-1]
 
     basename = os.path.basename(filepath)
-    basename = basename.upper()
+    if not lfn:
+        basename = basename.upper()
     basename = RegexpEmbFATFSIllegalChars.sub("", basename)
 
     # "." should appear only once

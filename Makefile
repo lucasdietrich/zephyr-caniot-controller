@@ -18,10 +18,19 @@ tmp:
 # Activate python env variable before building: "source ../.venv/bin/activate "
 # add option "--cmake-only" to not build immediately
 build:
-	west build --board=nucleo_f429zi -- -DDTC_OVERLAY_FILE="boards/nucleo_f429zi.overlay" -DCONF_FILE="prj.conf" -DOVERLAY_CONFIG="nucleo_f429zi.conf" -G"$(GENERATOR)"
+	west build --board=nucleo_f429zi -- -G"$(GENERATOR)"
+
+build_nucleo_f429zi_ramfatfs:
+	west build --board=nucleo_f429zi -- -DOVERLAY_CONFIG="boards/f429zi_ram_fatfs.conf" -G"$(GENERATOR)"
+
+build_nucleo_f429zi_ramfatfs_shell:
+	west build --board=nucleo_f429zi -- -DOVERLAY_CONFIG="boards/f429zi_ram_fatfs.conf boards/f429zi_shell.conf" -G"$(GENERATOR)"
+
+build_nucleo_f429zi_shell:
+	west build --board=nucleo_f429zi -- -DOVERLAY_CONFIG="boards/f429zi_shell.conf" -G"$(GENERATOR)"
 
 build_qemu:
-	west build --board=qemu_x86 -- -DCONF_FILE="prj.conf" -G"$(GENERATOR)"
+	west build --board=qemu_x86 -- -G"$(GENERATOR)"
 
 flash:
 	west flash

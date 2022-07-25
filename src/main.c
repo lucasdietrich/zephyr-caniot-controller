@@ -6,6 +6,7 @@
 #include "net_interface.h"
 #include "net_time.h"
 #include "crypto.h"
+#include "http_server/http_server.h"
 
 #include "userio/leds.h"
 #include "userio/button.h"

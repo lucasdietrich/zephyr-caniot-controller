@@ -124,7 +124,7 @@ class Controller:
     def upload(self, file: str, 
                chunks_size: int = 1024,
                filepath: str = None,
-               lfn: bool = False) -> requests.Response:
+               lfn: bool = True) -> requests.Response:
         """
         LFN length Is only checked against 255 and not actual length limited (if configured) 
         """
@@ -139,8 +139,6 @@ class Controller:
                   f"regexp pattern is : {RegexpEmbFATFSFilepath.pattern}")
 
         filepath = Filepath2EmbFATFSFilepath(filepath, lfn)
-
-        print(filepath)
 
         binary = open(file, "rb").read()
         if chunks_size:

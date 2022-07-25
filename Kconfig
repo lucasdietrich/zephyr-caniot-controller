@@ -59,8 +59,8 @@ config MY_STM32_HAL
         select USE_STM32_HAL_CRC
         select USE_STM32_HAL_GPIO
 
-if MBEDTLS
 
+if MBEDTLS
 config MBEDTLS_CUSTOM_HEAP_SIZE
         int "mbedTLS heap size"
         default 65536
@@ -73,7 +73,15 @@ config MBEDTLS_CUSTOM_HEAP_CCM
         default y
         help
                 Place mbedTLS in CCM location
-
 endif 
+
+
+config APP_BIG_BUFFER_TO_CCM
+        bool "Place application big buffers in CCM memory"
+        # depends on CONFIG_STM32_CCM
+        # depends on SOC_SERIES_STM32F4X
+        default n
+        help
+                Place application big buffer in CCM location
 
 source "Kconfig.zephyr"

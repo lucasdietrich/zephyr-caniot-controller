@@ -1,7 +1,40 @@
 # TODO
 
-## HTTP
 - Cannot uses 2 sockets chrome with keepalive
+- Use [docs/ram_report.txt](./docs/ram_report.txt) to optimize memory usage
+  - DNS buffers
+- Bit of C++ ?
+- HTTP:
+  - Improve HTTP request handling by the application
+    - Introduce event type with types : { stream_first, stream_end, payload, response_first, response_end } or flags ?
+  - Make requests processing completely assynchronous (with concurrent requests)
+    - Using workqueue to process requests ?
+  - Allow to stream response -> helps to decrease http buffer size
+- Draft LUA scripts orchestrator
+- REST: list files in filesystem
+- HTTP: allow to download files from the filesystem
+- Allow to store few scripts in the SoC ROM
+- Test keepalive feature
+- Allow authentication using "username:password" and x509 certificates
+
+## Stacks to CCM memory
+
+Find a way to place threads stack in CCM memory, idea :
+- But here we cannot specify in which section to place the created stack.
+```c
+#define HTTP_SERVER_THREAD_STACK_SIZE (0x1000U)
+static struct k_thread http_srv_thread_ctx;
+K_THREAD_STACK_DEFINE(http_srv_stack, HTTP_SERVER_THREAD_STACK_SIZE);
+k_tid_t http_server_thread_start(void)
+{
+	const k_tid_t tid = k_thread_create(&http_srv_thread_ctx, http_srv_stack,
+					    K_THREAD_STACK_SIZEOF(http_srv_stack),
+					    http_srv_thread, NULL, NULL, NULL,
+					    K_PRIO_PREEMPT(8), 0, K_NO_WAIT);
+					   
+	return tid;
+}
+```
 
 ---
 

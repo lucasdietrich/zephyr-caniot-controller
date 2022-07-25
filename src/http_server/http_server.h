@@ -18,9 +18,6 @@
 #ifndef _HTTP_SERVER_H_
 #define _HTTP_SERVER_H_
 
-#include <poll.h>
-
-#define HTTP_REQUEST_PAYLOAD_MAX_SIZE 8192U
-#define HTTP_RESPONSE_PAYLOAD_MAX_SIZE 8192U
+#include <zephyr.h>
 
 #endif
