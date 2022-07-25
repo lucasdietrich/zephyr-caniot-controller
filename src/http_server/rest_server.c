@@ -955,7 +955,7 @@ int rest_devices_caniot_attr_read(http_request_t *req,
 	route_arg_get(req, 1U, &key);
 
 	/* If doesn't fit in a uint16_t, we reject */
-	if (key >> 16) {
+	if ((key > 0xFFFFLU) || (did > CANIOT_DID_MAX_VALUE)) {
 		resp->status_code = 400U;
 		goto exit;
 	}
@@ -990,7 +990,7 @@ int rest_devices_caniot_attr_write(http_request_t *req,
 	resp->status_code = 400U;
 
 	/* If doesn't fit in a uint16_t, we reject */
-	if (key >> 16) {
+	if ((key > 0xFFFFLU) || (did > CANIOT_DID_MAX_VALUE)) {
 		goto exit;
 	}
 
