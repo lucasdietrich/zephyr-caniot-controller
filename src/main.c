@@ -90,12 +90,9 @@ static void debug_mbedtls_memory(void)
                 max_blocks, cur_used, cur_blocks);
 }
 
-void appfs2_init(void);
-
 void main(void)
 {
-	// app_fs_init();
-	appfs2_init();
+	app_fs_init();
 
 #ifndef CONFIG_QEMU_TARGET
 	leds_init();

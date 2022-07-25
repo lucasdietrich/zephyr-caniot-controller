@@ -17,7 +17,7 @@
 // #include <fs/littlefs.h>
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(app_fs, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(app_fs, LOG_LEVEL_INF);
 
 /*____________________________________________________________________________*/
 
@@ -66,7 +66,7 @@ struct appfs_disk_info {
 	uint32_t block_size;
 };
 
-static int disk_get_info(const char *disk_pdrv,
+int disk_get_info(const char *disk_pdrv,
 			 struct appfs_disk_info *dinfo)
 {
 	int rc;
@@ -87,17 +87,17 @@ static int disk_get_info(const char *disk_pdrv,
 		LOG_ERR("Unable to get sector count, rc=%d", rc);
 		goto exit;
 	}
-	LOG_DBG("Block count %u", block_count);
+	LOG_INF("Block count %u", block_count);
 
 	if (disk_access_ioctl(disk_pdrv,
 			      DISK_IOCTL_GET_SECTOR_SIZE, &block_size)) {
 		LOG_ERR("Unable to get sector size, rc=%d", rc);
 		goto exit;
 	}
-	LOG_DBG("Sector size %u\n", block_size);
+	LOG_INF("Sector size %u", block_size);
 
 	memory_size_mb = (uint64_t)block_count * block_size;
-	LOG_DBG("Memory Size(MB) %u\n", (uint32_t)(memory_size_mb >> 20));
+	LOG_INF("Memory Size(MB) %u", (uint32_t)(memory_size_mb >> 20));
 
 	if (dinfo != NULL) {
 		dinfo->memory_size_mb = memory_size_mb;
@@ -200,8 +200,11 @@ int app_fs_init(void)
 	struct fs_mount_t **mp;
 
 	/* get MMC disk info */
+#if (_LOG_LEVEL >= LOG_LEVEL_INF) && !defined(CONFIG_SDMMC_LOG_LEVEL_INF) && \
+	defined(CONFIG_SDMMC_LOG_LEVEL_DBG)
 	const char *mmc_disk_pdrv = CONFIG_SDMMC_VOLUME_NAME;
 	disk_get_info(mmc_disk_pdrv, NULL);
+#endif
 
 	/* Mount all configured disks */
 	for (mp = appfs_mp; mp < appfs_mp + ARRAY_SIZE(appfs_mp); mp++) {
@@ -212,7 +215,11 @@ int app_fs_init(void)
 			goto exit;
 		}
 
+		LOG_INF("FS mounted %s", log_strdup((*mp)->mnt_point));
+		
+#if _LOG_LEVEL >= LOG_LEVEL_DBG
 		app_fs_stats((*mp)->mnt_point);
+#endif 
 	}
 
 exit:

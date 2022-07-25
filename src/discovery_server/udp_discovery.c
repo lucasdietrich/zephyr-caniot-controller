@@ -29,10 +29,8 @@ static __noinit char buffer[0x20];
 
 static void thread(void *_a, void *_b, void *_c);
 
-#if defined(CONFIG_DISCOVERY_SERVER)
 K_THREAD_DEFINE(discovery, 0x300, thread, NULL, NULL, NULL,
                 K_PRIO_PREEMPT(8), 0, 0);
-#endif /* CONFIG_DISCOVERY_SERVER */
 
 static int setup_socket(void)
 {
@@ -94,7 +92,7 @@ static int prepare_reponse(struct discovery_response *resp, size_t len)
 }
 
 /* addr support for IPV6 */
-void thread(void *_a, void *_b, void *_c)
+static void thread(void *_a, void *_b, void *_c)
 {
         ARG_UNUSED(_a);
         ARG_UNUSED(_b);

@@ -2,7 +2,7 @@
 # add_subdirectory(cantcp)
 # add_subdirectory(cantest)
 
-add_subdirectory(discovery_server)
+add_subdirectory_ifdef(CONFIG_DISCOVERY_SERVER discovery_server)
 add_subdirectory(ha)
 add_subdirectory(utils)
 add_subdirectory(libs)
