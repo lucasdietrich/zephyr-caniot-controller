@@ -84,4 +84,12 @@ config APP_BIG_BUFFER_TO_CCM
         help
                 Place application big buffer in CCM location
 
+config APP_FS_DEFAULT_LUA_FILES
+        bool "Populate the filesystem with default Lua file"
+        depends on QEMU_TARGET
+        default n
+        help
+                Populate the filesystem with default Lua file 
+                for testing
+
 source "Kconfig.zephyr"

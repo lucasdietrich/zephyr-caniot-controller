@@ -9,8 +9,12 @@
 
 #include <stddef.h>
 
+int app_fs_init(void);
+
 int app_fs_stats(const char *abs_path);
 
-int app_fs_init(void);
+int app_fs_lsdir(const char *path);
+
+int app_fs_file_add(const char *fpath, const char *data, size_t size);
 
 #endif /* _APP_FS_H_ */

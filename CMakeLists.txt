@@ -27,6 +27,32 @@ find_package(Zephyr)
 
 project(caniot-controller)
 
+set(embedded_lua_scripts "")
+if(DEFINED CONFIG_APP_FS_DEFAULT_LUA_FILES)
+    file(GLOB luascripts "${CMAKE_SOURCE_DIR}/scripts/lua/*.lua")
+    file(GLOB officialscripts "${CMAKE_SOURCE_DIR}/modules/lua/testes/*.lua")
+    list (APPEND luascripts ${officialscripts})
+    foreach(file ${luascripts})
+        get_filename_component(filename ${file} NAME)
+        get_filename_component(filepath ${file} PATH)
+        message(STATUS "embedding ${filepath}/${filename} into elf")
+        add_custom_command(
+            OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/embluaobj/${filename}.o
+            WORKING_DIRECTORY ${filepath}
+            COMMAND ${CMAKE_OBJCOPY}
+            ARGS -I binary --output-target elf32-i386 --binary-architecture i386 ${filename} ${CMAKE_CURRENT_BINARY_DIR}/embluaobj/${filename}.o
+        )
+        # Find a way to automatically choose output-target and binary-architecture
+        #   e.g. using : $<TARGET_PROPERTY:bintools,elfconvert_flag_outtarget>
+        list(APPEND embedded_lua_scripts ${CMAKE_CURRENT_BINARY_DIR}/embluaobj/${filename}.o)
+    endforeach()
+endif()
+
+target_sources(app PRIVATE ${embedded_lua_scripts})
+
+zephyr_linker_sources(SECTIONS iterables.ld)
+
+
 # ======= SOURCE FILES =======
 add_subdirectory(src)
 

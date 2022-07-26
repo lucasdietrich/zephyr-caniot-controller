@@ -22,7 +22,7 @@ LOG_MODULE_REGISTER(app_fs, LOG_LEVEL_INF);
 /*____________________________________________________________________________*/
 
 int app_fs_stats(const char *abs_path);
-static int lsdir(const char *path);
+static int app_fs_lsdir(const char *path);
 
 /*____________________________________________________________________________*/
 
@@ -124,7 +124,7 @@ struct fs_mount_t *appfs_mp[] = {
 
 /*____________________________________________________________________________*/
 
-static int lsdir(const char *path)
+int app_fs_lsdir(const char *path)
 {
 	int res;
 	struct fs_dir_t dirp;
@@ -166,6 +166,42 @@ static int lsdir(const char *path)
 	return res;
 }
 
+int app_fs_file_add(const char *fpath, const char *data, size_t size)
+{
+	int rc, written = 0;
+	struct fs_file_t file;
+
+	fs_file_t_init(&file);
+	rc = fs_open(&file, fpath, FS_O_CREATE | FS_O_WRITE);
+	if (rc < 0) {
+		LOG_ERR("FAIL: open %s: %d", log_strdup(fpath), rc);
+		return rc;
+	}
+
+	rc = fs_seek(&file, 0, FS_SEEK_SET);
+	if (rc < 0) {
+		LOG_ERR("FAIL: seek %s: %d", log_strdup(fpath), rc);
+		goto out;
+	}
+
+	rc = fs_write(&file, data, size);
+	if (rc < 0) {
+		LOG_ERR("FAIL: write %s: %d", log_strdup(fpath), rc);
+		goto out;
+	}
+
+	written = rc;
+
+out:
+	rc = fs_close(&file);
+	if (rc < 0) {
+		LOG_ERR("FAIL: close %s: %d", log_strdup(fpath), rc);
+		return rc;
+	}
+
+	return written;
+}
+
 int app_fs_stats(const char *abs_path)
 {
 	int rc;
@@ -180,9 +216,9 @@ int app_fs_stats(const char *abs_path)
 	LOG_INF("%s bsize=%lu frsize=%lu  bfree=%lu/%lu (blocks)",
 		abs_path, buf.f_bsize, buf.f_frsize, buf.f_bfree, buf.f_blocks);
 
-	lsdir(abs_path);
+	app_fs_lsdir(abs_path);
 	if (rc < 0) {
-		LOG_ERR("lsdir(%s) failed, err=%d", abs_path, rc);
+		LOG_ERR("app_fs_lsdir(%s) failed, err=%d", abs_path, rc);
 		goto exit;
 	}
 
@@ -193,6 +229,7 @@ exit:
 }
 
 /*____________________________________________________________________________*/
+
 
 int app_fs_init(void)
 {

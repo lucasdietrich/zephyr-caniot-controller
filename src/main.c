@@ -96,9 +96,15 @@ static void debug_mbedtls_memory(void)
                 max_blocks, cur_used, cur_blocks);
 }
 
+extern int appfs_lua_populate(void);
+
 void main(void)
 {
 	app_fs_init();
+
+#if defined(CONFIG_APP_FS_DEFAULT_LUA_FILES)
+	appfs_lua_populate();
+#endif
 
 #ifndef CONFIG_QEMU_TARGET
 	leds_init();
