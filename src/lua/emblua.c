@@ -33,18 +33,51 @@ struct emblua
 
 /* find a way to somehow automatically generate this list */
 DECLARE_EMB_LUA_SCRIPT(helloworld);
-DECLARE_EMB_LUA_SCRIPT(math);
 DECLARE_EMB_LUA_SCRIPT(entry);
+
+// DECLARE_EMB_LUA_SCRIPT(all);
+// DECLARE_EMB_LUA_SCRIPT(api);
+// DECLARE_EMB_LUA_SCRIPT(attrib);
+// DECLARE_EMB_LUA_SCRIPT(big);
+// DECLARE_EMB_LUA_SCRIPT(bitwise);
+// DECLARE_EMB_LUA_SCRIPT(bwcoercion);
+// DECLARE_EMB_LUA_SCRIPT(calls);
+// DECLARE_EMB_LUA_SCRIPT(closure);
+// DECLARE_EMB_LUA_SCRIPT(code);
+// DECLARE_EMB_LUA_SCRIPT(constructs);
+// DECLARE_EMB_LUA_SCRIPT(coroutine);
+// DECLARE_EMB_LUA_SCRIPT(cstack);
+// DECLARE_EMB_LUA_SCRIPT(db);
+// DECLARE_EMB_LUA_SCRIPT(errors);
+// DECLARE_EMB_LUA_SCRIPT(events);
+// DECLARE_EMB_LUA_SCRIPT(files);
+// DECLARE_EMB_LUA_SCRIPT(gc);
+// DECLARE_EMB_LUA_SCRIPT(gengc);
+// DECLARE_EMB_LUA_SCRIPT(goto);
+DECLARE_EMB_LUA_SCRIPT(heavy);
+DECLARE_EMB_LUA_SCRIPT(literals);
+DECLARE_EMB_LUA_SCRIPT(locals);
+// DECLARE_EMB_LUA_SCRIPT(main);
+DECLARE_EMB_LUA_SCRIPT(math);
+// DECLARE_EMB_LUA_SCRIPT(nextvar);
+// DECLARE_EMB_LUA_SCRIPT(pm);
+DECLARE_EMB_LUA_SCRIPT(sort);
+// DECLARE_EMB_LUA_SCRIPT(strings);
+// DECLARE_EMB_LUA_SCRIPT(tpack);
+// DECLARE_EMB_LUA_SCRIPT(tracegc);
+// DECLARE_EMB_LUA_SCRIPT(utf8);
+// DECLARE_EMB_LUA_SCRIPT(vararg);
+// DECLARE_EMB_LUA_SCRIPT(verybig);
 
 #define FS_DEFAULT_MOUNT_POINT "RAM:"
 #define FS_DEFAULT_DIRECTORY "lua"
 
 /**
- * @brief Populate the filesystem with default files.
+ * @brief Populate the filesystem with lua scripts
  * 
  * @return int 
  */
-int appfs_lua_populate(void)
+int lua_fs_populate(void)
 {
 	int rc = 0;
 	char path[256];

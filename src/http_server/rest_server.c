@@ -29,6 +29,8 @@
 #include "ha/devices.h"
 #include "ha/data.h"
 
+#include "appfs.h"
+
 #include <caniot/caniot.h>
 #include <caniot/datatype.h>
 #include <ha/caniot_controller.h>
@@ -1019,3 +1021,119 @@ exit:
 }
 
 #endif /* CONFIG_CANIOT_CONTROLLER */
+
+/*____________________________________________________________________________*/
+
+#define REST_FS_FILES_LIST_MAX_COUNT 32U
+
+struct json_fs_filenames_list
+{
+	/* TODO could be great to not needing pfiles intermediate array */
+	char files[REST_FS_FILES_LIST_MAX_COUNT][REST_FS_FILES_LIST_MAX_COUNT];
+	char *pfiles[REST_FS_FILES_LIST_MAX_COUNT];
+	size_t nb_files;
+};
+
+
+static const struct json_obj_descr json_fs_filenames_descr[] = {
+	JSON_OBJ_DESCR_ARRAY(struct json_fs_filenames_list, pfiles,
+		REST_FS_FILES_LIST_MAX_COUNT, nb_files, JSON_TOK_STRING)
+};
+
+static bool fs_list_lua_scripts_cb(const char *path,
+				   struct fs_dirent *dirent,
+				   void *user_data)
+{
+	bool ret = true;
+	if (dirent->type == FS_DIR_ENTRY_FILE) {
+		struct json_fs_filenames_list *data = user_data;
+
+		data->pfiles[data->nb_files] = data->files[data->nb_files];
+		strncpy(data->files[data->nb_files], dirent->name, 32U);
+
+		data->nb_files++;
+
+		ret = data->nb_files < 32U;
+	}
+	return ret;
+}
+
+
+int rest_fs_list_lua_scripts(http_request_t *req,
+			     http_response_t *resp)
+{
+	/* willingly not clearing the whole buffer */
+	struct json_fs_filenames_list data;
+	data.nb_files = 0;
+
+	app_fs_iterate_dir_files("/RAM:/lua", fs_list_lua_scripts_cb,
+				 (void *)&data);
+
+	return rest_encode_response_json_array(resp, &data, json_fs_filenames_descr,
+					       ARRAY_SIZE(json_fs_filenames_descr));
+
+	/* TODO return actual path in the reponse header */
+}
+
+struct json_fs_file_entry
+{
+	char *name;
+	uint32_t size;
+};
+
+struct json_fs_file_entries_list
+{
+	/* TODO could be great to not needing pfiles intermediate array */
+	char names[REST_FS_FILES_LIST_MAX_COUNT][REST_FS_FILES_LIST_MAX_COUNT];
+	struct json_fs_file_entry entries[REST_FS_FILES_LIST_MAX_COUNT];
+	size_t nb_entries;
+};
+
+static const struct json_obj_descr json_fs_file_entry_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_fs_file_entry, name, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_fs_file_entry, size, JSON_TOK_NUMBER),
+};
+
+static const struct json_obj_descr json_fs_file_entries_array_descr[] = {
+	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_fs_file_entries_list, entries,
+		REST_FS_FILES_LIST_MAX_COUNT, nb_entries, json_fs_file_entry_descr,
+		ARRAY_SIZE(json_fs_file_entry_descr))
+};
+
+static bool fs_list_lua_scripts_detailled_cb(const char *path,
+				   struct fs_dirent *dirent,
+				   void *user_data)
+{
+	bool ret = true;
+	if (dirent->type == FS_DIR_ENTRY_FILE) {
+		struct json_fs_file_entries_list *data = user_data;
+
+		data->entries[data->nb_entries].name = data->names[data->nb_entries];
+		strncpy(data->entries[data->nb_entries].name, dirent->name, 32U);
+		data->entries[data->nb_entries].size = dirent->size;
+
+		data->nb_entries++;
+
+		ret = data->nb_entries < 32U;
+	}
+
+	return true;
+}
+
+int rest_fs_list_lua_scripts_detailled(http_request_t *req,
+				       http_response_t *resp)
+{
+	/* willingly not clearing the whole buffer */
+	struct json_fs_file_entries_list data;
+	data.nb_entries = 0;
+
+	app_fs_iterate_dir_files("/RAM:/lua", fs_list_lua_scripts_detailled_cb,
+				 (void *)&data);
+
+	return rest_encode_response_json_array(
+		resp, &data, json_fs_file_entries_array_descr,
+		ARRAY_SIZE(json_fs_file_entries_array_descr)
+	);
+
+	/* TODO return actual path in the reponse header */
+}

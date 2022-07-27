@@ -12,9 +12,10 @@
 
 #include <storage/flash_map.h>
 #include <storage/disk_access.h>
-#include <fs/fs.h>
 #include <ff.h>
 // #include <fs/littlefs.h>
+
+#include "appfs.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(app_fs, LOG_LEVEL_INF);
@@ -22,7 +23,7 @@ LOG_MODULE_REGISTER(app_fs, LOG_LEVEL_INF);
 /*____________________________________________________________________________*/
 
 int app_fs_stats(const char *abs_path);
-static int app_fs_lsdir(const char *path);
+int app_fs_lsdir(const char *path);
 
 /*____________________________________________________________________________*/
 
@@ -261,4 +262,52 @@ int app_fs_init(void)
 
 exit:
 	return rc;
+}
+
+/*____________________________________________________________________________*/
+
+int app_fs_iterate_dir_files(const char *path,
+			     app_fs_iterate_fs_cb_t callback,
+			     void *user_data)
+{
+	int res = -EINVAL;
+	struct fs_dir_t dirp;
+	static struct fs_dirent entry;
+
+	if (callback == NULL) {
+		goto ret;
+	}
+
+	fs_dir_t_init(&dirp);
+
+	/* Verify fs_opendir() */
+	res = fs_opendir(&dirp, path);
+	if (res) {
+		LOG_ERR("Error opening dir %s [%d]", path, res);
+		return res;
+	}
+
+	for (;;) {
+		/* Verify fs_readdir() */
+		res = fs_readdir(&dirp, &entry);
+
+		/* entry.name[0] == 0 means end-of-dir */
+		if (res || entry.name[0] == 0) {
+			if (res < 0) {
+				LOG_ERR("Error reading dir [%d]", res);
+			}
+			break;
+		}
+
+		/* Callback and break if it returns false */
+		if (callback(path, &entry, user_data) == false) {
+			break;
+		}
+	}
+
+	/* Verify fs_closedir() */
+	fs_closedir(&dirp);
+
+ret:
+	return res;
 }

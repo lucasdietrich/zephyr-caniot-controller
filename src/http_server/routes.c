@@ -68,6 +68,10 @@ static const struct http_route routes[] = {
 	REST(GET, "/devices/caniot", rest_caniot_records, 0U),
 
 	FILE_RESSOURCE(POST, "/files", http_file_upload, 0U),
+	REST(GET, "/files/lua/simple", rest_fs_list_lua_scripts, 0U),
+
+	REST(GET, "/files/lua", rest_fs_list_lua_scripts_detailled, 0U),
+
 #if defined(CONFIG_CANIOT_CONTROLLER)
 	REST(GET, "/devices/garage", rest_devices_garage_get, 0U),
 	REST(POST, "/devices/garage", rest_devices_garage_post, 0U),

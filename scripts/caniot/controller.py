@@ -24,6 +24,8 @@ class API(IntEnum):
     Command = 2
     RequestTelemetry = 3
     Files = 4
+    ListLuaScripts = 5
+    ListLuaScriptsDetailled = 6
 
 urls = {
     API.Info: (Method.GET, "info"),
@@ -34,6 +36,8 @@ urls = {
     API.RequestTelemetry: (Method.GET, "devices/caniot/{did}/endpoints/{ep}/telemetry"),
 
     API.Files: (Method.POST, "files"),
+    API.ListLuaScripts: (Method.GET, "files/lua/simple"),
+    API.ListLuaScriptsDetailled: (Method.GET, "files/lua"),
 }
 
 RouteType = Tuple[Method, str]
@@ -67,7 +71,7 @@ class Controller:
             "ep": 0,
         })
 
-    def _request_json(self, api: API, json: Optional[Dict], args: Dict = None, headers: Dict = None):
+    def _request_json(self, api: API, json: Optional[Dict] = None, args: Dict = None, headers: Dict = None):
         method, path = urls[api]
 
         if args is None:
@@ -126,6 +130,12 @@ class Controller:
             "did": did,
             "ep": ep,
         })
+
+    def list_lua_scripts(self, detailled: bool = True) -> requests.Response:
+        if detailled:
+            return self._request_json(API.ListLuaScriptsDetailled)
+        else:
+            return self._request_json(API.ListLuaScripts)
 
     def upload(self, file: str, 
                chunks_size: int = 1024,

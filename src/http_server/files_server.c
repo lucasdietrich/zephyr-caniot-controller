@@ -57,6 +57,10 @@ int http_file_upload(struct http_request *req,
 	if (http_stream_begins(req)) {
 		/* Get being uploaded file name */
 		const char *reqpath = http_header_get_value(req, "App-Upload-Filepath");
+		if (reqpath == NULL) {
+			rc = -EINVAL; /* handle this case */
+			goto exit;
+		}
 		
 		u->basename = basename((char *) reqpath);
 		u->dirname = dirname((char *) reqpath);
