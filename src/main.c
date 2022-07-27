@@ -103,7 +103,7 @@ void main(void)
 {
 	app_fs_init();
 
-#if defined(CONFIG_APP_FS_DEFAULT_LUA_FILES)
+#if defined(CONFIG_LUA_FS_DEFAULT_SCRIPTS)
 	lua_fs_populate();
 #endif
 
@@ -123,9 +123,9 @@ void main(void)
 	die_temp_dev_init();
 #endif /* TEMP_NODE */
 
-#ifdef CONFIG_LUA
+#if defined(CONFIG_LUA_AUTORUN_SCRIPTS)
 	lua_utils_execute_fs_script("/RAM:/lua/entry.lua");
-#endif /* CONFIG_LUA */
+#endif
 
 	uint32_t counter = 0;
 

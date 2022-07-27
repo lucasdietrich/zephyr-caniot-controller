@@ -49,7 +49,7 @@ class TestClient(Controller):
                     conn_refused += 1
                     sessions.remove(s)
 
-                print(resp.status_code, resp.text[:50])
+                print(resp.status_code, resp.text[:50] + " ...")
 
             random.shuffle(sessions)
 
