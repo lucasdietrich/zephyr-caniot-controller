@@ -15,5 +15,5 @@ end
 print("ok")
 
 -- calling another lua script
-dofile("/lfs/helloworld.lua")
-dofile("/lfs/math.lua")
+dofile("/RAM:/lua/helloworld.lua")
+dofile("/RAM:/lua/math.lua")

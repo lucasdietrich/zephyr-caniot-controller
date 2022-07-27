@@ -5,4 +5,4 @@
 #
 
 
-zephyr_sources(basename.c dirname.c)
+target_sources(app PRIVATE basename.c dirname.c)

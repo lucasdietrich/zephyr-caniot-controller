@@ -12,6 +12,6 @@
 
 int lua_utils_string_test(void);
 
-int lua_utils_execute_script(const char *name);
+int lua_utils_execute_fs_script(const char *name);
 
 #endif /* _LUA_ORCHESTRATOR_H_ */

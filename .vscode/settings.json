@@ -164,7 +164,17 @@
                 "udp.h": "c",
                 "ff.h": "c",
                 "ethernet_mgmt.h": "c",
-                "stm32f4xx_hal_gpio.h": "c"
+                "stm32f4xx_hal_gpio.h": "c",
+                "lua.h": "c",
+                "lstate.h": "c",
+                "lualib.h": "c",
+                "lauxlib.h": "c",
+                "types.h": "c",
+                "signal.h": "c",
+                "posix_types.h": "c",
+                "lundump.h": "c",
+                "ldebug.h": "c",
+                "lapi.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

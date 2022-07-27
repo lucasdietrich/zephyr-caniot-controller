@@ -6,12 +6,13 @@
 
 #include "utils.h"
 
+#include <string.h>
+
+#include <lua/lua.h>
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 #include <lua/lualib.h>
-
-#include <string.h>
-
+#include <lua/lstate.h>
 
 int lua_utils_string_test(void)
 {

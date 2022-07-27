@@ -18,7 +18,5 @@ add_subdirectory_ifndef(CONFIG_QEMU_TARGET userio)
 add_subdirectory_ifndef(CONFIG_QEMU_TARGET drivers)
 add_subdirectory_ifndef(CONFIG_QEMU_TARGET settings)
 
-# zephyr_sources_ifdef(CONFIG_QEMU_TARGET )
-
 FILE(GLOB app_sources *.c*)
 target_sources(app PRIVATE ${app_sources})

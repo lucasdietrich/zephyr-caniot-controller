@@ -13,6 +13,7 @@
 #include "net_time.h"
 #include "crypto.h"
 #include "http_server/http_server.h"
+#include "lua/utils.h"
 
 #include "userio/leds.h"
 #include "userio/button.h"
@@ -123,7 +124,7 @@ void main(void)
 #endif /* TEMP_NODE */
 
 #ifdef CONFIG_LUA
-	lua_utils_string_test();
+	lua_utils_execute_fs_script("/RAM:/lua/entry.lua");
 #endif /* CONFIG_LUA */
 
 	uint32_t counter = 0;

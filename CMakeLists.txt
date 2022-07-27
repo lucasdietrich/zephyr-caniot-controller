@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+# Read: https://github.com/zephyrproject-rtos/zephyr/blob/zephyr-v3.0.0/cmake/extensions.cmake#L33-L43
+
 cmake_minimum_required(VERSION 3.13.1)
 
 # set following variables before calling the cmake command
@@ -27,6 +29,9 @@ find_package(Zephyr)
 
 project(caniot-controller)
 
+
+# This is terrible, try to move this to a dedicated CMakeLists.txt file
+# 
 set(embedded_lua_scripts "")
 if(DEFINED CONFIG_APP_FS_DEFAULT_LUA_FILES)
     file(GLOB luascripts "${CMAKE_SOURCE_DIR}/scripts/lua/*.lua")
@@ -57,5 +62,7 @@ zephyr_linker_sources(SECTIONS iterables.ld)
 add_subdirectory(src)
 
 # ======= INCLUDE FILES =======
-zephyr_include_directories(src/mbedtls_config)
-zephyr_include_directories(src)
+zephyr_include_directories(${APPLICATION_SOURCE_DIR}/src/mbedtls_config)
+
+target_include_directories(app PRIVATE src)
+target_include_directories(app PRIVATE modules)

@@ -6,15 +6,28 @@
     },
     "configurations": [
         {
-            "name": "cmake build commands",
+            "name": "cmake build commands ARM",
             "compileCommands": "${workspaceRoot}/build/compile_commands.json",
-            "intelliSenseMode": "gcc-arm",
+            // "intelliSenseMode": "gcc-arm",
             "browse": {
                 "path": [
                     "${workspaceFolder}"
                 ]
             },
             "cStandard": "c99",
+            "cppStandard": "c++17"
+        },
+        {
+            "name": "cmake build commands x86",
+            "compileCommands": "${workspaceRoot}/build/compile_commands.json",
+            // "compilerPath": "~/zephyr-sdk-0.14.2/x86_64-zephyr-elf/bin/x86_64-zephyr-elf-gcc",
+            // "intelliSenseMode": "linux-gcc-x86",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}"
+                ]
+            },
+            "cStandard": "c11",
             "cppStandard": "c++17"
         },
         {
