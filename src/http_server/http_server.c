@@ -30,7 +30,7 @@
 #include "creds/credentials.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF); /* INF */
+LOG_MODULE_REGISTER(http_server, LOG_LEVEL_WRN); /* INF */
 
 /*____________________________________________________________________________*/
 
@@ -555,6 +555,9 @@ static bool process_request(http_connection_t *conn)
 			resp.status_code = HTTP_INTERNAL_SERVER_ERROR;
 			LOG_ERR("(%d) Request processing failed = %d", conn->sock, ret);
 		}
+
+		/* TODO check whether resp.complete flag is set and
+		 * call the handler again */
 
 		req.calls_count++;
 	}

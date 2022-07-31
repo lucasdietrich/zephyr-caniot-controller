@@ -46,3 +46,7 @@ GET http://{{host}}/devices/caniot/32/endpoints/3/telemetry
 POST http://{{host}}/files
 
 TEST
+
+###
+
+GET http://{{host}}/files/lua

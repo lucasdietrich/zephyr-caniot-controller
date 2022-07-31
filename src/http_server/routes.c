@@ -68,19 +68,17 @@ static const struct http_route routes[] = {
 	REST(GET, "/devices/caniot", rest_caniot_records, 0U),
 
 	FILE_RESSOURCE(POST, "/files", http_file_upload, 0U),
-	REST(GET, "/files/lua/simple", rest_fs_list_lua_scripts, 0U),
-
-	REST(GET, "/files/lua", rest_fs_list_lua_scripts_detailled, 0U),
+	REST(GET, "/files/lua", rest_fs_list_lua_scripts, 0U),
 
 #if defined(CONFIG_CANIOT_CONTROLLER)
 	REST(GET, "/devices/garage", rest_devices_garage_get, 0U),
 	REST(POST, "/devices/garage", rest_devices_garage_post, 0U),
 
-	REST(GET, "/devices/caniot/%u/endpoints/%u/telemetry", rest_devices_caniot_telemetry, 2U),
-	REST(POST, "/devices/caniot/%u/endpoints/%u/command", rest_devices_caniot_command, 2U),
+	REST(GET, "/devices/caniot/%u/endpoint/%u/telemetry", rest_devices_caniot_telemetry, 2U),
+	REST(POST, "/devices/caniot/%u/endpoint/%u/command", rest_devices_caniot_command, 2U),
 
-	REST(GET, "/devices/caniot/%u/attributes/%x", rest_devices_caniot_attr_read, 2U),
-	REST(PUT, "/devices/caniot/%u/attributes/%x", rest_devices_caniot_attr_write, 2U),
+	REST(GET, "/devices/caniot/%u/attribute/%x", rest_devices_caniot_attr_read, 2U),
+	REST(PUT, "/devices/caniot/%u/attribute/%x", rest_devices_caniot_attr_write, 2U),
 #endif
 
 #if defined(CONFIG_HTTP_TEST_SERVER)

@@ -91,7 +91,7 @@ paths:
         '404':
           description: CANIOT device not found
 
-  /devices/caniot/{did}/attributes/{attr}:
+  /devices/caniot/{did}/attribute/{attr}:
     parameters:
       - $ref: '#/components/parameters/DeviceID'
       - $ref: "#/components/parameters/AttributeAddr"
@@ -139,7 +139,7 @@ paths:
         '404':
           description: CANIOT device not found
 
-  /devices/caniot/{did}/endpoints/{ep}/command:
+  /devices/caniot/{did}/endpoint/{ep}/command:
     parameters:
       - $ref: '#/components/parameters/DeviceID'
       - $ref: '#/components/parameters/EndpointID'
@@ -169,7 +169,7 @@ paths:
           description: Server error (memory, args, ...)
     
 
-  /devices/caniot/{did}/endpoints/{ep}/telemetry:
+  /devices/caniot/{did}/endpoint/{ep}/telemetry:
     parameters:
       - $ref: '#/components/parameters/DeviceID'
       - $ref: '#/components/parameters/EndpointID'

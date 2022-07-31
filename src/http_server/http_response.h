@@ -15,24 +15,42 @@
 
 struct http_response
 {
+	/**
+	 * @brief Content-type to be encoded in the header
+	 */
 	http_content_type_t content_type;
 
+	/**
+	 * @brief HTTP Status code to be encoded
+	 */
 	uint16_t status_code;
 
-	uint16_t content_length;
+	/**
+	 * @brief Content-length of the payload
+	 */
+	size_t content_length;
 
-	union {
-		
-		buffer_t buffer;
+	/**
+	 * @brief Buffer used to store the payload
+	 */
+	buffer_t buffer;
 
-		/* This is as VERY DANGEROUS trick */
-		/* TODO remove this struct and only use the "buffer_t" member */
-		// struct {
-		// 	char *buf;
-		// 	size_t buf_size;
-		// 	size_t content_len;
-		// };
-	};
+	/**
+	 * @brief Flag to indicate whether the response is complete
+	 *
+	 * Note: Set this flag to false to indicate there are more
+	 *  data to be sent.
+	 */
+	uint8_t complete: 1u;
+
+	/**
+	 * @brief Flag to indicate whether the should be sent as chunks
+	 * 
+	 * Note: In this case the content_length field is ignored.
+	 * Note: This flag must be set before the the first part of the payload
+	 *   is	sent.
+	 */
+	uint8_t stream: 1u;
 };
 
 typedef struct http_response http_response_t;

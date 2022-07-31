@@ -19,7 +19,7 @@
 
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(http_req, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(http_req, LOG_LEVEL_WRN);
 
 /* parsing */
 
@@ -634,10 +634,9 @@ const char *http_header_get_value(http_request_t *req,
 				  const char *hdr_name)
 {
 	const char *value = NULL;
-
-	sys_dnode_t *node = NULL;
-	SYS_DLIST_FOR_EACH_NODE(&req->headers, node) {
-		struct http_header *hdr = HTTP_HEADER_FROM_HANDLE(node);
+	struct http_header *hdr = NULL;
+	SYS_DLIST_FOR_EACH_CONTAINER(&req->headers, hdr, handle)
+	{
 		if (strcmp(hdr->name, hdr_name) == 0) {
 			value = (const char *)hdr->value;
 			break;

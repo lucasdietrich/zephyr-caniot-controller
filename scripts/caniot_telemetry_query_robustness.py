@@ -16,9 +16,9 @@ proto = "http"
 
 req = {
     "method": "GET",
-    "url": f"{proto}://{ip}/devices/caniot/24/ll/3/query_telemetry",
+    "url": f"{proto}://{ip}/devices/caniot/32/endpoint/3/telemetry",
     "headers": {
-        "Connection": "close"
+        "Timeout-ms": "1000",
     },
     "json": {
 
