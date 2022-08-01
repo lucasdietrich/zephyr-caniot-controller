@@ -77,4 +77,10 @@ int rest_devices_caniot_attr_write(http_request_t *req,
 int rest_fs_list_lua_scripts(http_request_t *req,
 			     http_response_t *resp);
 
+int rest_fs_remove_lua_script(http_request_t *req,
+			      http_response_t *resp);
+
+int rest_lua_run_script(http_request_t *req,
+			http_response_t *resp);
+
 #endif

@@ -14,6 +14,7 @@
 #include "crypto.h"
 #include "http_server/http_server.h"
 #include "lua/utils.h"
+#include "lua/orchestrator.h"
 
 #include "userio/leds.h"
 #include "userio/button.h"
@@ -107,6 +108,8 @@ void main(void)
 	lua_fs_populate();
 #endif
 
+	lua_orch_init();
+
 #ifndef CONFIG_QEMU_TARGET
 	leds_init();
 	button_init();
@@ -124,7 +127,7 @@ void main(void)
 #endif /* TEMP_NODE */
 
 #if defined(CONFIG_LUA_AUTORUN_SCRIPTS)
-	lua_utils_execute_fs_script("/RAM:/lua/entry.lua");
+	lua_utils_execute_fs_script2("/RAM:/lua/entry.lua");
 #endif
 
 	uint32_t counter = 0;

@@ -28,7 +28,7 @@
 #include <bluetooth/addr.h>
 #include "ha/devices.h"
 #include "ha/data.h"
-
+#include "lua/orchestrator.h"
 #include "appfs.h"
 
 #include <caniot/caniot.h>
@@ -1078,7 +1078,8 @@ int rest_fs_list_lua_scripts(http_request_t *req,
 	struct json_fs_file_entries_list data;
 	data.nb_entries = 0;
 
-	app_fs_iterate_dir_files("/RAM:/lua", fs_list_lua_scripts_detailled_cb,
+	app_fs_iterate_dir_files(CONFIG_LUA_FS_SCRIPTS_DIR,
+				 fs_list_lua_scripts_detailled_cb,
 				 (void *)&data);
 
 	return rest_encode_response_json_array(
@@ -1087,4 +1088,29 @@ int rest_fs_list_lua_scripts(http_request_t *req,
 	);
 
 	/* TODO return actual path in the reponse header */
+}
+
+int rest_fs_remove_lua_script(http_request_t *req,
+			      http_response_t *resp)
+{
+	
+	return -EINVAL;
+}
+
+int rest_lua_run_script(http_request_t *req,
+			http_response_t *resp)
+{
+	const char *reqpath = http_header_get_value(req, "App-Script-Filename");
+	if (reqpath == NULL) {
+		resp->status_code = 400u;
+		goto exit;
+	}
+
+	char path[128u];
+	snprintf(path, sizeof(path), "%s/%s", CONFIG_LUA_FS_SCRIPTS_DIR, reqpath);
+
+	lua_orch_run_script(path);
+
+exit:
+	return 0;
 }

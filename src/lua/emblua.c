@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2022 Lucas Dietrich <ld.adecy@gmail.com>
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include <zephyr.h>
 
 #include <fs/fs.h>
@@ -34,6 +40,7 @@ struct emblua
 /* find a way to somehow automatically generate this list */
 DECLARE_EMB_LUA_SCRIPT(helloworld);
 DECLARE_EMB_LUA_SCRIPT(entry);
+// DECLARE_EMB_LUA_SCRIPT(entry1);
 
 // DECLARE_EMB_LUA_SCRIPT(all);
 // DECLARE_EMB_LUA_SCRIPT(api);

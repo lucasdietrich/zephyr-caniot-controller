@@ -6,14 +6,18 @@
 
 require("math")
 require("io")
+require("dummy")
 
--- pseudo random number generator
-for i=1,10 do
-    io.write(math.random( 0, 100 ) .. " ")
+print("Lua entry point")
+
+n, m = 1, 1
+
+for i = 1, 100000 do
+    n, m = m, n + m
 end
 
-print("ok")
+print("n=" .. n .. " m=" .. m)
 
--- calling another lua script
-dofile("/RAM:/lua/helloworld.lua")
-dofile("/RAM:/lua/math.lua")
+print(math.random(1, 10))
+
+dummy.myhelloworld()

@@ -35,3 +35,10 @@ config HTTP_TEST_SERVER
         default n
         help
                 Enable test server and corresponding routes
+
+config FILE_UPLOAD_MOUNT_POINT
+        string "Default mount point for file upload"
+        default "/RAM:" if QEMU_TARGET
+        default "/SD:" if BOARD_NUCLEO_F429ZI
+        help
+                Default mount point for file upload (HTTP file server)

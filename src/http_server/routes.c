@@ -52,6 +52,9 @@ LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 #define PROM_RESSOURCE(m, r, h) MESSAGING_RESSOURCE(m, r, h, HTTP_PROMETHEUS_CLIENT, HTTP_CONTENT_TYPE_TEXT_PLAIN, 0U)
 #define FILE_RESSOURCE(m, r, h, k) STREAMING_RESSOURCE(m, r, h, HTTP_FILES_SERVER, HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA, k)
 
+/**
+ * @brief TODO represent the routes as a tree
+ */
 static const struct http_route routes[] = {
 	WEB(GET, "", web_server_index_html),
 	WEB(GET, "/", web_server_index_html),
@@ -69,6 +72,9 @@ static const struct http_route routes[] = {
 
 	FILE_RESSOURCE(POST, "/files", http_file_upload, 0U),
 	REST(GET, "/files/lua", rest_fs_list_lua_scripts, 0U),
+	REST(DELETE, "/fules/lua", rest_fs_remove_lua_script, 0U),
+
+	REST(POST, "/lua/execute", rest_lua_run_script, 0U),
 
 #if defined(CONFIG_CANIOT_CONTROLLER)
 	REST(GET, "/devices/garage", rest_devices_garage_get, 0U),

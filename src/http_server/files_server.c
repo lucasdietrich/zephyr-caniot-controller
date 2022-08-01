@@ -12,7 +12,7 @@
 #include <fs/fs.h>
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(files_server, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(files_server, LOG_LEVEL_INF);
 
 struct file_upload_context
 {
@@ -73,11 +73,12 @@ int http_file_upload(struct http_request *req,
 		/* Create file path */
 		if (u->dirname[0] == '.') {
 			snprintf(u->filepath, sizeof(u->filepath),
-				 "/RAM:/%s", u->basename);
+				 CONFIG_LUA_FS_SCRIPTS_DIR "/%s", u->basename);
 		} else {
 			char dirpath[40];
 			snprintf(dirpath, sizeof(dirpath),
-				 "/RAM:/%s", u->dirname);
+				 CONFIG_FILE_UPLOAD_MOUNT_POINT "/%s", 
+				 u->dirname);
 
 			/* Create directory if it doesn't exists */
 			struct fs_dirent dir;
@@ -90,7 +91,8 @@ int http_file_upload(struct http_request *req,
 			}
 
 			snprintf(u->filepath, sizeof(u->filepath),
-				 "/RAM:/%s/%s", u->dirname, u->basename);
+				 CONFIG_FILE_UPLOAD_MOUNT_POINT "/%s/%s", 
+				 u->dirname, u->basename);
 		}
 
 		LOG_INF("Filepath: %s", log_strdup(u->filepath));
@@ -150,8 +152,8 @@ int http_file_upload(struct http_request *req,
 		LOG_INF("File %s upload succeeded [size = %u]",
 			log_strdup(u->filepath), req->payload_len);
 
-		if (_LOG_LEVEL() >= LOG_LEVEL_INF) {
-			app_fs_stats("/RAM:/");
+		if (_LOG_LEVEL() >= LOG_LEVEL_DBG) {
+			app_fs_stats(CONFIG_FILE_UPLOAD_MOUNT_POINT);
 		}
 	}
 

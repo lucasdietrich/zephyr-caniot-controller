@@ -356,6 +356,7 @@ static const struct header headers[] = {
 	HEADER("Authorization", header_keep),
 	HEADER("App-Upload-Filepath", header_keep),
 	HEADER("App-Upload-Checksum", header_keep),
+	HEADER("App-Script-Filename", header_keep),
 
 #if defined(CONFIG_HTTP_TEST_SERVER)
 	HEADER("App-Test-Header1", header_keep),

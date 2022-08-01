@@ -12,6 +12,11 @@ from dataclasses import dataclass
 from enum import IntEnum
 import struct
 import pprint
+import time
+
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from .utils import Method, BytesToU32, MakeChunks,\
     CheckEmbFATFSFilepath, RegexpEmbFATFSFilepath, Filepath2EmbFATFSFilepath
@@ -26,6 +31,7 @@ class API(IntEnum):
     Files = 4
     ListLuaScripts = 5
     ListLuaScriptsDetailled = 6
+    ExecuteLua = 7
 
 urls = {
     API.Info: (Method.GET, "info"),
@@ -38,6 +44,7 @@ urls = {
     API.Files: (Method.POST, "files"),
     API.ListLuaScripts: (Method.GET, "files/lua/simple"),
     API.ListLuaScriptsDetailled: (Method.GET, "files/lua"),
+    API.ExecuteLua: (Method.POST, "/lua/execute"),
 }
 
 RouteType = Tuple[Method, str]
@@ -71,7 +78,10 @@ class Controller:
             "ep": 0,
         })
 
-    def _request_json(self, api: API, json: Optional[Dict] = None, args: Dict = None, headers: Dict = None):
+    def _request_json(self, api: API,
+                      json: Optional[Dict] = None,
+                      args: Dict = None,
+                      headers: Dict = None):
         method, path = urls[api]
 
         if args is None:
@@ -88,7 +98,11 @@ class Controller:
             "timeout": self.get_req_timeout(),
         }
 
-        return requests.request(**req)
+        t0 = time.perf_counter()
+        resp = requests.request(**req)
+        t1 = time.perf_counter()
+        logger.info(" [ {:0.6f} s ] {} {} {}".format(t1 - t0, req["method"], req["url"], resp.status_code))
+        return resp
 
     def get_req_timeout(self) -> float:
         return self.timeout + 2.0
@@ -172,9 +186,13 @@ class Controller:
 
         return requests.request(**req)
 
+    def run_script(self, path: str):
+        return self._request_json(API.ExecuteLua, None, None, {
+            "App-Script-Filename": path,
+        })
+
     def __enter__(self, did: int) -> DeviceContext:
         return DeviceContext(did)
-
 
 if __name__ == "__main__":
     # "192.0.2.2"
