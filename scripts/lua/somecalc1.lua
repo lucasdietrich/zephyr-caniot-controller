@@ -10,15 +10,13 @@ require("io")
 print("somecalc1.lua")
 print(os.time())
 
--- define an empty list
 mylist = {}
 
-N = 1000
+N = 2000
 for i = 1, N do
     -- random number between 0 and 100
-    rdm = math.random(0, 100)
+    rdm = math.random(0, 1000)
     mylist[i] = rdm
-    -- print(rdm)
 end
 
 sum = 0
@@ -26,5 +24,4 @@ for i = 1, N do
     sum = sum + mylist[i]
 end
 
-print(sum)
-print(sum / N)
+print(sum / (1000*N))

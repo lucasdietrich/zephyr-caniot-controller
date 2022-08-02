@@ -16,6 +16,10 @@
 - Allow to store few scripts in the SoC ROM
 - Test keepalive feature
 - Allow authentication using "username:password" and x509 certificates
+- Find a way to be able to print numbers from LUA with CONFIG_NEWLIB_LIBC_NANO enabled (for ARM)
+- Find a way to redirect stdout and stderr to a file or to logging system
+  - Check `zephyr/lib/libc/newlib/libc-hooks.c`
+- `CONFIG_NEWLIB_LIBC_MIN_REQUIRED_HEAP_SIZE` seems to have no effect
 
 ## Add license header to files:
 

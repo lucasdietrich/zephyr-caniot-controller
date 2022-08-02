@@ -25,6 +25,15 @@
 
 #define LUA_DUMMYLIB_ENABLED		1
 
+#if !LUA_LOADLIBNAME_ENABLED
+#	warning "Unable to STDOUT print with LUA_GNAME_ENABLED disabled"
+#endif 
+
+#if !LUA_LOADLIBNAME_ENABLED
+#	warning "Unable to load modules from LUA \
+		script with LUA_LOADLIBNAME_ENABLED disabled"
+#endif 
+
 /*____________________________________________________________________________*/
 
 #define LM_LUA_DUMMYLIB "dummy"

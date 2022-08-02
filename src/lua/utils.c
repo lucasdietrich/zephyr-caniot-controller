@@ -19,6 +19,32 @@ LOG_MODULE_REGISTER(lua_utils, LOG_LEVEL_DBG);
 
 #include "modules.h"
 
+const char *lua_utils_luaret2str(int lua_ret)
+{
+	const char *str = "<lua unknown>";
+	switch(lua_ret) {
+	case LUA_OK:
+		str = "LUA_OK";
+		break;	
+	case LUA_YIELD:
+		str = "LUA_YIELD";
+		break;
+	case LUA_ERRRUN:
+		str = "LUA_ERRRUN";
+		break;
+	case LUA_ERRSYNTAX:
+		str = "LUA_ERRSYNTAX";
+		break;
+	case LUA_ERRMEM:
+		str = "LUA_ERRMEM";
+		break;
+	case LUA_ERRERR:
+		str = "LUA_ERRERR";
+		break;
+	}
+	return str;
+}
+
 int lua_utils_string_test(void)
 {
 	int res;
@@ -60,34 +86,14 @@ int lua_utils_execute_fs_script2(const char *name)
 	lua_State *L = luaL_newstate();
 
 	lm_openlibs(L);
-	
+
 	luaL_loadfile(L, name);
 	res = lua_pcall(L, 0, LUA_MULTRET, 0);
 
-	switch(res) {
-		case LUA_OK:
-			LOG_INF("LUA_OK");
-			break;
-		case LUA_YIELD:
-			LOG_WRN("LUA_YIELD");
-			break;
-		case LUA_ERRRUN:
-			LOG_WRN("LUA_ERRRUN");
-			break;
-		case LUA_ERRSYNTAX:
-			LOG_WRN("LUA_ERRSYNTAX");
-			break;
-		case LUA_ERRMEM:
-			LOG_WRN("LUA_ERRMEM");
-			break;
-		case LUA_ERRERR:
-			LOG_WRN("LUA_ERRERR");
-			break;
-		default:
-			LOG_WRN("Unknown error, res=%d", res);
-	}
-
 	lua_close(L);
+
+	LOG_DBG("(%p) Script returned res=%d (%s)",
+		L, res, lua_utils_luaret2str(res));
 
 	return res;
 }

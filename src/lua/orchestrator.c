@@ -12,6 +12,7 @@
 
 #include "app_sections.h"
 #include "modules.h"
+#include "utils.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(lua, LOG_LEVEL_DBG);
@@ -104,6 +105,15 @@ int lua_orch_run_script(const char *path)
 
 		/* Wait for script end */
 		k_sem_take(&sx->_sem, K_FOREVER);
+
+		/* Check for script execution error */
+		if (sx->lua_ret >= LUA_ERRRUN) {
+			LOG_WRN("(%p) Script returned error %d (%s)",
+				sx, sx->lua_ret, lua_utils_luaret2str(sx->lua_ret));
+		} else {
+			LOG_INF("(%p) Script returned %d (%s)",
+				sx, sx->lua_ret, lua_utils_luaret2str(sx->lua_ret));
+		}
 	}
 
 exit:
