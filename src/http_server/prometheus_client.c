@@ -33,7 +33,7 @@
 
 #include "ha/devices.h"
 
-#include "utils.h"
+#include "utils/buffers.h"
 
 #include <caniot/caniot.h>
 

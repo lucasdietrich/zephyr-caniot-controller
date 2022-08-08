@@ -9,7 +9,7 @@
 
 #include "http_utils.h"
 
-#include "utils.h"
+#include "utils/buffers.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(http_utils, LOG_LEVEL_WRN);

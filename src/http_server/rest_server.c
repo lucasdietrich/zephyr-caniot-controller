@@ -13,8 +13,8 @@
 
 #include <net/http_parser.h>
 
-#include <utils.h>
 #include <posix/time.h>
+#include "utils/buffers.h"
 #include <net/net_if.h>
 #include <net/net_ip.h>
 #include <net/ethernet.h>

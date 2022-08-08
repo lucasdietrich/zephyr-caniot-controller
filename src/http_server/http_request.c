@@ -6,7 +6,7 @@
 
 #include "http_request.h"
 
-#include "utils.h"
+#include "utils/buffers.h"
 
 #include <stddef.h>
 #include <stdint.h>

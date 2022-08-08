@@ -5,6 +5,6 @@
 #
 
 
-target_sources(app PRIVATE devices.c data.c room.c utils.c ha_controller.c)
+target_sources(app PRIVATE devices.c data.c room.c utils.c ha_controller.c datalogger.c event.c)
 target_sources_ifdef(CONFIG_BLE_CONTROLLER app PRIVATE ble_controller.c)
-target_sources_ifdef(CONFIG_CANIOT_CONTROLLER app PRIVATE caniot_controller.c devices/garage.c)
+target_sources_ifdef(CONFIG_CANIOT_CONTROLLER app PRIVATE caniot_controller.c devices/garage.c devices/emu.c)

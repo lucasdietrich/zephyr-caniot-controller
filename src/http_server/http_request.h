@@ -12,7 +12,7 @@
 
 #include <net/http_parser.h>
 
-#include "utils.h"
+#include "utils/buffers.h"
 #include "http_utils.h"
 #include "routes.h"
 

@@ -15,7 +15,7 @@
 
 #include <sys/types.h>
 
-#include "utils.h"
+#include "utils/buffers.h"
 
 /* find a better way to do this */
 #ifndef CONFIG_DISCOVERY_SERVER_LOG_LEVEL

@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "utils.h"
+#include "utils/buffers.h"
 #include "http_utils.h"
 
 struct http_response

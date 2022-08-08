@@ -87,7 +87,7 @@ DECLARE_EMB_LUA_SCRIPT(sort);
 int lua_fs_populate(void)
 {
 	int rc = 0;
-	char path[256];
+	char path[256u];
 
 	/* iterate over all lua scripts and add them to the filesystem */
 	STRUCT_SECTION_FOREACH(emblua, script) {

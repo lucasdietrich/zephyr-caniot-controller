@@ -15,6 +15,7 @@
 #include "http_server/http_server.h"
 #include "lua/utils.h"
 #include "lua/orchestrator.h"
+#include "utils/freelist.h"
 
 #include "userio/leds.h"
 #include "userio/button.h"
@@ -102,6 +103,8 @@ extern int lua_fs_populate(void);
 
 void main(void)
 {
+	sys_free_lists_init();
+
 	app_fs_init();
 
 #if defined(CONFIG_LUA_FS_DEFAULT_SCRIPTS)

@@ -25,7 +25,7 @@
 #include "http_utils.h"
 #include "http_conn.h"
 #include "routes.h"
-#include "utils.h"
+#include "utils/buffers.h"
 
 #include "creds/credentials.h"
 

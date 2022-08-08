@@ -174,7 +174,9 @@
                 "posix_types.h": "c",
                 "lundump.h": "c",
                 "ldebug.h": "c",
-                "lapi.h": "c"
+                "lapi.h": "c",
+                "buffers.h": "c",
+                "freelist.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

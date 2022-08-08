@@ -10,7 +10,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "utils.h"
+#include "buffers.h"
 
 ssize_t mem_append(void *dst,
 		   size_t dst_len,

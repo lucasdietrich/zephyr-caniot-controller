@@ -34,10 +34,21 @@ struct ha_dev_stats_t
 };
 
 typedef struct {
+	/* Addr which uniquely identifies the device */
 	ha_dev_addr_t addr;
 
 	/* UNIX timestamps in seconds */
 	uint32_t registered_timestamp;
+
+	/* Device API */
+	void *api;
+
+	/* Device statistics */
+	struct ha_dev_stats_t stats;
+
+	/* Device data */
+
+	/* TODO Dynamically allocate the dataset and reference the pointer here */
 	struct {
 		uint32_t measurements_timestamp;
 
@@ -47,9 +58,7 @@ typedef struct {
 			struct ha_f429zi_dataset nucleo_f429zi;
 		};
 	} data;
-
-	/* TODO handle */
-	struct ha_dev_stats_t stats;
+	
 } ha_dev_t;
 
 bool ha_dev_valid(ha_dev_t *const dev);
