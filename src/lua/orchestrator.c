@@ -78,7 +78,7 @@ void lua_orch_script_handler(struct k_work *work)
 	k_sem_give(&sx->_sem);
 }
 
-int lua_orch_run_script(const char *path)
+int lua_orch_run_script(const char *path, int *lua_ret)
 {
 	int res;
 	struct script_context *sx;
@@ -105,6 +105,11 @@ int lua_orch_run_script(const char *path)
 
 		/* Wait for script end */
 		k_sem_take(&sx->_sem, K_FOREVER);
+
+		/* Forward lua return value */
+		if (lua_ret != NULL) {
+			*lua_ret = sx->lua_ret;
+		}
 
 		/* Check for script execution error */
 		if (sx->lua_ret >= LUA_ERRRUN) {

@@ -1097,20 +1097,46 @@ int rest_fs_remove_lua_script(http_request_t *req,
 	return -EINVAL;
 }
 
+struct json_lua_run_script {
+	char *name;
+	size_t lua_ret;
+
+	/* TODO add execution time and other LUA debug info/context */
+};
+
+static const struct json_obj_descr json_lua_run_script_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_lua_run_script, name, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_lua_run_script, lua_ret, JSON_TOK_NUMBER),
+};
+
 int rest_lua_run_script(http_request_t *req,
 			http_response_t *resp)
 {
+	int ret = 0;
+
 	const char *reqpath = http_header_get_value(req, "App-Script-Filename");
 	if (reqpath == NULL) {
 		resp->status_code = 400u;
 		goto exit;
 	}
-
 	char path[128u];
 	snprintf(path, sizeof(path), "%s/%s", CONFIG_LUA_FS_SCRIPTS_DIR, reqpath);
 
-	lua_orch_run_script(path);
+	int lua_ret;
+	ret = lua_orch_run_script(path, &lua_ret);
+	if (ret != 0) {
+		resp->status_code = 400u;
+		goto exit;
+	}
+
+	struct json_lua_run_script data;
+	data.name = path;
+	data.lua_ret = lua_ret;
+	ret = rest_encode_response_json(
+		resp, &data, json_lua_run_script_descr,
+		ARRAY_SIZE(json_lua_run_script_descr)
+	);
 
 exit:
-	return 0;
+	return 0u;
 }

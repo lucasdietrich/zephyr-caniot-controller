@@ -12,7 +12,15 @@
 
 int lua_orch_init(void);
 
-int lua_orch_run_script(const char *path);
+/* TODO add run context */
+/**
+ * @brief Execute a LUA script
+ * 
+ * @param path 
+ * @param lua_ret 
+ * @return int 
+ */
+int lua_orch_run_script(const char *path, int *lua_ret);
 
 int lua_orch_status(int handle);
 
