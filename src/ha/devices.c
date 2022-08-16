@@ -11,9 +11,11 @@
 #include "devices.h"
 #include "net_time.h"
 #include "config.h"
+#include "events.h"
+#include "system.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_WRN);
+LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_INF);
 
 /*____________________________________________________________________________*/
 
@@ -75,13 +77,20 @@ static ha_dev_t *get_device_by_mac(const ha_dev_mac_t *mac)
 {
 	ha_dev_t *device = NULL;
 
-	for (ha_dev_t *dev = devices.list;
-	     dev < devices.list + devices.count;
-	     dev++) {
+	/* Get MAC compare function */
+	mac_cmp_func_t cmp = get_mac_cmp_func(mac->medium);
 
-		if (mac_cmp(mac, &dev->addr.mac) == 0) {
-			device = dev;
-			break;
+	if (cmp != NULL) {
+		for (ha_dev_t *dev = devices.list;
+		     dev < devices.list + devices.count;
+		     dev++) {
+			/* Device medium should match and
+			 * MAC address should match */
+			if ((dev->addr.mac.medium == mac->medium) &&
+			    (cmp(&dev->addr.mac.addr, &mac->addr) == 0)) {
+				device = dev;
+				break;
+			}
 		}
 	}
 
@@ -104,12 +113,12 @@ static ha_dev_t *get_first_device_by_type(ha_dev_type_t type)
 	return device;
 }
 
-bool ha_dev_valid(ha_dev_t *const dev)
-{
-	return (dev != NULL) && (mac_valid(&dev->addr.mac) == true);
-}
+// static bool ha_dev_valid(ha_dev_t *const dev)
+// {
+// 	return (dev != NULL) && (mac_valid(&dev->addr.mac) == true);
+// }
 
-static ha_dev_t *ha_dev_get(const ha_dev_addr_t *addr)
+ha_dev_t *ha_dev_get(const ha_dev_addr_t *addr)
 {
 	ha_dev_t *device = NULL;
 
@@ -148,25 +157,48 @@ static void ha_dev_clear(ha_dev_t *dev)
  * @param addr
  * @return int
  */
-static ha_dev_t *ha_dev_register(ha_dev_addr_t *addr)
+ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 {
+	ha_dev_t *dev = NULL;
+	k_mutex_lock(&devices.mutex, K_FOREVER);
+
 	if (devices.count >= ARRAY_SIZE(devices.list)) {
-		return NULL;
+		goto exit;
 	}
 
-	ha_dev_t *dev = devices.list + devices.count;
+	dev = devices.list + devices.count;
+
+	/* Get default api */
+	const struct device_api *api = ha_device_get_default_api(addr->type);
+	
+	if (api == NULL) {
+		LOG_WRN("No default device api for type %d", addr->type);
+
+		/* TODO Do we continue? */
+	}
 
 	ha_dev_clear(dev);
 
 	dev->addr = *addr;
-	dev->registered_timestamp = net_time_get();
+	dev->registered_timestamp = sys_time_get();
+	dev->api = api;
 
+	if ((api != NULL) && (api->on_registration != NULL)) {
+		if (api->on_registration(addr) != true) {
+			LOG_WRN("(addr %p) Device registration refused", addr);
+			goto exit;
+		}
+	}
+
+	/* Increment device count */
 	devices.count++;
 
+exit:
+	k_mutex_unlock(&devices.mutex);
 	return dev;
 }
 
-static ha_dev_t *ha_dev_get_or_register(ha_dev_addr_t *addr)
+static ha_dev_t *ha_dev_get_or_register(const ha_dev_addr_t *addr)
 {
 	ha_dev_t *dev;
 
@@ -391,4 +423,78 @@ exit:
 	k_mutex_unlock(&devices.mutex);
 
 	return ret;
+}
+
+int ha_dev_process_data(ha_dev_t *dev,
+		       const void *data)
+{
+	int ret = -EINVAL;
+	ha_event_t *ev = NULL;
+	struct ha_xiaomi_dataset *odata = NULL;
+
+	k_mutex_lock(&devices.mutex, K_FOREVER);
+
+	if (dev->api == NULL) {
+		LOG_WRN("(%p) No API registered for device", dev);
+		goto exit;
+	}
+
+	/* Allocate memory */
+	ev = ha_event_alloc_and_reset();
+	if (!ev) {
+		LOG_ERR("(%p) Failed to allocate ha_event_t", dev);
+		goto exit;
+	}
+
+	size_t odata_size = dev->api->get_data_size(dev, data);
+	if (odata_size != 0) {
+		/* Allocate buffer to handle data to be converted */
+		odata = k_malloc(odata_size);
+		if (!odata) {
+			LOG_ERR("(%p) Failed to allocate data req len=%u",
+				dev, odata_size);
+			goto exit;
+		}
+
+		/* Convert data to internal format */
+		if (dev->api->convert_data(dev, data, odata) != true) {
+			LOG_ERR("(%p) Conversion failed", dev);
+			goto exit;
+		}
+	}
+
+	ev->dev = dev;
+	ev->data = odata;
+	ev->type = HA_EVENT_TYPE_DATA;
+	ev->time = sys_time_get();
+	atomic_set(&ev->ref_count, 0u);
+
+	/* Notify the event to listeners */
+	ret = ha_event_notify_all(ev);
+
+	LOG_INF("Event %p emitted for %d listeners", ev, ret);
+
+exit:
+	/* Free event on error or if not referenced anymore */
+	if ((ret < 0) || (atomic_get(&ev->ref_count) == 0u)) {
+		ha_event_free(ev);
+	}
+	k_mutex_unlock(&devices.mutex);
+
+	return ret;
+}
+
+extern const struct device_api ha_device_api_xiaomi;
+extern const struct device_api ha_device_api_caniot;
+
+const struct device_api *ha_device_get_default_api(ha_dev_type_t type)
+{
+	switch (type) {
+	case HA_DEV_TYPE_XIAOMI_MIJIA:
+		return &ha_device_api_xiaomi;
+	case HA_DEV_TYPE_CANIOT:
+		return &ha_device_api_caniot;
+	default:
+		return NULL;
+	}
 }

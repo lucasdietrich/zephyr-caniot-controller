@@ -33,7 +33,15 @@ struct ha_dev_stats_t
 	uint32_t max_inactivity; /* number of seconds without any activity */
 };
 
-typedef struct {
+struct ha_device;
+
+struct device_api {
+	bool (*on_registration)(const ha_dev_addr_t *addr);
+	size_t (*get_data_size)(struct ha_device *dev, const void *idata);
+	bool (*convert_data)(struct ha_device *dev, const void *idata, void *odata);
+};
+
+struct ha_device {
 	/* Addr which uniquely identifies the device */
 	ha_dev_addr_t addr;
 
@@ -41,7 +49,7 @@ typedef struct {
 	uint32_t registered_timestamp;
 
 	/* Device API */
-	void *api;
+	const struct device_api *api;
 
 	/* Device statistics */
 	struct ha_dev_stats_t stats;
@@ -58,10 +66,18 @@ typedef struct {
 			struct ha_f429zi_dataset nucleo_f429zi;
 		};
 	} data;
-	
-} ha_dev_t;
+};
 
-bool ha_dev_valid(ha_dev_t *const dev);
+typedef struct ha_device ha_dev_t;
+
+ha_dev_t *ha_dev_get(const ha_dev_addr_t *addr);
+
+ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr);
+
+int ha_dev_process_data(ha_dev_t *dev,
+			const void *data);
+
+/*____________________________________________________________________________*/
 
 typedef void ha_dev_iterate_cb_t(ha_dev_t *dev,
 				 void *user_data);
@@ -110,6 +126,8 @@ static inline void ha_dev_inc_stats_tx(ha_dev_t *dev, uint32_t tx_bytes)
 	dev->stats.tx++;
 }
 
+/*____________________________________________________________________________*/
+
 int ha_register_xiaomi_from_dataframe(xiaomi_dataframe_t *frame);
 
 int ha_dev_register_die_temperature(uint32_t timestamp,
@@ -118,6 +136,23 @@ int ha_dev_register_die_temperature(uint32_t timestamp,
 int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 				     caniot_did_t did,
 				     struct caniot_board_control_telemetry *data);
+
+
+static inline ha_dev_t *ha_dev_ble_get(const bt_addr_le_t *bleaddr)
+{
+	const ha_dev_addr_t addr = {
+		.type = HA_DEV_TYPE_XIAOMI_MIJIA,
+		.mac = {
+			.medium = HA_DEV_MEDIUM_BLE,
+			.addr.ble = *bleaddr,
+		}
+	};
+	return ha_dev_get(&addr);
+}
+
+/*____________________________________________________________________________*/
+
+const struct device_api *ha_device_get_default_api(ha_dev_type_t type);
 
 /*____________________________________________________________________________*/
 

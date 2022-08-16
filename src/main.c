@@ -26,6 +26,7 @@
 #include "ha/devices.h"
 #include "ha/ble_controller.h"
 #endif /* CONFIG_QEMU_TARGET */
+#include "ha/events.h"
 
 #ifdef CONFIG_LUA
 #include "lua/utils.h"
@@ -102,9 +103,10 @@ static void debug_mbedtls_memory(void)
 extern int lua_fs_populate(void);
 
 void main(void)
-{
-	sys_free_lists_init();
-
+{	
+	/* don't do it, too dangerous */
+	// sys_free_lists_init();
+	
 	app_fs_init();
 
 #if defined(CONFIG_LUA_FS_DEFAULT_SCRIPTS)

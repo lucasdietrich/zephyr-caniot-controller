@@ -11,6 +11,13 @@
 
 #include <kernel.h>
 
+#include "net_time.h"
+
+static inline uint32_t sys_time_get(void)
+{
+	return net_time_get();
+}
+
 typedef union {
 	atomic_t atomic;
 	atomic_val_t atomic_val;

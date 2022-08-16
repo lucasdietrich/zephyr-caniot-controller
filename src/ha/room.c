@@ -59,7 +59,7 @@ static const struct room_dev_assoc *ha_get_device_assoc(ha_dev_t *const dev)
 	const struct room_dev_assoc *assoc;
 
 	for (assoc = assocs; assoc < assocs + ARRAY_SIZE(assocs); assoc++) {
-		if (ha_dev_addr_cmp(&assoc->addr, &dev->addr)) {
+		if (ha_dev_addr_cmp(&assoc->addr, &dev->addr) == 0u) {
 			return assoc;
 		}
 	}

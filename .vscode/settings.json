@@ -176,7 +176,10 @@
                 "ldebug.h": "c",
                 "lapi.h": "c",
                 "buffers.h": "c",
-                "freelist.h": "c"
+                "freelist.h": "c",
+                "toolchain.h": "c",
+                "ble_controller.h": "c",
+                "rand32.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

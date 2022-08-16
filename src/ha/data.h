@@ -16,8 +16,9 @@
 
 #define HA_CANIOT_MAX_DEVICES 5U
 #define HA_XIAOMI_MAX_DEVICES 15U
+#define HA_OTHER_MAX_DEVICES 5U
 
-#define HA_MAX_DEVICES (HA_CANIOT_MAX_DEVICES + HA_XIAOMI_MAX_DEVICES)
+#define HA_MAX_DEVICES (HA_CANIOT_MAX_DEVICES + HA_XIAOMI_MAX_DEVICES + HA_OTHER_MAX_DEVICES)
 
 // TODO move to CANIOT library
 #define HA_CANIOT_MAX_TEMPERATURES 4U
@@ -46,7 +47,7 @@ typedef struct
 	ha_dev_mac_addr_t addr;
 } ha_dev_mac_t;
 
-typedef struct {
+typedef struct ha_device_addr {
 	ha_dev_type_t type;
 	ha_dev_mac_t mac;
 } ha_dev_addr_t;
