@@ -11,13 +11,21 @@
 #include "devices.h"
 #include "net_time.h"
 #include "config.h"
-#include "events.h"
 #include "system.h"
 
-#include <logging/log.h>
-LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_INF);
 
-/*____________________________________________________________________________*/
+#include <logging/log.h>
+LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_DBG);
+
+// #define HA_DEVICES_IGNORE_UNVERIFIED_DEVICES 1
+
+#define HA_EV_SUBS_BLOCK_COUNT 8u
+#define HA_EV_COUNT 16u
+
+/* Forward declaration */
+
+static struct ha_event *ha_ev_alloc_and_reset(void);
+static void ha_ev_free(struct ha_event *ev);
 
 struct {
 	struct k_mutex mutex;
@@ -118,7 +126,7 @@ static ha_dev_t *get_first_device_by_type(ha_dev_type_t type)
 // 	return (dev != NULL) && (mac_valid(&dev->addr.mac) == true);
 // }
 
-ha_dev_t *ha_dev_get(const ha_dev_addr_t *addr)
+ha_dev_t *ha_dev_get_by_addr(const ha_dev_addr_t *addr)
 {
 	ha_dev_t *device = NULL;
 
@@ -149,6 +157,20 @@ static void ha_dev_clear(ha_dev_t *dev)
 	memset(dev, 0U, sizeof(*dev));
 }
 
+static const struct ha_device_api *ha_device_get_default_api(ha_dev_type_t type)
+{
+	switch (type) {
+	case HA_DEV_TYPE_XIAOMI_MIJIA:
+		return &ha_device_api_xiaomi;
+	case HA_DEV_TYPE_CANIOT:
+		return &ha_device_api_caniot;
+	case HA_DEV_TYPE_NUCLEO_F429ZI:
+		return &ha_device_api_f429zi;
+	default:
+		return NULL;
+	}
+}
+
 /**
  * @brief Register a new device in the list, addr duplicates are not verified
  *
@@ -166,16 +188,17 @@ ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 		goto exit;
 	}
 
-	dev = devices.list + devices.count;
-
 	/* Get default api */
-	const struct device_api *api = ha_device_get_default_api(addr->type);
+	const struct ha_device_api *api = ha_device_get_default_api(addr->type);
 	
 	if (api == NULL) {
-		LOG_WRN("No default device api for type %d", addr->type);
-
-		/* TODO Do we continue? */
+		LOG_WRN("(addr %p) Unknown device type %d",
+			addr, addr->type);
+		goto exit;
 	}
+
+	/* Allocate memory */
+	dev = devices.list + devices.count;
 
 	ha_dev_clear(dev);
 
@@ -186,6 +209,7 @@ ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 	if ((api != NULL) && (api->on_registration != NULL)) {
 		if (api->on_registration(addr) != true) {
 			LOG_WRN("(addr %p) Device registration refused", addr);
+			dev = NULL;
 			goto exit;
 		}
 	}
@@ -198,20 +222,7 @@ exit:
 	return dev;
 }
 
-static ha_dev_t *ha_dev_get_or_register(const ha_dev_addr_t *addr)
-{
-	ha_dev_t *dev;
-
-	dev = ha_dev_get(addr);
-
-	if (dev == NULL) {
-		dev = ha_dev_register(addr);
-	}
-
-	return dev;
-}
-
-static bool ha_dev_match_filter(ha_dev_t *dev, ha_dev_filter_t *filter)
+static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 {
 	if (dev == NULL) {
 		return false;
@@ -221,30 +232,42 @@ static bool ha_dev_match_filter(ha_dev_t *dev, ha_dev_filter_t *filter)
 		return true;
 	}
 
-	if (filter->type == HA_DEV_FILTER_NONE) {
+	if (filter->flags == 0u) {
 		return true;
 	}
 
-	switch (filter->type) {
-	case HA_DEV_FILTER_MEDIUM:
-		return dev->addr.mac.medium == filter->data.medium;
-	case HA_DEV_FILTER_DEVICE_TYPE:
-		return dev->addr.type == filter->data.device_type;
-	case HA_DEV_FILTER_MEASUREMENTS_TIMESTAMP:
-		return dev->data.measurements_timestamp >= filter->data.timestamp;
-	default:
-		LOG_WRN("Unknown filter type %hhu", filter->type);
-		break;
+	if (filter->flags & HA_DEV_FILTER_MEDIUM) {
+		if (dev->addr.mac.medium != filter->medium) {
+			return false;
+		}
 	}
 
-	return false;
+	if (filter->flags & HA_DEV_FILTER_DEVICE_TYPE) {
+		if (dev->addr.type != filter->device_type) {
+			return false;
+		}
+	}
+
+	if (filter->flags & HA_DEV_FILTER_DATA_EXIST) {
+		if (dev->last_data_event == NULL) {
+			return false;
+		}
+	}
+
+	if (filter->flags & HA_DEV_FILTER_DATA_TIMESTAMP) {
+		if (dev->last_data_event->time < filter->data_timestamp) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 /*____________________________________________________________________________*/
 
 size_t ha_dev_iterate(void (*callback)(ha_dev_t *dev,
 				       void *user_data),
-		      ha_dev_filter_t *filter,
+		      const ha_dev_filter_t *filter,
 		      void *user_data)
 {
 	k_mutex_lock(&devices.mutex, K_FOREVER);
@@ -254,8 +277,19 @@ size_t ha_dev_iterate(void (*callback)(ha_dev_t *dev,
 	for (ha_dev_t *dev = devices.list;
 	     dev < devices.list + devices.count;
 	     dev++) {
-		if (ha_dev_match_filter(dev, filter)) {
-			callback(dev, user_data);
+		if (ha_dev_match_filter(dev, filter) == true) {
+			if (dev->last_data_event != NULL) {
+				/* Reference device event in case the callback wants to
+				* access it.
+				* Even the callback may reference the event itself,
+				* if it needs to access it after the callback returns
+				*/
+				ha_ev_ref(dev->last_data_event);
+				callback(dev, user_data);
+				ha_ev_unref(dev->last_data_event);
+			} else {
+				callback(dev, user_data);
+			}
 			count++;
 		}
 	}
@@ -265,188 +299,35 @@ size_t ha_dev_iterate(void (*callback)(ha_dev_t *dev,
 	return count;
 }
 
-size_t ha_dev_iterate_filter_by_type(void (*callback)(ha_dev_t *dev,
-						   void *user_data),
-				  void *user_data,
-				  ha_dev_type_t type)
+static int device_process_data(ha_dev_t *dev,
+			       const void *data,
+			       size_t data_len,
+			       uint32_t timestamp)
 {
-	ha_dev_filter_t filter;
-	filter.type = HA_DEV_FILTER_DEVICE_TYPE;
-	filter.data.device_type = type;
+	__ASSERT_NO_MSG(dev != NULL);
+	__ASSERT_NO_MSG(dev->api != NULL);
+	__ASSERT_NO_MSG(data != NULL);
 
-	return ha_dev_iterate(callback, &filter, user_data);
-}
-
-/*____________________________________________________________________________*/
-
-static int handle_ble_xiaomi_record(xiaomi_record_t *rec)
-{
-	/* check if device already exists */
-	ha_dev_addr_t record_addr;
-	record_addr.type = HA_DEV_TYPE_XIAOMI_MIJIA;
-	record_addr.mac.medium = HA_DEV_MEDIUM_BLE;
-	bt_addr_le_copy(&record_addr.mac.addr.ble, &rec->addr);
-
-	ha_dev_t *dev = ha_dev_get_or_register(&record_addr);
-	if (dev == NULL) {
-		LOG_ERR("Failed to register device, list full %hhu / %u",
-			devices.count,
-			(uint32_t) ARRAY_SIZE(devices.list));
-		return -ENOMEM;
-	}
-
-	ha_dev_inc_stats_rx(dev, sizeof(*rec));
-
-	/* device does exist now, update it measurements */
-	dev->data.measurements_timestamp = rec->time;
-	ha_data_ble_to_xiaomi(&dev->data.xiaomi, rec);
-
-	return 0;
-}
-
-int ha_register_xiaomi_from_dataframe(xiaomi_dataframe_t *frame)
-{
-	int ret = 0;
-	char addr_str[BT_ADDR_STR_LEN];
-
-	// show dataframe records
-	LOG_DBG("Received BLE Xiaomi records count: %u, frame_time: %u",
-		frame->count, frame->time);
-
-	uint32_t frame_ref_time = frame->time;
-	uint32_t now = net_time_get();
-
-	k_mutex_lock(&devices.mutex, K_FOREVER);
-
-	// Show all records
-	for (uint8_t i = 0; i < frame->count; i++) {
-		xiaomi_record_t *const rec = &frame->records[i];
-
-		bt_addr_to_str(&rec->addr.a, addr_str,
-			       sizeof(addr_str));
-
-		int32_t record_rel_time = rec->time - frame_ref_time;
-		uint32_t record_timestamp = now + record_rel_time;
-		rec->time = record_timestamp;
-
-		ret = handle_ble_xiaomi_record(rec);
-		if (ret != 0) {
-			goto exit;
-		}
-
-		/* Show BLE address, temperature, humidity, battery
-		 *   Only raw values are showed in debug because,
-		 *   there is no formatting (e.g. float)
-		 */
-		LOG_INF("BLE Xiaomi rec %u [%d s]: %s [rssi %d] " \
-			"temp: %d°C hum: %u %% bat: %u mV (%u %%)",
-			i, record_rel_time,
-			log_strdup(addr_str), 
-			(int32_t)rec->measurements.rssi,
-			(int32_t)rec->measurements.temperature / 100,
-			(uint32_t)rec->measurements.humidity / 100,
-			(uint32_t)rec->measurements.battery_mv,
-			(uint32_t)rec->measurements.battery_level);
-	}
-
-exit:
-	k_mutex_unlock(&devices.mutex);
-
-	return ret;
-}
-
-int ha_dev_register_die_temperature(uint32_t timestamp,
-				    float die_temperature)
-{
-	int ret = 0;
-
-	k_mutex_lock(&devices.mutex, K_FOREVER);
-
-	/* check if device already exists */
-	ha_dev_addr_t record_addr;
-	record_addr.type = HA_DEV_TYPE_NUCLEO_F429ZI;
-	record_addr.mac.medium = HA_DEV_MEDIUM_NONE;
-
-	ha_dev_t *dev = ha_dev_get_or_register(&record_addr);
-	if (dev == NULL) {
-		LOG_ERR("Failed to register device, list full %hhu / %u",
-			devices.count,
-			(uint32_t) ARRAY_SIZE(devices.list));
-		ret = -ENOMEM;
-		goto exit;
-	}
-
-	ha_dev_inc_stats_rx(dev, sizeof(die_temperature));
-
-	/* device does exist now, update it measurements */
-	dev->data.measurements_timestamp = timestamp;
-	dev->data.nucleo_f429zi.die_temperature = die_temperature;
-
-exit:
-	k_mutex_unlock(&devices.mutex);
-
-	return ret;
-}
-
-int ha_dev_register_caniot_telemetry(uint32_t timestamp,
-				     caniot_did_t did,
-				     struct caniot_board_control_telemetry *data)
-{
-	int ret = 0;
-
-	k_mutex_lock(&devices.mutex, K_FOREVER);
-
-	/* check if device already exists */
-	ha_dev_addr_t addr;
-	addr.type = HA_DEV_TYPE_CANIOT;
-	addr.mac.addr.caniot = did;
-	addr.mac.medium = HA_DEV_MEDIUM_CAN;
-
-	ha_dev_t *dev = ha_dev_get_or_register(&addr);
-	if (dev == NULL) {
-		LOG_ERR("Failed to register device, list full %hhu / %u",
-			devices.count,
-			(uint32_t) ARRAY_SIZE(devices.list));
-		ret = -ENOMEM;
-		goto exit;
-	}
-
-	ha_dev_inc_stats_rx(dev, sizeof(*data));
-
-	/* device does exist now, update it measurements */
-	dev->data.measurements_timestamp = timestamp;
-	ha_data_can_to_blt(&dev->data.caniot, data);
-
-	LOG_INF("Registered CANIOT record for device 0x%hhx", did);
-
-exit:
-	k_mutex_unlock(&devices.mutex);
-
-	return ret;
-}
-
-int ha_dev_process_data(ha_dev_t *dev,
-		       const void *data)
-{
 	int ret = -EINVAL;
-	ha_event_t *ev = NULL;
+	ha_ev_t *ev = NULL;
 	struct ha_xiaomi_dataset *odata = NULL;
 
 	k_mutex_lock(&devices.mutex, K_FOREVER);
 
-	if (dev->api == NULL) {
-		LOG_WRN("(%p) No API registered for device", dev);
-		goto exit;
-	}
-
 	/* Allocate memory */
-	ev = ha_event_alloc_and_reset();
+	ev = ha_ev_alloc_and_reset();
 	if (!ev) {
-		LOG_ERR("(%p) Failed to allocate ha_event_t", dev);
+		LOG_ERR("(%p) Failed to allocate ha_ev_t", dev);
 		goto exit;
 	}
 
-	size_t odata_size = dev->api->get_data_size(dev, data);
+	ev->dev = dev;
+	ev->type = HA_EV_TYPE_DATA;
+	ev->time = timestamp ? timestamp : sys_time_get();
+
+	size_t odata_size = dev->api->get_internal_format_size(dev, data, data_len);
+	LOG_DBG("(%p) get_internal_format_size(%p, %p, %u) = %u",
+		ev, dev, data, data_len, odata_size);
 	if (odata_size != 0) {
 		/* Allocate buffer to handle data to be converted */
 		odata = k_malloc(odata_size);
@@ -457,44 +338,316 @@ int ha_dev_process_data(ha_dev_t *dev,
 		}
 
 		/* Convert data to internal format */
-		if (dev->api->convert_data(dev, data, odata) != true) {
+		LOG_DBG("(%p) convert_data(%p, %p, %u, %p, %u, *%u)",
+			ev, dev, data, data_len, odata, odata_size, ev->time);
+		if (dev->api->convert_data(dev, data, data_len, odata, 
+					   odata_size, &ev->time) != true) {
 			LOG_ERR("(%p) Conversion failed", dev);
 			goto exit;
 		}
 	}
 
-	ev->dev = dev;
 	ev->data = odata;
-	ev->type = HA_EVENT_TYPE_DATA;
-	ev->time = sys_time_get();
-	atomic_set(&ev->ref_count, 0u);
+
+
+	/* If there is a previous data event is referenced here, unref it */
+	if (dev->last_data_event != NULL) {
+		ha_ev_unref(dev->last_data_event);
+	}
+
+	/* Update statistics */
+	ha_dev_inc_stats_rx(dev, odata_size);
+
+	/* Reference current event */
+	atomic_set(&ev->ref_count, 1u);
+	dev->last_data_event = ev;	
 
 	/* Notify the event to listeners */
-	ret = ha_event_notify_all(ev);
+	ret = ha_ev_notify_all(ev);
 
-	LOG_INF("Event %p emitted for %d listeners", ev, ret);
+	LOG_INF("Event %p notified to %d listeners", ev, ret);
 
 exit:
 	/* Free event on error or if not referenced anymore */
 	if ((ret < 0) || (atomic_get(&ev->ref_count) == 0u)) {
-		ha_event_free(ev);
+		ha_ev_free(ev);
 	}
 	k_mutex_unlock(&devices.mutex);
 
 	return ret;
 }
 
-extern const struct device_api ha_device_api_xiaomi;
-extern const struct device_api ha_device_api_caniot;
-
-const struct device_api *ha_device_get_default_api(ha_dev_type_t type)
+int ha_dev_register_data(const ha_dev_addr_t *addr,
+			 const void *data,
+			 size_t data_len,
+			 uint32_t timestamp)
 {
-	switch (type) {
-	case HA_DEV_TYPE_XIAOMI_MIJIA:
-		return &ha_device_api_xiaomi;
-	case HA_DEV_TYPE_CANIOT:
-		return &ha_device_api_caniot;
-	default:
-		return NULL;
+	ha_dev_t *dev;
+	int ret = -ENOMEM;
+
+	dev = ha_dev_get_by_addr(addr);
+
+	if (dev == NULL) {
+		dev = ha_dev_register(addr);
 	}
+
+	if (dev != NULL) {
+		ret = device_process_data(dev, data, data_len, timestamp);
+	}
+
+	return ret;
+}
+
+const void *ha_dev_get_last_data(ha_dev_t *dev)
+{
+	if (dev != NULL) {
+		return ha_ev_get_data(dev->last_data_event);
+	}
+
+	return NULL;
+}
+
+/* Subscription structure can be allocated from any thread, so we need to protect it */
+K_MEM_SLAB_DEFINE(sub_slab, sizeof(struct ha_ev_subs), HA_EV_SUBS_BLOCK_COUNT, 4);
+
+K_MUTEX_DEFINE(sub_mutex);
+static sys_dlist_t sub_dlist = SYS_DLIST_STATIC_INIT(&sub_dlist);
+
+static struct ha_ev_subs *sub_alloc(void)
+{
+	static struct ha_ev_subs *sub;
+
+	/* "mem" set to NULL on k_mem_slab_alloc(,,K_NO_WAIT) error,
+	 * but don't want to suffer from an API change */
+	if (k_mem_slab_alloc(&sub_slab, (void **)&sub, K_NO_WAIT) != 0) {
+		sub = NULL;
+	} else {
+		LOG_DBG("Sub %p allocated", sub);
+	}
+
+	return sub;
+}
+
+static void sub_free(struct ha_ev_subs *sub)
+{
+	__ASSERT_NO_MSG(sub != NULL);
+
+	/* Same comment */
+	k_mem_slab_free(&sub_slab, (void **)&sub);
+	LOG_DBG("Sub %p freed", sub);
+}
+
+static void sub_init(struct ha_ev_subs *sub)
+{
+	k_fifo_init(&sub->evq);
+	sub->func = NULL;
+	sub->flags = 0u;
+}
+
+K_MEM_SLAB_DEFINE(ev_slab, sizeof(struct ha_event), HA_EV_COUNT, 4);
+
+static struct ha_event *ha_ev_alloc(void)
+{
+	static struct ha_event *ev;
+
+	/* Same comment */
+	if (k_mem_slab_alloc(&ev_slab, (void **)&ev, K_NO_WAIT) != 0) {
+		ev = NULL;
+	} else {
+		LOG_DBG("Event %p allocated", ev);
+	}
+
+	return ev;
+}
+
+static struct ha_event *ha_ev_alloc_and_reset(void)
+{
+	struct ha_event *ev = ha_ev_alloc();
+
+	if (ev != NULL) {
+		memset(ev, 0, sizeof(struct ha_event));
+	}
+
+	return ev;
+}
+
+static void ha_ev_free(struct ha_event *ev)
+{
+	__ASSERT_NO_MSG(ev != NULL);
+	__ASSERT_NO_MSG(atomic_get(&ev->ref_count) == (atomic_val_t)0);
+
+	/* Deallocate event data buffer */
+	k_free(ev->data);
+
+	/* Same comment */
+	k_mem_slab_free(&ev_slab, (void **)&ev);
+	LOG_DBG("Event %p freed", ev);
+}
+
+uint32_t ha_ev_free_count(void)
+{
+	return k_mem_slab_num_free_get(&ev_slab);
+}
+
+void ha_ev_ref(struct ha_event *event)
+{
+	__ASSERT_NO_MSG(event != NULL);
+	
+	atomic_inc(&event->ref_count);
+}
+
+void ha_ev_unref(struct ha_event *event)
+{
+	if (event != NULL) {
+		/* If last reference, free the event */
+		if (atomic_dec(&event->ref_count) == (atomic_val_t)1) {
+			/* Deallocate event buffer */
+			ha_ev_free(event);
+		}
+	}
+}
+
+/**
+ * @brief Notify the event to the subscription event queue if it is listening for it
+ * 
+ * @param sub 
+ * @param event 
+ * @return int 1 if notified, 0 if not, negative value on error
+ */
+static int event_notify_single(struct ha_ev_subs *sub,
+			       struct ha_event *event)
+{
+	int ret = 0;
+
+	/* TODO Validate match */
+	bool match = true;
+
+	if (match) {
+		ha_ev_ref(event);
+
+		/* TODO: Find a way to use a regular k_fifo_put() 
+		 * i.e. without k_malloc() */
+		ret = k_fifo_alloc_put(&sub->evq, event);
+		
+		if (ret == 0) {
+			ret = 1;
+		}
+	}
+
+	return ret;
+}
+
+int ha_ev_notify_all(struct ha_event *event)
+{
+	int ret = 0, notified = 0;
+	struct ha_ev_subs *_dnode, *sub;
+
+	k_mutex_lock(&sub_mutex, K_FOREVER);
+	SYS_DLIST_FOR_EACH_CONTAINER_SAFE(&sub_dlist, sub, _dnode, _handle) {
+		ret = event_notify_single(sub, event);
+
+		if (ret == 1) {
+			notified++;
+		} else if (ret < 0) {
+			break;
+		}
+	}
+	k_mutex_unlock(&sub_mutex);
+
+	if (ret < 0) {
+		LOG_ERR("Failed to notify event %p to %p, err=%d",
+			event, sub, ret);
+	} else {
+		ret = notified;
+	}
+
+	return ret;
+}
+
+int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
+		       struct ha_ev_subs **sub)
+{
+	int ret;
+	struct ha_ev_subs *psub = NULL;
+
+	/* TODO validate tconf */
+	ARG_UNUSED(conf);
+
+	if (sub == NULL) {
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	psub = sub_alloc();
+	if (psub == NULL) {
+		ret = -ENOMEM;
+		goto exit;
+	}
+
+	sub_init(psub);
+
+	/* Configure the subger with tconf */
+
+	/* prefer irq_lock() to mutex here */
+	k_mutex_lock(&sub_mutex, K_FOREVER);
+	sys_dlist_append(&sub_dlist, &psub->_handle);
+	k_mutex_unlock(&sub_mutex);
+
+	/* Mark as subscribed */
+	atomic_set_bit(&psub->flags, HA_EV_SUBS_FLAG_SUBSCRIBED);
+
+	*sub = psub;
+
+	ret = 0;
+exit:
+	if (ret != 0) {
+		sub_free(psub);
+	}
+	return ret;
+}
+
+int ha_ev_unsubscribe(struct ha_ev_subs *sub)
+{
+	int ret = -EINVAL;
+
+	if ((sub != NULL) &&
+	    atomic_test_and_clear_bit(&sub->flags, HA_EV_SUBS_FLAG_SUBSCRIBED)) {
+		k_mutex_lock(&sub_mutex, K_FOREVER);
+		sys_dlist_remove(&sub->_handle);
+		k_mutex_unlock(&sub_mutex);
+
+		sub_free(sub);
+
+		ret = 0;
+	}
+
+	return ret;
+}
+
+ha_ev_t *ha_ev_wait(struct ha_ev_subs *sub,
+			  k_timeout_t timeout)
+{
+	if ((sub != NULL) && HA_EV_SUBS_SUBSCRIBED(sub)) {
+		return (ha_ev_t *)k_fifo_get(&sub->evq, timeout);
+	}
+	return NULL;
+}
+
+const void *ha_ev_get_data(const ha_ev_t *event)
+{
+	if (event != NULL) {
+		return event->data;
+	}
+	return NULL;
+}
+
+const void *ha_ev_get_data_check_type(const ha_ev_t *event,
+					 ha_dev_type_t expected_type)
+{
+	if ((event != NULL) &&
+	    (event->dev != NULL) &&
+	    (expected_type == event->dev->addr.type)) {
+		return event->data;
+	}
+	return NULL;
 }

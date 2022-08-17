@@ -14,7 +14,6 @@
 #include "ble/xiaomi_record.h"
 
 #include "ha/devices.h"
-#include "ha/events.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(ha_emu, LOG_LEVEL_DBG);
@@ -92,15 +91,17 @@ void emu_thread_provider(void *_a, void *_b, void *_c)
 			}
 		};
 
-		ha_dev_t *dev = ha_dev_get(&addr);
+		// ha_dev_t *dev = ha_dev_get_by_addr(&addr);
 
-		if (dev == NULL) {
-			dev = ha_dev_register(&addr);
-		}
+		// if (dev == NULL) {
+		// 	dev = ha_dev_register(&addr);
+		// }
 
-		if (dev != NULL) {
-			ret = ha_dev_process_data(dev, &record);
-		}
+		// if (dev != NULL) {
+			
+		// }
+
+		ret = ha_dev_register_data(&addr, &record, sizeof(xiaomi_record_t), 0);
 		
 
 		/* Register the data to the device */
@@ -112,7 +113,7 @@ void emu_thread_provider(void *_a, void *_b, void *_c)
 
 		if (_a != NULL) {
 			LOG_INF("k_mem_slab_num_free_get(): %u",
-				ha_event_free_count());
+				ha_ev_free_count());
 		}
 	}
 }
@@ -120,12 +121,12 @@ void emu_thread_provider(void *_a, void *_b, void *_c)
 void emu_thread_consumer(void *_a, void *_b, void *_c)
 {
 
-	ha_ev_trig_t *trig;
-	ha_event_t *event;
+	ha_ev_subs_t *trig;
+	ha_ev_t *event;
 	const struct ha_ev_subs_conf sub = {
 		.flags = HA_EV_SUBS_FLAG_ALL
 	};
-	int ret = ha_event_subscribe(&sub, &trig);
+	int ret = ha_ev_subscribe(&sub, &trig);
 	if (ret != 0) {
 		LOG_ERR("(thread %p) Failed to subscribe to events, ret=%d", 
 			_current, ret);
@@ -133,13 +134,16 @@ void emu_thread_consumer(void *_a, void *_b, void *_c)
 	}
 
 	for (uint32_t i = 0u;;i++) {
-		event = ha_event_wait(trig, K_MSEC(get_rdm_delay_ms_1()));
+		event = ha_ev_wait(trig, K_MSEC(get_rdm_delay_ms_1()));
 
 		if (event != NULL) {
-			LOG_INF("(thread %p) got event %p (refc = %u)",
-				_current, event, (uint32_t)atomic_get(&event->ref_count));
+			LOG_INF("(thread %p) got event %p (refc = %u) - time=%u temp=%d",
+				_current, event, (uint32_t)atomic_get(&event->ref_count),
+				event->time,
+				((struct ha_xiaomi_dataset *)event->data)->temperature.value);
 
-			ha_event_unref(event);
+
+			ha_ev_unref(event);
 		}
 		
 		k_sleep(K_MSEC(get_rdm_delay_ms_1() >> 2));

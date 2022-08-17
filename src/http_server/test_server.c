@@ -9,6 +9,8 @@
 #include <data/json.h>
 #include <net/http_parser.h>
 
+#include "utils/misc.h"
+
 #include <logging/log.h>
 LOG_MODULE_REGISTER(test_server, LOG_LEVEL_INF);
 

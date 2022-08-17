@@ -27,6 +27,56 @@ struct k_poll_event ipc_event =
 					&ipc_ble_msgq, 0);
 static struct k_work_poll ipc_ble_work;
 
+
+int process_xiaomi_dataframe(xiaomi_dataframe_t *frame)
+{
+	int ret = 0;
+	char addr_str[BT_ADDR_STR_LEN];
+
+	// show dataframe records
+	LOG_DBG("Received BLE Xiaomi records count: %u, frame_time: %u",
+		frame->count, frame->time);
+
+	uint32_t frame_ref_time = frame->time;
+	uint32_t now = net_time_get();
+
+	// Process each record
+	for (uint8_t i = 0; i < frame->count; i++) {
+		xiaomi_record_t *const rec = &frame->records[i];
+
+		bt_addr_to_str(&rec->addr.a, addr_str,
+			       sizeof(addr_str));
+
+		int32_t record_rel_time = rec->time - frame_ref_time;
+		uint32_t record_timestamp = now + record_rel_time;
+		rec->time = record_timestamp;
+
+		ret = ha_dev_register_xiaomi_record(rec);
+		if (ret != 0) {
+			LOG_ERR("ha_dev_register_xiaomi_record() failed err=%d",
+				ret);
+			goto exit;
+		}
+
+		/* Show BLE address, temperature, humidity, battery
+		 *   Only raw values are showed in debug because,
+		 *   there is no formatting (e.g. float)
+		 */
+		LOG_INF("BLE Xiaomi rec %u [%d s]: %s [rssi %d] " \
+			"temp: %d°C hum: %u %% bat: %u mV (%u %%)",
+			i, record_rel_time,
+			log_strdup(addr_str), 
+			(int32_t)rec->measurements.rssi,
+			(int32_t)rec->measurements.temperature / 100,
+			(uint32_t)rec->measurements.humidity / 100,
+			(uint32_t)rec->measurements.battery_mv,
+			(uint32_t)rec->measurements.battery_level);
+	}
+
+exit:
+	return ret;
+}
+
 static void ipc_work_handler(struct k_work *work)
 {
 	int ret;
@@ -35,7 +85,7 @@ static void ipc_work_handler(struct k_work *work)
 
 	/* process all available messages */
 	while (k_msgq_get(&ipc_ble_msgq, &frame, K_NO_WAIT) == 0U) {
-		ret = ha_register_xiaomi_from_dataframe(
+		ret = process_xiaomi_dataframe(
 			(xiaomi_dataframe_t *)frame.data.buf);
 		if (ret != 0) {
 			LOG_ERR("Failed to handle BLE Xiaomi record, err: %d",

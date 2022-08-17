@@ -33,6 +33,12 @@ config DISCOVERY_SERVER_LOG_LEVEL
         help
                 NONE(0) ERR(1) WRN (2) INF(3) DBG(4)
 
+config HTTP_SERVER
+	bool "Enable HTTP server"
+        default y
+	help
+	        Enable HTTP server features (webserver, REST API, prometheus, etc.)
+
 config BLE_CONTROLLER
         bool "Enable BLE controller"
         default y

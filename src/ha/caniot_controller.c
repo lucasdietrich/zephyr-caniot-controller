@@ -19,8 +19,8 @@
 #include "caniot_controller.h"
 #include "devices.h"
 #include "net_time.h"
-#include "utils.h"
-#include "../utils.h"
+#include "ha/utils.h"
+#include "utils/misc.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(caniot, LOG_LEVEL_INF);

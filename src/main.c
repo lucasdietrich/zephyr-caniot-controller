@@ -26,7 +26,6 @@
 #include "ha/devices.h"
 #include "ha/ble_controller.h"
 #endif /* CONFIG_QEMU_TARGET */
-#include "ha/events.h"
 
 #ifdef CONFIG_LUA
 #include "lua/utils.h"

@@ -432,7 +432,8 @@ static void xiaomi_device_cb(ha_dev_t *dev,
 	struct xiaomi_records_encoding_context *ctx =
 		(struct xiaomi_records_encoding_context *)user_data;
 
-	struct ha_xiaomi_dataset *const data = &dev->data.xiaomi;
+	const struct ha_xiaomi_dataset *const data = 
+		HA_DEV_GET_CAST_LAST_DATA(dev, const struct ha_xiaomi_dataset);
 	struct json_xiaomi_record *const json = &ctx->arr.records[ctx->arr.count];
 
 	json->bt_mac = ctx->strings[ctx->arr.count].addr;
@@ -442,7 +443,7 @@ static void xiaomi_device_cb(ha_dev_t *dev,
 	json->humidity = data->humidity;
 	json->battery_level = data->battery_level;
 	json->battery_voltage = data->battery_mv;
-	json->base.timestamp = dev->data.measurements_timestamp;
+	json->base.timestamp = dev->last_data_event->time;
 
 	bt_addr_le_to_str(&dev->addr.mac.addr.ble,
 			  json->bt_mac,
@@ -461,7 +462,7 @@ int rest_xiaomi_records(http_request_t *req,
 
 	ctx.arr.count = 0;
 
-	ha_dev_xiaomi_iterate(xiaomi_device_cb, &ctx);
+	ha_dev_xiaomi_iterate_data(xiaomi_device_cb, &ctx);
 
 	return rest_encode_response_json_array(resp, &ctx.arr, json_xiaomi_record_array_descr,
 					       ARRAY_SIZE(json_xiaomi_record_array_descr));
@@ -535,13 +536,14 @@ static void caniot_device_cb(ha_dev_t *dev,
 	struct caniot_records_encoding_context *const ctx =
 		(struct caniot_records_encoding_context *)user_data;
 	struct json_caniot_telemetry *const rec = &ctx->arr.records[ctx->arr.count];
-	struct ha_caniot_blt_dataset *const dt = &dev->data.caniot;
+	const struct ha_caniot_blt_dataset *const dt =
+		HA_DEV_GET_CAST_LAST_DATA(dev, struct ha_caniot_blt_dataset);
 
-	rec->base.timestamp = dev->data.measurements_timestamp;
+	rec->base.timestamp = dev->last_data_event->time;
 	rec->did = (uint32_t)dev->addr.mac.addr.caniot;
 	rec->temperatures_count = 0U;
-	rec->dio = dev->data.caniot.dio;
-	rec->pdio = dev->data.caniot.pdio;
+	rec->dio = dt->dio;
+	rec->pdio = dt->pdio;
 
 	/* encode temperatures */
 	for (size_t i = 0; i < HA_CANIOT_MAX_TEMPERATURES; i++) {
@@ -570,7 +572,7 @@ int rest_caniot_records(http_request_t *req,
 
 	ctx.arr.count = 0;
 
-	ha_dev_caniot_iterate(caniot_device_cb, &ctx);
+	ha_dev_caniot_iterate_data(caniot_device_cb, &ctx);
 
 	return rest_encode_response_json_array(resp, &ctx.arr, json_caniot_telemetry_array_descr,
 					       ARRAY_SIZE(json_caniot_telemetry_array_descr));

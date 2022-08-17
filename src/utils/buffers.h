@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef _UTILS_H_
-#define _UTILS_H_
+#ifndef _UTILS_BUFFERS_H_
+#define _UTILS_BUFFERS_H_
 
 #include <stddef.h>
 
@@ -13,20 +13,6 @@
 #include <drivers/can.h>
 
 #include <sys/types.h>
-
-static inline uint32_t k_uptime_delta32(uint32_t *reftime)
-{
-	__ASSERT_NO_MSG(reftime);
-
-	uint32_t uptime, delta;
-
-	uptime = k_uptime_get_32();
-	delta = uptime - *reftime;
-	*reftime = uptime;
-
-	return delta;
-}
-
 
 /**
  * @brief Append memory to a buffer
