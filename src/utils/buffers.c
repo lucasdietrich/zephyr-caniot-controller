@@ -152,6 +152,20 @@ ssize_t buffer_append_strings(buffer_t *buffer, const char **strings, size_t cou
 	return total;
 }
 
+int buffer_snprintf(buffer_t *buf, const char *fmt, ...)
+{
+	int ret;
+	va_list args;
+	va_start(args, fmt);
+	const size_t remaining = buf->size - buf->filling;
+	ret = snprintf(buf->data, remaining, args);
+	if (ret >= 0 && ret <= remaining) {
+		buf->filling += ret;
+	}
+	va_end(args);
+	return ret;
+}
+
 /*____________________________________________________________________________*/
 
 int cursor_buffer_init(cursor_buffer_t *cbuf, char *buffer, size_t size)

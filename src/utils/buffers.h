@@ -85,6 +85,8 @@ ssize_t buffer_append_string(buffer_t *buffer, const char *string);
 
 ssize_t buffer_append_strings(buffer_t *buffer, const char **strings, size_t count);
 
+int buffer_snprintf(buffer_t *buf, const char *fmt, ...);
+
 static inline size_t buffer_remaining(buffer_t *buffer)
 {
 	return buffer->size - buffer->filling;
