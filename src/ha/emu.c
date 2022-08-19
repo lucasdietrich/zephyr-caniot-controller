@@ -124,7 +124,8 @@ void emu_thread_consumer(void *_a, void *_b, void *_c)
 	ha_ev_subs_t *trig;
 	ha_ev_t *event;
 	const struct ha_ev_subs_conf sub = {
-		.flags = HA_EV_SUBS_FLAG_ALL
+		.flags = HA_EV_SUBS_DEVICE_TYPE,
+		.device_type = HA_DEV_TYPE_XIAOMI_MIJIA
 	};
 	int ret = ha_ev_subscribe(&sub, &trig);
 	if (ret != 0) {

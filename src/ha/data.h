@@ -23,6 +23,7 @@
 // TODO move to CANIOT library
 #define HA_CANIOT_MAX_TEMPERATURES 4U
 
+/* TODO: Move these definitions to devices.h header */
 typedef enum {
 	HA_DEV_MEDIUM_NONE = 0,
 	HA_DEV_MEDIUM_BLE,

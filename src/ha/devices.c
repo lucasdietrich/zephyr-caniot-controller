@@ -15,7 +15,7 @@
 
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_INF);
 
 // #define HA_DEVICES_IGNORE_UNVERIFIED_DEVICES 1
 
@@ -349,10 +349,11 @@ static int device_process_data(ha_dev_t *dev,
 
 	ev->data = odata;
 
-
 	/* If there is a previous data event is referenced here, unref it */
-	if (dev->last_data_event != NULL) {
-		ha_ev_unref(dev->last_data_event);
+	ha_ev_t *const prev_data_ev = dev->last_data_event;
+	if (prev_data_ev != NULL) {
+		dev->last_data_event = NULL;
+		ha_ev_unref(prev_data_ev);
 	}
 
 	/* Update statistics */
@@ -507,6 +508,42 @@ void ha_ev_unref(struct ha_event *event)
 	}
 }
 
+static bool event_match_sub(struct ha_ev_subs *sub,
+			    struct ha_event *event)
+{
+	if (sub->flags & HA_EV_SUBS_DEVICE_TYPE) {
+		if (event->dev->addr.type != sub->device_type) {
+			return false;
+		}
+	}
+
+	if (sub->flags & HA_EV_SUBS_DEVICE_ADDR) {
+		if (mac_cmp(&sub->device_addr, &event->dev->addr.mac) != 0) {
+			return false;
+		}
+	}
+
+	if (sub->flags & HA_EV_SUBS_DEVICE_DATA) {
+		if (event->type != HA_EV_TYPE_DATA) {
+			return false;
+		}
+	}
+
+	if (sub->flags & HA_EV_SUBS_DEVICE_COMMAND) {
+		if (event->type != HA_EV_TYPE_COMMAND) {
+			return false;
+		}
+	}
+
+	if (sub->flags & HA_EV_SUBS_DEVICE_ERROR) {
+		if (event->type != HA_EV_TYPE_ERROR) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 /**
  * @brief Notify the event to the subscription event queue if it is listening for it
  * 
@@ -519,10 +556,12 @@ static int event_notify_single(struct ha_ev_subs *sub,
 {
 	int ret = 0;
 
-	/* TODO Validate match */
-	bool match = true;
+	/* Validate match */
+	bool match = event_match_sub(sub, event);
 
 	if (match) {
+		/* Reference the event, the subscriber will have to unref it 
+		 * when it will don't need it anymore */
 		ha_ev_ref(event);
 
 		/* TODO: Find a way to use a regular k_fifo_put() 
@@ -531,6 +570,11 @@ static int event_notify_single(struct ha_ev_subs *sub,
 		
 		if (ret == 0) {
 			ret = 1;
+		} else {
+			/* Unref on error */
+			ha_ev_unref(event);
+
+			LOG_ERR("k_fifo_alloc_put() error %d", ret);
 		}
 	}
 
@@ -564,16 +608,43 @@ int ha_ev_notify_all(struct ha_event *event)
 	return ret;
 }
 
+/**
+ * @brief Validate subscription is valid
+ * 
+ * @param sub 
+ */
+static bool subscription_conf_validate(const ha_ev_subs_conf_t *conf)
+{
+	if (conf == NULL) {
+		return false;
+	}
+
+	if (conf->flags & HA_EV_SUBS_DEVICE_ADDR) {
+		if (conf->device_addr == 0) {
+			return false;
+		}
+	}
+
+	if (conf->flags & HA_EV_SUBS_FUNCTION) {
+		if (conf->func == NULL) {
+			return false;
+		}
+	}
+
+	/* TODO check for conflicting flags */
+
+	return true;
+}
+
 int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
-		       struct ha_ev_subs **sub)
+		    struct ha_ev_subs **sub)
 {
 	int ret;
 	struct ha_ev_subs *psub = NULL;
 
-	/* TODO validate tconf */
-	ARG_UNUSED(conf);
+	/* validate tconf */
 
-	if (sub == NULL) {
+	if (!subscription_conf_validate(conf)) {
 		ret = -EINVAL;
 		goto exit;
 	}
@@ -586,7 +657,12 @@ int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
 
 	sub_init(psub);
 
-	/* Configure the subger with tconf */
+	/* Configure the sub structure with conf */
+	psub->flags = conf->flags;
+	psub->device_type = conf->device_type;
+	if (conf->flags & HA_EV_SUBS_DEVICE_ADDR) {
+		memcpy(&psub->device_addr, conf->device_addr, sizeof(ha_dev_mac_t));
+	}
 
 	/* prefer irq_lock() to mutex here */
 	k_mutex_lock(&sub_mutex, K_FOREVER);
@@ -594,7 +670,7 @@ int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
 	k_mutex_unlock(&sub_mutex);
 
 	/* Mark as subscribed */
-	atomic_set_bit(&psub->flags, HA_EV_SUBS_FLAG_SUBSCRIBED);
+	atomic_set_bit(&psub->flags, HA_EV_SUBS_FLAG_SUBSCRIBED_BIT);
 
 	*sub = psub;
 
@@ -611,7 +687,7 @@ int ha_ev_unsubscribe(struct ha_ev_subs *sub)
 	int ret = -EINVAL;
 
 	if ((sub != NULL) &&
-	    atomic_test_and_clear_bit(&sub->flags, HA_EV_SUBS_FLAG_SUBSCRIBED)) {
+	    atomic_test_and_clear_bit(&sub->flags, HA_EV_SUBS_FLAG_SUBSCRIBED_BIT)) {
 		k_mutex_lock(&sub_mutex, K_FOREVER);
 		sys_dlist_remove(&sub->_handle);
 		k_mutex_unlock(&sub_mutex);

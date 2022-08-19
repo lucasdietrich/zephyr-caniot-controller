@@ -36,6 +36,12 @@ struct ha_dev_stats
 	uint32_t max_inactivity; /* number of seconds without any activity */
 };
 
+struct ha_event_stats
+{
+	uint8_t notified; /* Number of times the event has been notified */
+	uint32_t alive_ms; /* Time the event has been alive (ms) */
+};
+
 struct ha_device;
 
 struct ha_device_api {
@@ -230,28 +236,37 @@ typedef struct ha_ev_subs
 	/* Flag describing on which event should the waiter be notified */
 	atomic_t flags;
 
-	union {
-		event_subs_filter_func_t func;
-		void *params;
-	};
+	/* Depends on filter */
+	event_subs_filter_func_t func;
+	ha_dev_mac_t device_addr;
+	ha_dev_type_t device_type;
 
 } ha_ev_subs_t;
 
-#define HA_EV_SUBS_FLAG_SUBSCRIBED 0u
+#define HA_EV_SUBS_FLAG_SUBSCRIBED_BIT 0u
+#define HA_EV_SUBS_FLAG_SUBSCRIBED BIT(HA_EV_SUBS_FLAG_SUBSCRIBED_BIT)
 
-#define HA_EV_SUBS_DEVICE_DATA 3u
-#define HA_EV_SUBS_DEVICE_COMMAND 4u
-#define HA_EV_SUBS_DEVICE_ERROR 5u
-#define HA_EV_SUBS_FUNCTION 6u
-#define HA_EV_SUBS_PARAMS 7u
+#define HA_EV_SUBS_DEVICE_TYPE BIT(1u)
+#define HA_EV_SUBS_DEVICE_ADDR BIT(2u)
+#define HA_EV_SUBS_DEVICE_DATA BIT(3u)
+#define HA_EV_SUBS_DEVICE_COMMAND BIT(4u)
+#define HA_EV_SUBS_DEVICE_ERROR BIT(5u)
+#define HA_EV_SUBS_FUNCTION BIT(6u)
 
-#define HA_EV_SUBS_SUBSCRIBED(_subs) (atomic_test_bit(&_subs->flags, HA_EV_SUBS_FLAG_SUBSCRIBED))
+// #define HA_EV_SUBS_PARAMS 7u
 
-#define HA_EV_SUBS_FLAG_ALL BIT(0u)
+#define HA_EV_SUBS_SUBSCRIBED(_subs) (atomic_test_bit(&_subs->flags, HA_EV_SUBS_FLAG_SUBSCRIBED_BIT))
+
+// #define HA_EV_SUBS_FLAG_ALL BIT(0u)
 
 typedef struct ha_ev_subs_conf
 {
 	uint32_t flags;
+
+	/* Depends on filter */
+	event_subs_filter_func_t func;
+	const ha_dev_mac_t *device_addr;
+	ha_dev_type_t device_type;
 } ha_ev_subs_conf_t;
 
 /**
@@ -272,7 +287,7 @@ int ha_ev_notify_all(ha_ev_t *event);
  * @return int 0 on success, negative error code otherwise
  */
 int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
-		       struct ha_ev_subs **sub);
+		    struct ha_ev_subs **sub);
 
 /**
  * @brief Unsubscribe from a specific type of event, using given subscription.
