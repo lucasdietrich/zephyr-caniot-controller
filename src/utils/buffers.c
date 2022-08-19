@@ -158,7 +158,7 @@ int buffer_snprintf(buffer_t *buf, const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 	const size_t remaining = buf->size - buf->filling;
-	ret = snprintf(buf->data, remaining, args);
+	ret = snprintf(buf->data, remaining, fmt, args);
 	if (ret >= 0 && ret <= remaining) {
 		buf->filling += ret;
 	}
