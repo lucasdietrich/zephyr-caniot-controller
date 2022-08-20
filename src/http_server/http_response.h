@@ -13,7 +13,7 @@
 #include "utils/buffers.h"
 #include "http_utils.h"
 
-#define HTTP_DEFAULT_RESP_STATUS_CODE HTTP_OK
+#define HTTP_DEFAULT_RESP_STATUS_CODE HTTP_STATUS_OK
 
 typedef struct http_response
 {

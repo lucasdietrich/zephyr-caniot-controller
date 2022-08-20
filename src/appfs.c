@@ -127,9 +127,6 @@ struct fs_mount_t *appfs_mp[] = {
 #endif
 };
 
-
-
-
 int app_fs_lsdir(const char *path)
 {
 	int res;
@@ -235,9 +232,6 @@ exit:
 }
 
 
-
-
-
 int app_fs_init(void)
 {
 	int rc = 0;
@@ -317,4 +311,23 @@ int app_fs_iterate_dir_files(const char *path,
 
 ret:
 	return res;
+}
+
+int app_fs_filepath_normalize(const char *path, char *out_path, size_t out_size)
+{
+	if (!path || !out_path || !out_size) {
+		return -EINVAL;
+	}
+
+	const int add_slash = path[0] == '/' ? 0 : 1;
+	const size_t len = strlen(path) + add_slash;
+
+	if (len >= out_size) {
+		return -ENOMEM;
+	}
+
+	strncpy(out_path + add_slash, path, out_size - add_slash);
+	out_path[0] = '/';
+
+	return len;
 }

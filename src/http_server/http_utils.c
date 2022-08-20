@@ -25,28 +25,28 @@ struct code_str
 };
 
 static const struct code_str status[] = {
-	{HTTP_OK, "OK"},
-	{HTTP_CREATED, "Created"},
-	{HTTP_ACCEPTED, "Accepted"},
-	{HTTP_NO_CONTENT, "No Content"},
+	{HTTP_STATUS_OK, "OK"},
+	{HTTP_STATUS_CREATED, "Created"},
+	{HTTP_STATUS_ACCEPTED, "Accepted"},
+	{HTTP_STATUS_NO_CONTENT, "No Content"},
 
-	{HTTP_BAD_REQUEST, "Bad Request"},
-	{HTTP_UNAUTHORIZED, "Unauthorized"},
-	{HTTP_FORBIDDEN, "Forbidden"},
-	{HTTP_NOT_FOUND, "Not Found"},
-	{HTTP_REQUEST_TIMEOUT, "Request Timeout"},
-	{HTTP_LENGTH_REQUIRED, "Length Required"},
-	{HTTP_REQUEST_ENTITY_TOO_LARGE, "Request Entity Too Large"},
-	{HTTP_REQUEST_URI_TOO_LONG, "Request-URI Too Long"},
-	{HTTP_UNSUPPORTED_MEDIA_TYPE, "Unsupported Media Type"},
+	{HTTP_STATUS_BAD_REQUEST, "Bad Request"},
+	{HTTP_STATUS_UNAUTHORIZED, "Unauthorized"},
+	{HTTP_STATUS_FORBIDDEN, "Forbidden"},
+	{HTTP_STATUS_NOT_FOUND, "Not Found"},
+	{HTTP_STATUS_REQUEST_TIMEOUT, "Request Timeout"},
+	{HTTP_STATUS_LENGTH_REQUIRED, "Length Required"},
+	{HTTP_STATUS_REQUEST_ENTITY_TOO_LARGE, "Request Entity Too Large"},
+	{HTTP_STATUS_REQUEST_URI_TOO_LONG, "Request-URI Too Long"},
+	{HTTP_STATUS_UNSUPPORTED_MEDIA_TYPE, "Unsupported Media Type"},
 
-	{HTTP_INTERNAL_SERVER_ERROR, "Internal Server Error"},
-	{HTTP_NOT_IMPLEMENTED, "Not Implemented"},
-	{HTTP_BAD_GATEWAY, "Bad Gateway"},
-	{HTTP_SERVICE_UNAVAILABLE, "Service Unavailable"},
-	{HTTP_GATEWAY_TIMEOUT, "Gateway Timeout"},
-	{HTTP_HTTP_VERSION_NOT_SUPPORTED, "HTTP Version Not Supported"},
-	{HTTP_INSUFFICIENT_STORAGE, "Insufficient Storage"},
+	{HTTP_STATUS_INTERNAL_SERVER_ERROR, "Internal Server Error"},
+	{HTTP_STATUS_NOT_IMPLEMENTED, "Not Implemented"},
+	{HTTP_STATUS_BAD_GATEWAY, "Bad Gateway"},
+	{HTTP_STATUS_SERVICE_UNAVAILABLE, "Service Unavailable"},
+	{HTTP_STATUS_GATEWAY_TIMEOUT, "Gateway Timeout"},
+	{HTTP_STATUS_HTTP_VERSION_NOT_SUPPORTED, "HTTP Version Not Supported"},
+	{HTTP_STATUS_INSUFFICIENT_STORAGE, "Insufficient Storage"},
 };
 
 static const char *get_status_code_str(http_status_code_t status_code)
@@ -129,7 +129,7 @@ int http_encode_endline(buffer_t *buf)
 
 bool http_code_has_payload(uint16_t status_code)
 {
-	return (status_code == HTTP_OK || status_code == HTTP_BAD_REQUEST);
+	return (status_code == HTTP_STATUS_OK || status_code == HTTP_STATUS_BAD_REQUEST);
 }
 
 const char *http_content_type_to_str(http_content_type_t content_type)

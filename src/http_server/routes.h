@@ -37,6 +37,16 @@ struct http_response;
 typedef int (*http_handler_t) (struct http_request *__restrict req,
 			       struct http_response *__restrict resp);
 
+// typedef bool (*http_route_match_t)(enum http_method method,
+// 				  const char *url,
+// 				  size_t url_len);
+
+typedef enum {
+	HTTP_ROUTE_MATCH_EXACT_NOARGS = 0,
+	HTTP_ROUTE_MATCH_EXACT_WITHARGS,
+	HTTP_ROUTE_MATCH_LEASE_NOARGS,
+} http_route_match_type_t;
+
 struct http_route
 {
 	/**
@@ -45,6 +55,13 @@ struct http_route
 	 * - If path_args_count > 0, there are variables in the route that we need to parse
 	 */
 	const char *route;
+
+	/**
+	 * @brief Route match function
+	 * 
+	 * If "route" is NULL, this function is used to match the request against the route.
+	 */
+	// http_route_match_t match_func;
 
 	/**
 	 * @brief Route pattern length
@@ -56,7 +73,9 @@ struct http_route
 	 * 
 	 * Note: e.g. /devices/caniot/%u/endpoints/%u/telemetry
 	 */
-	uint32_t path_args_count; 
+	uint8_t path_args_count; 
+
+	http_route_match_type_t match_type;
 
 	/**
 	 * @brief HTTP method of the request
@@ -125,4 +144,7 @@ bool route_is_valid(const struct http_route *route);
 
 http_content_type_t http_route_resp_default_content_type(const struct http_route *route);
 
+int http_route_iterate(bool(*cb)(const struct http_route *route, void *arg),
+		       void *arg);
+		       
 #endif /* _HTTP_SERVER_ROUTES_H_ */

@@ -29,6 +29,7 @@ class API(IntEnum):
     Command = 2
     RequestTelemetry = 3
     Files = 4
+    FileDownload = 8
     ListLuaScripts = 5
     ListLuaScriptsDetailled = 6
     ExecuteLua = 7
@@ -44,7 +45,8 @@ urls = {
     API.Files: (Method.POST, "files"),
     API.ListLuaScripts: (Method.GET, "files/lua/simple"),
     API.ListLuaScriptsDetailled: (Method.GET, "files/lua"),
-    API.ExecuteLua: (Method.POST, "/lua/execute"),
+    API.ExecuteLua: (Method.POST, "lua/execute"),
+    API.FileDownload: (Method.GET, "files/{filepath}"),
 }
 
 RouteType = Tuple[Method, str]
@@ -182,6 +184,16 @@ class Controller:
                 "App-Upload-Filepath": filepath,
             },
             "timeout": self.get_req_timeout(),
+        }
+
+        return requests.request(**req)
+    
+    def download(self, filepath: str):
+        method, path = urls[API.FileDownload]
+
+        req = self.default_req | {
+            "method": method.name,
+            "url": (self.url + path).project(filepath=filepath),
         }
 
         return requests.request(**req)

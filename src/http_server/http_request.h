@@ -320,4 +320,17 @@ const char *http_header_get_value(http_request_t *req,
 bool http_discard_reason_to_status_code(http_request_discard_reason_t reason,
 					uint16_t *status_code);
 
+/**
+ * @brief If route is configured with HTTP_ROUTE_MATCH_LEASE_NOARGS
+ * This function can be used to extract the rest of the URL
+ * 
+ * e.g. With route /files/
+ * 	And given URL /files//RAM:/file.txt 
+ * 	Returned string will be /RAM:/file.txt
+ * 
+ * @param req 
+ * @return const char* 
+ */
+const char *http_route_extract_subpath(http_request_t *req);
+
 #endif

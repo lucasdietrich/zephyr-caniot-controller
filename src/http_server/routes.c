@@ -32,59 +32,70 @@ LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 #define POST HTTP_POST
 #define PUT HTTP_PUT
 
-#define HTTP_ROUTE(m, r, qh, rh, t, c, k) \
+#define HTTP_ROUTE(_m, _r, _qh, _rh, _t, _c, _k, _mt) \
 	{ \
-		.route = r, \
-		.route_len = sizeof(r) - 1, \
-		.method = m, \
-		.server = t, \
-		.req_handler = qh, \
-		.resp_handler = rh, \
-		.default_content_type = c, \
-		.path_args_count = k \
+		.route = _r, \
+		.route_len = sizeof(_r) - 1, \
+		.method = _m, \
+		.server = _t, \
+		.req_handler = _qh, \
+		.resp_handler = _rh, \
+		.default_content_type = _c, \
+		.path_args_count = _k, \
+		.match_type = _mt \
 	}
 
-#define MESSAGING_RESSOURCE(m, r, h, t, c, k) HTTP_ROUTE(m, r, NULL, h, t, c, k)
-#define STREAMING_RESSOURCE(m, r, qh, rh, t, c, k) HTTP_ROUTE(m, r, qh, rh, t, c, k)
+#define MESSAGING_RESSOURCE(m, r, h, t, c, k, mt) \
+	HTTP_ROUTE(m, r, NULL, h, t, c, k, mt)
+#define STREAMING_RESSOURCE(m, r, qh, rh, t, c, k, mt) \
+	HTTP_ROUTE(m, r, qh, rh, t, c, k, mt)
 
-#define REST_RESSOURCE(m, r, h, k) MESSAGING_RESSOURCE(m, r, h, HTTP_REST_SERVER, HTTP_CONTENT_TYPE_APPLICATION_JSON, k)
-#define WEB_RESSOURCE(m, r, h) MESSAGING_RESSOURCE(m, r, h, HTTP_WEB_SERVER, HTTP_CONTENT_TYPE_TEXT_HTML, 0U)
-#define PROM_RESSOURCE(m, r, h) MESSAGING_RESSOURCE(m, r, h, HTTP_PROMETHEUS_CLIENT, HTTP_CONTENT_TYPE_TEXT_PLAIN, 0U)
-#define FILE_RESSOURCE(m, r, qh, rh, k) STREAMING_RESSOURCE(m, r, qh, rh, HTTP_FILES_SERVER, HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA, k)
+#define REST_RESSOURCE(m, r, h, k, mt) \
+	MESSAGING_RESSOURCE(m, r, h, HTTP_REST_SERVER, HTTP_CONTENT_TYPE_APPLICATION_JSON, k, mt)
+#define WEB_RESSOURCE(m, r, h, mt) \
+	MESSAGING_RESSOURCE(m, r, h, HTTP_WEB_SERVER, HTTP_CONTENT_TYPE_TEXT_HTML, 0, mt)
+#define PROM_RESSOURCE(m, r, h) \
+	MESSAGING_RESSOURCE(m, r, h, HTTP_PROMETHEUS_CLIENT, HTTP_CONTENT_TYPE_TEXT_PLAIN, 0, HTTP_ROUTE_MATCH_EXACT_NOARGS)
+#define FILE_RESSOURCE(m, r, qh, rh, k, mt) \
+	STREAMING_RESSOURCE(m, r, qh, rh, HTTP_FILES_SERVER, HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA, k, mt)
 
 /**
  * @brief TODO represent the routes as a tree
  */
 static const struct http_route routes[] = {
-	WEB(GET, "", web_server_index_html),
-	WEB(GET, "/", web_server_index_html),
-	WEB(GET, "/index.html", web_server_index_html),
+	WEB(GET, "", web_server_index_html, HTTP_ROUTE_MATCH_EXACT_NOARGS),
+	WEB(GET, "/", web_server_index_html, HTTP_ROUTE_MATCH_EXACT_NOARGS),
+	WEB(GET, "/index.html", web_server_index_html, HTTP_ROUTE_MATCH_EXACT_NOARGS),
+	WEB(GET, "/fetch", web_server_files_html, HTTP_ROUTE_MATCH_LEASE_NOARGS),
 
-	REST(GET, "/info", rest_info, 0U),
+	REST(GET, "/info", rest_info, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
 
 	PROM(GET, "/metrics", prometheus_metrics),
 	PROM(GET, "/metrics_controller", prometheus_metrics_controller),
 	PROM(GET, "/metrics_demo", prometheus_metrics_demo),
 
-	REST(GET, "/devices", rest_devices_list, 0U),
-	REST(GET, "/devices/xiaomi", rest_xiaomi_records, 0U),
-	REST(GET, "/devices/caniot", rest_caniot_records, 0U),
+	REST(GET, "/devices", rest_devices_list, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
+	REST(GET, "/devices/xiaomi", rest_xiaomi_records, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
+	REST(GET, "/devices/caniot", rest_caniot_records, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
 
-	FILE_RESSOURCE(POST, "/files", http_file_upload, http_file_upload, 0U),
-	REST(GET, "/files/lua", rest_fs_list_lua_scripts, 0U),
-	REST(DELETE, "/fules/lua", rest_fs_remove_lua_script, 0U),
+	FILE_RESSOURCE(POST, "/files", http_file_upload, http_file_upload, 0U, HTTP_ROUTE_MATCH_LEASE_NOARGS),
+	FILE_RESSOURCE(POST, "/files/", http_file_upload, http_file_upload, 0U, HTTP_ROUTE_MATCH_LEASE_NOARGS),
+	FILE_RESSOURCE(GET, "/files/", NULL, http_file_download, 0u, HTTP_ROUTE_MATCH_LEASE_NOARGS),
 
-	REST(POST, "/lua/execute", rest_lua_run_script, 0U),
+	REST(GET, "/files/lua", rest_fs_list_lua_scripts, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
+	REST(DELETE, "/files/lua", rest_fs_remove_lua_script, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
+
+	REST(POST, "/lua/execute", rest_lua_run_script, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
 
 #if defined(CONFIG_CANIOT_CONTROLLER)
-	REST(GET, "/devices/garage", rest_devices_garage_get, 0U),
-	REST(POST, "/devices/garage", rest_devices_garage_post, 0U),
+	REST(GET, "/devices/garage", rest_devices_garage_get, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
+	REST(POST, "/devices/garage", rest_devices_garage_post, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
 
-	REST(GET, "/devices/caniot/%u/endpoint/%u/telemetry", rest_devices_caniot_telemetry, 2U),
-	REST(POST, "/devices/caniot/%u/endpoint/%u/command", rest_devices_caniot_command, 2U),
+	REST(GET, "/devices/caniot/%u/endpoint/%u/telemetry", rest_devices_caniot_telemetry, 2U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
+	REST(POST, "/devices/caniot/%u/endpoint/%u/command", rest_devices_caniot_command, 2U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
 
-	REST(GET, "/devices/caniot/%u/attribute/%x", rest_devices_caniot_attr_read, 2U),
-	REST(PUT, "/devices/caniot/%u/attribute/%x", rest_devices_caniot_attr_write, 2U),
+	REST(GET, "/devices/caniot/%u/attribute/%x", rest_devices_caniot_attr_read, 2U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
+	REST(PUT, "/devices/caniot/%u/attribute/%x", rest_devices_caniot_attr_write, 2U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
 #endif
 
 #if defined(CONFIG_HTTP_TEST_SERVER)
@@ -110,9 +121,10 @@ static inline const struct http_route *last(void)
 }
 
 static bool url_match_noarg(const struct http_route *res,
-			    const char *url, size_t url_len)
+			    const char *url, size_t url_len,
+			    bool exact)
 {
-	if (res->route_len != url_len)
+	if (exact && (res->route_len != url_len))
 		return false;
 
 	return strncmp(res->route, url, res->route_len) == 0;
@@ -132,30 +144,38 @@ const struct http_route *route_resolve(enum http_method method,
 			continue;
 		}
 
-		/* use va_list */
-
-		if (route->path_args_count == 0U) {
-			if (url_match_noarg(route, url, url_len) == true) {
+		switch (route->match_type) {
+		case HTTP_ROUTE_MATCH_EXACT_NOARGS:
+			if (url_match_noarg(route, url, url_len, true)) {
 				return route;
 			}
-		} else if ((route->path_args_count == 1U) &&
-			   (HTTP_ROUTE_ARGS_MAX_COUNT >= 1U)) {
-			if (sscanf(url, route->route, &(*rargs)[0])
-			    == route->path_args_count) {
+			break;
+		case HTTP_ROUTE_MATCH_LEASE_NOARGS:
+			if (url_match_noarg(route, url, url_len, false)) {
 				return route;
 			}
-		} else if ((route->path_args_count == 2U) &&
-			   (HTTP_ROUTE_ARGS_MAX_COUNT >= 2U)) {
-			if (sscanf(url, route->route, &(*rargs)[0], &(*rargs)[1])
-			    == route->path_args_count) {
-				return route;
+			break;
+		case HTTP_ROUTE_MATCH_EXACT_WITHARGS:
+			if ((route->path_args_count == 1U) &&
+			    (HTTP_ROUTE_ARGS_MAX_COUNT >= 1U)) {
+				if (sscanf(url, route->route, &(*rargs)[0])
+				    == route->path_args_count) {
+					return route;
+				}
+			} else if ((route->path_args_count == 2U) &&
+				   (HTTP_ROUTE_ARGS_MAX_COUNT >= 2U)) {
+				if (sscanf(url, route->route, &(*rargs)[0], &(*rargs)[1])
+				    == route->path_args_count) {
+					return route;
+				}
+			} else if ((route->path_args_count == 3U) &&
+				   (HTTP_ROUTE_ARGS_MAX_COUNT >= 3U)) {
+				if (sscanf(url, route->route, &(*rargs)[0], &(*rargs)[1], &(*rargs)[2])
+				    == route->path_args_count) {
+					return route;
+				}
 			}
-		} else if ((route->path_args_count == 3U) &&
-			   (HTTP_ROUTE_ARGS_MAX_COUNT >= 3U)) {
-			if (sscanf(url, route->route, &(*rargs)[0], &(*rargs)[1], &(*rargs)[2])
-			    == route->path_args_count) {
-				return route;
-			}
+			break;
 		}
 	}
 
@@ -170,4 +190,18 @@ bool route_is_valid(const struct http_route *route)
 http_content_type_t http_route_resp_default_content_type(const struct http_route *route)
 {
 	return route->default_content_type;
+}
+
+int http_route_iterate(bool(*cb)(const struct http_route *route, void *arg),
+		       void *arg)
+{
+	uint32_t count = 0u;
+	for (const struct http_route *route = first(); route <= last(); route++) {
+		if (cb(route, arg) == false) {
+			return -EINVAL;
+		}
+		count++;
+	}
+
+	return count;
 }

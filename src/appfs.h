@@ -25,11 +25,22 @@ int app_fs_file_add(const char *fpath, const char *data, size_t size);
  * @param user_data is a pointer to the user data to be passed to the callback.
  */
 typedef bool (*app_fs_iterate_fs_cb_t)(const char *path,
-				    struct fs_dirent *dirent,
-				    void *user_data);
+				       struct fs_dirent *dirent,
+				       void *user_data);
 
 int app_fs_iterate_dir_files(const char *path,
 			     app_fs_iterate_fs_cb_t callback,
 			     void *user_data);
+
+/**
+ * @brief Append a slash ('/') to the beginning of the path if it doesn't have one. 
+	 * and copy the result to the output buffer.
+ * 
+ * @param path 
+ * @param out_path 
+ * @param out_size 
+ * @return int 
+ */
+int app_fs_filepath_normalize(const char *path, char *out_path, size_t out_size);
 
 #endif /* _APP_FS_H_ */

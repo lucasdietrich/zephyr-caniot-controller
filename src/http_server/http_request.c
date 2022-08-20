@@ -420,7 +420,8 @@ static int on_headers_complete(struct http_parser *parser)
 	/* TODO add explicit logs to know which route has not been found */
 	if (route == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_UNKNOWN);
-		LOG_WRN("(%p) Route not found %s", req, req->url);
+		LOG_WRN("(%p) Route not found %s %s", req,
+			http_method_str(req->method), req->url);
 	} else if (route->resp_handler == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_NO_HANDLER);
 		LOG_ERR("(%p) Route has no handler %s", req, req->url);
@@ -662,25 +663,37 @@ bool http_discard_reason_to_status_code(http_request_discard_reason_t reason,
 
 	switch (reason) {
 	case HTTP_REQUEST_ROUTE_UNKNOWN:
-		*status_code = HTTP_NOT_FOUND;
+		*status_code = HTTP_STATUS_NOT_FOUND;
 		break;
 	case HTTP_REQUEST_BAD:
-		*status_code = HTTP_BAD_REQUEST;
+		*status_code = HTTP_STATUS_BAD_REQUEST;
 		break;
 	case HTTP_REQUEST_ROUTE_NO_HANDLER:
-		*status_code = HTTP_NOT_IMPLEMENTED;
+		*status_code = HTTP_STATUS_NOT_IMPLEMENTED;
 		break;
 	case HTTP_REQUEST_STREAMING_UNSUPPORTED:
-		*status_code = HTTP_NOT_IMPLEMENTED;
+		*status_code = HTTP_STATUS_NOT_IMPLEMENTED;
 		break;
 	case HTTP_REQUEST_PAYLOAD_TOO_LARGE:
-		*status_code = HTTP_REQUEST_ENTITY_TOO_LARGE;
+		*status_code = HTTP_STATUS_REQUEST_ENTITY_TOO_LARGE;
 		break;
 	case HTTP_REQUEST_PROCESSING_ERROR:
 	default:
-		*status_code = HTTP_INTERNAL_SERVER_ERROR;
+		*status_code = HTTP_STATUS_INTERNAL_SERVER_ERROR;
 		break;
 	}
 
 	return true;
+}
+
+const char *http_route_extract_subpath(http_request_t *req)
+{
+	const char *subpath = NULL;
+
+	if (route_is_valid(req->route) &&
+	    (req->route->match_type == HTTP_ROUTE_MATCH_LEASE_NOARGS)) {
+		subpath = req->url + req->route->route_len;
+	}
+
+	return subpath;
 }

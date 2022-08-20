@@ -631,12 +631,13 @@ static bool handle_response(http_connection_t *conn)
 						conn->sock, resp->content_length);
 				}
 			} else {
-				if (resp->complete != 1u || resp->content_length != 0) {
-					LOG_WRN("(%d) No payload expected !", conn->sock);
-				}
+				// if (resp->complete != 1u || resp->content_length != 0) {
+				// 	LOG_WRN("(%d) No payload expected !", conn->sock);
+				// }
 
 				resp->content_length = 0;
 				resp->complete = 1u;
+				resp->buffer.filling = 0u;
 			}
 
 			/* Headers sent after handler first call */
@@ -698,7 +699,7 @@ static bool process_request(http_connection_t *conn)
 		goto close;
 	}
 
-	LOG_INF("(%d) REQ %s [payload %u B] returned B resp status %d [payload %u B] "
+	LOG_INF("(%d) Req %s [payload %u B] returned B resp status %d [payload %u B] "
 		"(keep-alive=%d)", conn->sock, req.url, req.payload_len, resp.status_code,
 		resp.payload_sent, conn->keep_alive.enabled);
 

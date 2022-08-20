@@ -15,4 +15,7 @@
 int web_server_index_html(http_request_t *req,
 			  http_response_t *resp);
 
+int web_server_files_html(http_request_t *req,
+			  http_response_t *resp);
+
 #endif

@@ -201,3 +201,85 @@ exit:
 ret:
 	return rc;
 }
+
+/* TODO a file descriptor is not closed somewhere bellow, which causes 
+ * file downloads to fails after ~4 downloads. */
+int http_file_download(struct http_request *req,
+		       struct http_response *resp)
+{
+	int ret;
+	static struct fs_file_t file;
+
+	if (http_response_is_first_call(resp)) {
+		/* Check and extract filepath */
+		const char *subpath = http_route_extract_subpath(req);
+		if (subpath == NULL || strlen(subpath) == 0) {
+			http_response_set_status_code(resp, HTTP_STATUS_BAD_REQUEST);
+			return 0;
+		}
+
+		/* Normalize filepath */
+		char filepath[128u];
+		if (app_fs_filepath_normalize(subpath, filepath, sizeof(filepath)) < 0) {
+			http_response_set_status_code(resp, HTTP_STATUS_BAD_REQUEST);
+			return 0;
+		}
+
+		/* Get file stats */
+		struct fs_dirent dirent;
+		ret = fs_stat(filepath, &dirent);
+		if (ret == -ENOENT) {
+			http_response_set_status_code(resp,
+						      HTTP_STATUS_NOT_FOUND);
+			return 0;
+		} else if (ret != 0) {
+			http_response_set_status_code(resp,
+						      HTTP_STATUS_INTERNAL_SERVER_ERROR);
+			return 0;
+		} else if (dirent.type == FS_DIR_ENTRY_DIR) {
+			http_response_set_status_code(resp,
+						      HTTP_STATUS_BAD_REQUEST);
+			return 0;
+		}
+
+		LOG_INF("File=%s size=%u", log_strdup(filepath), dirent.size);
+		http_response_set_content_length(resp, dirent.size);
+
+		fs_file_t_init(&file);
+		ret = fs_open(&file, filepath, FS_O_READ);
+		if (ret != 0) {
+			http_response_set_status_code(
+				resp, HTTP_STATUS_INTERNAL_SERVER_ERROR);
+			return 0;
+		}
+
+		/* Reference context */
+		req->user_data = &file;
+	}
+
+	if (req->user_data != NULL) {
+		ret = fs_read(&file, resp->buffer.data, resp->buffer.size);
+		if (ret < 0) {
+			fs_close(&file);
+			http_response_set_status_code(
+				resp, HTTP_STATUS_INTERNAL_SERVER_ERROR);
+			return 0;
+		} else if (ret == 0) {
+			/* EOF */
+			fs_close(&file);
+			req->user_data = NULL;
+			return 0;
+		}
+
+		resp->buffer.filling = ret;
+
+		/* If more that are excepted */
+		if (ret == resp->buffer.size) {
+			http_response_more_data(resp);
+		} else {
+			fs_close(&file);
+		}
+	}
+
+	return 0;
+}
