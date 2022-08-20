@@ -131,4 +131,6 @@ static inline void cursor_buffer_shift(cursor_buffer_t *cbuf, size_t size)
 	cbuf->cursor += MIN(size, cursor_buffer_remaining(cbuf));
 }
 
+int cursor_buffer_snprintf(cursor_buffer_t *cbuf, const char *fmt, ...);
+
 #endif /* _UTILS_H_ */
