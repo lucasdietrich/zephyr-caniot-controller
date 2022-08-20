@@ -97,7 +97,8 @@ static inline size_t buffer_full(buffer_t *buffer)
 	return buffer->filling == buffer->size;
 }
 
-/*____________________________________________________________________________*/
+
+
 
 typedef struct {
 	char *buffer;

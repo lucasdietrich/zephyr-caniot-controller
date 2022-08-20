@@ -118,10 +118,6 @@ struct ha_f429zi_dataset
 	float die_temperature; /* °C */
 };
 
-/* feed a xiaomi dataset with a received ble frame */
-void ha_data_ble_to_xiaomi(struct ha_xiaomi_dataset *xiaomi,
-			   const xiaomi_record_t *rec);
-
 /* feed a board level telemetry dataset from a received CAN BLT/BCT buffer */
 void ha_data_can_to_blt(struct ha_caniot_blt_dataset *blt,
 			const struct caniot_board_control_telemetry *can_buf);

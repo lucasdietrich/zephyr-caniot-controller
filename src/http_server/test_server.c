@@ -177,3 +177,31 @@ int http_test_headers(struct http_request *req,
 
 	return 0;
 }
+
+int http_test_payload(struct http_request *req,
+		      struct http_response *resp)
+{
+	static uint32_t it = 0;
+	const uint32_t n = 10u;
+
+	size_t s = MIN(1000u, resp->buffer.size);
+
+	if (http_response_is_first_call(resp)) {
+		it = 0u;
+
+		// http_response_set_content_length(resp, -1);
+		// http_response_set_content_length(resp, n * s);
+		http_response_enable_chunk_encoding(resp);
+		http_response_set_content_type(resp, HTTP_CONTENT_TYPE_TEXT_PLAIN);
+	}
+
+	if (++it < n) {
+		// buffer_snprintf(&resp->buffer, "Hello, world! %u", it);
+		http_response_more_data(resp);
+	}
+
+	memset(resp->buffer.data, 'A', s);
+	resp->buffer.filling = s;
+
+	return 0;
+}

@@ -15,12 +15,13 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(http_utils, LOG_LEVEL_WRN);
 
-/*____________________________________________________________________________*/
+
+
 
 struct code_str
 {
-        http_status_code_t code;
-        char *str;
+	http_status_code_t code;
+	char *str;
 };
 
 static const struct code_str status[] = {
@@ -50,45 +51,52 @@ static const struct code_str status[] = {
 
 static const char *get_status_code_str(http_status_code_t status_code)
 {
-        for (const struct code_str *p = status;
-             p <= &status[ARRAY_SIZE(status) - 1]; p++) {
-                if (p->code == status_code) {
-                        return p->str;
-                }
-        }
-        return NULL;
+	for (const struct code_str *p = status;
+	     p <= &status[ARRAY_SIZE(status) - 1]; p++) {
+		if (p->code == status_code) {
+			return p->str;
+		}
+	}
+	return NULL;
 }
 
-int http_encode_status(char *buf, size_t len, http_status_code_t status_code)
+int http_encode_status(buffer_t *buf, http_status_code_t status_code)
 {
-        const char *code_str = get_status_code_str(status_code);
-        if (code_str == NULL) {
-                LOG_ERR("unknown status_code %d", status_code);
-                return -1;
-        }
-
-        return snprintf(buf, len, "HTTP/1.1 %d %s\r\n", status_code, code_str);
+	const char *code_str = get_status_code_str(status_code);
+	if (code_str == NULL) {
+		LOG_ERR("unknown status_code %d", status_code);
+		return -1;
+	}
+	return buffer_snprintf(buf, "HTTP/1.1 %d %s\r\n", status_code, code_str);
 }
 
-int http_encode_header_content_length(char *buf, size_t len, size_t content_length)
+int http_encode_header_content_length(buffer_t *buf, ssize_t content_length)
 {
-        return snprintf(buf, len, "Content-Length: %u\r\n", content_length);
+	int ret = 0;
+	if (content_length >= 0) {
+		ret = buffer_snprintf(buf,
+				      "Content-Length: %u\r\n", content_length);
+	}
+	return ret;
 }
 
-int http_encode_header_connection(char *buf, size_t len, bool keep_alive)
+int http_encode_header_transer_encoding_chunked(buffer_t *buf)
 {
-        static const char *connection_str[] = {
-                "close",
-                "keep-alive"
-        };
-
-        return snprintf(buf, len, "Connection: %s\r\n",
-                        keep_alive ? connection_str[1] : connection_str[0]);
+	return buffer_snprintf(buf, "Transfer-Encoding: chunked\r\n");
 }
 
-int http_encode_header_content_type(char *buf,
-				    size_t len,
-				    http_content_type_t type)
+int http_encode_header_connection(buffer_t *buf, bool keep_alive)
+{
+	static const char *connection_str[] = {
+		"close",
+		"keep-alive"
+	};
+
+	return buffer_snprintf(buf, "Connection: %s\r\n",
+			       keep_alive ? connection_str[1] : connection_str[0]);
+}
+
+int http_encode_header_content_type(buffer_t *buf, http_content_type_t type)
 {
 	char *content_type_str;
 
@@ -111,23 +119,17 @@ int http_encode_header_content_type(char *buf,
 		break;
 	}
 
-	const char *parts[] = {
-		"Content-Type: ",
-		content_type_str,
-		"\r\n"
-	};
-
-	return mem_append_strings(buf, len, parts, ARRAY_SIZE(parts));
+	return buffer_snprintf(buf, "Content-Type: %s\r\n", content_type_str);
 }
 
-int http_encode_header_end(char *buf, size_t len)
+int http_encode_endline(buffer_t *buf)
 {
-        return snprintf(buf, len, "\r\n");
+	return buffer_snprintf(buf, "\r\n");
 }
 
 bool http_code_has_payload(uint16_t status_code)
 {
-        return (status_code == 200);
+	return (status_code == HTTP_OK || status_code == HTTP_BAD_REQUEST);
 }
 
 const char *http_content_type_to_str(http_content_type_t content_type)
@@ -149,7 +151,8 @@ const char *http_content_type_to_str(http_content_type_t content_type)
 	}
 }
 
-/*____________________________________________________________________________*/
+
+
 
 #include "http_request.h"
 #include "http_response.h"
@@ -167,9 +170,232 @@ static uint32_t checksum_add(uint32_t checksum, const uint8_t *data, size_t len)
 	return checksum;
 }
 
+#define HTTP_RESP_BUFFER_MINIMUM_SIZE (512)
+
+static http_test_result_t test_req_handler(struct http_test_context *ctx,
+					   struct http_request *req,
+					   struct http_response *resp)
+{
+	http_test_result_t result = ctx->result;
+
+	if (resp != NULL) {
+		result = HTTP_TEST_RESULT_RESP_HANDLER_UNEXPECTED;
+		goto exit;
+	}
+
+	if (http_request_complete(req)) {
+		result = HTTP_TEST_RESULT_REQ_COMPLETE_UNEXPECTED;
+		goto exit;
+	}
+
+	if (ctx->req_calls_count == 0 && req->calls_count != 0) {
+		result = HTTP_TEST_RESULT_REQ_CALLS_COUNT_IS_NOT_ZERO;
+		goto exit;
+	}
+
+	if (!http_request_is_stream(req)) {
+		result = HTTP_TEST_RESULT_STREAM_EXPECTED;
+		goto exit;
+	}
+
+	/* check calls count */
+	if (http_stream_begins(req)) {
+		/* On first call (streaming): "calls_count" needs to be 0 */
+		if (req->calls_count != 0) {
+			result = HTTP_TEST_RESULT_CALLS_COUNT_IS_NOT_ZERO;
+			goto exit;
+		}
+
+		/* First received chunk id should be 0 */
+		if (req->chunk.id != 0) {
+			result = HTTP_TEST_RESULT_CHUNK_ID_IS_NOT_ZERO;
+			goto exit;
+		}
+
+		/* user_data should be NULL on first call */
+		if (req->user_data != NULL) {
+			result = HTTP_TEST_RESULT_USER_DATA_IS_NOT_NULL;
+			goto exit;
+		}
+
+	} else {
+		/* Gap on subsequent calls of the function */
+		if (req->calls_count != ctx->req_calls_count) {
+			/* strictly monotonic */
+			result = HTTP_TEST_RESULT_REQ_CALLS_COUNT_DISCONTINUITY;
+			goto exit;
+		}
+	}
+
+	if (req->chunk.loc == NULL) {
+		result = HTTP_TEST_RESULT_CHUNK_LOC_EXPECTED;
+		goto exit;
+	}
+
+	if (req->chunk.len == 0U) {
+		result = HTTP_TEST_RESULT_CHUNK_LEN_EXPECTED;
+		goto exit;
+	}
+
+	if (req->chunk.id > ctx->last_chunk_id + 1U) {
+		/* monotonic is sufficient
+		 * Several calls can be made on the same chunk,
+		 * but chunks cannot be skipped.
+		 */
+		result = HTTP_TEST_RESULT_CHUNK_ID_DISCONTINUITY;
+		goto exit;
+	}
+
+	if (req->chunk.id == ctx->last_chunk_id + 1U) {
+		ctx->chunk_received_bytes = 0U;
+	}
+
+	if (ctx->chunk_received_bytes != req->chunk._offset) {
+		result = HTTP_TEST_RESULT_CHUNK_OFFSET_INVALID;
+		goto exit;
+	}
+	ctx->chunk_received_bytes += req->chunk.len;
+
+	/* Increment received bytes */
+	ctx->received_bytes += req->chunk.len;
+
+	/* Calculate checksum */
+	ctx->checksum = checksum_add(ctx->checksum,
+				     req->chunk.loc,
+				     req->chunk.len);
+
+
+	ctx->last_chunk_id = req->chunk.id;
+
+	/* Check total received data size */
+exit:
+	ctx->req_calls_count++;
+	return result;
+}
+
+static http_test_result_t test_resp_handler(struct http_test_context *ctx,
+					    struct http_request *req,
+					    struct http_response *resp)
+{
+	http_test_result_t result = ctx->result;
+
+	if (resp == NULL) {
+		result = HTTP_TEST_RESULT_RESP_EXPECTED;
+		goto exit;
+	}
+
+	if (!http_request_complete(req)) {
+		result = HTTP_TEST_RESULT_REQ_NOT_COMPLETE;
+		goto exit;
+	}
+
+	/* Response is assumed to be complete by default, the application
+	 * has to explicitly set it to incomplete if more data need
+	 * to be sent.
+	 */
+	if (resp->complete != 1u) {
+		result = HTTP_TEST_RESULT_RESP_NOT_ASSUMED_COMPLETE_BY_DEFAULT;
+		goto exit;
+	}
+
+	if (http_request_is_message(req)) {
+		if (req->payload.len != req->payload_len) {
+			result = HTTP_TEST_RESULT_REQ_PAYLOAD_LEN_INVALID;
+			goto exit;
+		}
+
+		if ((req->payload.len != 0) && (req->payload.loc == NULL)) {
+			result = HTTP_TEST_RESULT_REQ_PAYLOAD_EXPECTED;
+			goto exit;
+		}
+
+		if (resp->buffer.data == NULL) {
+			result = HTTP_TEST_RESULT_RESP_BUFFER_EXPECTED;;
+			goto exit;
+		}
+	} else {
+		if (req->chunk.loc != NULL) {
+			result = HTTP_TEST_RESULT_CHUNK_LOC_UNEXPECTED;
+			goto exit;
+		}
+
+		if (req->chunk.len != 0) {
+			result = HTTP_TEST_RESULT_CHUNK_LEN_UNEXPECTED;
+			goto exit;
+		}
+
+		if (req->payload_len != ctx->received_bytes) {
+			result = HTTP_TEST_RESULT_PAYLOAD_LEN_INVALID;
+			goto exit;
+		}
+
+		ctx->delta_ms = k_uptime_delta32(&ctx->uptime_ms);
+	}
+
+	if (resp->buffer.data == NULL) {
+		result = HTTP_TEST_RESULT_RESP_BUFFER_EXPECTED;
+		goto exit;
+	}
+
+	if (resp->buffer.filling != 0) {
+		result = HTTP_TEST_RESULT_RESP_BUFFER_NOT_EMPTY;
+		goto exit;
+	}
+
+	if (resp->buffer.size < HTTP_RESP_BUFFER_MINIMUM_SIZE) {
+		result = HTTP_TEST_RESULT_RESP_BUFFER_TOO_SMALL;
+		goto exit;
+	}
+
+
+	if (ctx->resp_calls_count == 0u && resp->calls_count != 0) {
+		result = HTTP_TEST_RESULT_RESP_CALLS_COUNT_IS_NOT_ZERO;
+		goto exit;
+	}
+
+
+	if (http_response_is_first_call(resp)) {
+		if (resp->content_length != 0) {
+			result = HTTP_TEST_RESULT_RESP_CONTENT_LENGTH_INVALID;
+			goto exit;
+		}
+
+		if (resp->headers_sent != 0) {
+			result = HTTP_TEST_RESULT_RESP_HEADERS_SENT_INVALID;
+			goto exit;
+		}
+
+		if (resp->payload_sent != 0) {
+			result = HTTP_TEST_RESULT_RESP_HEADERS_RECEIVED_INVALID;
+			goto exit;
+		}
+
+		if (resp->status_code != HTTP_DEFAULT_RESP_STATUS_CODE) {
+			result = HTTP_TEST_RESULT_RESP_DEFAULT_STATUS_CODE_INVALID;
+			goto exit;
+		}
+
+		if (resp->stream != 0u) {
+			result = HTTP_TEST_RESULT_RESP_DEFAULT_NO_STREAM_BY_DEFAULT;
+			goto exit;
+		}
+	} else {
+		/* Gap on subsequent calls of the function */
+		if (resp->calls_count != ctx->resp_calls_count) {
+			/* strictly monotonic */
+			result = HTTP_TEST_RESULT_RESP_CALLS_COUNT_DISCONTINUITY;
+			goto exit;
+		}
+	}
+exit:
+	ctx->resp_calls_count++;
+	return result;
+}
+
 http_test_result_t http_test_run(struct http_test_context *ctx,
 				 struct http_request *req,
-				 struct http_response *resp)
+				 struct http_response *resp,
+				 enum http_test_handler cur_handler)
 {
 	http_test_result_t result = HTTP_TEST_NO_CONTEXT_GIVEN;
 
@@ -183,158 +409,57 @@ http_test_result_t http_test_run(struct http_test_context *ctx,
 		goto ret;
 	}
 
+	/* http_request should be kept valid for the whole duration of the
+	 * HTTP request (i.e. Until response is completely sent) */
 	if (req == NULL) {
 		result = HTTP_TEST_RESULT_REQ_EXPECTED;
 		goto exit;
 	}
 
+	/**
+	 * If request is mark as discarded, the application handler should not
+	 * be called anymore.
+	 */
 	if (http_request_is_discarded(req)) {
 		result = HTTP_TEST_RESULT_DISCARDING_BUT_CALLED;
 		goto exit;
 	}
 
+	/* If request is a stream, proper handling method should be selected */
 	if (!ctx->stream && !http_request_is_message(req)) {
 		result = HTTP_TEST_RESULT_MESSAGE_EXPECTED;
 		goto exit;
 	}
 
+	/* If request is a message, proper handling method should be selected */
 	if (ctx->stream && !http_request_is_stream(req)) {
 		result = HTTP_TEST_RESULT_STREAM_EXPECTED;
 		goto exit;
 	}
 
+	/* Application handler shouldn't be called if route is not found */
 	if (req->route == NULL) {
 		result = HTTP_TEST_RESULT_ROUTE_EXPECTED;
 		goto exit;
 	}
 
+	/* Application handler shouldn't be called if HTTP method doesn't
+	 * match what the route expects */
 	if (req->route->method != req->method) {
 		result = HTTP_TEST_RESULT_METHOD_UNEXPECTED;
 		goto exit;
 	}
 
+	/* headers_complete flag should be set when application handler is called */
 	if (!req->headers_complete) {
 		result = HTTP_TEST_RESULT_HEADERS_COMPLETE_EXPECTED;
 		goto exit;
 	}
 
-	if (ctx->stream) {
-		/* check calls count */
-		if (http_stream_begins(req)) {
-			if (req->calls_count != 0) {
-				result = HTTP_TEST_RESULT_CALLS_COUNT_IS_NOT_ZERO;
-				goto exit;
-			}
-
-			if (req->chunk.id != 0) {
-				result = HTTP_TEST_RESULT_CHUNK_ID_IS_NOT_ZERO;
-				goto exit;
-			}
-
-			if (req->user_data != NULL) {
-				result = HTTP_TEST_RESULT_USER_DATA_IS_NOT_NULL;
-				goto exit;
-			}
-
-		} else {
-			if (req->calls_count != ++ctx->last_call_number) {
-				/* strictly monotonic */
-				result = HTTP_TEST_RESULT_CALLS_COUNT_DISCONTINUITY;
-				goto exit;
-			}
-		}
-
-		if (http_stream_completes(req)) {
-			if (req->chunk.loc != NULL) {
-				result = HTTP_TEST_RESULT_CHUNK_LOC_UNEXPECTED;
-				goto exit;
-			}
-
-			if (req->chunk.len != 0) {
-				result = HTTP_TEST_RESULT_CHUNK_LEN_UNEXPECTED;
-				goto exit;
-			}
-
-			if (req->payload_len != ctx->received_bytes) {
-				result = HTTP_TEST_RESULT_PAYLOAD_LEN_INVALID;
-				goto exit;
-			}
-
-			if (resp == NULL) {
-				result = HTTP_TEST_RESULT_RESP_EXPECTED;
-				goto exit;
-			}
-
-			ctx->delta_ms = k_uptime_delta32(&ctx->uptime_ms);
-		} else {
-			if (req->chunk.loc == NULL) {
-				result = HTTP_TEST_RESULT_CHUNK_LOC_EXPECTED;
-				goto exit;
-			}
-
-			if (req->chunk.len == 0U) {
-				result = HTTP_TEST_RESULT_CHUNK_LEN_EXPECTED;
-				goto exit;
-			}
-
-			if (req->chunk.id > ctx->last_chunk_id + 1U) {
-				/* monotonic is sufficient
-				 * Several calls can be made on the same chunk,
-				 * but chunks cannot be skipped.
-				 * */
-				result = HTTP_TEST_RESULT_CHUNK_ID_DISCONTINUITY;
-				goto exit;
-			}
-
-			if (req->chunk.id == ctx->last_chunk_id + 1U) {
-				ctx->chunk_received_bytes = 0U;
-			}
-
-			if (ctx->chunk_received_bytes != req->chunk._offset) {
-				result = HTTP_TEST_RESULT_CHUNK_OFFSET_INVALID;
-				goto exit;
-			}
-			ctx->chunk_received_bytes += req->chunk.len;
-
-			/* Increment received bytes */
-			ctx->received_bytes += req->chunk.len;
-
-			/* Calculate checksum */
-			ctx->checksum = checksum_add(ctx->checksum,
-						     req->chunk.loc,
-						     req->chunk.len);
-
-		}
-
-		ctx->last_chunk_id = req->chunk.id;
-
-		/* Check total received data size */
-
+	if (cur_handler == HTTP_TEST_HANDLER_REQ) {
+		result = test_req_handler(ctx, req, resp);
 	} else {
-		if (ctx->calls_count++ != 0) {
-			result = HTTP_TEST_RESULT_MESSAGE_MODE_SINGLE_CALL_EXPECTED;
-			goto exit;
-		}
-
-		if (req->payload.len != req->payload_len) {
-			result = HTTP_TEST_RESULT_REQ_PAYLOAD_LEN_INVALID;
-			goto exit;
-		}
-
-		if ((req->payload.len != 0) && (req->payload.loc == NULL)) {
-			result = HTTP_TEST_RESULT_REQ_PAYLOAD_EXPECTED;
-			goto exit;
-		}
-
-		if (resp == NULL) {
-			result = HTTP_TEST_RESULT_RESP_EXPECTED;
-			goto exit;
-		}
-
-		if (resp->buffer.data == NULL) {
-			result = HTTP_TEST_RESULT_RESP_BUFFER_EXPECTED;;
-			goto exit;
-		}
+		result = test_resp_handler(ctx, req, resp);
 	}
 
 exit:
@@ -402,6 +527,36 @@ const char *http_test_result_to_str(http_test_result_t result)
 		return "USER_DATA_IS_NOT_NULL";
 	case HTTP_TEST_RESULT_USER_DATA_IS_NOT_VALID:
 		return "USER_DATA_IS_NOT_VALID";
+	case HTTP_TEST_RESULT_RESP_CALLS_COUNT_INVALID:
+		return "HTTP_TEST_RESULT_RESP_CALLS_COUNT_INVALID";
+	case HTTP_TEST_RESULT_RESP_COMPLETE_INVALID:
+		return "HTTP_TEST_RESULT_RESP_COMPLETE_INVALID";
+	case HTTP_TEST_RESULT_REQ_CALLS_COUNT_IS_NOT_ZERO:
+		return "HTTP_TEST_RESULT_REQ_CALLS_COUNT_IS_NOT_ZERO";
+	case HTTP_TEST_RESULT_REQ_CALLS_COUNT_DISCONTINUITY:
+		return "HTTP_TEST_RESULT_REQ_CALLS_COUNT_DISCONTINUITY";
+	case HTTP_TEST_RESULT_REQ_NOT_COMPLETE:
+		return "HTTP_TEST_RESULT_REQ_NOT_COMPLETE";
+	case HTTP_TEST_RESULT_RESP_NOT_ASSUMED_COMPLETE_BY_DEFAULT:
+		return "HTTP_TEST_RESULT_RESP_NOT_ASSUMED_COMPLETE_BY_DEFAULT";
+	case HTTP_TEST_RESULT_RESP_BUFFER_NOT_EMPTY:
+		return "HTTP_TEST_RESULT_RESP_BUFFER_NOT_EMPTY";
+	case HTTP_TEST_RESULT_RESP_BUFFER_TOO_SMALL:
+		return "HTTP_TEST_RESULT_RESP_BUFFER_TOO_SMALL";
+	case HTTP_TEST_RESULT_RESP_CALLS_COUNT_IS_NOT_ZERO:
+		return "HTTP_TEST_RESULT_RESP_CALLS_COUNT_IS_NOT_ZERO";
+	case HTTP_TEST_RESULT_RESP_CONTENT_LENGTH_INVALID:
+		return "HTTP_TEST_RESULT_RESP_CONTENT_LENGTH_INVALID";
+	case HTTP_TEST_RESULT_RESP_HEADERS_SENT_INVALID:
+		return "HTTP_TEST_RESULT_RESP_HEADERS_SENT_INVALID";
+	case HTTP_TEST_RESULT_RESP_HEADERS_RECEIVED_INVALID:
+		return "HTTP_TEST_RESULT_RESP_HEADERS_RECEIVED_INVALID";
+	case HTTP_TEST_RESULT_RESP_DEFAULT_STATUS_CODE_INVALID:
+		return "HTTP_TEST_RESULT_RESP_DEFAULT_STATUS_CODE_INVALID";
+	case HTTP_TEST_RESULT_RESP_DEFAULT_NO_STREAM_BY_DEFAULT:
+		return "HTTP_TEST_RESULT_RESP_DEFAULT_NO_STREAM_BY_DEFAULT";
+	case HTTP_TEST_RESULT_RESP_CALLS_COUNT_DISCONTINUITY:
+		return "HTTP_TEST_RESULT_RESP_CALLS_COUNT_DISCONTINUITY";
 	default:
 		return "UNKNOWN";
 	}

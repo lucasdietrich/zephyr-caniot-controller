@@ -27,6 +27,12 @@ typedef enum {
 	HTTP_REQUEST_ROUTE_UNKNOWN,
 
 	/**
+	 * @brief Bad request, handler still called to encode the response
+	 * Note: status code 400
+	 */
+	HTTP_REQUEST_BAD,
+
+	/**
 	 * @brief Route matched, but no handler was found
 	 * Note: status code 501
 	 */
@@ -46,18 +52,10 @@ typedef enum {
 	 HTTP_REQUEST_PAYLOAD_TOO_LARGE,
 
 	/**
-	 * @brief Route OK, but processing of the request failed
+	 * @brief Processing of the request failed
 	 * Note: status code 500
 	 */
-	 HTTP_REQUEST_STREAM_PROCESSING_ERROR,
-
-	/**
-	 * @brief Fatal error, not able to process the request
-	 * Closing immediately the connection
-	 * 
-	 * No HTTP response
-	 */
-	 HTTP_REQUEST_FATAL_ERROR,
+	 HTTP_REQUEST_PROCESSING_ERROR,
 
 } http_request_discard_reason_t;
 
@@ -172,7 +170,7 @@ struct http_request
 	 * (particulary useful for stream handling)
 	 *
 	 * Note: Can help to used determine if the handler is called
-	 *  to process a new request (if 0).
+	 *  to process a new request (= 0).
 	 *
 	 * Note: It important to not use the chunk ID for this purpose,
 	 * because the chunk ID is not necessarily passed to the application as a whole
@@ -287,25 +285,39 @@ void http_request_discard(http_request_t *req,
 			  http_request_discard_reason_t reason);
 
 static inline bool http_stream_begins(http_request_t *req)
-{
-	__ASSERT_NO_MSG(http_request_is_stream(req));
-	
-	return (req->complete == 0U) && (req->calls_count == 0);
+{	
+	return http_request_is_stream(req) && 
+		(req->complete == 0U) && (req->calls_count == 0);
 }
 
-static inline bool http_stream_completes(http_request_t *req)
-{
-	__ASSERT_NO_MSG(http_request_is_stream(req));
+// static inline bool http_request_is_first_call(http_request_t *req)
+// {
+// 	return (req->complete == 1u) && (req->calls_count == 0u);
+// }
 
-	return req->complete;
+static inline bool http_request_has_chunk_data(http_request_t *req)
+{
+	return http_request_is_stream(req) && !req->complete;
 }
 
-static inline bool http_stream_has_chunk(http_request_t *req)
+static inline bool http_request_complete(http_request_t *req)
 {
-	return !http_stream_completes(req);
+	return req->complete == 1u;
 }
 
 const char *http_header_get_value(http_request_t *req,
 				  const char *hdr_name);
+
+/**
+ * @brief Write the appropriate HTTP status code in function of the given
+ * discard reason.
+ * 
+ * @param reason 
+ * @param status_code 
+ * @return true If modified
+ * @return false If not modified
+ */
+bool http_discard_reason_to_status_code(http_request_discard_reason_t reason,
+					uint16_t *status_code);
 
 #endif

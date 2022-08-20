@@ -109,16 +109,16 @@ static const char *discard_reason_to_str(http_request_discard_reason_t reason)
 	switch (reason) {
 	case HTTP_REQUEST_ROUTE_UNKNOWN:
 		return "Unknown route";
+	case HTTP_REQUEST_BAD:
+		return "Bad request";
 	case HTTP_REQUEST_ROUTE_NO_HANDLER:
 		return "Route has no handler";
 	case HTTP_REQUEST_STREAMING_UNSUPPORTED:
 		return "Streaming unsupported";
 	case HTTP_REQUEST_PAYLOAD_TOO_LARGE:
 		return "Payload too large";
-	case HTTP_REQUEST_STREAM_PROCESSING_ERROR:
-		return "Stream processing error";
-	case HTTP_REQUEST_FATAL_ERROR:
-		return "Fatal error";
+	case HTTP_REQUEST_PROCESSING_ERROR:
+		return "Processing error";
 	default:
 		return "<unknown discard reason>";
 	}
@@ -130,9 +130,6 @@ static void mark_discarded(http_request_t *req,
 	req->handling_mode = HTTP_REQUEST_DISCARD;
 	req->discard_reason = reason;
 	req->parser_settings = &parser_settings_discarding;
-
-	LOG_WRN("(%p) Discarding request, reason: %s (%u)",
-		req, log_strdup(discard_reason_to_str(reason)), reason);
 }
 
 /*_____________________________________________________________________________________*/
@@ -283,7 +280,8 @@ static int header_content_length_handler(http_request_t *req,
 	return 0;
 }
 
-/*____________________________________________________________________________*/
+
+
 
 static char hdrbuf[CONFIG_HTTP_REQUEST_HEADERS_BUFFER_SIZE];
 static size_t hdr_allocated = 0U;
@@ -343,7 +341,8 @@ static int header_keep(http_request_t *req,
 	return 0;
 }
 
-/*____________________________________________________________________________*/
+
+
 
 /* All headers that are not handled by a handler are discarded. */
 static const struct header headers[] = {
@@ -421,10 +420,13 @@ static int on_headers_complete(struct http_parser *parser)
 	/* TODO add explicit logs to know which route has not been found */
 	if (route == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_UNKNOWN);
-	} else if (route->handler == NULL) {
+		LOG_WRN("(%p) Route not found %s", req, req->url);
+	} else if (route->resp_handler == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_NO_HANDLER);
-	} else if (http_request_is_stream(req) && !route->support_streaming) {
+		LOG_ERR("(%p) Route has no handler %s", req, req->url);
+	} else if (http_request_is_stream(req) && !route_supports_streaming(route)) {
 		mark_discarded(req, HTTP_REQUEST_STREAMING_UNSUPPORTED);
+		LOG_ERR("(%p) Route doesn't support streaming %s", req, req->url);
 	}
 
 	if (http_request_is_stream(req) == true) {
@@ -457,13 +459,14 @@ static int on_body_streaming(struct http_parser *parser,
 	req->payload_len += length;
 
 #if defined(CONFIG_HTTP_TEST)
-	http_test_run(&req->_test_ctx, req, NULL);
+	http_test_run(&req->_test_ctx, req, NULL, HTTP_TEST_HANDLER_REQ);
 #endif /* CONFIG_HTTP_TEST */
 
 	/* route is necessarily valid at this point */
-	int ret = req->route->handler(req, NULL);
+	int ret = req->route->req_handler(req, NULL);
 	if (ret != 0) {
-		mark_discarded(req, HTTP_REQUEST_FATAL_ERROR);
+		mark_discarded(req, HTTP_REQUEST_PROCESSING_ERROR);
+		LOG_ERR("(%p) Stream processing error %d", req, ret);
 	}
 
 	req->chunk._offset += length;
@@ -629,6 +632,9 @@ void http_request_discard(http_request_t *req,
 			  http_request_discard_reason_t reason)
 {
 	mark_discarded(req, reason);
+	
+	LOG_DBG("(%p) Discarding request, reason: %s (%u)",
+		req, log_strdup(discard_reason_to_str(reason)), reason);
 }
 
 const char *http_header_get_value(http_request_t *req,
@@ -645,4 +651,36 @@ const char *http_header_get_value(http_request_t *req,
 	}
 
 	return value;
+}
+
+bool http_discard_reason_to_status_code(http_request_discard_reason_t reason,
+					uint16_t *status_code)
+{
+	if (status_code == NULL) {
+		return false;
+	}
+
+	switch (reason) {
+	case HTTP_REQUEST_ROUTE_UNKNOWN:
+		*status_code = HTTP_NOT_FOUND;
+		break;
+	case HTTP_REQUEST_BAD:
+		*status_code = HTTP_BAD_REQUEST;
+		break;
+	case HTTP_REQUEST_ROUTE_NO_HANDLER:
+		*status_code = HTTP_NOT_IMPLEMENTED;
+		break;
+	case HTTP_REQUEST_STREAMING_UNSUPPORTED:
+		*status_code = HTTP_NOT_IMPLEMENTED;
+		break;
+	case HTTP_REQUEST_PAYLOAD_TOO_LARGE:
+		*status_code = HTTP_REQUEST_ENTITY_TOO_LARGE;
+		break;
+	case HTTP_REQUEST_PROCESSING_ERROR:
+	default:
+		*status_code = HTTP_INTERNAL_SERVER_ERROR;
+		break;
+	}
+
+	return true;
 }

@@ -14,7 +14,8 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(cantcp_core, LOG_LEVEL_WRN);
 
-/*____________________________________________________________________________*/
+
+
 
 
 static int sendall(int sock, const uint8_t *buf, size_t len)
@@ -63,7 +64,8 @@ static int recvall(int sock, uint8_t *buf, size_t len)
 	return ret;
 }
 
-/*____________________________________________________________________________*/
+
+
 
 int cantcp_core_tunnel_init(cantcp_tunnel_t *tunnel)
 {
@@ -162,7 +164,8 @@ exit:
 }
 
 
-/*____________________________________________________________________________*/
+
+
 
 typedef enum
 {

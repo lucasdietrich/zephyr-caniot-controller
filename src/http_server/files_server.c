@@ -14,12 +14,26 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(files_server, LOG_LEVEL_INF);
 
+typedef enum {
+	FILE_UPLOAD_OK = 0,
+	FILE_UPLOAD_MISSING_FILEPATH_HEADER,
+	// FILE_UPLOAD_DIR_CREATION_FAILED,
+	// FILE_UPLOAD_FILE_OPEN_FAILED,
+	// FILE_UPLOAD_FILE_TRUNCATE_FAILED,
+	// FILE_UPLOAD_FILE_WRITE_FAILED,
+	// FILE_UPLOAD_FILE_CLOSE_FAILED,
+	
+	// FILE_UPLOAD_FATAL,
+} file_upload_err_t;
+
 struct file_upload_context
 {
 	const char *basename;
 	const char *dirname;
 	char filepath[40];
 	struct fs_file_t file;
+
+	file_upload_err_t error;
 };
 
 /* TODO, dynamically allocate the context */
@@ -55,10 +69,14 @@ int http_file_upload(struct http_request *req,
 	struct file_upload_context *u = sync_file_upload_context(req);
 
 	if (http_stream_begins(req)) {
+		u->error = FILE_UPLOAD_OK;
+
 		/* Get being uploaded file name */
 		const char *reqpath = http_header_get_value(req, "App-Upload-Filepath");
 		if (reqpath == NULL) {
-			rc = -EINVAL; /* handle this case */
+			http_request_discard(req, HTTP_REQUEST_BAD);
+			u->error = FILE_UPLOAD_MISSING_FILEPATH_HEADER;
+			rc = 0;
 			goto exit;
 		}
 		
@@ -85,6 +103,7 @@ int http_file_upload(struct http_request *req,
 			if (fs_stat(dirpath, &dir) == -ENOENT) {
 				rc = fs_mkdir(dirpath);
 				if (rc != 0) {
+					// u->error = FILE_UPLOAD_DIR_CREATION_FAILED;
 					LOG_ERR("Failed to create directory %s", dirpath);
 					goto exit;
 				}
@@ -103,6 +122,7 @@ int http_file_upload(struct http_request *req,
 			     u->filepath,
 			     FS_O_CREATE | FS_O_WRITE);
 		if (rc != 0) {
+			// u->error = FILE_UPLOAD_FILE_OPEN_FAILED;
 			LOG_ERR("fs_open failed: %d", rc);
 			goto exit;
 		}
@@ -110,6 +130,7 @@ int http_file_upload(struct http_request *req,
 		/* Truncate file in case it already exists */
 		rc = fs_truncate(&u->file, 0U);
 		if (rc != 0) {
+			// u->error = FILE_UPLOAD_FILE_TRUNCATE_FAILED;
 			LOG_ERR("fs_truncate failed: %d", rc);
 			goto exit;
 		}
@@ -120,7 +141,7 @@ int http_file_upload(struct http_request *req,
 	size_t data_len = 0;
 
 	/* No more data when request is complete */
-	if (http_request_is_stream(req) && http_stream_has_chunk(req)) {
+	if (http_request_has_chunk_data(req)) {
 		data = req->chunk.loc;
 		data_len = req->chunk.len;
 		close_file = false;
@@ -135,9 +156,10 @@ int http_file_upload(struct http_request *req,
 		LOG_DBG("write loc=%p [%u] file=%p", data, data_len, &u->file);
 		ssize_t written = fs_write(&u->file, data, data_len);
 		if (written != data_len) {
-			LOG_ERR("Failed to write file %u != %u",
-				written, data_len);
+			// u->error = FILE_UPLOAD_FILE_WRITE_FAILED;
 			rc = written;
+			LOG_ERR("Failed to write file %d != %u",
+				written, data_len);
 			goto exit;
 		}
 	}
@@ -145,6 +167,7 @@ int http_file_upload(struct http_request *req,
 	if (close_file) {
 		rc = fs_close(&u->file);
 		if (rc) {
+			// u->error = FILE_UPLOAD_FILE_CLOSE_FAILED;
 			LOG_ERR("Failed to close file = %d", rc);
 			goto ret;
 		}
@@ -155,6 +178,19 @@ int http_file_upload(struct http_request *req,
 		if (_LOG_LEVEL() >= LOG_LEVEL_DBG) {
 			app_fs_stats(CONFIG_FILE_UPLOAD_MOUNT_POINT);
 		}
+	}
+
+	if (http_request_complete(req)) {
+		/* Encode message */
+		if (u->error == FILE_UPLOAD_OK) {
+			buffer_append_string(&resp->buffer, "Upload succeeded");
+		} else if (u->error == FILE_UPLOAD_MISSING_FILEPATH_HEADER) {
+			buffer_append_string(&resp->buffer, 
+					     "Upload failed: FILE_UPLOAD_MISSING_FILEPATH_HEADER");
+		} else {
+			buffer_append_string(&resp->buffer, "Unknown error");
+		}
+		resp->content_length = resp->buffer.filling;
 	}
 
 exit:

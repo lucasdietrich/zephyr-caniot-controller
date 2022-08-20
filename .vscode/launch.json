@@ -22,7 +22,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/zephyr/zephyr.elf",
             "args": [],
-            "stopAtEntry": true,
+            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
 
             // Find a way to not wait for ninja debugser to finish

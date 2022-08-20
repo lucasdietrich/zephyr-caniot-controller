@@ -10,6 +10,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <utils/buffers.h>
+
 typedef enum {
 	HTTP_CONTENT_TYPE_NONE = 0,
 	HTTP_CONTENT_TYPE_TEXT_PLAIN,
@@ -54,15 +56,30 @@ typedef enum {
 
 } http_status_code_t;
 
-int http_encode_status(char *buf, size_t len, http_status_code_t status_code);
 
-int http_encode_header_content_length(char *buf, size_t len, size_t content_length);
+int http_encode_status(buffer_t *buf, http_status_code_t status_code);
 
-int http_encode_header_connection(char *buf, size_t len, bool keep_alive);
+/**
+ * @brief Encode the Content-Length header if content_length is greater or equal than 0
+ * 
+ * @param buf 
+ * @param content_length 
+ * @return int 
+ */
+int http_encode_header_content_length(buffer_t *buf, ssize_t content_length);
 
-int http_encode_header_content_type(char *buf, size_t len, http_content_type_t type);
+int http_encode_header_transer_encoding_chunked(buffer_t *buf);
 
-int http_encode_header_end(char *buf, size_t len);
+int http_encode_header_connection(buffer_t *buf, bool keep_alive);
+
+int http_encode_header_content_type(buffer_t *buf, http_content_type_t type);
+
+int http_encode_endline(buffer_t *buf);
+
+static inline int http_encode_header_end(buffer_t *buf)
+{
+	return http_encode_endline(buf);
+}
 
 bool http_code_has_payload(uint16_t status_code);
 
@@ -76,7 +93,8 @@ const char *http_content_type_to_str(http_content_type_t content_type);
 // 	uint16_t id;
 // } http_chunk_t;
 
-/*____________________________________________________________________________*/
+
+
 
 /* Test Utils */
 
@@ -107,6 +125,23 @@ typedef enum {
 	HTTP_TEST_RESULT_REQ_PAYLOAD_LEN_INVALID,
 	HTTP_TEST_RESULT_USER_DATA_IS_NOT_NULL,
 	HTTP_TEST_RESULT_USER_DATA_IS_NOT_VALID,
+	HTTP_TEST_RESULT_RESP_CALLS_COUNT_INVALID,
+	HTTP_TEST_RESULT_RESP_COMPLETE_INVALID,
+	HTTP_TEST_RESULT_RESP_HANDLER_UNEXPECTED,
+	HTTP_TEST_RESULT_REQ_COMPLETE_UNEXPECTED,
+	HTTP_TEST_RESULT_REQ_CALLS_COUNT_IS_NOT_ZERO,
+	HTTP_TEST_RESULT_REQ_CALLS_COUNT_DISCONTINUITY,
+	HTTP_TEST_RESULT_REQ_NOT_COMPLETE,
+	HTTP_TEST_RESULT_RESP_NOT_ASSUMED_COMPLETE_BY_DEFAULT,
+	HTTP_TEST_RESULT_RESP_BUFFER_NOT_EMPTY,
+	HTTP_TEST_RESULT_RESP_BUFFER_TOO_SMALL,
+	HTTP_TEST_RESULT_RESP_CALLS_COUNT_IS_NOT_ZERO,
+	HTTP_TEST_RESULT_RESP_CONTENT_LENGTH_INVALID,
+	HTTP_TEST_RESULT_RESP_HEADERS_SENT_INVALID,
+	HTTP_TEST_RESULT_RESP_HEADERS_RECEIVED_INVALID,
+	HTTP_TEST_RESULT_RESP_DEFAULT_STATUS_CODE_INVALID,
+	HTTP_TEST_RESULT_RESP_DEFAULT_NO_STREAM_BY_DEFAULT,
+	HTTP_TEST_RESULT_RESP_CALLS_COUNT_DISCONTINUITY,
 } http_test_result_t;
 
 struct http_test_context {
@@ -126,21 +161,18 @@ struct http_test_context {
 	 * id of the last chunked processed.
 	 */
 	uint32_t last_chunk_id;
-	
-	union {
-		/**
-		 * @brief When called in stream mode, this is the 
-		 * expected value for "calls_count"
-		 */
-		uint32_t last_call_number;
 
-		/**
-		 * @brief When called in message mode, this is the
-		 * number of times the handler is called,
-		 * Should be called once only.
-		 */
-		uint32_t calls_count;
-	};
+	/**
+	 * @brief When called in message mode, this is the
+	 * number of times the handler is called,
+	 * Should be called once only.
+	 * 
+	 * In stream mode, this is the 
+	 * expected value for "calls_count" on each call
+	 */
+	uint32_t req_calls_count;
+
+	uint32_t resp_calls_count; /* same as req, but for response */
 
 	/**
 	 * @brief When called in stream mode:
@@ -165,6 +197,10 @@ struct http_test_context {
 	 * @brief Current test result
 	 */
 	http_test_result_t result;
+
+	/* On response infos */
+	void *payload_buf;
+	size_t payload_size;
 };
 
 struct http_request;
@@ -172,9 +208,16 @@ struct http_response;
 
 void http_test_init_context(struct http_test_context *ctx);
 
+enum http_test_handler {
+	HTTP_TEST_HANDLER_REQ,
+	HTTP_TEST_HANDLER_RESP,
+};
+
+
 http_test_result_t http_test_run(struct http_test_context *ctx,
 				 struct http_request *req,
-				 struct http_response *resp);
+				 struct http_response *resp,
+				 enum http_test_handler cur_handler);
 
 const char *http_test_result_to_str(http_test_result_t result);
 

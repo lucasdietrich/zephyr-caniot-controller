@@ -15,7 +15,7 @@
 
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_WRN);
 
 // #define HA_DEVICES_IGNORE_UNVERIFIED_DEVICES 1
 
@@ -263,7 +263,8 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 	return true;
 }
 
-/*____________________________________________________________________________*/
+
+
 
 size_t ha_dev_iterate(void (*callback)(ha_dev_t *dev,
 				       void *user_data),

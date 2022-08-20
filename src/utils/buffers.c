@@ -166,7 +166,8 @@ int buffer_snprintf(buffer_t *buf, const char *fmt, ...)
 	return ret;
 }
 
-/*____________________________________________________________________________*/
+
+
 
 int cursor_buffer_init(cursor_buffer_t *cbuf, char *buffer, size_t size)
 {

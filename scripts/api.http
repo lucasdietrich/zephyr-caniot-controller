@@ -50,3 +50,13 @@ TEST
 ###
 
 GET http://{{host}}/files/lua
+
+###
+
+GET http://{{host}}/test/payload
+
+MYPAYLOAD
+
+###
+
+GET http://{{host}}/metrics_controller

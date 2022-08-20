@@ -3,7 +3,7 @@
         "rest-client.enableSendRequestCodeLens": true,
         "rest-client.logLevel": "verbose",
         "rest-client.showResponseInDifferentTab": false,
-        "rest-client.timeoutinmilliseconds": 10000,
+        "rest-client.timeoutinmilliseconds": 10000, /* Increase this value when debugging */
         "rest-client.defaultHeaders": {
                 "User-Agent": "vscode-restclient",
                 "Content-Type": "application/json",

@@ -14,6 +14,7 @@
 
 #include "http_utils.h"
 #include "http_request.h"
+#include "http_response.h"
 
 int http_file_upload(struct http_request *req,
 		     struct http_response *resp);

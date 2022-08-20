@@ -363,7 +363,8 @@ static ssize_t encode_metric(buffer_t *buffer,
 	return appended + ret;
 }
 
-/*____________________________________________________________________________*/
+
+
 
 /**
  * @brief @see "struct json_obj_descr" in :
@@ -408,7 +409,8 @@ struct prom_metric_descr
 
 
 
-/*____________________________________________________________________________*/
+
+
 
 const char *prom_myd_medium_to_str(ha_dev_medium_type_t medium)
 {
@@ -452,7 +454,8 @@ const char *prom_myd_sensor_type_to_str(ha_dev_sensor_type_t sensor_type)
 	}
 }
 
-/*____________________________________________________________________________*/
+
+
 
 struct prom_demo_struct {
 	uint32_t a;

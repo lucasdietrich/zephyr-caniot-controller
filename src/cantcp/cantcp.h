@@ -12,7 +12,8 @@
 #include <drivers/can.h>
 #include <net/net_ip.h>
 
-/*____________________________________________________________________________*/
+
+
 
 #define CANTCP_DEFAULT_PORT 			5555U
 
@@ -24,7 +25,8 @@
 
 #define CANTCP_DEFAULT_MAX_TX_QUEUE_SIZE	10U
 
-/*____________________________________________________________________________*/
+
+
 
 typedef enum
 {

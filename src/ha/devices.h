@@ -111,7 +111,8 @@ const void *ha_dev_get_last_data(ha_dev_t *dev);
 	((_type *)ha_dev_get_last_data(_dev))
 
 
-/*____________________________________________________________________________*/
+
+
 
 typedef void ha_dev_iterate_cb_t(ha_dev_t *dev,
 				 void *user_data);
@@ -165,7 +166,8 @@ static inline void ha_dev_inc_stats_tx(ha_dev_t *dev, uint32_t tx_bytes)
 	dev->stats.tx_bytes += tx_bytes;
 	dev->stats.tx++;
 }
-/*____________________________________________________________________________*/
+
+
 
 /* move to specific header */
 struct ha_dev_garage_cmd
@@ -178,7 +180,8 @@ void ha_dev_garage_cmd_init(struct ha_dev_garage_cmd *cmd);
 
 int ha_dev_garage_cmd_send(const struct ha_dev_garage_cmd *cmd);
 
-/*____________________________________________________________________________*/
+
+
 
 typedef enum
 {
@@ -307,7 +310,8 @@ int ha_ev_unsubscribe(struct ha_ev_subs *sub);
 ha_ev_t *ha_ev_wait(struct ha_ev_subs *sub,
 			  k_timeout_t timeout);
 
-/*____________________________________________________________________________*/
+
+
 
 extern const struct ha_device_api ha_device_api_xiaomi;
 extern const struct ha_device_api ha_device_api_caniot;

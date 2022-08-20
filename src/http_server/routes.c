@@ -32,25 +32,25 @@ LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 #define POST HTTP_POST
 #define PUT HTTP_PUT
 
-#define HTTP_ROUTE(m, r, h, t, c, k, s) \
+#define HTTP_ROUTE(m, r, qh, rh, t, c, k) \
 	{ \
 		.route = r, \
 		.route_len = sizeof(r) - 1, \
 		.method = m, \
-		.support_streaming = s, \
 		.server = t, \
-		.handler = h, \
+		.req_handler = qh, \
+		.resp_handler = rh, \
 		.default_content_type = c, \
 		.path_args_count = k \
 	}
 
-#define MESSAGING_RESSOURCE(m, r, h, t, c, k) HTTP_ROUTE(m, r, h, t, c, k, false)
-#define STREAMING_RESSOURCE(m, r, h, t, c, k) HTTP_ROUTE(m, r, h, t, c, k, true)
+#define MESSAGING_RESSOURCE(m, r, h, t, c, k) HTTP_ROUTE(m, r, NULL, h, t, c, k)
+#define STREAMING_RESSOURCE(m, r, qh, rh, t, c, k) HTTP_ROUTE(m, r, qh, rh, t, c, k)
 
 #define REST_RESSOURCE(m, r, h, k) MESSAGING_RESSOURCE(m, r, h, HTTP_REST_SERVER, HTTP_CONTENT_TYPE_APPLICATION_JSON, k)
 #define WEB_RESSOURCE(m, r, h) MESSAGING_RESSOURCE(m, r, h, HTTP_WEB_SERVER, HTTP_CONTENT_TYPE_TEXT_HTML, 0U)
 #define PROM_RESSOURCE(m, r, h) MESSAGING_RESSOURCE(m, r, h, HTTP_PROMETHEUS_CLIENT, HTTP_CONTENT_TYPE_TEXT_PLAIN, 0U)
-#define FILE_RESSOURCE(m, r, h, k) STREAMING_RESSOURCE(m, r, h, HTTP_FILES_SERVER, HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA, k)
+#define FILE_RESSOURCE(m, r, qh, rh, k) STREAMING_RESSOURCE(m, r, qh, rh, HTTP_FILES_SERVER, HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA, k)
 
 /**
  * @brief TODO represent the routes as a tree
@@ -70,7 +70,7 @@ static const struct http_route routes[] = {
 	REST(GET, "/devices/xiaomi", rest_xiaomi_records, 0U),
 	REST(GET, "/devices/caniot", rest_caniot_records, 0U),
 
-	FILE_RESSOURCE(POST, "/files", http_file_upload, 0U),
+	FILE_RESSOURCE(POST, "/files", http_file_upload, http_file_upload, 0U),
 	REST(GET, "/files/lua", rest_fs_list_lua_scripts, 0U),
 	REST(DELETE, "/fules/lua", rest_fs_remove_lua_script, 0U),
 
@@ -93,6 +93,7 @@ static const struct http_route routes[] = {
 	HTTP_TEST_BIG_PAYLOAD_ROUTE(),
 	HTTP_TEST_STREAMING_ROUTE_ARGS(),
 	HTTP_TEST_HEADERS(),
+	HTTP_TEST_PAYLOAD(),
 #endif 
 };
 
@@ -163,7 +164,7 @@ const struct http_route *route_resolve(enum http_method method,
 
 bool route_is_valid(const struct http_route *route)
 {
-	return (route != NULL) && (route->handler != NULL);
+	return (route != NULL) && (route->resp_handler != NULL);
 }
 
 http_content_type_t http_route_resp_default_content_type(const struct http_route *route)

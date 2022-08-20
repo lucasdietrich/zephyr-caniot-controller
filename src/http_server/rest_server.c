@@ -45,7 +45,7 @@
 #include "net_time.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_WRN);
 
 #define REST_CANIOT_QUERY_MAX_TIMEOUT_MS		(5000U)
 
@@ -70,12 +70,11 @@ int rest_encode_response_json(http_response_t *resp, const void *val,
 	json_len = json_calc_encoded_len(descr, descr_len, val);
 
 	if (json_len <= resp->buffer.size) {
-
-		/* set response "content-length" */
-		resp->buffer.filling = json_len;
-
 		ret = json_obj_encode_buf(descr, descr_len, val,
 					  resp->buffer.data, resp->buffer.size);
+		resp->buffer.filling = json_len;
+
+		http_response_set_content_length(resp, json_len);
 	}
 
 exit:
@@ -100,15 +99,15 @@ int rest_encode_response_json_array(http_response_t *resp, const void *val,
 				  resp->buffer.size);
 
 	if (ret == 0) {
-		/* set response content-length */
 		resp->buffer.filling = strlen(resp->buffer.data);
+
+		http_response_set_content_length(resp, resp->buffer.filling);
 	}
 
 exit:
 	return ret;
 }
 
-/*____________________________________________________________________________*/
 
 
 int rest_index(http_request_t *req,
@@ -120,7 +119,6 @@ int rest_index(http_request_t *req,
 	return 0;
 }
 
-/*____________________________________________________________________________*/
 
 struct json_info_controller_status
 {
@@ -365,7 +363,8 @@ int rest_info(http_request_t *req,
 	return rest_encode_response_json(resp, &data, info_descr, ARRAY_SIZE(info_descr));
 }
 
-/*____________________________________________________________________________*/
+
+
 
 struct json_device_base
 {
@@ -377,7 +376,8 @@ struct json_device_base
 	uint32_t timestamp;
 };
 
-/*____________________________________________________________________________*/
+
+
 
 struct json_xiaomi_record
 {
@@ -625,7 +625,8 @@ int rest_test_caniot_query_telemetry(http_request_t *req,
 	return 0;
 }
 
-/*____________________________________________________________________________*/
+
+
 
 #if defined(CONFIG_CANIOT_CONTROLLER)
 
@@ -1024,7 +1025,8 @@ exit:
 
 #endif /* CONFIG_CANIOT_CONTROLLER */
 
-/*____________________________________________________________________________*/
+
+
 
 #define REST_FS_FILES_LIST_MAX_COUNT 32U
 

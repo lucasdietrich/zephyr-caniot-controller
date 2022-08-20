@@ -20,12 +20,14 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(app_fs, LOG_LEVEL_INF);
 
-/*____________________________________________________________________________*/
+
+
 
 int app_fs_stats(const char *abs_path);
 int app_fs_lsdir(const char *path);
 
-/*____________________________________________________________________________*/
+
+
 
 #if defined(CONFIG_DISK_DRIVER_RAM)
 
@@ -41,7 +43,8 @@ static struct fs_mount_t mp_ram = {
 
 #endif /* CONFIG_DISK_DRIVER_RAM */
 
-/*____________________________________________________________________________*/
+
+
 
 #if defined(CONFIG_DISK_DRIVER_SDMMC) && \
 	DT_HAS_COMPAT_STATUS_OKAY(zephyr_mmc_spi_slot)
@@ -111,7 +114,8 @@ exit:
 
 #endif 
 
-/*____________________________________________________________________________*/
+
+
 
 struct fs_mount_t *appfs_mp[] = {
 #if defined(CONFIG_DISK_DRIVER_RAM)
@@ -123,7 +127,8 @@ struct fs_mount_t *appfs_mp[] = {
 #endif
 };
 
-/*____________________________________________________________________________*/
+
+
 
 int app_fs_lsdir(const char *path)
 {
@@ -229,7 +234,8 @@ exit:
 	return rc;
 }
 
-/*____________________________________________________________________________*/
+
+
 
 
 int app_fs_init(void)
@@ -264,7 +270,8 @@ exit:
 	return rc;
 }
 
-/*____________________________________________________________________________*/
+
+
 
 int app_fs_iterate_dir_files(const char *path,
 			     app_fs_iterate_fs_cb_t callback,

@@ -26,7 +26,6 @@ int rest_encode_response_json_array(http_response_t *resp,
 				    const struct json_obj_descr *descr,
 				    size_t descr_len);
 
-/*____________________________________________________________________________*/
 
 /* That saves time but it's a bad practice for sure :') */
 #define REST_HANDLE_DECL(name) \

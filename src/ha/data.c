@@ -9,17 +9,7 @@
 
 #include "data.h"
 
-void ha_data_ble_to_xiaomi(struct ha_xiaomi_dataset *xiaomi,
-			   const xiaomi_record_t *rec)
-{
-	xiaomi->rssi = rec->measurements.rssi;
-	xiaomi->temperature.type = HA_DEV_SENSOR_TYPE_EMBEDDED;
-	xiaomi->temperature.value = rec->measurements.temperature;
-	xiaomi->humidity = rec->measurements.humidity;
-	xiaomi->battery_mv = rec->measurements.battery_mv;
-	xiaomi->battery_level = rec->measurements.battery_level;
-}
-
+/* TODO remove one of the duplicates (see devices/caniot.c) */
 static int save_caniot_temperature(struct ha_caniot_blt_dataset *blt,
 				   uint8_t temp_index,
 				   uint16_t temperature,

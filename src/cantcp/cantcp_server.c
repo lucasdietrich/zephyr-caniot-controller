@@ -18,12 +18,14 @@
 #include "cantcp_core.h"
 #include "cantcp_server.h"
 
-/*____________________________________________________________________________*/
+
+
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(cantcp_server, LOG_LEVEL_DBG);
 
-/*____________________________________________________________________________*/
+
+
 
 static void server(void *_a, void *_b, void *_c);
 
@@ -33,7 +35,8 @@ K_THREAD_DEFINE(cantcp_thread, 0x1000, server, NULL, NULL, NULL, K_PRIO_PREEMPT(
 // create a function to attach a msgq for received messages
 // K_MSGQ_DEFINE(cantcp_)
 
-/*____________________________________________________________________________*/
+
+
 
 #define CANTCP_TUNNEL_PORT  CANTCP_DEFAULT_PORT
 
@@ -60,7 +63,8 @@ static uint32_t connections_count = 0U;
 K_MSGQ_DEFINE(tx_msgq, sizeof(struct zcan_frame),
 	      CANTCP_DEFAULT_MAX_TX_QUEUE_SIZE, 4U);
 
-/*____________________________________________________________________________*/
+
+
 
 static int control_event_fd = -1;
 
@@ -107,7 +111,8 @@ int cantcp_server_broadcast(struct zcan_frame *msg)
 	return ret;
 }
 
-/*____________________________________________________________________________*/
+
+
 
 static struct k_msgq *common_rx_msgq = NULL;
 
@@ -118,7 +123,8 @@ int cantcp_server_attach_rx_msgq(struct k_msgq *msgq)
 	return 0;
 }
 
-/*____________________________________________________________________________*/
+
+
 
 // Get the time until the first tunnel keep-alive timeout
 static uint32_t get_neareset_timeout(void)
@@ -145,7 +151,8 @@ static uint32_t get_neareset_timeout(void)
 	return timeout;
 }
 
-/*____________________________________________________________________________*/
+
+
 
 static void cantcp_server_tunnel_init(cantcp_tunnel_t *tunnel)
 {
@@ -154,7 +161,8 @@ static void cantcp_server_tunnel_init(cantcp_tunnel_t *tunnel)
 	tunnel->flags.mode = CANTCP_SERVER;
 }
 
-/*____________________________________________________________________________*/
+
+
 
 K_MEM_SLAB_DEFINE(tunnels_pool, sizeof(struct cantcp_tunnel),
 		  CANTCP_MAX_CLIENTS, 4);
@@ -175,7 +183,8 @@ static void free_tunnel(cantcp_tunnel_t **tunnel)
 	k_mem_slab_free(&tunnels_pool, (void **)tunnel);
 }
 
-/*____________________________________________________________________________*/
+
+
 
 static int setup_socket(void)
 {

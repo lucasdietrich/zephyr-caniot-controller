@@ -34,7 +34,8 @@
 		script with LUA_LOADLIBNAME_ENABLED disabled"
 #endif 
 
-/*____________________________________________________________________________*/
+
+
 
 #define LM_LUA_DUMMYLIB "dummy"
 
@@ -54,7 +55,8 @@ static int lm_luaopen_dummy (lua_State *L) {
   return 1;
 }
 
-/*____________________________________________________________________________*/
+
+
 
 static const luaL_Reg lm_lua_modules[] = {
 #if LUA_GNAME_ENABLED == 1

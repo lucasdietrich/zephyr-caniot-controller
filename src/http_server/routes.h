@@ -63,16 +63,6 @@ struct http_route
 	 */
 	enum http_method method;
 
-	/**
-	 * @brief Tells if route support HTTP stream request
-	 */
-	uint8_t support_streaming: 1;
-
-	/**
-	 * @brief Tells if the route support HTTP message requests
-	 */
-	// uint8_t support_messaging: 1;
-
 	/*___________________________________________________________________*/
 
 	/**
@@ -88,9 +78,18 @@ struct http_route
 	http_server_t server;
 
 	/**
-	 * @brief Handler to call to process the request
+	 * @brief Handler to call to process (called on streaming only)
+	 * If this handler is set, it means that the route supports streaming.
+	 * 
+	 * "resp" argument is always NULL when handling a stream request.
 	 */
-	http_handler_t handler;
+	http_handler_t req_handler;
+
+	/**
+	 * @brief Handler to call when the request is complete, 
+	 *   to process the response
+	 */
+	http_handler_t resp_handler;
 
 	/*___________________________________________________________________*/
 
@@ -116,6 +115,11 @@ const struct http_route *route_resolve(enum http_method method,
 				       const char *url,
 				       size_t url_len,
 				       http_route_args_t *rargs);
+
+static inline bool route_supports_streaming(const struct http_route *route)
+{
+	return route->req_handler != NULL;
+}
 
 bool route_is_valid(const struct http_route *route);
 
