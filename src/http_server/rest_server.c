@@ -28,13 +28,15 @@
 #include <bluetooth/addr.h>
 #include "ha/devices.h"
 #include "ha/data.h"
+#include "ha/config.h"
+#include "ha/utils.h"
+#include "ha/caniot_controller.h"
+
 #include "lua/orchestrator.h"
 #include "appfs.h"
 
 #include <caniot/caniot.h>
 #include <caniot/datatype.h>
-#include <ha/caniot_controller.h>
-#include <ha/utils.h>
 
 #if defined(CONFIG_UART_IPC)
 #include <uart_ipc/ipc.h>
@@ -593,6 +595,27 @@ int rest_devices_list(http_request_t *req,
 	// TODO
 
 	return -EINVAL;
+}
+
+static void room_devices_cb(ha_dev_t *dev,
+			    void *user_data)
+{
+	buffer_t *const buf = (buffer_t *)user_data;
+
+	buffer_snprintf(buf, "%p", dev);
+}
+
+int rest_room_devices_list(http_request_t *req,
+			   http_response_t *resp)
+{
+	const ha_dev_filter_t filter = {
+		.flags = HA_DEV_FILTER_ROOM_ID,
+		.rid = HA_ROOM_MY,
+	};
+
+	ha_dev_iterate(room_devices_cb, &filter, &resp->buffer);
+
+	return 0;
 }
 
 int rest_caniot_info(http_request_t *req,

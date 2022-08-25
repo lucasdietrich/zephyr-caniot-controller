@@ -14,9 +14,10 @@
 #include "ble/xiaomi_record.h"
 
 #include "ha/devices.h"
+#include "ha/room.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(ha_emu, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(ha_emu, LOG_LEVEL_INF);
 
 #define EMU_BLE_RDM_MIN_MS 200
 #define EMU_BLE_RDM_MAX_MS 2000
@@ -57,11 +58,14 @@ K_THREAD_DEFINE(emu_thread_consumer4, 1024u, emu_thread_consumer, NULL, NULL, NU
 	{ _type, { { 0xFF, 0xFF, 0xFF, 0x00, 0x00, _last } } }
 
 static const bt_addr_le_t addrs[] = {
-	EMU_BLE_ADDR_INIT(BT_ADDR_LE_PUBLIC, 0x11),
-	EMU_BLE_ADDR_INIT(BT_ADDR_LE_PUBLIC, 0x22),
-	EMU_BLE_ADDR_INIT(BT_ADDR_LE_PUBLIC, 0x33),
-	EMU_BLE_ADDR_INIT(BT_ADDR_LE_PUBLIC, 0x44),
-	EMU_BLE_ADDR_INIT(BT_ADDR_LE_PUBLIC, 0x55),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0xECu, 0x1Cu, 0x6Du),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x68u, 0x05u, 0x63u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 0x38u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0xA7u, 0x30u, 0xC4u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0xD5u, 0x08u, 0x40u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x28u, 0x17u, 0xE3u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0xE0u, 0x18u, 0xEDu),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x8Du, 0xBAu, 0xB4u),
 };
 
 void emu_thread_provider(void *_a, void *_b, void *_c)
@@ -112,7 +116,7 @@ void emu_thread_provider(void *_a, void *_b, void *_c)
 		k_sleep(K_MSEC(next));
 
 		if (_a != NULL) {
-			LOG_INF("k_mem_slab_num_free_get(): %u",
+			LOG_DBG("k_mem_slab_num_free_get(): %u",
 				ha_ev_free_count());
 		}
 	}
@@ -138,11 +142,15 @@ void emu_thread_consumer(void *_a, void *_b, void *_c)
 		event = ha_ev_wait(trig, K_MSEC(get_rdm_delay_ms_1()));
 
 		if (event != NULL) {
-			LOG_INF("(thread %p) got event %p (refc = %u) - time=%u temp=%d",
+			LOG_DBG("(thread %p) got event %p (refc = %u) - time=%u temp=%d",
 				_current, event, (uint32_t)atomic_get(&event->ref_count),
 				event->time,
 				((struct ha_xiaomi_dataset *)event->data)->temperature.value);
 
+			if (event->dev && event->dev->room) {
+				LOG_INF("(%p %p %p) Room: %s", event, event->dev, 
+					event->dev->room, log_strdup(event->dev->room->name));
+			}
 
 			ha_ev_unref(event);
 		}

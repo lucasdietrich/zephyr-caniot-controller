@@ -7,12 +7,12 @@
 #ifndef _HA_ROOM_H_
 #define _HA_ROOM_H_
 
+#include <zephyr.h>
+
 #include <stdint.h>
 
-#include "devices.h"
-
-typedef enum {
-	HA_ROOM_NONE = 0x00U,
+typedef enum ha_room_id {
+	HA_ROOM_NONE = 0x00u,
 
 	HA_ROOM_ENTRANCE,
 	HA_ROOM_LIVING_ROOM,
@@ -48,13 +48,21 @@ typedef enum {
 
 	HA_ROOM_ATTIC_SOUTH,
 	HA_ROOM_ATTIC_NORTH,
-} room_id_t;
+} ha_room_id_t;
 
 struct ha_room
 {
+	ha_room_id_t rid;
 	const char *name;
+
+	atomic_t devices_count;
 };
 
-room_id_t ha_get_device_room(ha_dev_t *const dev);
+#define HA_ROOM(_rid, _name) \
+	{ .rid = _rid, .name = _name, .devices_count = ATOMIC_INIT(0) }
+
+#define HA_ROOM_ASSOC(_rid, _addr) \
+	{ .rid = _rid, .addr = _addr }
+
 
 #endif

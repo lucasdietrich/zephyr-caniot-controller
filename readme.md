@@ -52,11 +52,22 @@
 
 Other ideas:
 - Thread/Matter
-- 
+
+
+## Footprint
+
+Default `nucleo_f429zi` build (debug):
+```
+Memory region         Used Size  Region Size  %age Used
+           FLASH:      498428 B         1 MB     47.53%
+            SRAM:      119286 B       192 KB     60.67%
+             CCM:         64 KB        64 KB    100.00%
+        IDT_LIST:          0 GB         2 KB      0.00%
+```
 
 ## Demo
 
-LUA script HTTP upload to SD card then execute.
+ HTTP upload of a LUA script to SD card then execute.
 ```
 somecalc1.lua
 1661031779
@@ -78,7 +89,15 @@ somecalc1.lua
 
 ## Known issues
 
-- SD FAT FS internal state gets corrupted when doing many requests in a short time.
+- MAJOR: SD FAT FS internal state gets corrupted when doing many requests in a short time.
+- minor: Fix `-Waddress-of-packed-member` during `xiaomi_dataframe_t` handling
+
+
+
+## TODO
+
+- Move several buffers to CCM to keep space in SRAM for Newlib heap (for LUA)
+- Allow to embed LUA script when building for `nucleo_f429zi`
 
 ---
 

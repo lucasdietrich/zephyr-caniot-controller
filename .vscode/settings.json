@@ -179,7 +179,8 @@
                 "freelist.h": "c",
                 "toolchain.h": "c",
                 "ble_controller.h": "c",
-                "rand32.h": "c"
+                "rand32.h": "c",
+                "orchestrator.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

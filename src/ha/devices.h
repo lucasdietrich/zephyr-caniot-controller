@@ -21,6 +21,7 @@
 #include <zephyr.h>
 
 #include "data.h"
+#include "room.h"
 
 /* Forward declaration */
 struct ha_event;
@@ -92,6 +93,9 @@ struct ha_device {
 
 	/* Device last data event item */
 	struct ha_event *last_data_event;
+
+	/* Room where the device is */
+	struct ha_room *room;
 };
 
 typedef struct ha_device ha_dev_t;
@@ -109,8 +113,6 @@ const void *ha_dev_get_last_data(ha_dev_t *dev);
 
 #define HA_DEV_GET_CAST_LAST_DATA(_dev, _type) \
 	((_type *)ha_dev_get_last_data(_dev))
-
-
 
 
 
@@ -328,6 +330,12 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 				     const struct caniot_board_control_telemetry *data);
 const struct caniot_board_control_telemetry *ha_ev_get_caniot_telemetry(const ha_ev_t *ev);
 
+struct ha_room_assoc
+{	
+	ha_room_id_t rid;
+	ha_dev_addr_t addr;
+};
 
+struct ha_room *ha_dev_get_room(ha_dev_t *const dev);
 
 #endif /* _HA_DEVS_H_ */

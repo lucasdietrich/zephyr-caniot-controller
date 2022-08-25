@@ -14,6 +14,12 @@
 #include <caniot/caniot.h>
 #include <caniot/datatype.h>
 
+#include "ha/room.h"
+
+#define XIAOMI_BT_LE_ADDR_0 0xA4U
+#define XIAOMI_BT_LE_ADDR_1 0xC1U
+#define XIAOMI_BT_LE_ADDR_2 0x38U
+
 #define HA_CANIOT_MAX_DEVICES 5U
 #define HA_XIAOMI_MAX_DEVICES 15U
 #define HA_OTHER_MAX_DEVICES 5U
@@ -65,11 +71,12 @@ typedef enum
 {
 	HA_DEV_FILTER_MEDIUM = BIT(0), /* filter by medium */
 	HA_DEV_FILTER_DEVICE_TYPE = BIT(1), /* filter by device type */
-	HA_DEV_FILTER_DATA_EXIST = BIT(2), /* Filter only by existing data */
+	HA_DEV_FILTER_DATA_EXIST = BIT(2), /* Filter by existing data */
 	// HA_DEV_FILTER_SENSOR_TYPE, /* filter by temperature sensor type */
-	HA_DEV_FILTER_DATA_TIMESTAMP = BIT(3), /* filter only devices with recent measurements */
-	// HA_DEV_FILTER_REGISTERED_TIMESTAMP, /* filter only recent devices */
-	HA_DEV_FILTER_HAS_TEMPERATURE = BIT(4), /* filter only devices with temperature sensor */
+	HA_DEV_FILTER_DATA_TIMESTAMP = BIT(3), /* filter devices with recent measurements */
+	// HA_DEV_FILTER_REGISTERED_TIMESTAMP, /* filter recent devices */
+	HA_DEV_FILTER_HAS_TEMPERATURE = BIT(4), /* filter devices with temperature sensor */
+	HA_DEV_FILTER_ROOM_ID = BIT(5), /* filter devices with defined room id */
 } ha_dev_filter_flags_t;
 
 /* TODO Incompatible masks */
@@ -82,6 +89,7 @@ typedef struct
 	ha_dev_medium_type_t medium;
 	ha_dev_type_t device_type;
 	uint32_t data_timestamp;
+	ha_room_id_t rid;
 } ha_dev_filter_t;
 
 struct ha_xiaomi_dataset
@@ -122,5 +130,52 @@ struct ha_f429zi_dataset
 void ha_data_can_to_blt(struct ha_caniot_blt_dataset *blt,
 			const struct caniot_board_control_telemetry *can_buf);
 
+#define HA_DEV_CANIOT_MAC_INIT(_did) \
+	(ha_dev_mac_t) { \
+		.medium = HA_DEV_MEDIUM_CAN, \
+		.addr = { .caniot = _did }, \
+	}
+
+#define HA_BT_ADDR_LE_PUBLIC_INIT(_b0, _b1, _b2, _b3, _b4, _b5) \
+	(bt_addr_le_t) { \
+		.type = BT_ADDR_LE_PUBLIC, \
+		.a = { \
+			.val = { \
+				_b0, \
+				_b1, \
+				_b2, \
+				_b3, \
+				_b4, \
+				_b5, \
+			} \
+		} \
+	}
+
+#define HA_DEV_BLE_MAC_INIT(_b0, _b1, _b2, _b3, _b4, _b5) \
+	{ \
+		.medium = HA_DEV_MEDIUM_CAN, \
+		.addr = { \
+			.ble = HA_BT_ADDR_LE_PUBLIC_INIT(_b0, _b1, _b2, _b3, _b4, _b5) \
+		} \
+	}
+
+#define HA_DEV_CANIOT_ADDR_INIT(_did) \
+	{ \
+		.type = HA_DEV_TYPE_CANIOT, \
+		.mac = HA_DEV_CANIOT_MAC_INIT(_did)\
+	}
+
+#define HA_DEV_XIAOMI_ADDR_INIT(_b3, _b4, _b5) \
+	{ \
+		.type = HA_DEV_TYPE_XIAOMI_MIJIA, \
+		.mac = HA_DEV_BLE_MAC_INIT( \
+			XIAOMI_BT_LE_ADDR_0, \
+			XIAOMI_BT_LE_ADDR_1, \
+			XIAOMI_BT_LE_ADDR_2, \
+			_b3, \
+			_b4, \
+			_b5 \
+		)\
+	}
 
 #endif /* _HA_DATA_H_ */

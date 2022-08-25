@@ -699,7 +699,7 @@ static bool process_request(http_connection_t *conn)
 		goto close;
 	}
 
-	LOG_INF("(%d) Req %s [payload %u B] returned B resp status %d [payload %u B] "
+	LOG_INF("(%d) Req %s [payload %u B] returned resp status %d [payload %u B] "
 		"(keep-alive=%d)", conn->sock, req.url, req.payload_len, resp.status_code,
 		resp.payload_sent, conn->keep_alive.enabled);
 

@@ -217,6 +217,11 @@ ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 	/* Increment device count */
 	devices.count++;
 
+	/* Reference the room */
+	if ((dev->room = ha_dev_get_room(dev)) != NULL) {
+		atomic_inc(&dev->room->devices_count);
+	}
+
 exit:
 	k_mutex_unlock(&devices.mutex);
 	return dev;
@@ -256,6 +261,12 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 
 	if (filter->flags & HA_DEV_FILTER_DATA_TIMESTAMP) {
 		if (dev->last_data_event->time < filter->data_timestamp) {
+			return false;
+		}
+	}
+
+	if (((filter->flags & HA_DEV_FILTER_ROOM_ID) != 0) && dev->room) {
+		if (dev->room->rid != filter->rid) {
 			return false;
 		}
 	}
@@ -727,4 +738,30 @@ const void *ha_ev_get_data_check_type(const ha_ev_t *event,
 		return event->data;
 	}
 	return NULL;
+}
+
+struct ha_room *ha_dev_get_room(ha_dev_t *const dev)
+{
+	struct ha_room_assoc *assoc = NULL;
+	struct ha_room *room = NULL;
+
+	/* Find the room associated to the device */
+	for (uint32_t i = 0u; i < ha_cfg_rooms_assoc_count; i++) {
+		if (ha_dev_addr_cmp(&dev->addr, &ha_cfg_rooms_assoc[i].addr) == 0) {
+			assoc = &ha_cfg_rooms_assoc[i];
+			break;
+		}
+	}
+
+	if (assoc != NULL) {
+		/* Retrieve room structure addr */
+		for (uint32_t i = 0u; i < ha_cfg_rooms_count; i++) {
+			if (assoc->rid == ha_cfg_rooms[i].rid) {
+				room = &ha_cfg_rooms[i];
+				break;
+			}
+		}
+	}
+
+	return room;
 }
