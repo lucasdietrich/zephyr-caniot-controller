@@ -12,6 +12,10 @@
 
 #include "modules.h"
 
+#include <logging/log.h>
+LOG_MODULE_REGISTER(lua_mod, LOG_LEVEL_DBG);
+
+/* Default modules */
 #define LUA_GNAME_ENABLED		1
 #define LUA_LOADLIBNAME_ENABLED		1
 #define LUA_COLIBNAME_ENABLED		0
@@ -23,40 +27,98 @@
 #define LUA_UTF8LIBNAME_ENABLED		0
 #define LUA_DBLIBNAME_ENABLED		0
 
+/* Custom modules */
 #define LUA_DUMMYLIB_ENABLED		1
+#define LUA_HA_ENABLED			1
+#define LUA_ZEPHYRLIB_ENABLED		0
+#define LUA_CLOUDLIB_ENABLED		0
+
+#if LUA_ZEPHYRLIB_ENABLED && LUA_OSLIBNAME_ENABLED
+#	warning "LUA_OSLIBNAME_ENABLED and LUA_ZEPHYRLIB_ENABLED are mutually exclusive"
+#endif
 
 #if !LUA_LOADLIBNAME_ENABLED
 #	warning "Unable to STDOUT print with LUA_GNAME_ENABLED disabled"
 #endif 
 
 #if !LUA_LOADLIBNAME_ENABLED
-#	warning "Unable to load modules from LUA \
-		script with LUA_LOADLIBNAME_ENABLED disabled"
+#	warning "Unable to load modules from LUA script with LUA_LOADLIBNAME_ENABLED disabled"
 #endif 
 
 
-
-
 #define LM_LUA_DUMMYLIB "dummy"
+#define LM_LUA_HALIB "ha"
+#define LM_LUA_ZEPHYRLIB "zephyr"
+#define LM_LUA_CLOUDLIB "cloud"
 
-static int lm_dum_hello_world(lua_State *L) {
-    lua_pushstring(L, "Hello World from module !");
-    printk("Called\n");
-    return lua_gettop(L);
+
+
+static int lm_dum_hello(lua_State *L)
+{
+	size_t len; 
+	const char *name = luaL_checklstring(L, 1, &len);
+
+	LOG_DBG("name=%s [len = %u]", log_strdup(name), len);
+	
+	char buffer[30u];
+	snprintf(buffer, sizeof(buffer), "Hello %s", name);
+
+	lua_pushstring(L, buffer);
+	return 1;
+}
+
+static int lm_dum_add(lua_State *L)
+{
+	/* Sum all integers arguments and return the result */
+	int i = 1;
+	int sum = 0;
+	while (lua_isnumber(L, i)) {
+		sum += lua_tointeger(L, i);
+		i++;
+	}
+	lua_pushinteger(L, sum);
+	return 1;
+}
+
+static int lm_dum_misc(lua_State *L)
+{
+	/* Get the first argument and return it */
+	return lua_gettop(L);
 }
 
 static const struct luaL_Reg lm_dummy_functions[] = {
-  {"myhelloworld", lm_dum_hello_world},
+  {"hello", lm_dum_hello},
+  {"add", lm_dum_add},
+  {"misc", lm_dum_misc},
   {NULL, NULL}
 };
 
-static int lm_luaopen_dummy (lua_State *L) {
-  luaL_newlib(L, lm_dummy_functions);
-  return 1;
+static int lm_luaopen_dummy(lua_State *L) {
+	luaL_newlib(L, lm_dummy_functions);
+	return 1;
 }
 
+/* TODO https://stackoverflow.com/questions/12096281/how-to-have-a-lua-iterator-return-a-c-struct */
+static int lm_ha_list_devices(lua_State *L)
+{
+	/* Get the first argument and return it */
+	return 1;
+}
 
+static const struct luaL_Reg lm_ha_functions[] = {
+	{"devices", lm_ha_list_devices},
+	{"rooms", NULL},
+	{"subscribe", NULL},
+	{"pend", NULL},
+	{"command", NULL},
+	{"can", NULL},
+	{NULL, NULL}
+};
 
+static int lm_luaopen_ha(lua_State *L) {
+	luaL_newlib(L, lm_ha_functions);
+	return 1;
+}
 
 static const luaL_Reg lm_lua_modules[] = {
 #if LUA_GNAME_ENABLED == 1
@@ -91,6 +153,15 @@ static const luaL_Reg lm_lua_modules[] = {
 #endif 
 #if LUA_DUMMYLIB_ENABLED == 1
   {LM_LUA_DUMMYLIB, lm_luaopen_dummy},
+#endif
+#if LUA_HA_ENABLED == 1
+  {LM_LUA_HALIB, lm_luaopen_ha},
+#endif
+#if LUA_ZEPHYRLIB_ENABLED == 1
+  {LM_LUA_ZEPHYRLIB, NULL},
+#endif
+#if LUA_CLOUDLIB_ENABLED == 1
+  {LM_LUA_CLOUDLIB, NULL},
 #endif
   {NULL, NULL}
 };

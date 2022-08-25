@@ -8,15 +8,21 @@ from pprint import pprint
 from caniot.controller import Controller
 import time
 
-ip = "192.0.2.1"
 ip = "192.168.10.240"
+ip = "192.0.2.1"
 
 c = Controller(ip, False)
 
-for i in range(100):
-    res = c.upload("./scripts/lua/somecalc1.lua", chunks_size=1024)
-    res = c.run_script("somecalc1.lua")
-    time.sleep(1)
+N = 1
+
+lua_script = "ha.lua"
+
+for i in range(N):
+    res = c.upload(f"./scripts/lua/{lua_script}", chunks_size=1024)
+    res = c.run_script(lua_script)
+
+    if i < N - 1:
+        time.sleep(1)
 
 # print(res.json())
 
