@@ -25,9 +25,11 @@
 #include "http_utils.h"
 #include "http_conn.h"
 #include "routes.h"
-#include "utils/buffers.h"
 
-#include "creds/credentials.h"
+#include "utils/buffers.h"
+#include "utils/misc.h"
+
+#include "creds/manager.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF); /* INF */
@@ -177,14 +179,20 @@ exit:
 
 int setup_sockets(void)
 {
+	int ret;
+
 	/* setup non-secure HTTP socket (port 80) */
 #if CONFIG_HTTP_SERVER_NONSECURE
-	if (setup_socket(&fds.srv, false) < 0) {
+	ret = setup_socket(&fds.srv, false);
+	if (ret < 0) {
 		goto exit;
 	}
 #endif /* CONFIG_HTTP_SERVER_NONSECURE */
 
 	/* setup secure HTTPS socket (port 443) */
+	cred_buf_t cert, key;
+	creds_manager_get(CRED_HTTPS_SERVER_CERTIFICATE, &cert);
+	creds_manager_get(CRED_HTTPS_SERVER_PRIVATE_KEY, &key);
 
 	/* include this PR : https://github.com/zephyrproject-rtos/zephyr/pull/40255
 	 * related issue : https://github.com/zephyrproject-rtos/zephyr/issues/40267
@@ -192,21 +200,21 @@ int setup_sockets(void)
 	tls_credential_add(
 		HTTPS_SERVER_SEC_TAG,
 		TLS_CREDENTIAL_SERVER_CERTIFICATE,
-		x509_public_certificate_rsa1024_der,
-		sizeof(x509_public_certificate_rsa1024_der));
+		cert.data, cert.len);
 	tls_credential_add(
 		HTTPS_SERVER_SEC_TAG,
 		TLS_CREDENTIAL_PRIVATE_KEY,
-		rsa_private_key_rsa1024_der,
-		sizeof(rsa_private_key_rsa1024_der));
+		key.data, key.len);
 
-	if (setup_socket(&fds.sec, true) < 0) {
+	ret = setup_socket(&fds.sec, true);
+	if (ret < 0) {
 		goto exit;
 	}
 
 	clients_count = 0;
+	ret = 0;
 exit:
-	return -1;
+	return ret;
 }
 
 static void remove_pollfd_by_index(uint_fast8_t index)

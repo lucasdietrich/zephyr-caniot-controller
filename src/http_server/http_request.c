@@ -6,8 +6,6 @@
 
 #include "http_request.h"
 
-#include "utils/buffers.h"
-
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -16,6 +14,9 @@
 #include "http_utils.h"
 #include "http_server.h"
 #include "http_response.h"
+
+#include "utils/buffers.h"
+#include "utils/misc.h"
 
 
 #include <logging/log.h>
