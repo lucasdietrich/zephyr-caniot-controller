@@ -611,7 +611,7 @@ static bool handle_response(http_connection_t *conn)
 
 		/* process request, prepare response */
 		ret = req->route->resp_handler(req, resp);
-		if (ret != 0) {
+		if (ret < 0) {
 			http_request_discard(conn->req, HTTP_REQUEST_PROCESSING_ERROR);
 			LOG_ERR("(%d) Request processing failed = %d", conn->sock, ret);
 		}
@@ -699,7 +699,7 @@ static bool process_request(http_connection_t *conn)
 		goto close;
 	}
 
-	LOG_INF("(%d) Req %s [payload %u B] returned resp status %d [payload %u B] "
+	LOG_INF("(%d) Req %s [%u B] -> Status%d [%u B] "
 		"(keep-alive=%d)", conn->sock, req.url, req.payload_len, resp.status_code,
 		resp.payload_sent, conn->keep_alive.enabled);
 

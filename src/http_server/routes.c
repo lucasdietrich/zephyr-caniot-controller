@@ -100,6 +100,10 @@ static const struct http_route routes[] = {
 	REST(PUT, "/devices/caniot/%u/attribute/%x", rest_devices_caniot_attr_write, 2U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
 #endif
 
+#if defined(CONFIG_CAN_INTERFACE)
+	REST(POST, "/if/can/%x", rest_if_can, 1U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
+#endif
+
 #if defined(CONFIG_HTTP_TEST_SERVER)
 	HTTP_TEST_MESSAGING_ROUTE(),
 	HTTP_TEST_STREAMING_ROUTE(),

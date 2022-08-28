@@ -180,7 +180,10 @@
                 "toolchain.h": "c",
                 "ble_controller.h": "c",
                 "rand32.h": "c",
-                "orchestrator.h": "c"
+                "orchestrator.h": "c",
+                "poll.h": "c",
+                "misc.h": "c",
+                "can_interface.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

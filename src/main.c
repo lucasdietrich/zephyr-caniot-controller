@@ -22,6 +22,10 @@
 
 #include "appfs.h"
 
+#if defined(CONFIG_CAN_INTERFACE)
+#include "can/can_interface.h"
+#endif /* CONFIG_CAN_INTERFACE */
+
 #ifndef CONFIG_QEMU_TARGET
 #include "ha/devices.h"
 #include "ha/ble_controller.h"
@@ -105,6 +109,10 @@ void main(void)
 {	
 	/* don't do it, too dangerous */
 	// sys_free_lists_init();
+
+#if defined(CONFIG_CAN_INTERFACE)
+	if_can_init();
+#endif /* CONFIG_CAN_INTERFACE */
 	
 	app_fs_init();
 

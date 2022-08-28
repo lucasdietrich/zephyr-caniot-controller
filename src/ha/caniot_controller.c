@@ -10,11 +10,10 @@
 #include <caniot/controller.h>
 #include <caniot/datatype.h>
 
-#include <drivers/can.h>
-#include <device.h>
-
 #include <sys/dlist.h>
 #include <assert.h>
+
+#include "can/can_interface.h"
 
 #include "caniot_controller.h"
 #include "devices.h"
@@ -29,8 +28,6 @@ LOG_MODULE_REGISTER(caniot, LOG_LEVEL_INF);
 
 CAN_MSGQ_DEFINE(can_rxq, 4U);
 
-const struct device *can_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
-
 /* initialized with 0 */
 static ha_ciot_ctrl_did_cb_t did_callbacks[CANIOT_DID_MAX_VALUE];
 
@@ -40,27 +37,6 @@ static void thread(void *_a, void *_b, void *_c);
 K_THREAD_DEFINE(ha_ciot_thread, 0x800, thread, NULL, NULL, NULL,
 		K_PRIO_COOP(2), 0U, 0U);
 
-static int z_can_init(void)
-{
-	/* wait for device ready */
-	while (!device_is_ready(can_dev)) {
-		LOG_WRN("CAN: Device %s not ready.\n", can_dev->name);
-		k_sleep(K_SECONDS(1));
-	}
-
-	/* attach message q */
-	struct zcan_filter filter = {
-		.id_type = 0, /* currently we ignore extended IDs */
-	};
-
-	int ret = can_add_rx_filter_msgq(can_dev, &can_rxq, &filter);
-	if (ret) {
-		LOG_ERR("can_add_rx_filter_msgq failed: %d", ret);
-	}
-
-	return ret;
-}
-
 static int z_can_send(const struct caniot_frame *frame,
 		      uint32_t delay_ms)
 {
@@ -68,8 +44,7 @@ static int z_can_send(const struct caniot_frame *frame,
 
 	struct zcan_frame zframe;
 	caniot_to_zcan(&zframe, frame);
-
-	return can_send(can_dev, &zframe, K_FOREVER, NULL, NULL);
+	return if_can_send(&zframe);
 }
 
 const struct caniot_drivers_api driv =
@@ -269,7 +244,15 @@ static void thread(void *_a, void *_b, void *_c)
 	static struct caniot_frame frame;
 	static struct zcan_frame zframe;
 
-	z_can_init();
+	struct zcan_filter filter = {
+		.id_type = CAN_ID_STD
+	};
+
+	ret = if_can_attach_rx_msgq(&can_rxq, &filter);
+	if(ret) {
+		LOG_ERR("Failed to attach CAN RX queue: %d", ret);
+		return;
+	}
 
 	caniot_controller_driv_init(&ctrl, &driv, event_cb, NULL);
 

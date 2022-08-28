@@ -88,4 +88,7 @@ int rest_fs_remove_lua_script(http_request_t *req,
 int rest_lua_run_script(http_request_t *req,
 			http_response_t *resp);
 
+int rest_if_can(http_request_t *req,
+		http_response_t *resp);
+
 #endif

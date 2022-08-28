@@ -7,9 +7,7 @@
 #ifndef _CAN_CANIOT_CONTROLLER_H
 #define _CAN_CANIOT_CONTROLLER_H	
 
-#include <kernel.h>
-
-#include <drivers/can.h>
+#include <zephyr.h>
 
 #include <caniot/caniot.h>
 #include <caniot/device.h>

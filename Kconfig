@@ -39,6 +39,12 @@ config HTTP_SERVER
 	help
 	        Enable HTTP server features (webserver, REST API, prometheus, etc.)
 
+config CAN_INTERFACE
+        bool "CAN interface"
+        default y
+        help
+                The CAN interface to use for the CANIOT controller.
+
 config BLE_CONTROLLER
         bool "Enable BLE controller"
         default y
@@ -59,6 +65,7 @@ config CANTCP_SERVER
 config CANIOT_CONTROLLER
         bool "Enable CANIOT controller (DEPRECATED)"
         default n
+        depends on CAN_INTERFACE
         help
                 Enable CANIOT controller redirection for CAN messages
 

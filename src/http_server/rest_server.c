@@ -32,6 +32,8 @@
 #include "ha/utils.h"
 #include "ha/caniot_controller.h"
 
+#include "can/can_interface.h"
+
 #include "lua/orchestrator.h"
 #include "appfs.h"
 
@@ -979,20 +981,45 @@ exit:
 	return ret;
 }
 
-struct json_caniot_command_post {
+struct json_can_payload {
 	size_t count;
-	uint32_t vals[8u];
+	uint32_t vals[CAN_MAX_DLEN];
 };
 
-static const struct json_obj_descr json_caniot_command_post_descr[] = {
-	JSON_OBJ_DESCR_ARRAY(struct json_caniot_command_post, vals, 8u, count, JSON_TOK_NUMBER)
+static const struct json_obj_descr json_can_payload_descr[] = {
+	JSON_OBJ_DESCR_ARRAY(struct json_can_payload, vals, CAN_MAX_DLEN, count, JSON_TOK_NUMBER)
 };
+
+static int json_parse_can_payload(char *buf, size_t len,
+				  uint8_t can_buf[CAN_MAX_DLEN])
+{
+	struct json_can_payload data;
+
+	/* Parse payload */
+	int ret = json_arr_parse(buf, len, json_can_payload_descr, &data);
+	if (ret < 0 || data.count > CAN_MAX_DLEN) {
+		goto exit;
+	}
+
+	/* validate command and build it */
+	for (size_t i = 0; i < data.count; i++) {
+		if (data.vals[i] > 0xFF) {
+			ret = -EINVAL;
+			goto exit;
+		}
+		can_buf[i] = data.vals[i];
+	}
+
+	ret = data.count;
+exit:
+	return ret;
+}
 
 int rest_devices_caniot_command(http_request_t *req,
 				http_response_t *resp)
 {
 	int ret = 0u;
-	struct json_caniot_command_post post;
+	uint8_t can_buf[CAN_MAX_DLEN];
 
 	/* parse did, ep */
 	uint32_t did = 0, ep = 0;
@@ -1005,28 +1032,15 @@ int rest_devices_caniot_command(http_request_t *req,
 	}
 
 	/* Parse payload */
-	ret = json_arr_parse(req->payload.loc, req->payload.len,
-		       json_caniot_command_post_descr,
-		       &post);
-	if (ret < 0 || post.count > 8u) {
+	int dlc = json_parse_can_payload(req->payload.loc, req->payload.len, can_buf);
+	if (dlc < 0) {
 		http_response_set_status_code(resp, HTTP_STATUS_BAD_REQUEST);
 		goto exit;
 	}
 
-	uint8_t cmd[8u];
-	memset(cmd, 0x00u, ARRAY_SIZE(cmd));
-	/* validate command and build it */
-	for (size_t i = 0; i < post.count; i++) {
-		if (post.vals[i] > 0xFF) {
-			http_response_set_status_code(resp, HTTP_STATUS_BAD_REQUEST);
-			goto exit;
-		}
-		cmd[i] = post.vals[i];
-	}
-
 	/* build CANIOT query */
 	struct caniot_frame q;
-	caniot_build_query_command(&q, ep, (uint8_t *)&cmd, sizeof(cmd));
+	caniot_build_query_command(&q, ep, can_buf, CAN_MAX_DLEN);
 
 	/* execute and build appropriate response */
 	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
@@ -1104,10 +1118,35 @@ exit:
 	return ret;
 }
 
+int rest_if_can(http_request_t *req,
+		http_response_t *resp)
+{
+	int ret = 0;
+
+	uint32_t arbitration_id = 0u;
+	route_arg_get(req, 0U, &arbitration_id);
+
+	struct zcan_frame frame = { 0 };
+
+	int dlc = json_parse_can_payload(req->payload.loc, req->payload.len, frame.data);
+	if (dlc < 0) {
+		http_response_set_status_code(resp, HTTP_STATUS_BAD_REQUEST);
+		goto exit;
+	}
+
+	frame.id = arbitration_id;
+	frame.id_type = (arbitration_id <= CAN_STD_ID_MASK) ?
+		CAN_ID_STD : CAN_ID_EXT;
+	frame.rtr = 0u;
+	frame.dlc = dlc;
+	ret = if_can_send(&frame);
+
+	LOG_INF("POST /if/can/%x [dlc=%u] -> %d", frame.id, dlc, ret);
+exit:
+	return ret;
+}
+
 #endif /* CONFIG_CANIOT_CONTROLLER */
-
-
-
 
 #define REST_FS_FILES_LIST_MAX_COUNT 32U
 

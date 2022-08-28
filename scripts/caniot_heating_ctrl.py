@@ -15,4 +15,12 @@ CANIOT_HEATER_OFF = 6
 
 payload = [CANIOT_HEATER_CONFORT_MIN_1]
 
-ctrl.command(0x5 << 3, 0x0, payload)
+did = 0x5 << 3
+
+# ctrl.command(did, 0x0, payload)
+
+# ctrl.can(0x741)
+
+# ctrl.request_telemetry(did, 0x3)
+
+ctrl.read_attribute(did, 0x3)

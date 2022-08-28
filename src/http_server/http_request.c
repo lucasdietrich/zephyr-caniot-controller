@@ -465,7 +465,7 @@ static int on_body_streaming(struct http_parser *parser,
 
 	/* route is necessarily valid at this point */
 	int ret = req->route->req_handler(req, NULL);
-	if (ret != 0) {
+	if (ret < 0) {
 		mark_discarded(req, HTTP_REQUEST_PROCESSING_ERROR);
 		LOG_ERR("(%p) Stream processing error %d", req, ret);
 	}

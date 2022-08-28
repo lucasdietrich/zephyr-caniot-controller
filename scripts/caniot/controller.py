@@ -34,21 +34,24 @@ class API(IntEnum):
     ListLuaScriptsDetailled = 6
     ExecuteLua = 7
     BLCCommand = 8
+    CAN = 9
+
 
 urls = {
     API.Info: (Method.GET, "info"),
 
-    API.WriteAttribute: (Method.PUT, "devices/caniot/{did}/attributes/{attr:x}"),
-    API.ReadAttribute: (Method.GET, "devices/caniot/{did}/attributes/{attr:x}"),
+    API.WriteAttribute: (Method.PUT, "devices/caniot/{did}/attribute/{attr:x}"),
+    API.ReadAttribute: (Method.GET, "devices/caniot/{did}/attribute/{attr:x}"),
     API.BLCCommand: (Method.POST, "devices/caniot/{did}/endpoint/blc/command"),
     API.Command: (Method.POST, "devices/caniot/{did}/endpoint/{ep}/command"),
-    API.RequestTelemetry: (Method.GET, "devices/caniot/{did}/endpoints/{ep}/telemetry"),
+    API.RequestTelemetry: (Method.GET, "devices/caniot/{did}/endpoint/{ep}/telemetry"),
 
     API.Files: (Method.POST, "files"),
     API.ListLuaScripts: (Method.GET, "files/lua/simple"),
     API.ListLuaScriptsDetailled: (Method.GET, "files/lua"),
     API.ExecuteLua: (Method.POST, "lua/execute"),
     API.FileDownload: (Method.GET, "files/{filepath}"),
+    API.CAN: (Method.POST, "if/can/{id:X}"),
 }
 
 RouteType = Tuple[Method, str]
@@ -149,12 +152,24 @@ class Controller:
         })
 
     def command(self, did: int, ep: int, vals: Iterable[int]) -> requests.Response:
+        if vals is None:
+            vals = []
         arr = list(vals)
         assert len(arr) <= 8
         assert all(map(lambda x: 0 <= x <= 255 and isinstance(x, int), arr))
         return self._request_json(API.Command, json=arr, args={
             "did": did,
             "ep": ep,
+        })
+
+    def can(self, arbitration_id: int, vals: Iterable[int] = None) -> requests.Response:
+        if vals is None:
+            vals = []
+        arr = list(vals)
+        assert len(arr) <= 8
+        assert all(map(lambda x: 0 <= x <= 255 and isinstance(x, int), arr))
+        return self._request_json(API.CAN, json=arr, args={
+            "id": arbitration_id,
         })
 
     def list_lua_scripts(self, detailled: bool = True) -> requests.Response:
