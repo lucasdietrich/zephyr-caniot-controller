@@ -4,11 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef _CLOUD_H_
-#define _CLOUD_H_
+#ifndef _CLOUD_AWS_H_
+#define _CLOUD_AWS_H_
 
-#include <zephyr.h>
-
-int cloud_init(void);
-
-#endif /* _CLOUD_H_ */
+#endif /* _CLOUD_AWS_H_ */

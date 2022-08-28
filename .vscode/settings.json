@@ -183,7 +183,8 @@
                 "orchestrator.h": "c",
                 "poll.h": "c",
                 "misc.h": "c",
-                "can_interface.h": "c"
+                "can_interface.h": "c",
+                "manager.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

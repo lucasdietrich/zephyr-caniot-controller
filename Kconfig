@@ -39,6 +39,26 @@ config HTTP_SERVER
 	help
 	        Enable HTTP server features (webserver, REST API, prometheus, etc.)
 
+config CREDENTIALS_MANAGER
+        bool "Enable credentials manager"
+        default y
+        help
+                Enable credentials manager features (certificates/key manager)
+
+config CLOUD
+        bool "Enable cloud"
+        default y
+        depends on CREDENTIALS_MANAGER
+        help
+                Enable cloud features (AWS, Azure, GCP, etc.)
+
+config AWS
+        bool "Enable AWS"
+        default y
+        depends on CLOUD
+        help
+                Enable AWS features (AWS, Azure, GCP, etc.)
+
 config CAN_INTERFACE
         bool "CAN interface"
         default y
