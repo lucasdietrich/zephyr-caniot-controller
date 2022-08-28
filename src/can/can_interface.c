@@ -11,11 +11,6 @@ LOG_MODULE_REGISTER(if_can, LOG_LEVEL_WRN);
 
 const struct device *can_dev = DEVICE_DT_GET(DT_NODELABEL(can1));
 
-int if_can_send(struct zcan_frame *frame)
-{
-	return can_send(can_dev, frame, K_FOREVER, NULL, NULL);
-}
-
 int if_can_init(void)
 {
 	/* wait for device ready */
@@ -27,10 +22,15 @@ int if_can_init(void)
 	return 0;
 }
 
-int if_can_attach_rx_msgq(struct k_msgq *rx_msgq, 
+int if_can_attach_rx_msgq(can_bus_id_t canbus,
+			  struct k_msgq *rx_msgq,
 			  struct zcan_filter *filter)
 {
 	int ret = -EINVAL;
+
+	if (canbus != CAN_BUS_1) {
+		goto exit;
+	}
 
 	if ((rx_msgq != NULL) && (filter != NULL)) {
 		/* attach message q */
@@ -40,5 +40,16 @@ int if_can_attach_rx_msgq(struct k_msgq *rx_msgq,
 		}
 	}
 
+exit:
 	return ret;
+}
+
+int if_can_send(can_bus_id_t canbus,
+		struct zcan_frame *frame)
+{
+	if (canbus != CAN_BUS_1) {
+		return -EINVAL;
+	}
+
+	return can_send(can_dev, frame, K_FOREVER, NULL, NULL);
 }

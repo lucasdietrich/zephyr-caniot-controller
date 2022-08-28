@@ -44,7 +44,7 @@ static int z_can_send(const struct caniot_frame *frame,
 
 	struct zcan_frame zframe;
 	caniot_to_zcan(&zframe, frame);
-	return if_can_send(&zframe);
+	return if_can_send(CAN_BUS_CANIOT, &zframe);
 }
 
 const struct caniot_drivers_api driv =
@@ -248,7 +248,7 @@ static void thread(void *_a, void *_b, void *_c)
 		.id_type = CAN_ID_STD
 	};
 
-	ret = if_can_attach_rx_msgq(&can_rxq, &filter);
+	ret = if_can_attach_rx_msgq(CAN_BUS_CANIOT, &can_rxq, &filter);
 	if(ret) {
 		LOG_ERR("Failed to attach CAN RX queue: %d", ret);
 		return;

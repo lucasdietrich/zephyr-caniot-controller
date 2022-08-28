@@ -1139,7 +1139,7 @@ int rest_if_can(http_request_t *req,
 		CAN_ID_STD : CAN_ID_EXT;
 	frame.rtr = 0u;
 	frame.dlc = dlc;
-	ret = if_can_send(&frame);
+	ret = if_can_send(CAN_BUS_CANIOT, &frame);
 
 	LOG_INF("POST /if/can/%x [dlc=%u] -> %d", frame.id, dlc, ret);
 exit:
