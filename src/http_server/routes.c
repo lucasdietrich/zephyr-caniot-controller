@@ -94,6 +94,7 @@ static const struct http_route routes[] = {
 
 	REST(GET, "/devices/caniot/%u/endpoint/%u/telemetry", rest_devices_caniot_telemetry, 2U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
 	REST(POST, "/devices/caniot/%u/endpoint/%u/command", rest_devices_caniot_command, 2U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
+	REST(POST, "/devices/caniot/%u/endpoint/blc/command", rest_devices_caniot_blc_command, 1U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
 
 	REST(GET, "/devices/caniot/%u/attribute/%x", rest_devices_caniot_attr_read, 2U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
 	REST(PUT, "/devices/caniot/%u/attribute/%x", rest_devices_caniot_attr_write, 2U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),

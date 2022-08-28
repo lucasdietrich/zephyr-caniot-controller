@@ -33,13 +33,15 @@ class API(IntEnum):
     ListLuaScripts = 5
     ListLuaScriptsDetailled = 6
     ExecuteLua = 7
+    BLCCommand = 8
 
 urls = {
     API.Info: (Method.GET, "info"),
 
     API.WriteAttribute: (Method.PUT, "devices/caniot/{did}/attributes/{attr:x}"),
     API.ReadAttribute: (Method.GET, "devices/caniot/{did}/attributes/{attr:x}"),
-    API.Command: (Method.POST, "devices/caniot/{did}/endpoints/{ep}/command"),
+    API.BLCCommand: (Method.POST, "devices/caniot/{did}/endpoint/blc/command"),
+    API.Command: (Method.POST, "devices/caniot/{did}/endpoint/{ep}/command"),
     API.RequestTelemetry: (Method.GET, "devices/caniot/{did}/endpoints/{ep}/telemetry"),
 
     API.Files: (Method.POST, "files"),
@@ -74,8 +76,8 @@ class Controller:
             "verify": False,
         }
 
-    def info(self) -> requests.Response:
-        return self._request_json(API.Command, None, {
+    def todo__(self) -> requests.Response:
+        return self._request_json(API.BLCCommand, None, {
             "did": 0,
             "ep": 0,
         })
@@ -134,15 +136,23 @@ class Controller:
             "ep": ep
         })
     
-    def command(self, did: int, ep: int, coc1: int = 0, coc2: int = 0, crl1: int = 0, crl2: int = 0) -> requests.Response:
+    def blc_command(self, did: int, coc1: int = 0, coc2: int = 0, crl1: int = 0, crl2: int = 0) -> requests.Response:
         XPS = ["none", "set_on", "set_off", "toggle", "reset", "pulse_on", "pulse_off", "pulse_cancel"]
         
-        return self._request_json(API.Command, json={
+        return self._request_json(API.BLCCommand, json={
             "coc1": XPS[coc1],
             "coc2": XPS[coc2],
             "crl1": XPS[crl1],
             "crl2": XPS[crl2]
         }, args={
+            "did": did,
+        })
+
+    def command(self, did: int, ep: int, vals: Iterable[int]) -> requests.Response:
+        arr = list(vals)
+        assert len(arr) <= 8
+        assert all(map(lambda x: 0 <= x <= 255 and isinstance(x, int), arr))
+        return self._request_json(API.Command, json=arr, args={
             "did": did,
             "ep": ep,
         })

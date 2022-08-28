@@ -17,6 +17,21 @@
 			"svdFile": "./STM32F429.svd"
 		},
 		{
+			"name": "ATTACH cortex-debug OpenOCD",
+			"cwd": "${workspaceRoot}",
+			"executable": "./build/zephyr/zephyr.elf",
+			"request": "attach",
+			"type": "cortex-debug",
+			"servertype": "openocd",
+			"device": "stm32f429zi",
+			"runToEntryPoint": "main",
+			"configFiles": [
+				"interface/stlink.cfg",
+				"target/stm32f4x.cfg"
+			],
+			"svdFile": "./STM32F429.svd"
+		},
+		{
             "name": "(gdb) QEMU x86",
             "type": "cppdbg",
             "request": "launch",
@@ -61,21 +76,6 @@
                 }
             ]
         },
-		{
-			"name": "ATTACH cortex-debug OpenOCD",
-			"cwd": "${workspaceRoot}",
-			"executable": "./build/zephyr/zephyr.elf",
-			"request": "attach",
-			"type": "cortex-debug",
-			"servertype": "openocd",
-			"device": "stm32f429zi",
-			"runToEntryPoint": "main",
-			"configFiles": [
-				"interface/stlink.cfg",
-				"target/stm32f4x.cfg"
-			],
-			"svdFile": "./STM32F429.svd"
-		},
 		{
 			"name": "cppdbg OpenOCD (west debugserver)",
 			"type": "cppdbg",

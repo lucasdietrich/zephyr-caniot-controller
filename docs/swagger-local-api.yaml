@@ -139,10 +139,9 @@ paths:
         '404':
           description: CANIOT device not found
 
-  /devices/caniot/{did}/endpoint/{ep}/command:
+  /devices/caniot/{did}/endpoint/blc/command:
     parameters:
       - $ref: '#/components/parameters/DeviceID'
-      - $ref: '#/components/parameters/EndpointID'
     post:
       tags:
         - "caniot"
@@ -161,6 +160,33 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BoardLevelTelemetry"
+        '400':
+          description: Request malformed
+        '500':
+          description: Server error (memory, args, ...)
+    
+  /devices/caniot/{did}/endpoint/{ep}/command:
+    parameters:
+      - $ref: '#/components/parameters/DeviceID'
+      - $ref: '#/components/parameters/EndpointID'
+    post:
+      tags:
+        - "caniot"
+      requestBody:
+        required: true
+        description: Command to send
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CaniotGenericCommand"
+
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaniotGenericTelemetry"
         '404':
           description: CANIOT device or endpoint not found
         '400':
@@ -168,7 +194,6 @@ paths:
         '500':
           description: Server error (memory, args, ...)
     
-
   /devices/caniot/{did}/endpoint/{ep}/telemetry:
     parameters:
       - $ref: '#/components/parameters/DeviceID'
@@ -395,6 +420,28 @@ components:
           description: "Configuration reset"
           type: boolean
           default: false
+    
+    CaniotGenericCommand:
+      description: CANIOT generic command
+      type: array
+      example: [255, 17, 254, 0, 0, 0, 0, 0]
+      items:
+        type: integer
+        minimum: 0
+        maximum: 255
+      minItems: 0
+      maxItems: 8
+
+    CaniotGenericTelemetry:
+      description: CANIOT generic telemetry
+      type: array
+      example: [255, 17, 254, 0, 0, 0, 0, 0]
+      items:
+        type: integer
+        minimum: 0
+        maximum: 255
+      minItems: 0
+      maxItems: 8
 
   parameters:
     DeviceID:

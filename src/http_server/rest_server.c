@@ -922,8 +922,8 @@ const struct json_obj_descr json_caniot_blcommand_post_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, crl2, JSON_TOK_STRING),
 };
 
-int rest_devices_caniot_command(http_request_t *req,
-				http_response_t *resp)
+int rest_devices_caniot_blc_command(http_request_t *req,
+				  http_response_t *resp)
 {
 	int ret = 0;
 	struct json_caniot_blcommand_post post;
@@ -961,10 +961,68 @@ int rest_devices_caniot_command(http_request_t *req,
 
 	/* TODO add support for reset commands + config reset */
 
+	/* parse did */
+	uint32_t did = 0;
+	route_arg_get(req, 0U, &did);
+
+	/* build CANIOT query */
+	struct caniot_frame q;
+	caniot_build_query_command(&q, CANIOT_ENDPOINT_BOARD_CONTROL, (uint8_t *)&cmd, sizeof(cmd));
+
+	/* execute and build appropriate response */
+	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
+	ret = caniot_q_ct_to_json_resp(&q, did, &timeout, resp);
+
+	LOG_INF("GET /devices/caniot/%u/endpoints/blc/command -> %d [in %u ms]", did, ret, timeout);
+
+exit:
+	return ret;
+}
+
+struct json_caniot_command_post {
+	size_t count;
+	uint32_t vals[8u];
+};
+
+static const struct json_obj_descr json_caniot_command_post_descr[] = {
+	JSON_OBJ_DESCR_ARRAY(struct json_caniot_command_post, vals, 8u, count, JSON_TOK_NUMBER)
+};
+
+int rest_devices_caniot_command(http_request_t *req,
+				http_response_t *resp)
+{
+	int ret = 0u;
+	struct json_caniot_command_post post;
+
 	/* parse did, ep */
 	uint32_t did = 0, ep = 0;
 	route_arg_get(req, 0U, &did);
 	route_arg_get(req, 1U, &ep);
+
+	if (!caniot_deviceid_valid(did) || !caniot_endpoint_valid(ep)) {
+		http_response_set_status_code(resp, HTTP_STATUS_BAD_REQUEST);
+		goto exit;
+	}
+
+	/* Parse payload */
+	ret = json_arr_parse(req->payload.loc, req->payload.len,
+		       json_caniot_command_post_descr,
+		       &post);
+	if (ret < 0 || post.count > 8u) {
+		http_response_set_status_code(resp, HTTP_STATUS_BAD_REQUEST);
+		goto exit;
+	}
+
+	uint8_t cmd[8u];
+	memset(cmd, 0x00u, ARRAY_SIZE(cmd));
+	/* validate command and build it */
+	for (size_t i = 0; i < post.count; i++) {
+		if (post.vals[i] > 0xFF) {
+			http_response_set_status_code(resp, HTTP_STATUS_BAD_REQUEST);
+			goto exit;
+		}
+		cmd[i] = post.vals[i];
+	}
 
 	/* build CANIOT query */
 	struct caniot_frame q;

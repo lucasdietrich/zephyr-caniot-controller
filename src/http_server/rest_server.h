@@ -70,6 +70,9 @@ int rest_devices_caniot_telemetry(http_request_t *req,
 int rest_devices_caniot_command(http_request_t *req,
 				http_response_t *resp);
 
+int rest_devices_caniot_blc_command(http_request_t *req,
+				  http_response_t *resp);
+
 int rest_devices_caniot_attr_read(http_request_t *req,
 				  http_response_t *resp);
 
