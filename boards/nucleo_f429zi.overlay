@@ -54,8 +54,8 @@
 			label = "storage";
 			reg = <0x100000 DT_SIZE_K(64)>;
 		};
-                certificates_partition: partition@1e0000 {
-                        label = "certificates";
+                credentials_partition: partition@1e0000 {
+                        label = "credentials";
                         reg = <0x1e0000 DT_SIZE_K(128)>;
                 };
         };

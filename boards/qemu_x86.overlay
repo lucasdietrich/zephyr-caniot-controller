@@ -14,15 +14,18 @@
 			lookahead-size = <32>;
 			block-cycles = <512>;
 		};
-        
 	};
 };
 
 &flash_sim0 {
 	partitions {
-		storage_partition: partition@1000 {
+		storage_partition: partition@41000 {
 			label = "storage";
-			reg = <0x00001000 0x00080000>;
+			reg = <0x00041000 0x00080000>;
 		};
-    };
+		credentials_partition: partition@c1000 {
+			label = "credentials";
+			reg = <0xc1000 DT_SIZE_K(128)>;
+		};
+	};
 };

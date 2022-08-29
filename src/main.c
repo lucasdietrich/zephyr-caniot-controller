@@ -20,6 +20,8 @@
 #include "userio/leds.h"
 #include "userio/button.h"
 
+#include "creds/flash_creds.h"
+
 #include "appfs.h"
 
 #if defined(CONFIG_CAN_INTERFACE)
@@ -115,6 +117,9 @@ void main(void)
 #endif /* CONFIG_CAN_INTERFACE */
 	
 	app_fs_init();
+
+	flash_creds_init();
+	flash_creds_count();
 
 #if defined(CONFIG_LUA_FS_DEFAULT_SCRIPTS)
 	lua_fs_populate();
