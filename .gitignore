@@ -3,8 +3,6 @@
 docs/html
 docs/latex
 
-/tmp
-
 /scripts/__pycache__
 
 /build

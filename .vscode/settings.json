@@ -184,7 +184,10 @@
                 "poll.h": "c",
                 "misc.h": "c",
                 "can_interface.h": "c",
-                "manager.h": "c"
+                "manager.h": "c",
+                "crc.h": "c",
+                "flash_creds.h": "c",
+                "app_sections.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

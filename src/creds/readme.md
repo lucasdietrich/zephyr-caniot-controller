@@ -23,19 +23,30 @@ If type, size are inconsistent, or if CRC32 is not correct, the credential is co
 
 *type* should be written first, this reserves the slots and is used to determine the number of valid credentials in the flash.
 
-A block is considered empty if type is 0xFFFFFFFF.
+A block is considered empty if `descr` is 0xFFFFFFFF.
 
 C representation of a credential block in the flash :
 
 ```c
-struct flash_cred {
-    uint32_t type;
-    uint32_t size;
-    uint32_t crc32;
-    uint32_t unused;
-    uint8_t data[8192u - 16u];
+struct flash_cred_ctrl
+{
+	union {
+		struct
+		{
+			cred_id_t id : 8u;
+			cred_format_t format : 8u;
+			uint32_t strength : 8u;
+			uint32_t version : 8u;
+		};
+		uint32_t descr;
+	};
+	uint32_t size;
+	uint32_t crc32;
+	uint32_t revoked;
 };
 ```
 
-## TODO:
-- How to upload a binary into flash at a specific address using OpenOCD?
+## Hardcoded credentials
+
+If `CONFIG_CREDS_HARDCODED` is set, hardcoded credentials file can be generated
+with the script `scripts/creds/hardcoded_creds_xxd.py`.

@@ -32,7 +32,7 @@ static int crc_stm32_init(const struct device *dev)
 }
 
 static uint32_t crc_stm32_calculate(const struct device *dev,
-				    uint32_t *buf,
+				    const uint32_t *buf,
 				    size_t len)
 {
 	const struct crc_stm32_config *cfg = DEV_CFG(dev);
@@ -43,7 +43,7 @@ static uint32_t crc_stm32_calculate(const struct device *dev,
 
 	LL_CRC_ResetCRCCalculationUnit(crc);
 
-	for (uint32_t *p = buf; p < buf + len; p++) {
+	for (const uint32_t *p = buf; p < buf + len; p++) {
 		LL_CRC_FeedData32(crc, *p);
 	}
 

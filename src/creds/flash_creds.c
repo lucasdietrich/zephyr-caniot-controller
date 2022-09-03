@@ -13,6 +13,8 @@
 #include <drivers/flash.h>
 #include <storage/flash_map.h>
 
+#include <sys/crc.h>
+
 #include <logging/log.h>
 LOG_MODULE_REGISTER(flash_creds);
 
@@ -21,11 +23,21 @@ LOG_MODULE_REGISTER(flash_creds);
  * for instance.
  */
 
+// todo check for
+// CONFIG_FLASH_BASE_ADDRESS
+// CONFIG_SOC_FLASH_STM32
+
 #define FLASH_DEVICE FLASH_AREA_DEVICE(credentials)
 
 #define CREDS_AREA_ID FLASH_AREA_ID(credentials)
 #define CREDS_AREA_OFFSET FLASH_AREA_OFFSET(credentials)
 #define CREDS_AREA_SIZE FLASH_AREA_SIZE(credentials)
+
+#define FLASH_CREDS_SLOTS_COUNT (CREDS_AREA_SIZE / FLASH_CRED_BLOCK_SIZE)
+
+const uint32_t flash_creds_slots_count = MIN(FLASH_CREDS_SLOTS_COUNT, FLASH_CREDS_SLOTS_MAX_COUNT);
+
+#define BLANK 0xFFFFFFFFu
 
 #if CREDS_AREA_SIZE != 128u*1024u
 #warning "credentials area size is not 128KB as expected"
@@ -43,49 +55,158 @@ int flash_creds_init(void)
 	return 0;
 }
 
-int flash_creds_count(void)
+static struct flash_cred_buf *get_cred_addr(cred_id_t id)
 {
-	int ret;
-	size_t count = 0u;
-	const struct flash_area *fa = NULL;
-	
-	ret = flash_area_open(CREDS_AREA_ID, &fa);
-	if (ret) {
-		LOG_ERR("flash_area_open(%u, . ) = %d", CREDS_AREA_ID, ret);
-		goto exit;
+	return (struct flash_cred_buf *)(
+		CREDS_AREA_OFFSET + (id * FLASH_CRED_BLOCK_SIZE));
+}
+
+static flash_cred_status_t check_cred(struct flash_cred_buf *p)
+{
+	if (!p) {
+		return FLASH_CRED_NULL;
 	}
 
+	if (p->ctrl.descr == BLANK) {
+		return FLASH_CRED_UNALLOCATED;
+	}
 
-	off_t offset = 0u;
-	struct flash_cred fc;
+	if (p->ctrl.size == 0) {
+		return FLASH_CRED_SIZE_BLANK;
+	}
 
-	do {
-		/* Read flash credential control block */
-		ret = flash_area_read(fa, offset, &fc, sizeof(fc));
-		if (ret) {
-			LOG_ERR("flash_area_read(%p, %lu, %p, %u) = %d",
-				fa, offset, &fc, sizeof(fc), ret);
-			flash_area_close(fa);
-			goto exit;
-		}
+	if (p->ctrl.size > FLASH_CRED_MAX_SIZE) {
+		return FLASH_CRED_SIZE_INVALID;
+	}
 
-		/* Check credential block */
-		if (fc.type == 0xFFFFFFFFu) {
+	if (p->ctrl.revoked != BLANK) {
+		return FLASH_CRED_REVOKED;
+	}
+
+	uint32_t crc_calc = crc32_ieee((uint8_t *)p->data, p->ctrl.size);
+	if (crc_calc != p->ctrl.crc32) {
+		return FLASH_CRED_CRC_MISMATCH;
+	}
+
+	return FLASH_CRED_VALID;
+}
+
+int flash_creds_iterate(bool (*cb)(struct flash_cred_buf *,
+				   flash_cred_status_t,
+				   void *),
+			void *user_data)
+{
+	uint16_t slot = 0u;
+
+	if (!cb) {
+		return -EINVAL;
+	}
+
+	while (slot < flash_creds_slots_count) {
+		struct flash_cred_buf *c = get_cred_addr(slot);
+		flash_cred_status_t status = check_cred(c);
+
+		if (cb(c, status, user_data) == false) {
 			break;
 		}
 
-		count++;
-
-	} while (offset < CREDS_AREA_SIZE);
-
-exit:
-	if (fa) {
-		flash_area_close(fa);
+		slot++;
 	}
 
+	return 0;
+}
+
+static bool count_cb(struct flash_cred_buf *c,
+		     flash_cred_status_t status,
+		     void *user_data)
+{
+	uint16_t *count = (uint16_t *)user_data;
+
+	if (status == FLASH_CRED_VALID) {
+		(*count)++;
+	}
+
+	return true;
+}
+
+int flash_creds_count(void)
+{
+	uint16_t count = 0u;
+
+	int ret = flash_creds_iterate(count_cb, &count);
+
+	return (ret == 0) ? count : ret;
+}
+
+int flash_cred_get_slot_from_addr(struct flash_cred_buf *fc)
+{
+	if (!fc) {
+		return -EINVAL;
+	}
+
+	uint32_t addr = (uint32_t)fc;
+	uint32_t offset = addr - CREDS_AREA_OFFSET;
+
+	return offset / FLASH_CRED_BLOCK_SIZE;
+}
+
+bool cred_find_cb(struct flash_cred_buf *fc,
+		 flash_cred_status_t status,
+		 void *user_data)
+{
+	struct cred *const c = user_data;
+
+	const cred_id_t search_for_id = c->len;
+
+	if ((status == FLASH_CRED_VALID) && (search_for_id == fc->ctrl.id)) {
+		c->len = fc->ctrl.size;
+		c->data = fc->data;
+		return false;
+	}
+
+	return true;
+}
+
+int flash_cred_get(cred_id_t id, struct cred *c)
+{
+	int ret;
+
+	if (!c || (id >= flash_creds_slots_count)) {
+		return -EINVAL;
+	}
+
+	c->data = NULL;
+	c->len = id; /* Hehe, Don't do this at home */
+
+	ret = flash_creds_iterate(cred_find_cb, c);
+	if (ret != 0) {
+		return ret;
+	} else if (c->data == NULL) {
+		c->len = 0;
+		return -ENOENT;
+	}
+
+	return 0;
+}
+
+int flash_cred_copy_to(cred_id_t id, char *buf, size_t *size)
+{
+	struct cred c;
+
+	if (!buf || !size) {
+		return -EINVAL;
+	}
+
+	int ret = flash_cred_get(id, &c);
 	if (ret == 0) {
-		ret = count;
+		if (*size >= c.len) {
+			memcpy(buf, c.data, c.len);
+			*size = c.len;
+			ret = c.len;
+		} else {
+			*size = 0;
+			ret = -ENOMEM;
+		}
 	}
-
 	return ret;
 }

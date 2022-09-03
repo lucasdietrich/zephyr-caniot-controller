@@ -1,0 +1,40 @@
+#
+# Copyright (c) 2022 Lucas Dietrich <ld.adecy@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+mainmenu "credentials"
+
+config CREDS_HARDCODED
+	bool "Credentials should be hardcoded"
+	default y
+	help
+		No support for dynamic credentials yet.
+                Reserved for development.
+
+
+choice CREDS_MANAGEMENT
+	prompt "Choose how certificates should be managed"
+	default CREDS_NONE
+
+config CREDS_NONE
+	bool "No dynamic certificates management"
+	help
+		No dynamic certificates management.
+
+config CREDS_FLASH
+	bool "Credentials should be stored in flash"
+    depends on FLASH
+	depends on FLASH_HAS_DRIVER_ENABLED
+	depends on SOC_FLASH_STM32
+	help
+		Enable FLASH support for credentials
+
+config CREDS_FS
+	bool "Credentials should be stored in a filesystem"
+    depends on FILE_SYSTEM
+	help
+		Enable filesystem support for credentials
+
+endchoice

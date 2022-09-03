@@ -37,6 +37,10 @@
 #include "lua/orchestrator.h"
 #include "appfs.h"
 
+#include "creds/manager.h"
+#include "creds/flash_creds.h"
+#include "creds/utils.h"
+
 #include <caniot/caniot.h>
 #include <caniot/datatype.h>
 
@@ -86,8 +90,7 @@ exit:
 }
 
 int rest_encode_response_json_array(http_response_t *resp, const void *val,
-				    const struct json_obj_descr *descr,
-				    size_t descr_len)
+				    const struct json_obj_descr *descr)
 {
 	int ret = -EINVAL;
 
@@ -468,8 +471,7 @@ int rest_xiaomi_records(http_request_t *req,
 
 	ha_dev_xiaomi_iterate_data(xiaomi_device_cb, &ctx);
 
-	return rest_encode_response_json_array(resp, &ctx.arr, json_xiaomi_record_array_descr,
-					       ARRAY_SIZE(json_xiaomi_record_array_descr));
+	return rest_encode_response_json_array(resp, &ctx.arr, json_xiaomi_record_array_descr);
 }
 
 struct json_caniot_temperature_record
@@ -578,8 +580,7 @@ int rest_caniot_records(http_request_t *req,
 
 	ha_dev_caniot_iterate_data(caniot_device_cb, &ctx);
 
-	return rest_encode_response_json_array(resp, &ctx.arr, json_caniot_telemetry_array_descr,
-					       ARRAY_SIZE(json_caniot_telemetry_array_descr));
+	return rest_encode_response_json_array(resp, &ctx.arr, json_caniot_telemetry_array_descr);
 }
 
 struct json_device_repr {
@@ -1207,8 +1208,7 @@ int rest_fs_list_lua_scripts(http_request_t *req,
 				 (void *)&data);
 
 	return rest_encode_response_json_array(
-		resp, &data, json_fs_file_entries_array_descr,
-		ARRAY_SIZE(json_fs_file_entries_array_descr)
+		resp, &data, json_fs_file_entries_array_descr
 	);
 
 	/* TODO return actual path in the reponse header */
@@ -1264,3 +1264,71 @@ int rest_lua_run_script(http_request_t *req,
 exit:
 	return 0u;
 }
+
+#if defined(CONFIG_CREDS_FLASH)
+
+struct json_flash_cred_entry {
+	uint32_t slot;
+	const char *id;
+	const char *format;
+	uint32_t strength;
+	uint32_t version;
+	uint32_t size;
+};
+
+static const struct json_obj_descr json_flash_cred_entry_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_flash_cred_entry, slot, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_flash_cred_entry, id, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_flash_cred_entry, format, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_flash_cred_entry, strength, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_flash_cred_entry, version, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_flash_cred_entry, size, JSON_TOK_NUMBER),
+};
+
+struct json_flash_creds_list {
+	struct json_flash_cred_entry creds[FLASH_CREDS_SLOTS_MAX_COUNT];
+	size_t nb_entries;
+};
+
+static const struct json_obj_descr json_flash_creds_list_descr[] = {
+	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_flash_creds_list, creds,
+		FLASH_CREDS_SLOTS_MAX_COUNT, nb_entries, json_flash_cred_entry_descr,
+		ARRAY_SIZE(json_flash_cred_entry_descr))
+};
+
+static bool flash_creds_list_cb(struct flash_cred_buf *cred,
+				flash_cred_status_t status,
+				void *user_data)
+{
+	struct json_flash_creds_list *arr = user_data;
+
+	if (status != FLASH_CRED_UNALLOCATED) {
+		struct json_flash_cred_entry *entry = &arr->creds[arr->nb_entries++];
+
+		entry->slot = flash_cred_get_slot_from_addr(cred);
+		entry->id = cred_id_to_str(cred->ctrl.id);
+		entry->format = cred_format_to_str(cred->ctrl.format);
+		entry->strength = cred->ctrl.strength;
+		entry->version = cred->ctrl.version;
+		entry->size = cred->ctrl.size;
+	}
+
+	return true;
+}
+
+int rest_flash_credentials_list(http_request_t *req,
+				http_response_t *resp)
+{
+	int ret;
+
+	struct json_flash_creds_list arr;
+	arr.nb_entries = 0u;
+
+	ret = flash_creds_iterate(flash_creds_list_cb, &arr);
+
+	return rest_encode_response_json_array(
+		resp, &arr, json_flash_creds_list_descr
+	);
+}
+
+#endif

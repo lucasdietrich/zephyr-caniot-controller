@@ -9,15 +9,15 @@ from requests.api import request
 from requests.auth import HTTPBasicAuth
 import time
 
-ip = "192.168.10.240"
 ip = "192.0.2.1"
+ip = "192.168.10.240"
 proto = "https"
 
 req = {
         "method": "GET",
         "url": f"{proto}://{ip}/info",
         "headers": {
-                "Connection": "close"
+                "Connection": "keep-alive" # close
         },
         "json": {
                 "user": "L"*2000
@@ -29,7 +29,7 @@ a = time.time()
 with requests.session() as sess:
     for i in range(10):
         resp = sess.request(**req)
-        print(resp.status_code, resp.text[:50])
+        print(resp.status_code, resp.text)
 
 b = time.time()
 

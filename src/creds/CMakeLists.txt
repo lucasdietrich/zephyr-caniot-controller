@@ -4,5 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-FILE(GLOB_RECURSE app_sources *.c*)
-target_sources(app PRIVATE ${app_sources})
+target_sources(app PRIVATE manager.c utils.c)
+
+target_sources_ifdef(CONFIG_CREDS_HARDCODED app PRIVATE hardcoded_creds.c hardcoded_creds_data.c)
+target_sources_ifdef(CONFIG_CREDS_FLASH app PRIVATE flash_creds.c)
+target_sources_ifdef(CONFIG_CREDS_FS app PRIVATE fs_creds.c)

@@ -6,39 +6,106 @@
 
 #include "manager.h"
 
-extern const char x509_public_certificate_rsa1024_der[];
-extern size_t x509_public_certificate_rsa1024_der_size;
-extern const char rsa_private_key_rsa1024_der[];
-extern size_t rsa_private_key_rsa1024_der_size;
+#include "hardcoded_creds.h"
+#include "flash_creds.h"
+#include "fs_creds.h"
+#include "utils.h"
 
-extern const char x509_public_certificate_rsa2048_der[];
-extern size_t x509_public_certificate_rsa2048_der_size;
-extern const char rsa_private_key_rsa2048_der[];
-extern size_t rsa_private_key_rsa2048_der_size;
+#include "utils/misc.h"
 
-int creds_manager_get(cred_t type, cred_buf_t *cred)
+#include <logging/log.h>
+LOG_MODULE_REGISTER(creds_manager, LOG_LEVEL_DBG);
+
+int creds_manager_init(void)
 {
-	int ret = -EINVAL;
+	int ret = -ENOTSUP;
 
-	if (cred == NULL) {
+#if defined(CONFIG_CREDS_HARDCODED)
+	ret = harcoded_creds_init();
+	CHECK_OR_EXIT(ret == 0);
+#endif
+
+#if defined(CONFIG_CREDS_FLASH)
+	ret = flash_creds_init();
+	CHECK_OR_EXIT(ret == 0);
+
+	int count = flash_creds_count();
+	if (count < 0) {
+		LOG_ERR("Failed to count credentials in FLASH, err=%d", count);
+	} else {
+		LOG_INF("Found %d credentials in FLASH", count);
+	}
+#endif
+
+#if defined(CONFIG_CREDS_FS)
+	ret = fs_creds_init();
+	CHECK_OR_EXIT(ret == 0);
+#endif
+
+
+exit:
+	return ret;
+}
+
+extern int harcoded_cred_get(cred_id_t id, struct cred *c);
+
+int cred_get(cred_id_t id, struct cred *c)
+{
+	int ret = -ENOENT;
+
+#if defined(CONFIG_CREDS_HARDCODED)
+	ret = harcoded_cred_get(id, c);
+	if (ret == 0) {
 		goto exit;
 	}
+#endif 
 
-	switch (type) {
-	case CRED_HTTPS_SERVER_PRIVATE_KEY:
-		cred->data = rsa_private_key_rsa1024_der;
-		cred->len = rsa_private_key_rsa1024_der_size;
-		break;
-	case CRED_HTTPS_SERVER_CERTIFICATE:
-		cred->data = x509_public_certificate_rsa1024_der;
-		cred->len = x509_public_certificate_rsa1024_der_size;
-		break;
-	default:
-		ret = -1;
-		break;
+#if defined(CONFIG_CREDS_FLASH)
+	ret = flash_cred_get(id, c);
+	if (ret == 0) {
+		goto exit;
+	}
+#endif
+
+#if defined(CONFIG_CREDS_FS)
+	ret = fs_cred_get(id, c);
+	if (ret == 0) {
+		goto exit;
+	}
+#endif
+
+exit:
+	if (ret != 0) {
+		LOG_ERR("Failed to get credential %s, err=%d", cred_id_to_str(id), ret);
 	}
 
-	ret = 0;
+	return ret;
+}
+
+int cred_copy_to(cred_id_t id, char *buf, size_t *size)
+{
+	int ret = -ENOENT;
+
+#if defined(CONFIG_CREDS_HARDCODED)
+	ret = harcoded_cred_copy_to(id, buf, size);
+	if (ret >= 0 || ret == -ENOMEM) {
+		goto exit;
+	}
+#endif 
+
+#if defined(CONFIG_CREDS_FLASH)
+	ret = flash_cred_copy_to(id, buf, size);
+	if (ret >= 0 || ret == -ENOMEM) {
+		goto exit;
+	}
+#endif
+
+#if defined(CONFIG_CREDS_FS)
+	ret = fs_cred_copy_to(id, buf, size);
+	if (ret >= 0 || ret == -ENOMEM) {
+		goto exit;
+	}
+#endif
 
 exit:
 	return ret;

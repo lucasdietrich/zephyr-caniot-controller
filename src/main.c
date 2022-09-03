@@ -20,7 +20,7 @@
 #include "userio/leds.h"
 #include "userio/button.h"
 
-#include "creds/flash_creds.h"
+#include "creds/manager.h"
 
 #include "appfs.h"
 
@@ -118,8 +118,7 @@ void main(void)
 	
 	app_fs_init();
 
-	flash_creds_init();
-	flash_creds_count();
+	creds_manager_init();
 
 #if defined(CONFIG_LUA_FS_DEFAULT_SCRIPTS)
 	lua_fs_populate();

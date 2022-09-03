@@ -1,0 +1,18 @@
+[ req ]
+default_md = sha256
+prompt = no
+utf8 = yes
+distinguished_name = caniot-lucas-dev
+
+extensions               = v3_ca
+req_extensions           = v3_ca
+
+[ v3_ca ]
+basicConstraints         = CA:TRUE
+
+[ caniot-lucas-dev ]
+C = FR
+ST = Alsace
+L = Benfeld
+O  = Home
+CN = caniot-lucas-dev

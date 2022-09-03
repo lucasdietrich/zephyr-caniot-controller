@@ -70,6 +70,10 @@ static const struct http_route routes[] = {
 
 	REST(GET, "/info", rest_info, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
 
+#if defined(CONFIG_CREDS_FLASH)
+	REST(GET, "/credentials/flash", rest_flash_credentials_list, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
+#endif /* CONFIG_CREDS_FLASH */
+
 	PROM(GET, "/metrics", prometheus_metrics),
 	PROM(GET, "/metrics_controller", prometheus_metrics_controller),
 	PROM(GET, "/metrics_demo", prometheus_metrics_demo),

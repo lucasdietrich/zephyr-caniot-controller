@@ -17,6 +17,11 @@
 #include <net/net_ip.h>
 #include <sys/types.h>
 
+#define CHECK_OR_EXIT(cond) \
+	if (!(cond)) { \
+		goto exit; \
+	}
+
 static inline uint32_t k_uptime_delta32(uint32_t *reftime)
 {
 	__ASSERT_NO_MSG(reftime);

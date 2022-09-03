@@ -14,6 +14,12 @@
 
 #include <sys/types.h>
 
+struct readonly_buf
+{
+	const char *data;
+	size_t len;
+};
+
 typedef struct {
 	char *data;
 	size_t size;

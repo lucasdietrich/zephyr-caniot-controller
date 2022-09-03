@@ -1,6 +1,14 @@
 # Home Automation Controller for CAN/BLE devices - with ZephyrRTOS and stm32f4
 
 ## Introduction
+This project is an attempt to create a home automation controller for CAN/BLE devices.
+It serves my personnal needs but I tried to make it somehow generic with reusable components.
+This project is far from being finished, it's also a mess but it's a start.
+I have a bit more than 1 year of professionnal and personnal experience with Zephyr RTOS. 
+And this project can also be seen of a demonstration of an IoT application handling several IoT protocols under Zephyr RTOS.
+
+Currently two boards are supported: nucleo_f429zi and qemu_x86 but I also aim to build a custom board for it.
+
 
 ## Features
 

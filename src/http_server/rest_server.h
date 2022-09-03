@@ -23,8 +23,7 @@ int rest_encode_response_json(http_response_t *resp,
 
 int rest_encode_response_json_array(http_response_t *resp,
 				    const void *val,
-				    const struct json_obj_descr *descr,
-				    size_t descr_len);
+				    const struct json_obj_descr *descr);
 
 
 /* That saves time but it's a bad practice for sure :') */
@@ -90,5 +89,8 @@ int rest_lua_run_script(http_request_t *req,
 
 int rest_if_can(http_request_t *req,
 		http_response_t *resp);
+
+int rest_flash_credentials_list(http_request_t *req,
+				http_response_t *resp);
 
 #endif

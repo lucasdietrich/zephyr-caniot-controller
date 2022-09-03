@@ -12,7 +12,7 @@
  * 
  * This is an attempt to implement CRC32 calculation drivers in Zephyr RTOS.
  * 
- * Use function crc_calculate() to calculate CRC32 using the SoC driver.
+ * Use function crc32_calculate() to calculate CRC32 using the SoC driver.
  * 
  * Tested using stm32f429zi :
  * 
@@ -35,7 +35,7 @@
 #include <device.h>
 
 typedef uint32_t(*crc_calculate_t)(const struct device *dev,
-				   uint32_t *buf,
+				   const uint32_t *buf,
 				   size_t len);
 
 struct crc_drivers_api {
@@ -50,9 +50,9 @@ struct crc_stm32_data {
 	struct k_mutex lock;
 };
 
-static inline uint32_t crc_calculate(const struct device *dev,
-				     uint32_t *buf,
-				     size_t len)
+static inline uint32_t crc32_calculate(const struct device *dev,
+				       const uint32_t *buf,
+				       size_t len)
 {
 	const struct crc_drivers_api *api;
 

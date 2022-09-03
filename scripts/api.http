@@ -60,3 +60,7 @@ MYPAYLOAD
 ###
 
 GET http://{{host}}/metrics_controller
+
+###
+
+GET http://{{host}}/credentials/flash
