@@ -29,6 +29,8 @@
 #include "utils/buffers.h"
 #include "utils/misc.h"
 
+#include "assert.h"
+
 #include "creds/manager.h"
 
 #include <logging/log.h>
@@ -65,8 +67,6 @@ K_THREAD_DEFINE(http_thread,
 		http_srv_thread, NULL, NULL, NULL,
 		K_PRIO_PREEMPT(8),
 		0, 0); 
-
-
 
 
 
@@ -190,9 +190,11 @@ int setup_sockets(void)
 #endif /* CONFIG_HTTP_SERVER_NONSECURE */
 
 	/* setup secure HTTPS socket (port 443) */
-	cred_buf_t cert, key;
-	creds_manager_get(CRED_HTTPS_SERVER_CERTIFICATE, &cert);
-	creds_manager_get(CRED_HTTPS_SERVER_PRIVATE_KEY, &key);
+	struct cred cert, key;
+	ret = cred_get(CRED_HTTPS_SERVER_CERTIFICATE, &cert);
+	CHECK_OR_EXIT(ret == 0);
+	ret = cred_get(CRED_HTTPS_SERVER_PRIVATE_KEY, &key);
+	CHECK_OR_EXIT(ret == 0);
 
 	/* include this PR : https://github.com/zephyrproject-rtos/zephyr/pull/40255
 	 * related issue : https://github.com/zephyrproject-rtos/zephyr/issues/40267
@@ -700,6 +702,11 @@ static bool process_request(http_connection_t *conn)
 		goto close;
 	}
 
+	/* We update the connection keep_alive configuration
+	 * based on the request. Before sending headers.
+	 */
+	conn->keep_alive.enabled = req.keep_alive;
+
 	const bool success = http_request_is_discarded(&req) ?
 		handle_error_response(conn) :
 		handle_response(conn);
@@ -707,14 +714,11 @@ static bool process_request(http_connection_t *conn)
 		goto close;
 	}
 
-	LOG_INF("(%d) Req %s [%u B] -> Status%d [%u B] "
+	LOG_INF("(%d) Req %s [%u B] -> Status %d [%u B] "
 		"(keep-alive=%d)", conn->sock, req.url, req.payload_len, resp.status_code,
 		resp.payload_sent, conn->keep_alive.enabled);
 
-	/* We update the connection keep_alive configuration
-	* based on the request.
-	*/
-	conn->keep_alive.enabled = req.keep_alive;
+	/* Update last activity time */
 	if (conn->keep_alive.enabled) {
 		conn->keep_alive.last_activity = k_uptime_get_32();
 		return true;
