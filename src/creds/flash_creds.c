@@ -61,7 +61,7 @@ static struct flash_cred_buf *get_cred_addr(cred_id_t id)
 		CREDS_AREA_OFFSET + (id * FLASH_CRED_BLOCK_SIZE));
 }
 
-static flash_cred_status_t check_cred(struct flash_cred_buf *p)
+static flash_cred_status_t check_cred(struct flash_cred_buf *p, bool assume_checksum)
 {
 	if (!p) {
 		return FLASH_CRED_NULL;
@@ -83,9 +83,11 @@ static flash_cred_status_t check_cred(struct flash_cred_buf *p)
 		return FLASH_CRED_REVOKED;
 	}
 
-	uint32_t crc_calc = crc32_ieee((uint8_t *)p->data, p->ctrl.size);
-	if (crc_calc != p->ctrl.crc32) {
-		return FLASH_CRED_CRC_MISMATCH;
+	if (!assume_checksum) {
+		uint32_t crc_calc = crc32_ieee((uint8_t *)p->data, p->ctrl.size);
+		if (crc_calc != p->ctrl.crc32) {
+			return FLASH_CRED_CRC_MISMATCH;
+		}
 	}
 
 	return FLASH_CRED_VALID;
@@ -104,7 +106,7 @@ int flash_creds_iterate(bool (*cb)(struct flash_cred_buf *,
 
 	while (slot < flash_creds_slots_count) {
 		struct flash_cred_buf *c = get_cred_addr(slot);
-		flash_cred_status_t status = check_cred(c);
+		flash_cred_status_t status = check_cred(c, false);
 
 		if (cb(c, status, user_data) == false) {
 			break;

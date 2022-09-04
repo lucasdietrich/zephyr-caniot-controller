@@ -13,11 +13,15 @@ Flash sector 17 at offset `0x1e0000` to `0x200000` (128KB) is reserved for the c
 
 16 Credentials can be stored, by blocks of 8KB :
 
-- First 4 bytes of the block are the credential *type* (LE)
+- First 4 bytes of the block are the credential *descriptor* (LE).
+  - *id*: HTTP, AWS, ...
+  - *format*: PEM/DER
+  - *strength*: unimplemented yet
+  - *version*: version of the credential, unimplemented yet
 - Next 4 bytes are the credential *size* (LE).
-- Next 4 bytes contain the *CRC32* (IEEE Ethernet) of the credential data (LE).
-- Next 4 bytes are *unused* yet.
-- The (8192 - 12) bytes contain the credential *data*.
+- Next 4 bytes contain the *crc32* (IEEE Ethernet) of the credential data (LE).
+- Next 4 bytes tells if credential has been *revoked* (different from 0xFFFFFFFF if revoked) (LE).
+- The (4096 - 16) bytes contain the credential *data*.
 
 If type, size are inconsistent, or if CRC32 is not correct, the credential is considered as invalid.
 
@@ -49,4 +53,4 @@ struct flash_cred_ctrl
 ## Hardcoded credentials
 
 If `CONFIG_CREDS_HARDCODED` is set, hardcoded credentials file can be generated
-with the script `scripts/creds/hardcoded_creds_xxd.py`.
+with the script [scripts/creds/hardcoded_creds_xxd.py](../../scripts/creds/hardcoded_creds_xxd.py).
