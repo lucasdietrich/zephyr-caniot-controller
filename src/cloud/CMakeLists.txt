@@ -4,4 +4,5 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-target_sources(app PRIVATE aws.c backoff.c utils.c)
+target_sources(app PRIVATE cloud.c backoff.c utils.c mqttc.c)
+target_sources_ifdef(CONFIG_AWS app PRIVATE aws.c)
