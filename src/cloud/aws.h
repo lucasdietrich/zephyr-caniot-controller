@@ -7,4 +7,6 @@
 #ifndef _CLOUD_AWS_H_
 #define _CLOUD_AWS_H_
 
+#include <zephyr.h>
+
 #endif /* _CLOUD_AWS_H_ */

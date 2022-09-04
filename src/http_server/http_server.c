@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <stddef.h>
 
-#include <poll.h>
+#include <posix/poll.h>
 #include <net/socket.h>
 #include <net/net_core.h>
 #include <net/net_ip.h>

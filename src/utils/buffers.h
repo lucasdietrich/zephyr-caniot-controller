@@ -60,6 +60,12 @@ typedef struct {
 	char *cursor;
 } cursor_buffer_t;
 
+#define CUR_BUFFER_STATIC_INIT(_buf, _size) { \
+	.buffer = _buf, \
+	.size = _size, \
+	.cursor = _buf \
+}
+
 int cursor_buffer_init(cursor_buffer_t *cbuf, char *buffer, size_t size);
 
 int cursor_buffer_reset(cursor_buffer_t *cbuf);
