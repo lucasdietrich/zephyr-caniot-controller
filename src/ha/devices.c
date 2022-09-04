@@ -455,6 +455,7 @@ static void sub_init(struct ha_ev_subs *sub)
 	k_fifo_init(&sub->evq);
 	sub->func = NULL;
 	sub->flags = 0u;
+	sub->on_queued = NULL;
 }
 
 K_MEM_SLAB_DEFINE(ev_slab, sizeof(struct ha_event), HA_EV_COUNT, 4);
@@ -579,6 +580,12 @@ static int event_notify_single(struct ha_ev_subs *sub,
 		/* TODO: Find a way to use a regular k_fifo_put() 
 		 * i.e. without k_malloc() */
 		ret = k_fifo_alloc_put(&sub->evq, event);
+
+		/* call event function hook */
+		if (sub->flags & HA_EV_SUBS_ON_QUEUED_HOOK) {
+			__ASSERT_NO_MSG(sub->on_queued != NULL);
+			sub->on_queued(sub, event);
+		}
 		
 		if (ret == 0) {
 			ret = 1;
@@ -674,6 +681,11 @@ int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
 	psub->device_type = conf->device_type;
 	if (conf->flags & HA_EV_SUBS_DEVICE_ADDR) {
 		memcpy(&psub->device_addr, conf->device_addr, sizeof(ha_dev_mac_t));
+	}
+
+	/* Set on_queued hook */
+	if (conf->flags & HA_EV_SUBS_ON_QUEUED_HOOK) {
+		psub->on_queued = conf->on_queued;
 	}
 
 	/* prefer irq_lock() to mutex here */

@@ -238,6 +238,9 @@ typedef struct ha_ev_subs
 	/* Queue of events to be notified to the waiter */
 	struct k_fifo evq;
 
+	/* On queued event hook */
+	void (*on_queued)(struct ha_ev_subs *sub, ha_ev_t *event);
+
 	/* Flag describing on which event should the waiter be notified */
 	atomic_t flags;
 
@@ -257,6 +260,7 @@ typedef struct ha_ev_subs
 #define HA_EV_SUBS_DEVICE_COMMAND BIT(4u)
 #define HA_EV_SUBS_DEVICE_ERROR BIT(5u)
 #define HA_EV_SUBS_FUNCTION BIT(6u)
+#define HA_EV_SUBS_ON_QUEUED_HOOK BIT(7u)
 
 // #define HA_EV_SUBS_PARAMS 7u
 
@@ -272,6 +276,7 @@ typedef struct ha_ev_subs_conf
 	event_subs_filter_func_t func;
 	const ha_dev_mac_t *device_addr;
 	ha_dev_type_t device_type;
+	void (*on_queued)(struct ha_ev_subs *sub, ha_ev_t *event);
 } ha_ev_subs_conf_t;
 
 /**
