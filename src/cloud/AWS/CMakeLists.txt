@@ -4,6 +4,5 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-target_sources(app PRIVATE cloud.c)
-
-add_subdirectory_ifndef(AWS AWS)
+file(GLOB app_sources *.c)
+target_sources(app PRIVATE ${app_sources})

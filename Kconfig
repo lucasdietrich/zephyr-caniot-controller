@@ -19,6 +19,7 @@ rsource "./src/http_server/Kconfig"
 rsource "./src/lua/Kconfig"
 rsource "./src/ha/Kconfig"
 rsource "./src/creds/Kconfig"
+rsource "./src/cloud/Kconfig"
 
 config DISCOVERY_SERVER
 	bool "Enable discovery server"
@@ -52,13 +53,6 @@ config CLOUD
         depends on CREDENTIALS_MANAGER
         help
                 Enable cloud features (AWS, Azure, GCP, etc.)
-
-config AWS
-        bool "Enable AWS"
-        default y
-        depends on CLOUD
-        help
-                Enable AWS features (AWS, Azure, GCP, etc.)
 
 config CAN_INTERFACE
         bool "CAN interface"

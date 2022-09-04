@@ -1,0 +1,40 @@
+#
+# Copyright (c) 2022 Lucas Dietrich <ld.adecy@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+if AWS
+
+config AWS_ENDPOINT
+	string "AWS MQTT endpoint"
+	help
+		Endpoint (hostname) of the AWS MQTT broker.
+		Make sure your region supports AWS Device Advisor for DQP
+
+config AWS_THING_NAME
+	string "AWS Thing name"
+	default "myThingName"
+	help
+		Set the AWS Thing name created on IoT Console
+
+# config AWS_SUBSCRIBE_TOPIC
+# 	string "AWS MQTT subscribe topic"
+# 	default "myThingName/downlink"
+# 	help
+# 		MQTT topic the client should subscribe to.
+
+# config AWS_PUBLISH_TOPIC
+# 	string "AWS MQTT publish topic"
+# 	default "myThingName/data"
+# 	help
+# 		MQTT topic the client should publish to.
+
+# config AWS_QOS
+# 	int "MQTT QoS"
+# 	default 0
+# 	help
+# 		Quality of Service to use for publishing and subscribing to AWS MQTT broker.
+# 		Note only QoS 0 is supported for AWS DQP
+
+endif

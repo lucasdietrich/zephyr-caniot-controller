@@ -20,6 +20,8 @@
 #include "userio/leds.h"
 #include "userio/button.h"
 
+#include "cloud/cloud.h"
+
 #include "creds/manager.h"
 
 #include "appfs.h"
@@ -133,6 +135,10 @@ void main(void)
 
 	crypto_mbedtls_heap_init();
 	net_interface_init();
+
+#if defined(CONFIG_CLOUD)
+	cloud_init();
+#endif /* CONFIG_CLOUD */
 
 #if defined(CONFIG_BLE_CONTROLLER)
 	ha_ble_controller_init();
