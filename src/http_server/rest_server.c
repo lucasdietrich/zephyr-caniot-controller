@@ -597,7 +597,7 @@ int rest_devices_list(http_request_t *req,
 {
 	// TODO
 
-	return -EINVAL;
+	return -ENOTSUP;
 }
 
 static void room_devices_cb(ha_dev_t *dev,
@@ -624,7 +624,7 @@ int rest_room_devices_list(http_request_t *req,
 int rest_caniot_info(http_request_t *req,
 		     http_response_t *resp)
 {
-	return -EINVAL;
+	return -ENOTSUP;
 }
 
 int rest_caniot_command(http_request_t *req,
@@ -633,7 +633,7 @@ int rest_caniot_command(http_request_t *req,
 	// const uint8_t did = 24;
 	// const uint8_t enpoint = CANIOT_ENDPOINT_BOARD_CONTROL;
 
-	return -EINVAL;
+	return -ENOTSUP;
 }
 int rest_test_caniot_query_telemetry(http_request_t *req,
 				     http_response_t *resp)
@@ -1218,7 +1218,7 @@ int rest_fs_remove_lua_script(http_request_t *req,
 			      http_response_t *resp)
 {
 	
-	return -EINVAL;
+	return -ENOTSUP;
 }
 
 struct json_lua_run_script {

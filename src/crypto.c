@@ -9,7 +9,7 @@
 #include <linker/sections.h>
 #include <mbedtls/memory_buffer_alloc.h>
 
-/* __ccm_noinit_section config in CONFIG_ARM context */
+/* __ccm_noinit_section config in CONFIG_ARM context only */
 #if !defined(__ccm_noinit_section)
 #	define __ccm_noinit_section __noinit
 #endif
