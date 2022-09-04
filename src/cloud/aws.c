@@ -349,6 +349,7 @@ static void aws_loop(void)
 {
 	int rc, ret;
 	struct pollfd fds;
+	fds.fd = -1;
 
 	ret = setup_credentials();
 	if (ret != 0) {

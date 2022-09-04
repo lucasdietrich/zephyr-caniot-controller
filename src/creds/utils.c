@@ -49,6 +49,10 @@ const char *cred_id_to_str(cred_id_t id)
 		return "AWS Root CA1";
 	case CRED_AWS_ROOT_CA3:
 		return "AWS Root CA3";
+	case CRED_AWS_ROOT_CA1_DER:
+		return "AWS Root CA1 DER";
+	case CRED_AWS_ROOT_CA3_DER:
+		return "AWS Root CA3 DER";
 	default:
 		return "<unknown id>";
 	}

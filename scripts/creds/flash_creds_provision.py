@@ -250,7 +250,7 @@ class CredsManager():
 if __name__ == "__main__":
     cm = CredsManager(stm32f4_cfg)
 
-    # cm.erase_sector()
+    cm.erase_sector()
 
     cm.read_sector()
     subprocess.call(["hexdump", "-C", cm.rtmp], stdout=open("./tmp/openocd_creds_hexdump_start.txt", "w"))
@@ -314,6 +314,20 @@ if __name__ == "__main__":
                                        CredId.AWS_PRIVATE_KEY_DER,
                                        CredFormat.DER)
             cm.write_slot(7, cm.wtmp)
+            changes = True
+        elif cred.slot == 8 and not cred.valid:
+            print(f"AWS_ROOT_CA1_DER {cred}")
+            cm._prepare_credential_bin("./creds/AWS/AmazonRootCA1.der",
+                                       CredId.AWS_ROOT_CA1_DER,
+                                       CredFormat.DER)
+            cm.write_slot(8, cm.wtmp)
+            changes = True
+        elif cred.slot == 9 and not cred.valid:
+            print(f"AWS_ROOT_CA3_DER {cred}")
+            cm._prepare_credential_bin("./creds/AWS/AmazonRootCA3.der",
+                                       CredId.AWS_ROOT_CA3_DER,
+                                       CredFormat.DER)
+            cm.write_slot(9, cm.wtmp)
             changes = True
 
         print(cred)
