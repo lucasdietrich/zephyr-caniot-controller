@@ -8,27 +8,24 @@
 
 cmake_minimum_required(VERSION 3.13.1)
 
+# Set where zephyr should look for custom boards
+set(BOARD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/.)
+
 # set following variables before calling the cmake command
 if (NOT DEFINED BOARD)
     set(BOARD nucleo_f429zi)
 endif()
 
-if (BOARD STREQUAL "nucleo_f429zi")
-    set(ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/modules/lua ${CMAKE_CURRENT_SOURCE_DIR}/modules/uart_ipc ${CMAKE_CURRENT_SOURCE_DIR}/modules/caniot-lib)
-    set(DTC_OVERLAY_FILE "boards/nucleo_f429zi.overlay")
-    set(CONF_FILE "prj.conf")
-    set(OVERLAY_CONFIG "boards/nucleo_f429zi.conf boards/f429zi_spi_disk.conf ${OVERLAY_CONFIG}")
-elseif(BOARD STREQUAL "qemu_x86")
-    set(ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/modules/lua ${CMAKE_CURRENT_SOURCE_DIR}/modules/caniot-lib)
-    set(DTC_OVERLAY_FILE "boards/qemu_x86.overlay")
-    set(CONF_FILE "prj.conf")
-    set(OVERLAY_CONFIG "boards/qemu_x86.conf ${OVERLAY_CONFIG}")
-endif()
+# Following variables can be forced if required
+#  set(DTC_OVERLAY_FILE "boards/nucleo_f429zi.overlay")
+#  set(CONF_FILE "prj.conf")
+#  set(OVERLAY_CONFIG "boards/nucleo_f429zi.conf boards/f429zi_spi_disk.conf ${OVERLAY_CONFIG}")
+
+set(ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/modules/lua ${CMAKE_CURRENT_SOURCE_DIR}/modules/uart_ipc ${CMAKE_CURRENT_SOURCE_DIR}/modules/caniot-lib)
 
 find_package(Zephyr)
 
 project(caniot-controller)
-
 
 # This is terrible, try to move this to a dedicated CMakeLists.txt file
 # 

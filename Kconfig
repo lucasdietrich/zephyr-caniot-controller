@@ -81,6 +81,7 @@ config CANIOT_CONTROLLER
         bool "Enable CANIOT controller (DEPRECATED)"
         default n
         depends on CAN_INTERFACE
+        depends on CANIOT_LIB
         help
                 Enable CANIOT controller redirection for CAN messages
 
