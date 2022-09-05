@@ -3,7 +3,7 @@
 
 manifest:
   self:
-    path: stm32f429zi-caniot-controller
+    path: zephyr-caniot-controller
 
   remotes:
     - name: zephyrproject-rtos
