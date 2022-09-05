@@ -14,3 +14,4 @@ manifest:
       remote: zephyrproject-rtos
       revision: v3.0.0
       import: true
+      submodules: true
