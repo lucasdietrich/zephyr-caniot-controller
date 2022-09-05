@@ -4,14 +4,21 @@
 manifest:
   self:
     path: zephyr-caniot-controller
-
+    
   remotes:
     - name: zephyrproject-rtos
       url-base: https://github.com/zephyrproject-rtos
+    - name: caniot-controller
+      url-base: https://github.com/lucasdietrich
 
   projects:
+    - name: zephyr-caniot-controller
+      remote: caniot-controller
+      revision: main
+      import: true
+      submodules: true
     - name: zephyr
       remote: zephyrproject-rtos
       revision: v3.0.0
       import: true
-      submodules: true
+      
