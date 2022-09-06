@@ -5,35 +5,13 @@ from os import path
 from dataclasses import dataclass
 from typing import List, Optional, Iterable
 from enum import IntEnum
+from webbrowser import get
 import zlib
+
+from credentials import CredId, CredFormat, parse_creds_json, get_format
 
 import logging
 logger = logging.getLogger(__name__)
-
-
-class CredId(IntEnum):
-	HTTPS_SERVER_PRIVATE_KEY = 0
-	HTTPS_SERVER_CERTIFICATE = 1
-
-	HTTPS_CLIENT_PRIVATE_CERTIFICATE = 2
-	HTTPS_CLIENT_CA = 3
-
-	AWS_PRIVATE_KEY = 4
-	AWS_CERTIFICATE = 5
-
-	AWS_PRIVATE_KEY_DER = 6
-	AWS_CERTIFICATE_DER = 7
-
-	AWS_ROOT_CA1 = 8
-	AWS_ROOT_CA3 = 9
-
-	AWS_ROOT_CA1_DER = 10
-	AWS_ROOT_CA3_DER = 11
-
-class CredFormat(IntEnum):
-    UNKNOWN = 0
-    PEM = 1
-    DER = 2
 
 class CredStatus(IntEnum):
     UNKNOWN = 0
@@ -218,7 +196,7 @@ class CredsManager():
         return -1
 
     def _prepare_credential_bin(self, file: str, cid: CredId, 
-                                format: CredFormat = CredFormat.UNKNOWN, 
+                                fmt: CredFormat = CredFormat.UNKNOWN, 
                                 strength: int = 0, version: int = 0) -> None:
         with open(file, "rb") as fr:
             data = fr.read()
@@ -232,107 +210,47 @@ class CredsManager():
             logger.info(f"Calculated CRC32={crc32:08x}")
 
             # Prepare control block
-            descr = int(cid) | (int(format) << 8) | (strength << 16) | (version << 24)
+            descr = int(cid) | (int(fmt) << 8) | (strength << 16) | (version << 24)
             cb = struct.pack("<LLLL", descr, clen, crc32, BLANK)
 
             with open(self.wtmp, "bw+") as fw:
                 fw.write(cb)
                 fw.write(data)
 
-    def write_credential(self, slot: int, file: str, cid: CredId,
-                         format: CredFormat = CredFormat.UNKNOWN,
-                         strength: int = 0, version: int = 0) -> None:
-        self._prepare_credential_bin(file, cid, format, strength, version)
-        return self.write_slot(slot, self.wtmp)
+                # Add additional EOS required by MbedTLS to recognize a valid PEM certificate
+                if fmt == CredFormat.PEM:
+                    fw.write(b"\x00")
 
+    def write_credential(self, slot: int, file: str, cid: CredId,
+                         fmt: CredFormat = CredFormat.UNKNOWN,
+                         strength: int = 0, version: int = 0) -> None:
+        self._prepare_credential_bin(file, cid, fmt, strength, version)
+        return self.write_slot(slot, self.wtmp)
             
 
 if __name__ == "__main__":
     cm = CredsManager(stm32f4_cfg)
 
+    # Erase certificates sector
+    print("Erasing credentials sector...")
     cm.erase_sector()
 
+    # Parse credentials configuration file
+    creds = parse_creds_json()
+
+    # Write credentials in flashs
+    print("Writing credentials ...")
+    cur_slot = 0
+    for cid, loc in creds.items():
+        print(f"Writting {cid} from {loc} to slot {cur_slot}")
+        cm.write_credential(cur_slot, loc, cid, get_format(loc), 0, 0)
+        cur_slot += 1
+        if cur_slot >= cm.SLOTS_COUNT:
+            print("No more slots available, finish")
+            break
+
+    # Read back credentials sector and save it to a file
+    hexdump_out_file = "./tmp/openocd_creds_hexdump.txt"
     cm.read_sector()
-    subprocess.call(["hexdump", "-C", cm.rtmp], stdout=open("./tmp/openocd_creds_hexdump_start.txt", "w"))
-    print("Hexdump saved to ./tmp/openocd_creds_hexdump_start.txt")
-
-    changes = False
-
-    for cred in cm.parse_sector_bin(cm.rtmp):
-        if cred.slot == 0 and not cred.valid:
-            print(f"HTTPS_SERVER_CERTIFICATE {cred}")
-            cm._prepare_credential_bin("./creds/https_server/rsa2048/cert.der",
-                                       CredId.HTTPS_SERVER_CERTIFICATE,
-                                       CredFormat.DER)
-            cm.write_slot(0, cm.wtmp)
-            changes = True
-        elif cred.slot == 1 and not cred.valid:
-            print(f"HTTPS_SERVER_PRIVATE_KEY {cred}")
-            cm._prepare_credential_bin("./creds/https_server/rsa2048/key.der",
-                                       CredId.HTTPS_SERVER_PRIVATE_KEY,
-                                       CredFormat.DER)
-            cm.write_slot(1, cm.wtmp)
-            changes = True
-        elif cred.slot == 2 and not cred.valid:
-            print(f"AWS_ROOT_CA1 {cred}")
-            cm._prepare_credential_bin("./creds/AWS/AmazonRootCA1.pem",
-                                       CredId.AWS_ROOT_CA1,
-                                       CredFormat.PEM)
-            cm.write_slot(2, cm.wtmp)
-            changes = True
-        elif cred.slot == 3 and not cred.valid:
-            print(f"AWS_ROOT_CA3 {cred}")
-            cm._prepare_credential_bin("./creds/AWS/AmazonRootCA3.pem",
-                                       CredId.AWS_ROOT_CA3,
-                                       CredFormat.PEM)
-            cm.write_slot(3, cm.wtmp)
-            changes = True
-        elif cred.slot == 4 and not cred.valid:
-            print(f"AWS_CERTIFICATE {cred}")
-            cm._prepare_credential_bin("./creds/AWS/caniot-controller/9e99599b7b81772d43869b44f1ff4495be6e5c448b020c0a29a87e133c145c0d-certificate.pem.crt",
-                                       CredId.AWS_CERTIFICATE,
-                                       CredFormat.PEM)
-            cm.write_slot(4, cm.wtmp)
-            changes = True
-        elif cred.slot == 5 and not cred.valid:
-            print(f"AWS_PRIVATE_KEY {cred}")
-            cm._prepare_credential_bin("./creds/AWS/caniot-controller/9e99599b7b81772d43869b44f1ff4495be6e5c448b020c0a29a87e133c145c0d-private.pem.key",
-                                       CredId.AWS_PRIVATE_KEY,
-                                       CredFormat.PEM)
-            cm.write_slot(5, cm.wtmp)
-            changes = True
-        elif cred.slot == 6 and not cred.valid:
-            print(f"AWS_CERTIFICATE_DER {cred}")
-            cm._prepare_credential_bin("./creds/AWS/caniot-controller/cert.der",
-                                       CredId.AWS_CERTIFICATE_DER,
-                                       CredFormat.DER)
-            cm.write_slot(6, cm.wtmp)
-            changes = True
-        elif cred.slot == 7 and not cred.valid:
-            print(f"AWS_PRIVATE_KEY_DER {cred}")
-            cm._prepare_credential_bin("./creds/AWS/caniot-controller/key.der",
-                                       CredId.AWS_PRIVATE_KEY_DER,
-                                       CredFormat.DER)
-            cm.write_slot(7, cm.wtmp)
-            changes = True
-        elif cred.slot == 8 and not cred.valid:
-            print(f"AWS_ROOT_CA1_DER {cred}")
-            cm._prepare_credential_bin("./creds/AWS/AmazonRootCA1.der",
-                                       CredId.AWS_ROOT_CA1_DER,
-                                       CredFormat.DER)
-            cm.write_slot(8, cm.wtmp)
-            changes = True
-        elif cred.slot == 9 and not cred.valid:
-            print(f"AWS_ROOT_CA3_DER {cred}")
-            cm._prepare_credential_bin("./creds/AWS/AmazonRootCA3.der",
-                                       CredId.AWS_ROOT_CA3_DER,
-                                       CredFormat.DER)
-            cm.write_slot(9, cm.wtmp)
-            changes = True
-
-        print(cred)
-
-    if changes:
-        cm.read_sector()
-        subprocess.call(["hexdump", "-C", cm.rtmp], stdout=open("./tmp/openocd_creds_hexdump.txt", "w"))
-        print("Hexdump saved to ./tmp/openocd_creds_hexdump.txt")
+    subprocess.call(["hexdump", "-C", cm.rtmp], stdout=open(hexdump_out_file, "w"))
+    print(f"Credentials sector hexdump saved to {hexdump_out_file}")

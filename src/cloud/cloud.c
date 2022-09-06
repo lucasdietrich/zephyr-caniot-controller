@@ -40,11 +40,12 @@ K_THREAD_DEFINE(cloud_thread, AWS_THREAD_STACK_SIZE, task,
 
 static struct pollfd fds[2u];
 
-static void aws_loop(void)
+static bool aws_loop(void)
 {
+	bool loop = true;
 	int ret;
 
-	mqttc_init();
+	loop = mqttc_init() == 0;
 
 	mqttc_try_connect(MQTTC_TRY_CONNECT_FOREVER);
 
@@ -62,8 +63,8 @@ static void aws_loop(void)
 	}
 
 	mqttc_cleanup();
-	return;
 
+	return loop;
 }
 
 static void task(void *_a, void *_b, void *_c)
@@ -76,7 +77,9 @@ static void task(void *_a, void *_b, void *_c)
 	}
 
 	for (;;) {
-		aws_loop();
+		if (aws_loop() == false) {
+			break;
+		}
 
 		k_sleep(K_SECONDS(5));
 	}

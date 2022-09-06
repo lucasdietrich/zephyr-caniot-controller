@@ -36,7 +36,7 @@ static __noinit char buffer[0x20];
 
 static void thread(void *_a, void *_b, void *_c);
 
-K_THREAD_DEFINE(discovery, 0x300, thread, NULL, NULL, NULL,
+K_THREAD_DEFINE(discovery, 0x400, thread, NULL, NULL, NULL,
                 K_PRIO_PREEMPT(8), 0, 0);
 
 static int setup_socket(void)

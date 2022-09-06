@@ -7,7 +7,12 @@
 mainmenu "http-server"
 
 config HTTP_SERVER_NONSECURE
-        bool "Allow non secure HTTP server"
+        bool "Enable non secure HTTP server"
+        default y
+
+config HTTP_SERVER_SECURE
+        bool "Enable secure HTTPS server"
+        depends on CREDENTIALS_MANAGER
         default y
 
 config HTTP_MAX_CONNECTIONS

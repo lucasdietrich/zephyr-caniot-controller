@@ -1,48 +1,37 @@
 import subprocess
 import os.path
 
-if __name__ == "__main__":
-    creds = {
-        "CRED_HTTPS_SERVER_CERTIFICATE": "./creds/https_server/rsa2048/cert.der",
-        "CRED_HTTPS_SERVER_PRIVATE_KEY": "./creds/https_server/rsa2048/key.der",
+from credentials import CredId, parse_creds_json, to_hex_c_array, get_format, CredFormat
 
-        "CRED_AWS_CERTIFICATE": "./creds/AWS/caniot-controller/cert.pem",
-        "CRED_AWS_PRIVATE_KEY": "./creds/AWS/caniot-controller/key.pem",
-
-        "CRED_AWS_CERTIFICATE_DER": "./creds/AWS/caniot-controller/cert.der",
-        "CRED_AWS_PRIVATE_KEY_DER": "./creds/AWS/caniot-controller/key.der",
-
-        "CRED_AWS_ROOT_CA1": "./creds/AWS/AmazonRootCA1.pem",
-        "CRED_AWS_ROOT_CA3": "./creds/AWS/AmazonRootCA3.pem",
-
-        "CRED_AWS_ROOT_CA1_DER": "./creds/AWS/AmazonRootCA1.der",
-        "CRED_AWS_ROOT_CA3_DER": "./creds/AWS/AmazonRootCA3.der",
-    }
-
-    hardcoded_creds_file = "./src/creds/hardcoded_creds_data.c"
-
+def create_hardcoded_creds_file(creds: dict, 
+                                loc: str = "./src/creds/hardcoded_creds_data.c"):
     with open(hardcoded_creds_file, "w+") as f:
         f.write('#include "hardcoded_creds.h"\n')
+    
+        for cred_id, loc in creds.items():
+            with open(loc, "rb") as fr:
+                data = fr.read()
+                fmt = get_format(loc)
 
-        for cred, path in creds.items():
-            output = subprocess.call(["xxd", "--include", "-n", cred.lower(), path], stdout=f)
+            # Add additional EOS required by MbedTLS to recognize a valid PEM certificate
+            if fmt is CredFormat.PEM:
+                data += b"\x00"
+
+            f.write(to_hex_c_array(data, f"{cred_id.name.lower()}"))
         
         f.write('const struct hardcoded_cred creds_harcoded_array[CREDS_HARDCODED_MAX_COUNT] = {\n')
-        for cred, path in creds.items():
+        for cred_id, loc in creds.items():
             f.write("\t{\n")
-            f.write(f'\t\t{cred},\n')
-            f.write(f"\t\t{cred.lower()},\n")
-            f.write(f"\t\t{cred.lower()}_len\n")
+            f.write(f'\t\t{cred_id.name},\n')
+            f.write(f"\t\t{cred_id.name.lower()},\n")
+            f.write(f"\t\t{cred_id.name.lower()}_len\n")
             f.write("\t},\n")
         
         f.write("};\n")
 
-    # Add "static const" in file
-    with open(hardcoded_creds_file, "r") as f:
-        data = f.read()
-    
-    data = data.replace("unsigned char", "static const unsigned char")
-    data = data.replace("unsigned int", "static const unsigned int")
 
-    with open(hardcoded_creds_file, "w") as f:
-        f.write(data)
+if __name__ == "__main__":
+    hardcoded_creds_file = "./src/creds/hardcoded_creds_data.c"
+    creds = parse_creds_json()
+
+    create_hardcoded_creds_file(creds, hardcoded_creds_file)

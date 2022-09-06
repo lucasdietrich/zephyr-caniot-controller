@@ -22,12 +22,13 @@ class DiscoveryClient:
         return random.randint(49152, 65535)
 
     def parse_discovery_response(self, data: bytes):
-        ipraw = data[:4]
-        ipstr, = struct.unpack('I', ipraw)
+        # ipraw, = struct.unpack('I', data[:4])
+        # ipconverted = socket.inet_ntoa(data[:4])
 
-        return {
-            "ip": ipstr
-        }
+        ipstr_raw = data[4:20]
+
+        # return string until first null byte
+        return ipstr_raw.split(b'\0', 1)[0].decode('utf-8')
 
     def lookup(self, ip: str = BROADCAST_IP):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)

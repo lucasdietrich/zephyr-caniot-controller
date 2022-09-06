@@ -44,10 +44,12 @@ LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF); /* INF */
 
 #define HTTPS_SERVER_SEC_TAG   1
 
-#if CONFIG_HTTP_SERVER_NONSECURE
+#if defined(CONFIG_HTTP_SERVER_SECURE) && defined(CONFIG_HTTP_SERVER_NONSECURE)
 #       define SERVER_FD_COUNT        2
+#elif defined(CONFIG_HTTP_SERVER_SECURE) || defined(CONFIG_HTTP_SERVER_NONSECURE)
+#       define SERVER_FD_COUNT        1u
 #else
-#       define SERVER_FD_COUNT        1
+#       error "No server socket configured"
 #endif 
 
 static const sec_tag_t sec_tag_list[] = {
@@ -55,8 +57,6 @@ static const sec_tag_t sec_tag_list[] = {
 };
 
 #define KEEP_ALIVE_DEFAULT_TIMEOUT_MS  (30*1000)
-
-
 
 
 static void http_srv_thread(void *_a, void *_b, void *_c);
@@ -67,8 +67,6 @@ K_THREAD_DEFINE(http_thread,
 		http_srv_thread, NULL, NULL, NULL,
 		K_PRIO_PREEMPT(8),
 		0, 0); 
-
-
 
 
 /* We use the same buffer for all connections,
@@ -89,10 +87,12 @@ static union
 {
 	struct pollfd array[CONFIG_HTTP_MAX_CONNECTIONS + SERVER_FD_COUNT];
 	struct {
-#if CONFIG_HTTP_SERVER_NONSECURE
+#if defined(CONFIG_HTTP_SERVER_NONSECURE)
 		struct pollfd srv;      /* unsecure server socket */
 #endif
+#if defined(CONFIG_HTTP_SERVER_SECURE)
 		struct pollfd sec;      /* secure server socket */
+#endif
 		struct pollfd cli[CONFIG_HTTP_MAX_CONNECTIONS];
 	};
 } fds;
@@ -115,13 +115,8 @@ static void show_pfd(void)
 }
 
 
-
-
 // forward declarations 
 static bool process_request(http_connection_t *conn);
-
-
-
 
 static int setup_socket(struct pollfd *pfd, bool secure)
 {
@@ -182,13 +177,14 @@ int setup_sockets(void)
 	int ret;
 
 	/* setup non-secure HTTP socket (port 80) */
-#if CONFIG_HTTP_SERVER_NONSECURE
+#if defined(CONFIG_HTTP_SERVER_NONSECURE)
 	ret = setup_socket(&fds.srv, false);
 	if (ret < 0) {
 		goto exit;
 	}
 #endif /* CONFIG_HTTP_SERVER_NONSECURE */
 
+#if defined(CONFIG_HTTP_SERVER_SECURE)
 	/* setup secure HTTPS socket (port 443) */
 	struct cred cert, key;
 	ret = cred_get(CRED_HTTPS_SERVER_CERTIFICATE, &cert);
@@ -212,6 +208,7 @@ int setup_sockets(void)
 	if (ret < 0) {
 		goto exit;
 	}
+#endif
 
 	clients_count = 0;
 	ret = 0;
@@ -323,15 +320,17 @@ static void http_srv_thread(void *_a, void *_b, void *_c)
 
 		ret = zsock_poll(fds.array, clients_count + servers_count, timeout);
 		if (ret >= 0) {
-#if CONFIG_HTTP_SERVER_NONSECURE
+#if defined(CONFIG_HTTP_SERVER_NONSECURE)
 			if (fds.srv.revents & POLLIN) {
 				ret = srv_accept(fds.srv.fd);
 			}
 #endif /* CONFIG_HTTP_SERVER_NONSECURE */
 
+#if defined(CONFIG_HTTP_SERVER_SECURE)
 			if (fds.sec.revents & POLLIN) {
 				ret = srv_accept(fds.sec.fd);
 			}
+#endif /* CONFIG_HTTP_SERVER_SECURE */
 
 			/* We iterate over the connections and check if there are any data,
 			 * or if the connection has timeout.
@@ -371,11 +370,13 @@ static void http_srv_thread(void *_a, void *_b, void *_c)
 		}
 	}
 
-#if CONFIG_HTTP_SERVER_NONSECURE
+#if defined(CONFIG_HTTP_SERVER_NONSECURE)
 	zsock_close(fds.srv.fd);
 #endif /* CONFIG_HTTP_SERVER_NONSECURE */
 
+#if defined(CONFIG_HTTP_SERVER_SECURE)
 	zsock_close(fds.sec.fd);
+#endif /* CONFIG_HTTP_SERVER_SECURE */
 }
 
 static int sendall(int sock, char *buf, size_t len)

@@ -24,3 +24,6 @@ erase_credentials_sector:
 
 mass_erase:
 	openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c "init" -c "halt" -c "wait_halt" -c "stm32f4x mass_erase 0" -c "sleep 200" -c "reset run" -c "shutdown"
+
+creds_erase:
+	openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c "init" -c "reset halt" -c "flash erase_address 0x081e0000 0x20000" -c "reset halt"  -c "shutdown"

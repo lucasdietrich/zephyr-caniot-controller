@@ -2,7 +2,7 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "LAUNCH cortex-debug OpenOCD",
+			"name": "Launch cortex-debug nucleo_429zi",
 			"cwd": "${workspaceRoot}",
 			"executable": "./build/zephyr/zephyr.elf",
 			"request": "launch",
@@ -17,7 +17,7 @@
 			"svdFile": "./STM32F429.svd"
 		},
 		{
-			"name": "ATTACH cortex-debug OpenOCD",
+			"name": "Attach cortex-debug nucleo_429zi",
 			"cwd": "${workspaceRoot}",
 			"executable": "./build/zephyr/zephyr.elf",
 			"request": "attach",
@@ -31,7 +31,7 @@
 			"svdFile": "./STM32F429.svd"
 		},
 		{
-            "name": "(gdb) QEMU x86",
+            "name": "(gdb) qemu_x86",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/zephyr/zephyr.elf",
@@ -55,7 +55,17 @@
             ]
         },
         {
-            "name": "(gdb) QEMU ARM",
+            "name": "EXPERIMENTAL (gdb) QEMU ARM",
+            "cwd": "${workspaceRoot}",
+            "executable": "./build/zephyr/zephyr.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "external",
+            "gdbTarget": "localhost:1234",
+            "runToEntryPoint": "main",
+        },
+        {
+            "name": "LEGACY (gdb) QEMU ARM",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/zephyr/zephyr.elf",
@@ -76,7 +86,7 @@
             ]
         },
 		{
-			"name": "cppdbg OpenOCD (west debugserver)",
+			"name": "DEPRECATED cppdbg OpenOCD (west debugserver)",
 			"type": "cppdbg",
 			"program": "${workspaceFolder}/build/zephyr/zephyr.elf",
 			"request": "launch",
@@ -109,7 +119,28 @@
 			"cwd": "${workspaceFolder}",
 		},
 		{
-			"name": "cortex-debug STutil",
+            "name": "BACKUP (gdb) Agnostic",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/zephyr/zephyr.elf",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "miDebuggerServerAddress": "localhost:3333",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+		{
+			"name": "BACKUP cortex-debug STutil",
 			"type": "cortex-debug",
 			"request": "launch",
 			"executable": "${workspaceFolder}/build/zephyr/zephyr.elf",

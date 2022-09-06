@@ -27,7 +27,7 @@ config CREDS_FLASH
 	bool "Credentials should be stored in flash"
     depends on FLASH
 	depends on FLASH_HAS_DRIVER_ENABLED
-	depends on SOC_FLASH_STM32
+	depends on BOARD_NUCLEO_F429ZI
 	help
 		Enable FLASH support for credentials
 

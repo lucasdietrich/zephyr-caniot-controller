@@ -173,7 +173,7 @@ int flash_cred_get(cred_id_t id, struct cred *c)
 {
 	int ret;
 
-	if (!c || (id >= flash_creds_slots_count)) {
+	if (!c) {
 		return -EINVAL;
 	}
 
