@@ -55,7 +55,7 @@ The file [creds/creds.json](../creds/creds.json) list the credentials files
 types and their location. It is used with both hardcoded and flash methods to
 provision the credentials.
 
-The file content is parsed to determine if it's a PEM or DER file, but no more 
+The credential file content  content is parsed to determine if it's a PEM or DER file, but no more 
 validation is done, it is up to you to make sure a `_DER`-labelled credential is
 a indeed a DER file.
 
@@ -99,7 +99,8 @@ the hexdump of the credentials sector in your target flash.
 
 If having problems using openocd:
 - Make sure you have a recent version of openocd, I'm currently using `Open On-Chip Debugger 0.11.0`.
-- Makefile and openocd configuration files are available in the directory [scripts/openocd/](../scripts/openocd/).
+- MIn order to debug, you can find a Makefile and openocd configuration files in
+  the directory [scripts/openocd/](../scripts/openocd/).
 - With ST-link V2 of nucleo_f429zi: Maybe try to hold reset button while running the script.
 
 ### Filesystem-stored credentials
