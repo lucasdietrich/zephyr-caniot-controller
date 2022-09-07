@@ -1,6 +1,7 @@
 {
     "CRED_HTTPS_SERVER_CERTIFICATE": "./creds/https_server/rsa2048/cert.der",
     "CRED_HTTPS_SERVER_PRIVATE_KEY": "./creds/https_server/rsa2048/key.der",
+    "CRED_HTTPS_SERVER_CLIENT_CA_DER": "./creds/https_server/rsa2048/ca.cert.der",
     "CRED_AWS_CERTIFICATE": "./creds/AWS/caniot-controller/cert.pem",
     "CRED_AWS_PRIVATE_KEY": "./creds/AWS/caniot-controller/key.pem",
     "CRED_AWS_CERTIFICATE_DER": "./creds/AWS/caniot-controller/cert.der",

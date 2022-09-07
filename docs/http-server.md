@@ -14,23 +14,26 @@ See [src/http_server/Kconfig](../src/http_server/Kconfig) :
 
 | Option                             | Description                                                  |
 | ---------------------------------- | ------------------------------------------------------------ |
-| **`HTTP_SERVER`**                      | Globally enable HTTP Server                                  |
+| **`HTTP_SERVER`**                  | Globally enable HTTP Server                                  |
 | `HTTP_SERVER_NONSECURE`            | Enable HTTP Server non-secure port (HTTP 80)                 |
 | `HTTP_SERVER_SECURE`               | Enable HTTP Server secure port (HTTPS 443)                   |
+| `HTTP_SERVER_VERIFY_CLIENT`        | Enable client certificate verification                       |
 | `HTTP_MAX_CONNECTIONS`             | Maximum number of simultaneous connections                   |
 | `HTTP_REQUEST_HEADERS_BUFFER_SIZE` | Size of the buffer used to store HTTP request custom headers |
 | `HTTP_TEST`                        | Enable HTTP test tool                                        |
 | `HTTP_TEST_SERVER`                 | Enable HTTP test server tool , with test resources           |
 | `FILE_UPLOAD_MOUNT_POINT`          | Mount point for file upload to FILE server                   |
 
-
 ## Provision HTTPS certificates
-
-Please refer to the [credentials documentation](credentials.md) for more information.
 
 Basically, if you need to provision the following credentials (which can be either PEM or DER encoded):
 - `CRED_HTTPS_SERVER_PRIVATE_KEY`
 - `CRED_HTTPS_SERVER_CERTIFICATE`
+
+Please refer to the [credentials documentation](credentials.md) for general information.
+
+The can use the following [creds/https_server/Makefile](../creds/https_server/Makefile) to
+generate a private key and a certificate for the HTTPS server.
 
 ## REST API
 
@@ -49,3 +52,7 @@ Prometheus metrics are available at `/metrics` endpoint.
 ## File server
 
 *Todo documentation*
+
+## Todo
+
+Add support for ECC certificates

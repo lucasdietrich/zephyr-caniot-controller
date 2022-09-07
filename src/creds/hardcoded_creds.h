@@ -11,7 +11,7 @@
 
 #include "credentials.h"
 
-#define CREDS_HARDCODED_MAX_COUNT 10u
+#define CREDS_HARDCODED_MAX_COUNT 12u
 
 struct hardcoded_cred {
 	cred_id_t id;

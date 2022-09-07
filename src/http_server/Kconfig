@@ -15,6 +15,11 @@ config HTTP_SERVER_SECURE
         depends on CREDENTIALS_MANAGER
         default y
 
+config HTTP_SERVER_VERIFY_CLIENT
+        bool "Verify client certificate"
+        depends on HTTP_SERVER_SECURE
+        default n
+
 config HTTP_MAX_CONNECTIONS
         int "Maximum number of HTTP connections"
         default 3

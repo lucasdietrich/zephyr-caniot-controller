@@ -50,3 +50,6 @@ run:
 
 clean:
 	rm -rf build
+
+creds_hardcoded:
+	python3 ./scripts/creds/hardcoded_creds_xxd.py

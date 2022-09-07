@@ -37,8 +37,6 @@
 LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF); /* INF */
 
 
-
-
 #define HTTP_PORT       80
 #define HTTPS_PORT      443
 
@@ -142,10 +140,21 @@ static int setup_socket(struct pollfd *pfd, bool secure)
 		ret = zsock_setsockopt(sock, SOL_TLS, TLS_SEC_TAG_LIST,
 				       sec_tag_list, sizeof(sec_tag_list));
 		if (ret < 0) {
-			LOG_ERR("(%d) Failed to set TCP secure option : %d",
+			LOG_ERR("(%d) Failed to set TLS tag list : %d",
 				sock, ret);
 			goto exit;
 		}
+
+#if defined(CONFIG_HTTP_SERVER_VERIFY_CLIENT)
+		int verify = TLS_PEER_VERIFY_REQUIRED;
+		ret = zsock_setsockopt(sock, SOL_TLS, TLS_PEER_VERIFY,
+				       &verify, sizeof(int));
+		if (ret < 0) {
+			LOG_ERR("(%d) Failed to set TLS peer verify option : %d",
+				sock, ret);
+			goto exit;
+		}
+#endif
 	}
 
 	ret = zsock_bind(sock, (const struct sockaddr *)&local,
@@ -192,6 +201,12 @@ int setup_sockets(void)
 	ret = cred_get(CRED_HTTPS_SERVER_PRIVATE_KEY, &key);
 	CHECK_OR_EXIT(ret == 0);
 
+#if defined(CONFIG_HTTP_SERVER_VERIFY_CLIENT)
+	struct cred ca;
+	ret = cred_get(CRED_HTTPS_SERVER_CLIENT_CA_DER, &ca);
+	CHECK_OR_EXIT(ret == 0);
+#endif
+
 	/* include this PR : https://github.com/zephyrproject-rtos/zephyr/pull/40255
 	 * related issue : https://github.com/zephyrproject-rtos/zephyr/issues/40267
 	 */
@@ -203,6 +218,13 @@ int setup_sockets(void)
 		HTTPS_SERVER_SEC_TAG,
 		TLS_CREDENTIAL_PRIVATE_KEY,
 		key.data, key.len);
+
+#if defined(CONFIG_HTTP_SERVER_VERIFY_CLIENT)
+	tls_credential_add(
+		HTTPS_SERVER_SEC_TAG,
+		TLS_CREDENTIAL_CA_CERTIFICATE,
+		ca.data, ca.len);
+#endif
 
 	ret = setup_socket(&fds.sec, true);
 	if (ret < 0) {
