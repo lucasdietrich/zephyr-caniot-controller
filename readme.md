@@ -182,7 +182,7 @@ configure and run the script [scripts/forward_webserver_ports.sh](./scripts/forw
 
     ./scripts/forward_webserver_ports.sh
 
-## Debug
+## Debug (VS Code)
 
 Debug can be launch on QEMU targets using `ninja debugserver -C build` command
 
@@ -193,16 +193,20 @@ Debug of the nucleo_f429zi board is done using the ST-Link V2 debugger with Open
 Use one of the the configurations `Launch cortex-debug nucleo_429zi` and `Attach cortex-debug nucleo_429zi` 
 available in the [launch.json](./.vscode/launch.json) file.
 
-In can OpenOCD configuration doesn't work try `BACKUP cortex-debug STutil`, but 
+If OpenOCD configuration doesn't work try the configuration `BACKUP cortex-debug STutil`, but 
 I discourage using it and you will need to install ST-Link utilities.
+
+- Select the configuration
+- Then press `F5`
 
 ![./docspics/caniot-controller-nucleo-f429zi-debug.png](./docs/pics/caniot-controller-nucleo-f429zi-debug.png)
 
 ### QEMU x86
 Debug of the qemu_x86 board is done using the gdbserver provided by QEMU.
 
-Use configuration `(gdb) qemu_x86`.
-
+- Run `ninja debugserver -C build` 
+- Then use configuration `(gdb) qemu_x86`.
+- Then press `F5`
 ![./docs/pics/caniot-controller-qemux86-debug.png](./docs/pics/caniot-controller-qemux86-debug.png)
 
 ### QEMU ARM (TODO)
@@ -233,7 +237,6 @@ run the following command in a git bash terminal:
 ```
     sudo tcpdump -U -s0 'not port 22' -i tap0 -w - | wireshark -k -i -
 ```
-
 
 ---
 

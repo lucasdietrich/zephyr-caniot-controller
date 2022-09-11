@@ -4,12 +4,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+import ssl
 from fileinput import filename
 import requests
 from requests.auth import HTTPBasicAuth
 from typing import List, Iterable, Tuple, Dict, Union, Any, Optional, Callable
 from dataclasses import dataclass
-from enum import IntEnum
+from enum import IntEnum, auto
 import struct
 import pprint
 import time
@@ -23,18 +24,18 @@ from .utils import Method, BytesToU32, MakeChunks,\
 from caniot.url import URL
 
 class API(IntEnum):
-    Info = 0
-    WriteAttribute = 0
-    ReadAttribute = 1
-    Command = 2
-    RequestTelemetry = 3
-    Files = 4
-    FileDownload = 8
-    ListLuaScripts = 5
-    ListLuaScriptsDetailled = 6
-    ExecuteLua = 7
-    BLCCommand = 8
-    CAN = 9
+    Info = auto()
+    WriteAttribute = auto()
+    ReadAttribute = auto()
+    Command = auto()
+    RequestTelemetry = auto()
+    Files = auto()
+    FileDownload = auto()
+    ListLuaScripts = auto()
+    ListLuaScriptsDetailled = auto()
+    ExecuteLua = auto()
+    BLCCommand = auto()
+    CAN = auto()
 
 
 urls = {
@@ -62,10 +63,19 @@ class DeviceContext:
 
 class Controller:
 
-    def __init__(self, host: str = "192.0.2.1", secure: bool = False) -> None:
+    def __init__(self, host: str = "192.0.2.1", secure: bool = False, 
+                 cert: str = None, key: str = None, verify: str = None) -> None:
         self.host = host
         self.port = 443 if secure else 80
         self.secure = secure
+        self.cert = cert
+        self.key = key
+        self.verify = verify
+
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+        ssl_context.verify_mode = ssl.CERT_REQUIRED
+        ssl_context.check_hostname = False
+        ssl_context.load_default_certs()
 
         self.timeout = 5.0
 
@@ -103,6 +113,8 @@ class Controller:
             "json": json,
             "headers": self.default_headers | headers,
             "timeout": self.get_req_timeout(),
+            # "cert": (self.cert, self.key),
+            "verify": self.verify,
         }
 
         t0 = time.perf_counter()
@@ -110,6 +122,9 @@ class Controller:
         t1 = time.perf_counter()
         logger.info(" [ {:0.6f} s ] {} {} {}".format(t1 - t0, req["method"], req["url"], resp.status_code))
         return resp
+
+    def get_info(self) -> requests.Response:
+        return self._request_json(API.Info)
 
     def get_req_timeout(self) -> float:
         return self.timeout + 2.0

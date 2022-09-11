@@ -580,14 +580,13 @@ static int event_notify_single(struct ha_ev_subs *sub,
 		/* TODO: Find a way to use a regular k_fifo_put() 
 		 * i.e. without k_malloc() */
 		ret = k_fifo_alloc_put(&sub->evq, event);
-
-		/* call event function hook */
-		if (sub->flags & HA_EV_SUBS_ON_QUEUED_HOOK) {
-			__ASSERT_NO_MSG(sub->on_queued != NULL);
-			sub->on_queued(sub, event);
-		}
 		
 		if (ret == 0) {
+			/* call event function hook */
+			if (sub->flags & HA_EV_SUBS_ON_QUEUED_HOOK) {
+				__ASSERT_NO_MSG(sub->on_queued != NULL);
+				sub->on_queued(sub, event);
+			}
 			ret = 1;
 		} else {
 			/* Unref on error */
