@@ -28,7 +28,6 @@
 
 #include "utils/misc.h"
 #include "utils/buffers.h"
-#include "creds/manager.h"
 
 #include "app_sections.h"
 
@@ -36,7 +35,6 @@
 #include "creds/manager.h"
 
 #include "cloud/cloud.h"
-#include "cloud/aws.h"
 #include "cloud/backoff.h"
 #include "cloud/utils.h"
 #include "cloud/mqttc.h"
@@ -44,34 +42,23 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(mqttc, LOG_LEVEL_DBG);
 
-#define TLS_TAG_DEVICE_CERT 2u
-#define TLS_TAG_DEVICE_KEY 2u
-#define TLS_TAG_CA_CERT 2u
+#include "cloud_internal.h"
 
-static sec_tag_t sec_tls_tags[] = {
-	TLS_TAG_DEVICE_CERT,
-};
+#define MQTT_PAYLOAD_BUFFER_SIZE 4096u
+#define MQTT_RX_BUFFER_SIZE 256u
+#define MQTT_TX_BUFFER_SIZE 256u
 
-#define AWS_CERT_DER 1
-
-#define AWS_ENDPOINT_PORT 8883u
-
-#define AWS_PAYLOAD_BUFFER_SIZE 4096u
-#define AWS_MQTT_RX_BUFFER_SIZE 256u
-#define AWS_MQTT_TX_BUFFER_SIZE 256u
-
-__buf_noinit_section char mqtt_rx_buf[AWS_MQTT_RX_BUFFER_SIZE];
-__buf_noinit_section char mqtt_tx_buf[AWS_MQTT_TX_BUFFER_SIZE];
-__buf_noinit_section char payload_buf[AWS_PAYLOAD_BUFFER_SIZE];
+__buf_noinit_section char mqtt_rx_buf[MQTT_RX_BUFFER_SIZE];
+__buf_noinit_section char mqtt_tx_buf[MQTT_TX_BUFFER_SIZE];
+__buf_noinit_section char payload_buf[MQTT_PAYLOAD_BUFFER_SIZE];
 static cursor_buffer_t buffer = CUR_BUFFER_STATIC_INIT(payload_buf, sizeof(payload_buf));
-
-static struct sockaddr_in addr;
-static struct mqtt_client mqtt;
 
 static mqttc_on_publish_cb_t on_publish_cb;
 static void *on_publish_user_data;
 
 static uint32_t message_id;
+
+static struct mqtt_client mqtt;
 
 K_SEM_DEFINE(mqtt_lock, 0u, 1u);
 K_SEM_DEFINE(mqtt_onpub, 0u, 1u);
@@ -79,135 +66,6 @@ K_SEM_DEFINE(mqtt_onpub, 0u, 1u);
 /* Forward declarations */
 static void mqtt_event_cb(struct mqtt_client *client,
 			  const struct mqtt_evt *evt);
-
-static int resolve_hostname(const char *hostname, uint16_t port)
-{
-	int ret = 0U;
-	struct zsock_addrinfo *ai = NULL;
-
-	const struct zsock_addrinfo hints = {
-		.ai_family = AF_INET,
-		.ai_socktype = SOCK_STREAM,
-		.ai_protocol = 0
-	};
-	ret = zsock_getaddrinfo(hostname, "8883", &hints, &ai);
-	if (ret != 0) {
-		LOG_ERR("failed to resolve hostname err = %d (errno = %d)",
-			ret, errno);
-	} else {
-		memcpy(&addr, ai->ai_addr,
-		       MIN(ai->ai_addrlen,
-			   sizeof(struct sockaddr_storage)));
-
-		addr.sin_port = htons(port);
-
-		char addr_str[INET_ADDRSTRLEN];
-		zsock_inet_ntop(AF_INET,
-				&addr.sin_addr,
-				addr_str,
-				sizeof(addr_str));
-		LOG_INF("Resolved %s -> %s", log_strdup(hostname), log_strdup(addr_str));
-	}
-
-	zsock_freeaddrinfo(ai);
-
-	return ret;
-}
-
-static int setup_credentials(void)
-{
-	int ret;
-	struct cred cert, key, ca;
-
-	/* Setup TLS credentials */
-#if AWS_CERT_DER
-	CHECK_OR_EXIT((ret = cred_get(CRED_AWS_CERTIFICATE_DER, &cert)) == 0);
-	CHECK_OR_EXIT((ret = cred_get(CRED_AWS_PRIVATE_KEY_DER, &key)) == 0);
-	CHECK_OR_EXIT((ret = cred_get(CRED_AWS_ROOT_CA1_DER, &ca)) == 0);
-#else
-	CHECK_OR_EXIT((ret = cred_get(CRED_AWS_CERTIFICATE, &cert)) == 0);
-	CHECK_OR_EXIT((ret = cred_get(CRED_AWS_PRIVATE_KEY, &key)) == 0);
-	CHECK_OR_EXIT((ret = cred_get(CRED_AWS_ROOT_CA1, &ca)) == 0);
-#endif 
-
-	ret = tls_credential_add(TLS_TAG_DEVICE_CERT,
-				 TLS_CREDENTIAL_SERVER_CERTIFICATE,
-				 cert.data, cert.len);
-	CHECK_OR_EXIT(ret == 0);
-
-	ret = tls_credential_add(TLS_TAG_DEVICE_KEY,
-				 TLS_CREDENTIAL_PRIVATE_KEY,
-				 key.data, key.len);
-	CHECK_OR_EXIT(ret == 0);
-
-	ret = tls_credential_add(TLS_TAG_CA_CERT,
-				 TLS_CREDENTIAL_CA_CERTIFICATE,
-				 ca.data, ca.len);
-	CHECK_OR_EXIT(ret == 0);
-
-exit:
-	if (ret != 0) {
-		LOG_ERR("Failed to setup credentials ret=%d", ret);
-	}
-	return ret;
-}
-
-static int clear_credentials(void)
-{
-	int ret;
-
-	ret = tls_credential_delete(TLS_TAG_DEVICE_CERT,
-				    TLS_CREDENTIAL_SERVER_CERTIFICATE);
-	CHECK_OR_EXIT(ret == 0);
-
-	ret = tls_credential_delete(TLS_TAG_DEVICE_KEY,
-				    TLS_CREDENTIAL_PRIVATE_KEY);
-	CHECK_OR_EXIT(ret == 0);
-
-	ret = tls_credential_delete(TLS_TAG_CA_CERT,
-				    TLS_CREDENTIAL_CA_CERTIFICATE);
-	CHECK_OR_EXIT(ret == 0);
-
-exit:
-	if (ret != 0) {
-		LOG_ERR("Failed to clear credentials ret=%d", ret);
-	}
-	return ret;
-}
-
-static void aws_client_setup(void)
-{
-	// broker is properly defined at this point
-	mqtt_client_init(&mqtt);
-
-	mqtt.broker = &addr;
-	mqtt.evt_cb = mqtt_event_cb;
-
-	mqtt.client_id.utf8 = (uint8_t *)CONFIG_AWS_THING_NAME;
-	mqtt.client_id.size = sizeof(CONFIG_AWS_THING_NAME) - 1;
-	mqtt.password = NULL;
-	mqtt.user_name = NULL;
-
-	mqtt.keepalive = CONFIG_MQTT_KEEPALIVE;
-
-	mqtt.protocol_version = MQTT_VERSION_3_1_1;
-
-	mqtt.rx_buf = mqtt_rx_buf;
-	mqtt.rx_buf_size = AWS_MQTT_RX_BUFFER_SIZE;
-	mqtt.tx_buf = mqtt_tx_buf;
-	mqtt.tx_buf_size = AWS_MQTT_TX_BUFFER_SIZE;
-
-	// setup TLS
-	mqtt.transport.type = MQTT_TRANSPORT_SECURE;
-	struct mqtt_sec_config *const tls_config = &mqtt.transport.tls.config;
-
-	tls_config->peer_verify = TLS_PEER_VERIFY_REQUIRED;
-	tls_config->cipher_list = NULL;
-	tls_config->sec_tag_list = sec_tls_tags;
-	tls_config->sec_tag_count = ARRAY_SIZE(sec_tls_tags);
-	tls_config->hostname = CONFIG_AWS_ENDPOINT;
-	tls_config->cert_nocopy = TLS_CERT_NOCOPY_OPTIONAL;
-}
 
 static void handle_published_message(const struct mqtt_publish_param *msg)
 {
@@ -297,6 +155,7 @@ static void mqtt_event_cb(struct mqtt_client *client,
 	}
 
 	case MQTT_EVT_DISCONNECT:
+		k_sem_give(&mqtt_lock);
 		break;
 
 	case MQTT_EVT_PUBLISH:
@@ -326,6 +185,7 @@ static void mqtt_event_cb(struct mqtt_client *client,
 
 	case MQTT_EVT_SUBACK:
 	{
+		k_sem_give(&mqtt_lock);
 		LOG_INF("Subscription acknowledged %d",
 			evt->param.suback.message_id);
 		break;
@@ -333,6 +193,7 @@ static void mqtt_event_cb(struct mqtt_client *client,
 
 	case MQTT_EVT_UNSUBACK:
 	{
+		k_sem_give(&mqtt_lock);
 		LOG_INF("Unsubscription acknowledged %d",
 			evt->param.unsuback.message_id);
 		break;
@@ -366,27 +227,47 @@ static int mqtt_client_try_connect(uint32_t max_attempts)
 
 int mqttc_init(void)
 {
-	int ret = setup_credentials();
-	if (ret != 0) {
-		goto cleanup;
+	int ret;
+
+	struct cloud_platform *const p = cloud_platform_get();
+	if (p == NULL) {
+		return -ENOTSUP;
 	}
 
-	ret = resolve_hostname(CONFIG_AWS_ENDPOINT, AWS_ENDPOINT_PORT);
+	/* Initialize the MQTT client structure */
+	mqtt_client_init(&mqtt);
 
-	aws_client_setup();
+	p->mqtt = &mqtt;
 
-cleanup:
+	/* Generic MQTT client configuration */
+	mqtt.evt_cb = mqtt_event_cb;
+
+	mqtt.rx_buf = mqtt_rx_buf;
+	mqtt.rx_buf_size = MQTT_RX_BUFFER_SIZE;
+	mqtt.tx_buf = mqtt_tx_buf;
+	mqtt.tx_buf_size = MQTT_TX_BUFFER_SIZE;
+
+	/* Platform finalize MQTT client configuration */
+	ret = p->init(p);
+	if (ret != 0) {
+		return ret;
+	}
+
+	/* Initialize internal state */
+	k_sem_init(&mqtt_lock, 0, 1);
+	k_sem_init(&mqtt_onpub, 0, 1);
+
 	return ret;
 }
 
 int mqttc_cleanup(void)
 {
-	int ret = mqttc_disconnect();
-	LOG_INF("MQTT cleanup %d", ret);
+	struct cloud_platform *const p = cloud_platform_get();
+	if (p == NULL) {
+		return -ENOTSUP;
+	}
 
-	clear_credentials();
-
-	return 0;
+	return p->deinit(p);
 }
 
 int mqttc_try_connect(uint32_t attempts)
@@ -395,7 +276,7 @@ int mqttc_try_connect(uint32_t attempts)
 }
 
 int mqttc_disconnect(void)
-{
+{	
 	int ret = mqtt_disconnect(&mqtt);
 	if (ret != 0) {
 		LOG_ERR("Failed to disconnect from broker: %d", ret);
@@ -403,8 +284,8 @@ int mqttc_disconnect(void)
 	return ret;
 }
 
-int mqttc_set_on_publish_cb(mqttc_on_publish_cb_t cb,
-			    void *user_data)
+int mqttc_set_publish_cb(mqttc_on_publish_cb_t cb,
+			 void *user_data)
 {
 	if (!cb) {
 		return -EINVAL;
@@ -484,7 +365,7 @@ int mqttc_publish(const char *topic,
 
 int mqttc_set_pollfd(struct pollfd *fds)
 {
-	fds->fd = mqtt.transport.tcp.sock;
+	fds->fd = mqtt.transport.tls.sock;
 	fds->events = POLLIN | POLLHUP | POLLERR;
 
 	return 0;
@@ -494,12 +375,12 @@ int mqttc_process(struct pollfd *fds)
 {
 	int ret;
 
-	if ((fds->revents & POLLIN) != 0) {
+	if (fds->revents & POLLIN) {
 		ret = mqtt_input(&mqtt);
 		if (ret != 0) {
 			LOG_ERR("Failed to read MQTT input: %d", ret);
 		}
-	} else if ((fds->revents & (POLLHUP | POLLERR)) != 0) {
+	} else if (fds->revents & (POLLHUP | POLLERR)) {
 		LOG_ERR("MQTT %x connection error/closed", (uint32_t)&mqtt);
 		ret = -ENOTCONN;
 	}
@@ -508,8 +389,10 @@ int mqttc_process(struct pollfd *fds)
 	if ((ret != 0) && (ret != -EAGAIN)) {
 		LOG_ERR("Failed to live MQTT: %d", ret);
 		goto exit;
+	} else {
+		ret = 0;
 	}
-	
+
 exit:
 	return ret;
 }

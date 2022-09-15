@@ -27,10 +27,10 @@
 
 #include <bluetooth/addr.h>
 #include "ha/devices.h"
-#include "ha/data.h"
 #include "ha/config.h"
 #include "ha/utils.h"
 #include "ha/caniot_controller.h"
+#include "ha/devices/all.h"
 
 #include "can/can_interface.h"
 

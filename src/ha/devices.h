@@ -4,27 +4,40 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * @file ha_devs.h
- * @brief
- * @version 0.1
- * @date 2022-03-31
- 
- *
- * TODO: shorten "ha_dev" to "mydev" or "myd"
- *
- */
+/* TODO: shorten "ha_dev" to "mydev" or "myd */
 
 #ifndef _HA_DEVS_H_
 #define _HA_DEVS_H_
 
 #include <zephyr.h>
 
-#include "data.h"
+#include "ha.h"
 #include "room.h"
 
-/* Forward declaration */
-struct ha_event;
+typedef enum
+{
+	HA_DEV_FILTER_MEDIUM = BIT(0), /* filter by medium */
+	HA_DEV_FILTER_DEVICE_TYPE = BIT(1), /* filter by device type */
+	HA_DEV_FILTER_DATA_EXIST = BIT(2), /* Filter by existing data */
+	// HA_DEV_FILTER_SENSOR_TYPE, /* filter by temperature sensor type */
+	HA_DEV_FILTER_DATA_TIMESTAMP = BIT(3), /* filter devices with recent measurements */
+	// HA_DEV_FILTER_REGISTERED_TIMESTAMP, /* filter recent devices */
+	HA_DEV_FILTER_HAS_TEMPERATURE = BIT(4), /* filter devices with temperature sensor */
+	HA_DEV_FILTER_ROOM_ID = BIT(5), /* filter devices with defined room id */
+} ha_dev_filter_flags_t;
+
+/* TODO Incompatible masks */
+
+typedef struct
+{
+	ha_dev_filter_flags_t flags;
+
+	/* filters values */
+	ha_dev_medium_type_t medium;
+	ha_dev_type_t device_type;
+	uint32_t data_timestamp;
+	ha_room_id_t rid;
+} ha_dev_filter_t;
 
 struct ha_dev_stats
 {
@@ -36,6 +49,9 @@ struct ha_dev_stats
 
 	uint32_t max_inactivity; /* number of seconds without any activity */
 };
+
+/* Forward declaration */
+struct ha_event;
 
 struct ha_event_stats
 {
@@ -169,22 +185,6 @@ static inline void ha_dev_inc_stats_tx(ha_dev_t *dev, uint32_t tx_bytes)
 	dev->stats.tx++;
 }
 
-
-
-/* move to specific header */
-struct ha_dev_garage_cmd
-{
-	uint8_t actuate_left: 1;
-	uint8_t actuate_right: 1;
-};
-
-void ha_dev_garage_cmd_init(struct ha_dev_garage_cmd *cmd);
-
-int ha_dev_garage_cmd_send(const struct ha_dev_garage_cmd *cmd);
-
-
-
-
 typedef enum
 {
 	HA_EV_TYPE_DATA = 0u,
@@ -254,6 +254,7 @@ typedef struct ha_ev_subs
 #define HA_EV_SUBS_FLAG_SUBSCRIBED_BIT 0u
 #define HA_EV_SUBS_FLAG_SUBSCRIBED BIT(HA_EV_SUBS_FLAG_SUBSCRIBED_BIT)
 
+/* Event subscription flags */
 #define HA_EV_SUBS_DEVICE_TYPE BIT(1u)
 #define HA_EV_SUBS_DEVICE_ADDR BIT(2u)
 #define HA_EV_SUBS_DEVICE_DATA BIT(3u)
@@ -276,6 +277,8 @@ typedef struct ha_ev_subs_conf
 	event_subs_filter_func_t func;
 	const ha_dev_mac_t *device_addr;
 	ha_dev_type_t device_type;
+	
+	/* Callback */
 	void (*on_queued)(struct ha_ev_subs *sub, ha_ev_t *event);
 } ha_ev_subs_conf_t;
 
@@ -317,23 +320,6 @@ int ha_ev_unsubscribe(struct ha_ev_subs *sub);
 ha_ev_t *ha_ev_wait(struct ha_ev_subs *sub,
 			  k_timeout_t timeout);
 
-
-
-
-extern const struct ha_device_api ha_device_api_xiaomi;
-extern const struct ha_device_api ha_device_api_caniot;
-extern const struct ha_device_api ha_device_api_f429zi;
-
-int ha_dev_register_xiaomi_record(const xiaomi_record_t *record);
-const struct ha_xiaomi_dataset *ha_ev_get_xiaomi_data(const ha_ev_t *ev);
-
-int ha_dev_register_die_temperature(uint32_t timestamp, float die_temperature);
-float ha_ev_get_die_temperature(const ha_ev_t *ev);
-
-int ha_dev_register_caniot_telemetry(uint32_t timestamp,
-				     caniot_did_t did,
-				     const struct caniot_board_control_telemetry *data);
-const struct caniot_board_control_telemetry *ha_ev_get_caniot_telemetry(const ha_ev_t *ev);
 
 struct ha_room_assoc
 {	

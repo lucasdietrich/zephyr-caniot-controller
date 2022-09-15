@@ -15,6 +15,7 @@
 
 #include "ha/devices.h"
 #include "ha/room.h"
+#include "ha/devices/xiaomi.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(ha_emu, LOG_LEVEL_INF);
@@ -95,16 +96,6 @@ void emu_thread_provider(void *_a, void *_b, void *_c)
 			}
 		};
 
-		// ha_dev_t *dev = ha_dev_get_by_addr(&addr);
-
-		// if (dev == NULL) {
-		// 	dev = ha_dev_register(&addr);
-		// }
-
-		// if (dev != NULL) {
-			
-		// }
-
 		ret = ha_dev_register_data(&addr, &record, sizeof(xiaomi_record_t), 0);
 		
 
@@ -148,7 +139,7 @@ void emu_thread_consumer(void *_a, void *_b, void *_c)
 				((struct ha_xiaomi_dataset *)event->data)->temperature.value);
 
 			if (event->dev && event->dev->room) {
-				LOG_INF("(%p %p %p) Room: %s", event, event->dev, 
+				LOG_DBG("(%p %p %p) Room: %s", event, event->dev, 
 					event->dev->room, log_strdup(event->dev->room->name));
 			}
 

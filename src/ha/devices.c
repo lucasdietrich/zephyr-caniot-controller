@@ -13,6 +13,10 @@
 #include "config.h"
 #include "system.h"
 
+#include "devices/caniot.h"
+#include "devices/f429zi.h"
+#include "devices/garage.h"
+#include "devices/xiaomi.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_WRN);
@@ -156,6 +160,10 @@ static void ha_dev_clear(ha_dev_t *dev)
 {
 	memset(dev, 0U, sizeof(*dev));
 }
+
+extern const struct ha_device_api ha_device_api_xiaomi;
+extern const struct ha_device_api ha_device_api_caniot;
+extern const struct ha_device_api ha_device_api_f429zi;
 
 static const struct ha_device_api *ha_device_get_default_api(ha_dev_type_t type)
 {
@@ -382,9 +390,10 @@ static int device_process_data(ha_dev_t *dev,
 
 exit:
 	/* Free event on error or if not referenced anymore */
-	if ((ret < 0) || (atomic_get(&ev->ref_count) == 0u)) {
+	if ((ev != NULL) && ((ret < 0) || (atomic_get(&ev->ref_count) == 0u))) {
 		ha_ev_free(ev);
 	}
+
 	k_mutex_unlock(&devices.mutex);
 
 	return ret;
@@ -715,6 +724,9 @@ int ha_ev_unsubscribe(struct ha_ev_subs *sub)
 		sys_dlist_remove(&sub->_handle);
 		k_mutex_unlock(&sub_mutex);
 
+		/* TODO how to cancel all threads waiting on this sub ? */
+		k_fifo_cancel_wait(&sub->evq);
+
 		sub_free(sub);
 
 		ret = 0;
@@ -724,7 +736,7 @@ int ha_ev_unsubscribe(struct ha_ev_subs *sub)
 }
 
 ha_ev_t *ha_ev_wait(struct ha_ev_subs *sub,
-			  k_timeout_t timeout)
+		    k_timeout_t timeout)
 {
 	if ((sub != NULL) && HA_EV_SUBS_SUBSCRIBED(sub)) {
 		return (ha_ev_t *)k_fifo_get(&sub->evq, timeout);

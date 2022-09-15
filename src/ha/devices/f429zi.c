@@ -1,9 +1,9 @@
+#include <zephyr.h>
+
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "ha/devices.h"
-#include "ble/xiaomi_record.h"
-#include "ha/data.h"
+#include "f429zi.h"
 
 static bool on_registration(const ha_dev_addr_t *addr)
 {

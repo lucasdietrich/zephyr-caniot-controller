@@ -187,7 +187,13 @@
                 "manager.h": "c",
                 "crc.h": "c",
                 "flash_creds.h": "c",
-                "app_sections.h": "c"
+                "app_sections.h": "c",
+                "eventfd.h": "c",
+                "cloud.h": "c",
+                "ha.h": "c",
+                "garage.h": "c",
+                "f429zi.h": "c",
+                "all.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

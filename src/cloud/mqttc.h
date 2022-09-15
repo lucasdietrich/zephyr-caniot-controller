@@ -30,7 +30,7 @@ int mqttc_keepalive_time_left(void);
 
 int mqttc_process(struct pollfd *fds);
 
-int mqttc_set_on_publish_cb(mqttc_on_publish_cb_t cb,
+int mqttc_set_publish_cb(mqttc_on_publish_cb_t cb,
 			    void *user_data);
 
 int mqttc_subscribe(const char *topic, uint8_t qos);

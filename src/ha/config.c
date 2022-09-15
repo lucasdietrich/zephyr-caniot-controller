@@ -1,6 +1,7 @@
 #include "ha/config.h"
+#include "ha.h"
 
-#include "ha/data.h"
+#include "ha/devices/all.h"
 
 struct ha_room ha_cfg_rooms[] = {
 	HA_ROOM(HA_ROOM_NONE, "<no room>"),

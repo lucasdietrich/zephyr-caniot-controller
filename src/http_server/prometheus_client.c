@@ -32,10 +32,12 @@
 #include "prometheus_client.h"
 
 #include "ha/devices.h"
+#include "ha/devices/caniot.h"
+#include "ha/devices/xiaomi.h"
+#include "ha/devices/garage.h"
+#include "ha/devices/f429zi.h"
 
 #include "utils/buffers.h"
-
-#include <caniot/caniot.h>
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(prom, LOG_LEVEL_DBG);

@@ -4,15 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <zephyr.h>
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
+#include "garage.h"
+
 #include <caniot/caniot.h>
 #include <caniot/datatype.h>
-
-#include "../devices.h"
-#include "../caniot_controller.h"
 
 static const caniot_did_t garage_did = CANIOT_DID(CANIOT_DEVICE_CLASS0, CANIOT_DEVICE_SID4);
 

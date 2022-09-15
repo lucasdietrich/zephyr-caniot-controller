@@ -1,9 +1,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "xiaomi.h"
+
 #include "ha/devices.h"
 #include "ble/xiaomi_record.h"
-#include "ha/data.h"
 
 static bool on_registration(const ha_dev_addr_t *addr)
 {

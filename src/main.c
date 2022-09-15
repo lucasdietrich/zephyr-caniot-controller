@@ -20,8 +20,6 @@
 #include "userio/leds.h"
 #include "userio/button.h"
 
-#include "cloud/aws.h"
-
 #include "creds/manager.h"
 
 #include "appfs.h"
