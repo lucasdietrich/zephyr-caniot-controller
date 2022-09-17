@@ -24,6 +24,8 @@ typedef enum
 	// HA_DEV_FILTER_REGISTERED_TIMESTAMP, /* filter recent devices */
 	HA_DEV_FILTER_HAS_TEMPERATURE = BIT(4), /* filter devices with temperature sensor */
 	HA_DEV_FILTER_ROOM_ID = BIT(5), /* filter devices with defined room id */
+	HA_DEV_FILTER_FROM_INDEX = BIT(6), /* filter devices from index (included) */
+	HA_DEV_FILTER_TO_INDEX = BIT(7), /* filter devices to index (excluded) */
 } ha_dev_filter_flags_t;
 
 /* TODO Incompatible masks */
@@ -37,6 +39,8 @@ typedef struct
 	ha_dev_type_t device_type;
 	uint32_t data_timestamp;
 	ha_room_id_t rid;
+	uint32_t from_index;
+	uint32_t to_index;
 } ha_dev_filter_t;
 
 struct ha_dev_stats
@@ -132,7 +136,7 @@ const void *ha_dev_get_last_data(ha_dev_t *dev);
 
 
 
-typedef void ha_dev_iterate_cb_t(ha_dev_t *dev,
+typedef bool ha_dev_iterate_cb_t(ha_dev_t *dev,
 				 void *user_data);
 
 int ha_dev_addr_cmp(const ha_dev_addr_t *a,
@@ -142,6 +146,14 @@ int ha_dev_addr_to_str(const ha_dev_addr_t *addr,
 		       char *buf,
 		       size_t buf_len);
 
+/**
+ * @brief Iterate over all devices, with the option to filter them
+ * 
+ * @param callback 
+ * @param filter 
+ * @param user_data 
+ * @return size_t Number of devices iterated, negative on error
+ */
 size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 		      const ha_dev_filter_t *filter,
 		      void *user_data);
@@ -161,7 +173,7 @@ static inline size_t ha_dev_xiaomi_iterate_data(ha_dev_iterate_cb_t callback,
 
 
 static inline size_t ha_dev_caniot_iterate_data(ha_dev_iterate_cb_t callback,
-					   void *user_data)
+						void *user_data)
 {
 	const ha_dev_filter_t filter = {
 		.flags =

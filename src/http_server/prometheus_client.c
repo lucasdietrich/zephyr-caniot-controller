@@ -42,6 +42,9 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(prom, LOG_LEVEL_DBG);
 
+/* Number of metrics to encode between each HTTP response buffer flush */
+#define CONFIG_PROMETHEUS_METRICS_PER_FLUSH 4u
+
 typedef enum {
 	VALUE_ENCODING_TYPE_INT32,
 	VALUE_ENCODING_TYPE_UINT32,
@@ -411,9 +414,6 @@ struct prom_metric_descr
 
 
 
-
-
-
 const char *prom_myd_medium_to_str(ha_dev_medium_type_t medium)
 {
 	switch (medium) {
@@ -583,7 +583,7 @@ static void prom_metric_feed_xiaomi_battery_voltage(const struct ha_xiaomi_datas
 	val->fvalue = dt->battery_mv / 1000.0;
 }
 
-static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
+static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 				    void *user_data)
 {
 	buffer_t *const buffer = (buffer_t *)user_data;
@@ -702,18 +702,43 @@ static void prom_ha_devs_iterate_cb(ha_dev_t *dev,
 		prom_metric_feed_dev_measurement_timestamp(dev->last_data_event->time, &val);
 		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
 	}
+
+	return true;
 }
 
 int prometheus_metrics(http_request_t *req,
 		       http_response_t *resp)
 {
+	/* Next index to encode metric into buffer */
+	static uint32_t next_index;
+
+	if (http_response_is_first_call(resp)) {
+		/* Reset index */
+		next_index = 0u;
+
+		/* Enable chunked transfer encoding, because we don't know
+		 * the size of the response in advance */
+		http_response_enable_chunk_encoding(resp);
+	}
+
 	const ha_dev_filter_t filter = {
-		.flags = HA_DEV_FILTER_DATA_EXIST,
+		.flags =
+			HA_DEV_FILTER_DATA_EXIST |
+			HA_DEV_FILTER_FROM_INDEX |
+			HA_DEV_FILTER_TO_INDEX,
+		.from_index = next_index,
+		.to_index = next_index + CONFIG_PROMETHEUS_METRICS_PER_FLUSH,
 	};
 
-	ha_dev_iterate(prom_ha_devs_iterate_cb,
-		       &filter,
-		       (void *)&resp->buffer);
+	size_t count = ha_dev_iterate(prom_ha_devs_iterate_cb, &filter,
+				      (void *)&resp->buffer);
+
+	/* Check wether there are more metrics to encode */
+	if (count == CONFIG_PROMETHEUS_METRICS_PER_FLUSH) {
+		http_response_more_data(resp);
+		
+		next_index += count;
+	}
 
 	resp->status_code = 200;
 

@@ -9,5 +9,6 @@ mainmenu "ha"
 config HA_EMULATED_DEVICES
         bool "Enable HA Emulated Devices"
         default n
+        depends on !CLOUD
         help
                 Enable HA Emulated Devices.

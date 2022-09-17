@@ -71,9 +71,11 @@ K_THREAD_DEFINE(http_thread,
  * each HTTP request should be parsed and processed immediately.
  *
  * Same buffer for HTTP request and HTTP response
+ * 
+ * TODO: Find a way to use a single 0x1000 sized buffer
  */
-__buf_noinit_section char buffer[0x3000];
-__buf_noinit_section char buffer_internal[0x800]; /* For encoding response headers */
+__buf_noinit_section char buffer[0x2000u];
+__buf_noinit_section char buffer_internal[0x800u]; /* For encoding response headers */
 
 /**
  * @brief
@@ -576,6 +578,11 @@ static bool send_chunk(http_connection_t *conn)
 
 	__ASSERT_NO_MSG(resp->stream == 1u);
 
+	if (resp->buffer.filling == 0u) {
+		/* Nothing to send */
+		return true;
+	}
+
 	/* Prepare chunk header */
 	char chunk_header[16];
 	ret = snprintf(chunk_header, sizeof(chunk_header), "%x\r\n",
@@ -609,16 +616,12 @@ close:
 	return false;
 }
 
-static bool send_end_of_chunked_encoding(http_connection_t *conn)
+static int send_end_of_chunked_encoding(http_connection_t *conn)
 {
-	int ret;
-
 	__ASSERT_NO_MSG(conn->resp->stream == 1u);
 
 	/* Send end of chunk */
-	ret = sendall(conn->sock, "0\r\n\r\n", 5u);
-
-	return ret >= 0;
+	return sendall(conn->sock, "0\r\n\r\n", 5u);
 }
 
 static bool handle_response(http_connection_t *conn)
@@ -693,7 +696,8 @@ static bool handle_response(http_connection_t *conn)
 
 	/* End of chunked encoding */
 	if (http_response_is_stream(resp)) {
-		if (!send_end_of_chunked_encoding(conn)) {
+		ret = send_end_of_chunked_encoding(conn);
+		if (ret <= 0) {
 			goto close;
 		}
 	}

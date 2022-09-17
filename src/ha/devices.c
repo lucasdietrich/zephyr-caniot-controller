@@ -29,7 +29,7 @@ LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_WRN);
 // #define HA_DEVICES_IGNORE_UNVERIFIED_DEVICES 1
 
 #define HA_EV_SUBS_BLOCK_COUNT 8u
-#define HA_EV_COUNT 16u
+#define HA_EV_COUNT 32u
 
 /* Forward declaration */
 
@@ -44,6 +44,11 @@ struct {
 	.mutex = Z_MUTEX_INITIALIZER(devices.mutex),
 	.count = 0U
 };
+
+static uint32_t dev_get_index(ha_dev_t *dev)
+{
+	return (uint32_t)(dev - devices.list);
+}
 
 typedef int (*addr_cmp_func_t)(const ha_dev_mac_addr_t *a,
 			      const ha_dev_mac_addr_t *b);
@@ -357,6 +362,18 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 		return true;
 	}
 
+	if (filter->flags & HA_DEV_FILTER_FROM_INDEX) {
+		if (dev_get_index(dev) < filter->from_index) {
+			return false;
+		}
+	}
+
+	if (filter->flags & HA_DEV_FILTER_TO_INDEX) {
+		if (dev_get_index(dev) >= filter->to_index) {
+			return false;
+		}
+	}
+
 	if (filter->flags & HA_DEV_FILTER_MEDIUM) {
 		if (dev->addr.mac.medium != filter->medium) {
 			return false;
@@ -391,10 +408,7 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 }
 
 
-
-
-size_t ha_dev_iterate(void (*callback)(ha_dev_t *dev,
-				       void *user_data),
+size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 		      const ha_dev_filter_t *filter,
 		      void *user_data)
 {
@@ -406,6 +420,7 @@ size_t ha_dev_iterate(void (*callback)(ha_dev_t *dev,
 	     dev < devices.list + devices.count;
 	     dev++) {
 		if (ha_dev_match_filter(dev, filter) == true) {
+			bool zcontinue;
 			if (dev->last_data_event != NULL) {
 				/* Reference device event in case the callback wants to
 				* access it.
@@ -413,12 +428,17 @@ size_t ha_dev_iterate(void (*callback)(ha_dev_t *dev,
 				* if it needs to access it after the callback returns
 				*/
 				ha_ev_ref(dev->last_data_event);
-				callback(dev, user_data);
+				zcontinue = callback(dev, user_data);
 				ha_ev_unref(dev->last_data_event);
 			} else {
-				callback(dev, user_data);
+				zcontinue = callback(dev, user_data);
 			}
+
 			count++;
+
+			if (!zcontinue) {
+				break;
+			}
 		}
 	}
 

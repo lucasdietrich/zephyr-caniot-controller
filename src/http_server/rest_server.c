@@ -416,7 +416,7 @@ static int ha_json_xiaomi_record_feed_latest(struct json_xiaomi_record *json_dat
 	return 0;
 }
 
-static void xiaomi_device_cb(ha_dev_t *dev,
+static bool xiaomi_device_cb(ha_dev_t *dev,
 			     void *user_data)
 {
 	struct json_xiaomi_record_array *const array = user_data;
@@ -426,6 +426,8 @@ static void xiaomi_device_cb(ha_dev_t *dev,
 					  dev);
 
 	array->count++;
+
+	return true;
 }
 
 int rest_xiaomi_records(http_request_t *req,
@@ -502,7 +504,7 @@ struct caniot_records_encoding_context
 	char temp_repr[HA_CANIOT_MAX_DEVICES][HA_CANIOT_MAX_TEMPERATURES][9U];
 };
 
-static void caniot_device_cb(ha_dev_t *dev,
+static bool caniot_device_cb(ha_dev_t *dev,
 			     void *user_data)
 {
 	struct caniot_records_encoding_context *const ctx =
@@ -535,6 +537,8 @@ static void caniot_device_cb(ha_dev_t *dev,
 	}
 
 	ctx->arr.count++;
+
+	return true;
 }
 
 int rest_caniot_records(http_request_t *req,
@@ -633,7 +637,7 @@ static const struct json_obj_descr json_device_array_descr[] = {
 	)
 };
 
-static void devices_cb(ha_dev_t *dev,
+static bool devices_cb(ha_dev_t *dev,
 		       void *user_data)
 {
 	struct json_device_array *const arr = user_data;
@@ -667,6 +671,8 @@ static void devices_cb(ha_dev_t *dev,
 	memcpy(&jd->stats, &dev->stats, sizeof(jd->stats));
 
 	arr->count++;
+
+	return true;
 }
 
 
@@ -684,12 +690,14 @@ int rest_devices_list(http_request_t *req,
 	);
 }
 
-static void room_devices_cb(ha_dev_t *dev,
+static bool room_devices_cb(ha_dev_t *dev,
 			    void *user_data)
 {
 	buffer_t *const buf = (buffer_t *)user_data;
 
 	buffer_snprintf(buf, "%p", dev);
+
+	return true;
 }
 
 int rest_room_devices_list(http_request_t *req,
