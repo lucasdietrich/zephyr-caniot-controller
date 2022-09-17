@@ -9,6 +9,9 @@
 
 #include <zephyr.h>
 
+#include "utils/buffers.h"
+#include "poll.h"
+
 #define MQTTC_TRY_CONNECT_FOREVER (-1)
 
 typedef void (*mqttc_on_publish_cb_t)(const char *topic,
@@ -17,6 +20,8 @@ typedef void (*mqttc_on_publish_cb_t)(const char *topic,
 				      void *user_data);
 
 int mqttc_init(void);
+
+int mqttc_resolve_broker(void);
 
 int mqttc_cleanup(void);
 
@@ -39,5 +44,16 @@ int mqttc_publish(const char *topic,
 		  const char *payload, 
 		  size_t len,
 		  int qos);
+
+/**
+ * @brief Return whether the MQTT client is connected to the broker 
+ * and ready to publish or subscribe.
+ * 
+ * @return true 
+ * @return false 
+ */
+bool mqttc_ready(void);
+
+cursor_buffer_t *mqttc_get_payload_buffer(void);
 
 #endif /* _CLOUD_MQTT_H_ */

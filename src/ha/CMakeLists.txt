@@ -5,7 +5,7 @@
 #
 
 
-target_sources(app PRIVATE devices.c room.c utils.c ha_controller.c datalogger.c)
+target_sources(app PRIVATE devices.c room.c utils.c ha_controller.c datalogger.c json.c)
 target_sources(app PRIVATE devices/xiaomi.c devices/caniot.c devices/f429zi.c)
 target_sources(app PRIVATE config.c)
 target_sources_ifdef(CONFIG_HA_EMULATED_DEVICES app PRIVATE emu.c)

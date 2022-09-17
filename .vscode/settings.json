@@ -193,7 +193,8 @@
                 "ha.h": "c",
                 "garage.h": "c",
                 "f429zi.h": "c",
-                "all.h": "c"
+                "all.h": "c",
+                "atomic_c.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

@@ -23,6 +23,11 @@ to a local server (REST, prometheus ..) for monitoring and/or control
 
 ![docs/pics/caniot-controller-synoptic-components.png](./docs/pics/caniot-controller-synoptic-components.png)
 
+## AWS - Grafana Dashboard
+
+![docs/pics/aws_grafana_1.png](./docs/pics/aws_grafana_1.png)
+![docs/pics/aws_grafana_2.png](./docs/pics/aws_grafana_2.png)
+
 ## Documentation
 
 Documentation is available in the `docs` folder for following topics:

@@ -57,6 +57,7 @@ static atomic_t app_fd_flags = ATOMIC_INIT(0u);
 
 enum cloud_state {
 	STATE_INIT,
+	STATE_RESOLVE_HOST,
 	STATE_PROVISION,
 	STATE_CONNECTING,
 	STATE_CONNECTED,
@@ -70,6 +71,8 @@ static const char *cloud_state_to_str(enum cloud_state state)
 	switch (state) {
 	case STATE_INIT:
 		return "STATE_INIT";
+	case STATE_RESOLVE_HOST:
+		return "STATE_RESOLVE_HOST";
 	case STATE_PROVISION:
 		return "STATE_PROVISION";
 	case STATE_CONNECTING:
@@ -109,10 +112,24 @@ static bool state_machine(void)
 		/* Initialize the MQTT client */
 		ret = mqttc_init();
 		if (ret == 0) {
-			set_state(STATE_CONNECTING);
+			set_state(STATE_RESOLVE_HOST);
 		} else {
 			LOG_ERR("Failed to initialize MQTT client err=%d", ret);
 			set_state(STATE_ERROR);
+		}
+		break;
+	}
+	case STATE_RESOLVE_HOST:
+	{
+		/* Resolve the host name */
+		ret = mqttc_resolve_broker();
+		if (ret == 0) {
+			set_state(STATE_CONNECTING);
+		} else {
+			LOG_WRN("Failed to resolve host err=%d", ret);
+			
+			/* Try again regularly */
+			k_sleep(K_SECONDS(10));
 		}
 		break;
 	}
@@ -121,7 +138,9 @@ static bool state_machine(void)
 		/* Try to connect to the MQTT broker */
 		if (mqttc_try_connect(MQTTC_TRY_CONNECT_FOREVER) == 0) {
 			mqttc_set_pollfd(&fds[FDS_MQTT]);
+
 			set_state(STATE_CONNECTED);
+
 			cloud_app_init();
 		} else {
 			LOG_ERR("Failed to connect to MQTT broker err=%d", ret);
@@ -133,21 +152,36 @@ static bool state_machine(void)
 	{
 		/* Wait for events */
 		int timeout = mqttc_keepalive_time_left();
-		ret = poll(&fds[FDS_MQTT], 2u, timeout);
+		ret = poll(fds, 2u, timeout);
 		if (ret >= 0) {
 			if (mqttc_process(&fds[FDS_MQTT]) < 0) {
-				cloud_app_cleanup();
 				set_state(STATE_DISCONNECTING);
+				cloud_app_cleanup();
 			}
 
+			/* Check whether the application function can be called */
+
+			if (mqttc_ready() == false) {
+				fds[FDS_APP].events &= ~POLLIN;
+				fds[FDS_APP].revents &= ~POLLIN;
+			} else {
+				fds[FDS_APP].events |= POLLIN;
+			}
+
+			/* Check whether the application function should be called */
 			if (fds[FDS_APP].revents & POLLIN) {
 				/* Clear the event */
 				eventfd_t _val;
 				eventfd_read(fds[FDS_APP].fd, &_val);
-				(void) _val;
 
-				cloud_app_process(atomic_clear(&app_fd_flags));
+				ret = cloud_app_process(atomic_clear(&app_fd_flags));
+				if (ret < 0) {
+					set_state(STATE_DISCONNECTING);
+					cloud_app_cleanup();
+				}
 			}
+
+
 		} else {
 			LOG_ERR("poll failed: %d", ret);
 			set_state(STATE_ERROR);

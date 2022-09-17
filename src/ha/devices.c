@@ -439,11 +439,7 @@ static struct ha_ev_subs *sub_alloc(void)
 {
 	static struct ha_ev_subs *sub;
 
-	/* "mem" set to NULL on k_mem_slab_alloc(,,K_NO_WAIT) error,
-	 * but don't want to suffer from an API change */
-	if (k_mem_slab_alloc(&sub_slab, (void **)&sub, K_NO_WAIT) != 0) {
-		sub = NULL;
-	} else {
+	if (k_mem_slab_alloc(&sub_slab, (void **)&sub, K_NO_WAIT) == 0) {
 		LOG_DBG("Sub %p allocated", sub);
 	}
 
@@ -452,11 +448,10 @@ static struct ha_ev_subs *sub_alloc(void)
 
 static void sub_free(struct ha_ev_subs *sub)
 {
-	__ASSERT_NO_MSG(sub != NULL);
-
-	/* Same comment */
-	k_mem_slab_free(&sub_slab, (void **)&sub);
-	LOG_DBG("Sub %p freed", sub);
+	if (sub != NULL) {
+		k_mem_slab_free(&sub_slab, (void **)&sub);
+		LOG_DBG("Sub %p freed", sub);
+	}
 }
 
 static void sub_init(struct ha_ev_subs *sub)
@@ -658,6 +653,16 @@ static bool subscription_conf_validate(const ha_ev_subs_conf_t *conf)
 		}
 	}
 
+	if (conf->flags & HA_EV_SUBS_ON_QUEUED_HOOK) {
+		if (conf->on_queued == NULL) {
+			return false;
+		}
+	} else if (conf->on_queued != NULL) {
+		LOG_WRN("on_queued hook set (%p) but HA_EV_SUBS_ON_QUEUED_HOOK "
+			"flag is missing",
+			conf->on_queued);
+	}
+
 	/* TODO check for conflicting flags */
 
 	return true;
@@ -671,7 +676,7 @@ int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
 
 	/* validate tconf */
 
-	if (!subscription_conf_validate(conf)) {
+	if (!subscription_conf_validate(conf) || !sub) {
 		ret = -EINVAL;
 		goto exit;
 	}

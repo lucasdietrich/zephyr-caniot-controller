@@ -40,7 +40,7 @@
 #include "cloud/mqttc.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(mqttc, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(mqttc, LOG_LEVEL_INF);
 
 #include "cloud_internal.h"
 
@@ -56,12 +56,18 @@ static cursor_buffer_t buffer = CUR_BUFFER_STATIC_INIT(payload_buf, sizeof(paylo
 static mqttc_on_publish_cb_t on_publish_cb;
 static void *on_publish_user_data;
 
+#define MQTTC_BIT_CONNECTED 	(0u)
+#define MQTTC_BIT_INPROGRESS 	(1u)
+#define MQTTC_FLAG_CONNECTED 	(1u << MQTTC_BIT_CONNECTED)
+#define MQTTC_FLAG_INPROGRESS 	(1u << MQTTC_BIT_INPROGRESS)
+static atomic_t state = ATOMIC_INIT(0u);
+
 static uint32_t message_id;
 
 static struct mqtt_client mqtt;
 
-K_SEM_DEFINE(mqtt_lock, 0u, 1u);
-K_SEM_DEFINE(mqtt_onpub, 0u, 1u);
+// K_SEM_DEFINE(mqtt_lock, 0u, 1u);
+// K_SEM_DEFINE(mqtt_onpub, 0u, 1u);
 
 /* Forward declarations */
 static void mqtt_event_cb(struct mqtt_client *client,
@@ -144,32 +150,36 @@ static void handle_published_message(const struct mqtt_publish_param *msg)
 static void mqtt_event_cb(struct mqtt_client *client,
 			  const struct mqtt_evt *evt)
 {
-	LOG_DBG("mqtt_evt=%hhx [ %s ]", (uint8_t)evt->type,
+	LOG_INF("mqtt_evt=%hhx [ %s ]", (uint8_t)evt->type,
 		mqtt_evt_get_str(evt->type));
 
 	switch (evt->type) {
 	case MQTT_EVT_CONNACK:
 	{
-		k_sem_give(&mqtt_lock);
+		atomic_set_bit(&state, MQTTC_BIT_CONNECTED);
 		break;
 	}
 
 	case MQTT_EVT_DISCONNECT:
-		k_sem_give(&mqtt_lock);
+		atomic_clear_bit(&state, MQTTC_BIT_CONNECTED);
 		break;
 
 	case MQTT_EVT_PUBLISH:
 	{
+		atomic_set_bit(&state, MQTTC_BIT_INPROGRESS);
+
 		const struct mqtt_publish_param *pub = &evt->param.publish;
 		handle_published_message(pub);
-		k_sem_give(&mqtt_onpub);
+
+		atomic_clear_bit(&state, MQTTC_BIT_INPROGRESS);
 		break;
 	}
 
 	case MQTT_EVT_PUBACK:
 	{
-		k_sem_give(&mqtt_lock);
-		LOG_INF("Publish acknowledged %d",
+		atomic_clear_bit(&state, MQTTC_BIT_INPROGRESS);
+
+		LOG_DBG("Publish acknowledged %d",
 			evt->param.puback.message_id);
 		break;
 	}
@@ -185,16 +195,15 @@ static void mqtt_event_cb(struct mqtt_client *client,
 
 	case MQTT_EVT_SUBACK:
 	{
-		k_sem_give(&mqtt_lock);
-		LOG_INF("Subscription acknowledged %d",
+		atomic_clear_bit(&state, MQTTC_BIT_INPROGRESS);
+		LOG_DBG("Subscription acknowledged %d",
 			evt->param.suback.message_id);
 		break;
 	}
 
 	case MQTT_EVT_UNSUBACK:
 	{
-		k_sem_give(&mqtt_lock);
-		LOG_INF("Unsubscription acknowledged %d",
+		LOG_DBG("Unsubscription acknowledged %d",
 			evt->param.unsuback.message_id);
 		break;
 	}
@@ -204,7 +213,25 @@ static void mqtt_event_cb(struct mqtt_client *client,
 	}
 }
 
-static int mqtt_client_try_connect(uint32_t max_attempts)
+static int wait_for_input(int timeout)
+{
+	int res;
+	struct zsock_pollfd fds = {
+		.fd = mqtt.transport.tls.sock,
+		.events = ZSOCK_POLLIN,
+		.revents = 0
+	};
+
+	res = poll(&fds, 1, timeout);
+	if (res < 0) {
+		LOG_ERR("poll read event error, res=%d", res);
+		return -errno;
+	}
+
+	return res;
+}
+
+int mqttc_try_connect(uint32_t max_attempts)
 {
 	int ret;
 	struct backoff bo;
@@ -213,17 +240,43 @@ static int mqtt_client_try_connect(uint32_t max_attempts)
 
 	do {
 		LOG_DBG("MQTT %p try connect", &mqtt);
+
 		ret = mqtt_connect(&mqtt);
-		if (ret < 0) {
-			uint32_t delay_ms = backoff_next(&bo);
+		if (ret == 0) {
+			/* Wait for CONNACK */
+			ret = wait_for_input(5000);
+
+			if (ret >= 0) {
+				mqtt_input(&mqtt);
+				if (atomic_test_bit(&state, MQTTC_BIT_CONNECTED)) {
+					ret = 0;
+				} else {
+					ret = -ECONNREFUSED;
+				}
+			}
+
+			if (ret != 0) {
+				mqtt_abort(&mqtt);
+			}
+		}
+
+		if (ret != 0) {
+			const uint32_t delay_ms = backoff_next(&bo);
+
 			LOG_ERR("MQTT %p connect failed ret=%d retry in %u ms",
 				&mqtt, ret, delay_ms);
+
 			k_sleep(K_MSEC(delay_ms));
 		}
 	} while ((ret != 0) && (bo.attempts < max_attempts));
 
 	return ret;
 }
+
+// static void platform_config_clear(struct cloud_platform_config *c)
+// {
+// 	memset(c, 0, sizeof(struct cloud_platform_config));
+// }
 
 int mqttc_init(void)
 {
@@ -237,7 +290,17 @@ int mqttc_init(void)
 	/* Initialize the MQTT client structure */
 	mqtt_client_init(&mqtt);
 
+	/* Platform initialization */
+	ret = p->init(&p->config);
+	if (ret != 0) {
+		return ret;
+	}
+
+	/* Set MQTT client for platform */
 	p->mqtt = &mqtt;
+
+	/* Alloc broker hostname */
+	mqtt.broker = &p->broker;
 
 	/* Generic MQTT client configuration */
 	mqtt.evt_cb = mqtt_event_cb;
@@ -247,17 +310,54 @@ int mqttc_init(void)
 	mqtt.tx_buf = mqtt_tx_buf;
 	mqtt.tx_buf_size = MQTT_TX_BUFFER_SIZE;
 
-	/* Platform finalize MQTT client configuration */
-	ret = p->init(p);
-	if (ret != 0) {
-		return ret;
+	if (p->config.clientid) {
+		mqtt.client_id.utf8 = (uint8_t *)p->config.clientid;
+		mqtt.client_id.size = strlen(p->config.clientid);
 	}
 
-	/* Initialize internal state */
-	k_sem_init(&mqtt_lock, 0, 1);
-	k_sem_init(&mqtt_onpub, 0, 1);
+	if (p->config.password) {
+		mqtt.password->utf8 = p->config.password;
+		mqtt.password->size = strlen(p->config.password);
+	}
+
+	if (p->config.user) {
+		mqtt.user_name->utf8 = p->config.user;
+		mqtt.user_name->size = strlen(p->config.user);
+	}
+
+	mqtt.keepalive = CONFIG_MQTT_KEEPALIVE;
+
+	mqtt.protocol_version = MQTT_VERSION_3_1_1;
+
+	// setup TLS
+	mqtt.transport.type = MQTT_TRANSPORT_SECURE;
+
+	struct mqtt_sec_config *const tls_config = &mqtt.transport.tls.config;
+
+	tls_config->peer_verify = TLS_PEER_VERIFY_REQUIRED;
+	tls_config->cipher_list = NULL;
+	tls_config->sec_tag_list = p->config.sec_tag_list;
+	tls_config->sec_tag_count = p->config.sec_tag_count;
+	tls_config->hostname = p->config.endpoint;
+	tls_config->cert_nocopy = TLS_CERT_NOCOPY_OPTIONAL;
+
+	/* Message id 0 not permitted */
+	message_id = 1u;
+
+	atomic_clear(&state);
 
 	return ret;
+}
+
+int mqttc_resolve_broker(void)
+{
+	struct cloud_platform *const p = cloud_platform_get();
+	if (p == NULL) {
+		return -ENOTSUP;
+	}
+
+	/* resolve broker hostname */
+	return resolve_hostname(&p->broker, p->config.endpoint, p->config.port);
 }
 
 int mqttc_cleanup(void)
@@ -267,18 +367,21 @@ int mqttc_cleanup(void)
 		return -ENOTSUP;
 	}
 
-	return p->deinit(p);
-}
-
-int mqttc_try_connect(uint32_t attempts)
-{
-	return mqtt_client_try_connect(attempts);
+	return p->deinit(&p->config);
 }
 
 int mqttc_disconnect(void)
-{	
+{
 	int ret = mqtt_disconnect(&mqtt);
-	if (ret != 0) {
+	if (ret == 0) {
+		ret = wait_for_input(5000);
+		if (ret >= 0) {
+			mqtt_input(&mqtt);
+		} else {
+			mqtt_abort(&mqtt);
+			atomic_clear_bit(&state, MQTTC_BIT_CONNECTED);
+		}
+	} else {
 		LOG_ERR("Failed to disconnect from broker: %d", ret);
 	}
 	return ret;
@@ -303,9 +406,9 @@ int mqttc_subscribe(const char *topic, uint8_t qos)
 		return -EINVAL;
 	}
 
-	int ret = 0;
-
-	k_sem_take(&mqtt_lock, K_FOREVER);
+	if (atomic_test_and_set_bit(&state, MQTTC_BIT_INPROGRESS) == true) {
+		return -EBUSY;
+	}
 
 	struct mqtt_topic top;
 	top.topic.utf8 = topic;
@@ -320,10 +423,11 @@ int mqttc_subscribe(const char *topic, uint8_t qos)
 
 	message_id++;
 
-	ret = mqtt_subscribe(&mqtt, &sub_list);
+	int ret = mqtt_subscribe(&mqtt, &sub_list);
 	if (ret != 0) {
+		atomic_clear_bit(&state, MQTTC_BIT_INPROGRESS);
+
 		LOG_ERR("Failed to subscribe to topic %s: %d", topic, ret);
-		k_sem_give(&mqtt_lock);
 	}
 
 	return ret;
@@ -338,9 +442,9 @@ int mqttc_publish(const char *topic,
 		return -EINVAL;
 	}
 
-	int ret = 0;
-
-	k_sem_take(&mqtt_lock, K_FOREVER);
+	if (atomic_test_and_set_bit(&state, MQTTC_BIT_INPROGRESS) == true) {
+		return -EBUSY;
+	}
 
 	struct mqtt_publish_param msg;
 
@@ -354,10 +458,11 @@ int mqttc_publish(const char *topic,
 
 	message_id++;
 
-	ret = mqtt_publish(&mqtt, &msg);
+	int ret = mqtt_publish(&mqtt, &msg);
 	if (ret != 0) {
-		LOG_ERR("Failed to publish to topic %s: %d", topic, ret);
-		k_sem_give(&mqtt_lock);
+		atomic_clear_bit(&state, MQTTC_BIT_INPROGRESS);
+
+		LOG_ERR("Failed to publish to topic %s: %d", log_strdup(topic), ret);
 	}
 
 	return ret;
@@ -400,4 +505,18 @@ exit:
 int mqttc_keepalive_time_left(void)
 {
 	return mqtt_keepalive_time_left(&mqtt);
+}
+
+cursor_buffer_t *mqttc_get_payload_buffer(void)
+{
+	return &buffer;
+}
+
+bool mqttc_ready(void)
+{
+	const atomic_val_t mask = atomic_get(&state) &
+		(MQTTC_FLAG_CONNECTED | MQTTC_FLAG_INPROGRESS);
+
+	/* Ready if connected and not in progress */
+	return mask == MQTTC_FLAG_CONNECTED;
 }

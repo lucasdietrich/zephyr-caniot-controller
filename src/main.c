@@ -17,6 +17,8 @@
 #include "lua/orchestrator.h"
 #include "utils/freelist.h"
 
+#include "ha/devices/f429zi.h"
+
 #include "userio/leds.h"
 #include "userio/button.h"
 

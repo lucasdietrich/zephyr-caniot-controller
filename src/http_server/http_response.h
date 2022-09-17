@@ -54,6 +54,7 @@ typedef struct http_response
 	 */
 	uint8_t stream: 1u;
 
+	/* Number of times the response handler has been called */
 	uint32_t calls_count;
 
 	/* Total number of bytes sent in headers and payload*/

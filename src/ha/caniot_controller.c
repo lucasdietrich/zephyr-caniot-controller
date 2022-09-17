@@ -20,6 +20,7 @@
 #include "net_time.h"
 #include "ha/utils.h"
 #include "utils/misc.h"
+#include "ha/devices/caniot.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(caniot, LOG_LEVEL_INF);

@@ -3,4 +3,5 @@ AmazonRootCA1.txt
 AmazonRootCA3.der
 AmazonRootCA3.txt
 
-caniot-controller/*
+caniot_controller/*
+qemu_caniot_controller/*

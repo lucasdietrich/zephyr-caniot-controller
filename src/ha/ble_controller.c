@@ -14,11 +14,13 @@
 #include "ha/devices.h"
 #include "userio/leds.h"
 
+#include "ha/devices/xiaomi.h"
+
 #include <uart_ipc/ipc_frame.h>
 #include <uart_ipc/ipc.h>
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(ble_ctrlr, LOG_LEVEL_NONE);
+LOG_MODULE_REGISTER(ble_ctrlr, LOG_LEVEL_WRN);
 
 K_MSGQ_DEFINE(ipc_ble_msgq, sizeof(ipc_frame_t), 1U, 4U);
 struct k_poll_event ipc_event =
@@ -52,7 +54,7 @@ int process_xiaomi_dataframe(xiaomi_dataframe_t *frame)
 		rec->time = record_timestamp;
 
 		ret = ha_dev_register_xiaomi_record(rec);
-		if (ret != 0) {
+		if (ret < 0) {
 			LOG_ERR("ha_dev_register_xiaomi_record() failed err=%d",
 				ret);
 			goto exit;
@@ -87,7 +89,7 @@ static void ipc_work_handler(struct k_work *work)
 	while (k_msgq_get(&ipc_ble_msgq, &frame, K_NO_WAIT) == 0U) {
 		ret = process_xiaomi_dataframe(
 			(xiaomi_dataframe_t *)frame.data.buf);
-		if (ret != 0) {
+		if (ret < 0) {
 			LOG_ERR("Failed to handle BLE Xiaomi record, err: %d",
 				ret);
 		}

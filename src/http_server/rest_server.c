@@ -32,6 +32,8 @@
 #include "ha/caniot_controller.h"
 #include "ha/devices/all.h"
 
+#include "ha/json.h"
+
 #include "can/can_interface.h"
 
 #include "lua/orchestrator.h"
@@ -370,53 +372,15 @@ int rest_info(http_request_t *req,
 	return rest_encode_response_json(resp, &data, info_descr, ARRAY_SIZE(info_descr));
 }
 
-
-
-
-struct json_device_base
-{
-	// const char *device_name;
-
-	// const char *datetime;
-	// int32_t rel_time;
-
-	uint32_t timestamp;
-};
-
-
-
-
-struct json_xiaomi_record
-{
-	char *bt_mac;
-
-	struct json_device_base base;
-
-	int32_t rssi;
-
-	char *temperature; /* °C */
-	int32_t temperature_raw; /* 1e-2 °C */
-	uint32_t humidity; /* 1e-2 % */
-	uint32_t battery_level; /* % */
-	uint32_t battery_voltage; /* mV */
-};
-
-static const struct json_obj_descr json_xiaomi_record_descr[] = {
+const struct json_obj_descr json_xiaomi_record_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, bt_mac, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, base.timestamp, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, rssi, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, temperature, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, temperature_raw, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, humidity, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, battery_level, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, battery_voltage, JSON_TOK_NUMBER),
-};
-
-
-struct json_xiaomi_record_array
-{
-	struct json_xiaomi_record records[HA_XIAOMI_MAX_DEVICES];
-	size_t count;
+	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, measures.rssi, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, measures.temperature, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, measures.temperature_raw, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, measures.humidity, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, measures.battery_level, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, measures.battery_voltage, JSON_TOK_NUMBER),
 };
 
 const struct json_obj_descr json_xiaomi_record_array_descr[] = {
@@ -424,54 +388,56 @@ const struct json_obj_descr json_xiaomi_record_array_descr[] = {
 	count, json_xiaomi_record_descr, ARRAY_SIZE(json_xiaomi_record_descr))
 };
 
-struct xiaomi_records_encoding_context
+static int ha_json_xiaomi_record_feed_latest(struct json_xiaomi_record *json_data,
+					     struct json_xiaomi_record_buf *buf,
+					     ha_dev_t *dev)
 {
-	struct json_xiaomi_record_array arr;
-	struct {
-		char addr[BT_ADDR_LE_STR_LEN];
-		char temperature[9];
-	} strings[HA_XIAOMI_MAX_DEVICES];
-};
+	const struct ha_xiaomi_dataset *const data =
+		HA_DEV_GET_CAST_LAST_DATA(dev, const struct ha_xiaomi_dataset);
+
+	json_data->bt_mac = buf->addr;
+	json_data->measures.rssi = data->rssi;
+	json_data->measures.temperature = buf->temperature;
+	json_data->measures.temperature_raw = data->temperature.value;
+	json_data->measures.humidity = data->humidity;
+	json_data->measures.battery_level = data->battery_level;
+	json_data->measures.battery_voltage = data->battery_mv;
+
+	json_data->base.timestamp = dev->last_data_event->time;
+
+	bt_addr_le_to_str(&dev->addr.mac.addr.ble,
+			  json_data->bt_mac,
+			  BT_ADDR_LE_STR_LEN);
+
+	sprintf(json_data->measures.temperature,
+		"%.2f",
+		data->temperature.value / 100.0);
+
+	return 0;
+}
 
 static void xiaomi_device_cb(ha_dev_t *dev,
 			     void *user_data)
 {
-	struct xiaomi_records_encoding_context *ctx =
-		(struct xiaomi_records_encoding_context *)user_data;
+	struct json_xiaomi_record_array *const array = user_data;
 
-	const struct ha_xiaomi_dataset *const data = 
-		HA_DEV_GET_CAST_LAST_DATA(dev, const struct ha_xiaomi_dataset);
-	struct json_xiaomi_record *const json = &ctx->arr.records[ctx->arr.count];
+	ha_json_xiaomi_record_feed_latest(&array->records[array->count],
+					  &array->_bufs[array->count],
+					  dev);
 
-	json->bt_mac = ctx->strings[ctx->arr.count].addr;
-	json->rssi = data->rssi;
-	json->temperature = ctx->strings[ctx->arr.count].temperature;
-	json->temperature_raw = data->temperature.value;
-	json->humidity = data->humidity;
-	json->battery_level = data->battery_level;
-	json->battery_voltage = data->battery_mv;
-	json->base.timestamp = dev->last_data_event->time;
-
-	bt_addr_le_to_str(&dev->addr.mac.addr.ble,
-			  json->bt_mac,
-			  BT_ADDR_LE_STR_LEN);
-	sprintf(json->temperature,
-		"%.2f",
-		data->temperature.value / 100.0);
-
-	ctx->arr.count++;
+	array->count++;
 }
 
 int rest_xiaomi_records(http_request_t *req,
 			http_response_t *resp)
 {
-	struct xiaomi_records_encoding_context ctx;
+	struct json_xiaomi_record_array array;
 
-	ctx.arr.count = 0;
+	array.count = 0;
 
-	ha_dev_xiaomi_iterate_data(xiaomi_device_cb, &ctx);
+	ha_dev_xiaomi_iterate_data(xiaomi_device_cb, &array);
 
-	return rest_encode_response_json_array(resp, &ctx.arr, json_xiaomi_record_array_descr);
+	return rest_encode_response_json_array(resp, &array, json_xiaomi_record_array_descr);
 }
 
 struct json_caniot_temperature_record

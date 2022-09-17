@@ -9,9 +9,12 @@ openssl x509 -in ./AmazonRootCA1.der -inform DER -text -noout -out ./AmazonRootC
 openssl x509 -in ./AmazonRootCA3.der -inform DER -text -noout -out ./AmazonRootCA3.txt
 
 # Convert AWS Certificates to PEM format
-dir=caniot-controller
-cert="9e99599b7b81772d43869b44f1ff4495be6e5c448b020c0a29a87e133c145c0d-certificate.pem.crt"
-key="9e99599b7b81772d43869b44f1ff4495be6e5c448b020c0a29a87e133c145c0d-private.pem.key"
+dir=qemu_caniot_controller
+cid="4a03634d5ad6092781f4c7bef48620203f3ba75202835aebfdb61d15c8fb7f09"
+cert="$cid-certificate.pem.crt"
+key="$cid-private.pem.key"
+
+echo $cert
 
 cp $dir/$cert $dir/cert.pem
 cp $dir/$key $dir/key.pem

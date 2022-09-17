@@ -33,27 +33,6 @@ static sec_tag_t sec_tls_tags[] = {
 	TLS_TAG_DEVICE_CERT,
 };
 
-struct aws_data
-{
-	sec_tag_t sec_tls_tags[1u];
-
-	struct sockaddr_in broker;
-};
-
-struct aws_config
-{
-	const char *endpoint;
-	uint16_t port;
-	const char *thing_name;
-};
-
-static struct aws_data data;
-static struct aws_config config = {
-	.endpoint = CONFIG_AWS_ENDPOINT,
-	.port = AWS_ENDPOINT_PORT,
-	.thing_name = CONFIG_AWS_THING_NAME,
-};
-
 static int setup_credentials(void)
 {
 	int ret;
@@ -115,48 +94,13 @@ exit:
 	return ret;
 }
 
-static int aws_init(struct cloud_platform *p)
+static int aws_init(struct cloud_platform_config *c)
 {
-	int ret;
-
-	struct mqtt_client *mqtt = p->mqtt;
-
 	/* Setup TLS credentials */
-	setup_credentials();
-
-	/* Setup broker address */
-	ret = resolve_hostname(&data.broker, config.endpoint, config.port);
-	if (ret != 0) {
-		LOG_ERR("Failed to resolve hostname ret=%d", ret);
-		return ret;
-	}
-
-	mqtt->broker = &data.broker;
-
-	mqtt->client_id.utf8 = (uint8_t *)config.thing_name;
-	mqtt->client_id.size = strlen(config.thing_name);
-	mqtt->password = NULL;
-	mqtt->user_name = NULL;
-
-	mqtt->keepalive = CONFIG_MQTT_KEEPALIVE;
-
-	mqtt->protocol_version = MQTT_VERSION_3_1_1;
-
-	// setup TLS
-	mqtt->transport.type = MQTT_TRANSPORT_SECURE;
-	struct mqtt_sec_config *const tls_config = &mqtt->transport.tls.config;
-
-	tls_config->peer_verify = TLS_PEER_VERIFY_REQUIRED;
-	tls_config->cipher_list = NULL;
-	tls_config->sec_tag_list = sec_tls_tags;
-	tls_config->sec_tag_count = ARRAY_SIZE(sec_tls_tags);
-	tls_config->hostname = config.endpoint;
-	tls_config->cert_nocopy = TLS_CERT_NOCOPY_OPTIONAL;
-
-	return ret;
+	return setup_credentials();
 }
 
-static int aws_deinit(struct cloud_platform *p)
+static int aws_deinit(struct cloud_platform_config *p)
 {
 	return clear_credentials();
 }
@@ -165,8 +109,13 @@ struct cloud_platform aws_platform =
 {
 	.name = "AWS",
 
-	.config = &config,
-	.data = &data,
+	.config = {
+		.clientid = CONFIG_AWS_THING_NAME,
+		.endpoint = CONFIG_AWS_ENDPOINT,
+		.port = AWS_ENDPOINT_PORT,
+		.sec_tag_list = sec_tls_tags,
+		.sec_tag_count = ARRAY_SIZE(sec_tls_tags),
+	},
 
 	.init = aws_init,
 	.provision = NULL,

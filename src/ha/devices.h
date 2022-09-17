@@ -286,7 +286,7 @@ typedef struct ha_ev_subs_conf
  * @brief Notify waiters of an event
  * 
  * @param event 
- * @return int 
+ * @return int Number of waiters notified, negative on error
  */
 int ha_ev_notify_all(ha_ev_t *event);
 
