@@ -25,8 +25,7 @@ to a local server (REST, prometheus ..) for monitoring and/or control
 
 ## AWS - Grafana Dashboard
 
-![docs/pics/aws_grafana_1.png](./docs/pics/aws_grafana_1.png)
-![docs/pics/aws_grafana_2.png](./docs/pics/aws_grafana_2.png)
+![docs/pics/aws_grafana_3.png](./docs/pics/aws_grafana_3.png)
 
 ## Documentation
 

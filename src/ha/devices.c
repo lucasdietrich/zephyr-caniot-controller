@@ -719,7 +719,7 @@ static int event_notify_single(struct ha_ev_subs *sub,
 		
 		if (ret == 0) {
 			/* call event function hook */
-			if (sub->flags & HA_EV_SUBS_ON_QUEUED_HOOK) {
+			if (sub->flags & HA_EV_SUBS_FLAG_ON_QUEUED_HOOK) {
 				__ASSERT_NO_MSG(sub->on_queued != NULL);
 				sub->on_queued(sub, event);
 			}
@@ -786,12 +786,12 @@ static bool subscription_conf_validate(const ha_ev_subs_conf_t *conf)
 		}
 	}
 
-	if (conf->flags & HA_EV_SUBS_ON_QUEUED_HOOK) {
+	if (conf->flags & HA_EV_SUBS_FLAG_ON_QUEUED_HOOK) {
 		if (conf->on_queued == NULL) {
 			return false;
 		}
 	} else if (conf->on_queued != NULL) {
-		LOG_WRN("on_queued hook set (%p) but HA_EV_SUBS_ON_QUEUED_HOOK "
+		LOG_WRN("on_queued hook set (%p) but HA_EV_SUBS_FLAG_ON_QUEUED_HOOK "
 			"flag is missing",
 			conf->on_queued);
 	}
@@ -830,7 +830,7 @@ int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
 	}
 
 	/* Set on_queued hook */
-	if (conf->flags & HA_EV_SUBS_ON_QUEUED_HOOK) {
+	if (conf->flags & HA_EV_SUBS_FLAG_ON_QUEUED_HOOK) {
 		psub->on_queued = conf->on_queued;
 	}
 

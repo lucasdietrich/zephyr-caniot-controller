@@ -47,7 +47,7 @@ int cloud_app_init(void)
 {
 	const struct ha_ev_subs_conf conf = {
 		.flags = HA_EV_SUBS_DEVICE_DATA |
-			HA_EV_SUBS_ON_QUEUED_HOOK |
+			HA_EV_SUBS_FLAG_ON_QUEUED_HOOK |
 			HA_EV_SUBS_DEVICE_TYPE,
 		.device_type = HA_DEV_TYPE_XIAOMI_MIJIA,
 		.on_queued = cloud_on_queued,

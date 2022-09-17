@@ -683,7 +683,7 @@ int rest_devices_list(http_request_t *req,
 
 	arr.count = 0u;
 
-	ha_dev_iterate(devices_cb, NULL, &arr);
+	ha_dev_iterate(devices_cb, HA_DEV_FILTER_DISABLED, &arr);
 
 	return rest_encode_response_json_array(
 		resp, &arr, json_device_array_descr
@@ -856,14 +856,6 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 					 ARRAY_SIZE(json_caniot_query_telemetry_descr));
 }
 
-/* Example:
-{
-  "addr": 8208,
-  "repr": "2010",
-  "value": 0
-}
-*/
-
 struct json_caniot_attr {
 	uint32_t key;
 	char *key_repr;
@@ -895,10 +887,8 @@ static int json_format_caniot_attr_resp(struct caniot_frame *r,
 		.value_repr = val_repr,
 	};
 
-	rest_encode_response_json(resp, &json, json_caniot_attr_descr,
-				  ARRAY_SIZE(json_caniot_attr_descr));
-
-	return 0;
+	return rest_encode_response_json(resp, &json, json_caniot_attr_descr,
+					 ARRAY_SIZE(json_caniot_attr_descr));
 }
 
 /* QUERY CANIOT COMMAND/TELEMETRY and BUILD JSON RESPONSE */
@@ -1354,7 +1344,7 @@ int rest_lua_run_script(http_request_t *req,
 	);
 
 exit:
-	return 0u;
+	return ret;
 }
 
 #if defined(CONFIG_CREDS_FLASH)

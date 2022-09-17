@@ -14,6 +14,30 @@
 #include "ha.h"
 #include "room.h"
 
+/* No filters, iterate over all devices */
+#define HA_DEV_FILTER_DISABLED NULL
+
+#define _HA_DEV_FILTER_BY_DEVICE_MEDIUM(_medium) \
+	(&(ha_dev_filter_t) { \
+		.flags = HA_DEV_FILTER_MEDIUM, \
+		.medium = _medium, \
+	})
+
+#define _HA_DEV_FILTER_BY_DEVICE_TYPE(_type) \
+	(&(ha_dev_filter_t) { \
+		.flags = HA_DEV_FILTER_DEVICE_TYPE, \
+		.type = _type, \
+	})
+
+#define HA_DEV_FILTER_CAN _HA_DEV_FILTER_BY_DEVICE_MEDIUM(HA_DEV_MEDIUM_CAN)
+#define HA_DEV_FILTER_BLE _HA_DEV_FILTER_BY_DEVICE_MEDIUM(HA_DEV_MEDIUM_BLE)
+
+#define HA_DEV_FILTER_CANIOT _HA_DEV_FILTER_BY_DEVICE_TYPE(HA_DEV_TYPE_CANIOT)
+#define HA_DEV_FILTER_XIAOMI_MIJIA _HA_DEV_FILTER_BY_DEVICE_TYPE(HA_DEV_TYPE_XIAOMI_MIJIA)
+#define HA_DEV_FILTER_NUCLEO_F429ZI _HA_DEV_FILTER_BY_DEVICE_TYPE(HA_DEV_TYPE_NUCLEO_F429ZI)
+
+
+
 typedef enum
 {
 	HA_DEV_FILTER_MEDIUM = BIT(0), /* filter by medium */
@@ -267,23 +291,22 @@ typedef struct ha_ev_subs
 
 } ha_ev_subs_t;
 
-#define HA_EV_SUBS_FLAG_SUBSCRIBED_BIT 0u
-#define HA_EV_SUBS_FLAG_SUBSCRIBED BIT(HA_EV_SUBS_FLAG_SUBSCRIBED_BIT)
+/* Event subscription Control flags */
+#define HA_EV_SUBS_FLAG_SUBSCRIBED_BIT 	0u
+#define HA_EV_SUBS_FLAG_SUBSCRIBED 	BIT(HA_EV_SUBS_FLAG_SUBSCRIBED_BIT)
 
-/* Event subscription flags */
-#define HA_EV_SUBS_DEVICE_TYPE BIT(1u)
-#define HA_EV_SUBS_DEVICE_ADDR BIT(2u)
-#define HA_EV_SUBS_DEVICE_DATA BIT(3u)
-#define HA_EV_SUBS_DEVICE_COMMAND BIT(4u)
-#define HA_EV_SUBS_DEVICE_ERROR BIT(5u)
-#define HA_EV_SUBS_FUNCTION BIT(6u)
-#define HA_EV_SUBS_ON_QUEUED_HOOK BIT(7u)
+#define HA_EV_SUBS_FLAG_ON_QUEUED_BIT 	1u
+#define HA_EV_SUBS_FLAG_ON_QUEUED_HOOK 	BIT(HA_EV_SUBS_FLAG_ON_QUEUED_BIT)
 
-// #define HA_EV_SUBS_PARAMS 7u
+/* Event subscription filter flags */
+#define HA_EV_SUBS_DEVICE_TYPE 		BIT(2u)
+#define HA_EV_SUBS_DEVICE_ADDR 		BIT(3u)
+#define HA_EV_SUBS_DEVICE_DATA 		BIT(4u)
+#define HA_EV_SUBS_DEVICE_COMMAND 	BIT(5u)
+#define HA_EV_SUBS_DEVICE_ERROR 	BIT(6u)
+#define HA_EV_SUBS_FUNCTION 		BIT(7u)
 
 #define HA_EV_SUBS_SUBSCRIBED(_subs) (atomic_test_bit(&_subs->flags, HA_EV_SUBS_FLAG_SUBSCRIBED_BIT))
-
-// #define HA_EV_SUBS_FLAG_ALL BIT(0u)
 
 typedef struct ha_ev_subs_conf
 {

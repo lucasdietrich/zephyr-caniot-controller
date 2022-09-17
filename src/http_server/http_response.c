@@ -39,7 +39,7 @@ void http_response_init(http_response_t *resp)
 static bool set_header_check(http_response_t *resp, const char *hdr_name)
 {
 	if (!http_response_is_first_call(resp)) {
-		LOG_WRN("Cannot set (%s) Headers already sent calls_count=%u",
+		LOG_WRN("Cannot set (%s), Headers already sent, calls_count=%u",
 			hdr_name, resp->calls_count);
 		return false;
 	}

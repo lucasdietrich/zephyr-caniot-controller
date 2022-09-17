@@ -2,6 +2,8 @@
 
 ## Grafana Dashboard:
 
+![pics/aws_grafana_1.png](./pics/aws_grafana_3.png)
+
 ![pics/aws_grafana_1.png](./pics/aws_grafana_1.png)
 ![pics/aws_grafana_2.png](./pics/aws_grafana_2.png)
 
