@@ -549,21 +549,139 @@ int rest_caniot_records(http_request_t *req,
 	return rest_encode_response_json_array(resp, &ctx.arr, json_caniot_telemetry_array_descr);
 }
 
-struct json_device_repr {
-	uint32_t index;
-	const char *addr_repr;
-	uint32_t registered_timestamp;
-	uint32_t last_measurement;
-
-	// TODO stats
+struct json_device_last_event
+{
+	uint32_t addr;
+	uint32_t timestamp;
+	uint32_t refcount;
+	uint32_t type;
 };
+
+struct json_device {
+	uint32_t index;
+	const char *addr_type;
+	const char *addr_medium;
+	char *addr_repr;
+
+	uint32_t registered_timestamp;
+
+	struct json_device_last_event last_event;
+
+	uint32_t rid;
+	const char *room_name;
+
+	struct ha_dev_stats stats;
+};
+
+struct json_device_buf
+{
+	char addr_repr[HA_DEV_ADDR_STR_MAX_LEN];
+};
+
+static const struct json_obj_descr json_device_last_event_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_device_last_event, addr, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_device_last_event, timestamp, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_device_last_event, refcount, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_device_last_event, type, JSON_TOK_NUMBER),
+};
+
+static const struct json_obj_descr json_device_status_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, rx, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, rx_bytes, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, tx, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, tx_bytes, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, max_inactivity, JSON_TOK_NUMBER),
+};
+
+static const struct json_obj_descr json_device_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_device, index, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_device, addr_type, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_device, addr_medium, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_device, addr_repr, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_device, registered_timestamp, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_OBJECT(struct json_device, last_event, json_device_last_event_descr),
+	JSON_OBJ_DESCR_PRIM(struct json_device, rid, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_device, room_name, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_OBJECT(struct json_device, stats, json_device_status_descr),
+};
+
+// static const struct json_obj_descr json_device_noevent_descr[] = {
+// 	JSON_OBJ_DESCR_PRIM(struct json_device, index, JSON_TOK_NUMBER),
+// 	JSON_OBJ_DESCR_PRIM(struct json_device, addr_repr, JSON_TOK_STRING),
+// 	JSON_OBJ_DESCR_PRIM(struct json_device, registered_timestamp, JSON_TOK_NUMBER),
+// 	JSON_OBJ_DESCR_PRIM(struct json_device, rid, JSON_TOK_NUMBER),
+// 	JSON_OBJ_DESCR_PRIM(struct json_device, room_name, JSON_TOK_NUMBER),
+// 	JSON_OBJ_DESCR_OBJECT(struct json_device, stats, json_device_status_descr),
+// };
+
+/* ~2200B */
+struct json_device_array
+{
+	struct json_device_buf _bufs[HA_MAX_DEVICES];
+	struct json_device devices[HA_MAX_DEVICES];
+	size_t count;
+};
+
+static const struct json_obj_descr json_device_array_descr[] = {
+	JSON_OBJ_DESCR_OBJ_ARRAY(
+		struct json_device_array,
+		devices,
+		HA_CANIOT_MAX_DEVICES,
+		count,
+		json_device_descr,
+		ARRAY_SIZE(json_device_descr)
+	)
+};
+
+static void devices_cb(ha_dev_t *dev,
+		       void *user_data)
+{
+	struct json_device_array *const arr = user_data;
+	struct json_device *jd = &arr->devices[arr->count];
+
+	ha_ev_t *last_ev = dev->last_data_event;
+	if (last_ev) {
+		jd->last_event.addr = (uint32_t) last_ev;
+		jd->last_event.refcount = last_ev->ref_count;
+		jd->last_event.timestamp = last_ev->time;
+		jd->last_event.type = last_ev->type;
+	} else {
+		memset(&jd->last_event, 0, sizeof(jd->last_event));
+	}
+
+	jd->index = arr->count + 1u;
+	jd->addr_repr = arr->_bufs[arr->count].addr_repr;
+	ha_dev_addr_to_str(&dev->addr, jd->addr_repr, HA_DEV_ADDR_STR_MAX_LEN);
+	jd->addr_medium = ha_dev_medium_to_str(dev->addr.mac.medium);
+	jd->addr_type = ha_dev_type_to_str(dev->addr.type);
+	jd->registered_timestamp = dev->registered_timestamp;
+	struct ha_room *room = ha_dev_get_room(dev);
+	if (room) {
+		jd->rid = room->rid;
+		jd->room_name = room->name;
+	} else {
+		jd->rid = 0;
+		jd->room_name = "";
+	}
+
+	memcpy(&jd->stats, &dev->stats, sizeof(jd->stats));
+
+	arr->count++;
+}
+
 
 int rest_devices_list(http_request_t *req,
 		      http_response_t *resp)
 {
-	// TODO
+	struct json_device_array arr;
 
-	return -ENOTSUP;
+	arr.count = 0u;
+
+	ha_dev_iterate(devices_cb, NULL, &arr);
+
+	return rest_encode_response_json_array(
+		resp, &arr, json_device_array_descr
+	);
 }
 
 static void room_devices_cb(ha_dev_t *dev,

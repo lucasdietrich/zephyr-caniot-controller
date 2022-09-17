@@ -38,6 +38,7 @@ Documentation is available in the `docs` folder for following topics:
 - [UDP Discovery Server](./docs/discovery-server.md)
 - [User IO (LEDs, buttons, etc.)](./docs/userio.md)
 - [Cloud AWS](./docs/cloud-aws.md)
+- [Devices & Events model](./docs/devices.md)
 
 
 - Enabling/disabling features

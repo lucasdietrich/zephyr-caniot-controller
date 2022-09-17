@@ -6,7 +6,12 @@
 
 #include <zephyr.h>
 
+#include <stdio.h>
+#include <string.h>
+
 #include <caniot/datatype.h>
+
+#include "drivers/can.h"
 
 #include "devices.h"
 #include "net_time.h"
@@ -40,8 +45,11 @@ struct {
 	.count = 0U
 };
 
-typedef int (*mac_cmp_func_t)(const ha_dev_mac_addr_t *a,
+typedef int (*addr_cmp_func_t)(const ha_dev_mac_addr_t *a,
 			      const ha_dev_mac_addr_t *b);
+
+typedef int (*addr_str_func_t)(const ha_dev_mac_addr_t *a,
+			      char *str, size_t len);
 
 static int internal_caniot_addr_cmp(const ha_dev_mac_addr_t *a,
 				    const ha_dev_mac_addr_t *b)
@@ -55,42 +63,147 @@ static int internal_ble_addr_cmp(const ha_dev_mac_addr_t *a,
 	return bt_addr_le_cmp(&a->ble, &b->ble);
 }
 
-static mac_cmp_func_t get_mac_cmp_func(ha_dev_medium_type_t medium)
+
+static int internal_can_addr_cmp(const ha_dev_mac_addr_t *a,
+				 const ha_dev_mac_addr_t *b)
 {
-	switch (medium) {
-	case HA_DEV_MEDIUM_BLE:
-		return internal_ble_addr_cmp;
-	case HA_DEV_MEDIUM_CAN:
-		return internal_caniot_addr_cmp;
-	default:
+	const uint32_t id_a = a->can.id & (a->can.ext ? CAN_EXT_ID_MASK : CAN_STD_ID_MASK);
+	const uint32_t id_b = b->can.id & (b->can.ext ? CAN_EXT_ID_MASK : CAN_STD_ID_MASK);
+
+	/* TODO what to do if ext is different? */
+
+	return id_a - id_b;
+}
+
+static int internal_ble_addr_str(const ha_dev_mac_addr_t *a,
+				 char *str, size_t len)
+{
+	return bt_addr_le_to_str(&a->ble, str, len);
+}
+
+static int internal_caniot_addr_str(const ha_dev_mac_addr_t *a,
+				    char *str, size_t len)
+{
+	return snprintf(str, len, "0x%x (cls=%u did=%u)", a->caniot,
+			CANIOT_DID_CLS(a->caniot), CANIOT_DID_SID(a->caniot));
+}
+
+static int internal_can_addr_str(const ha_dev_mac_addr_t *a,
+				 char *str, size_t len)
+{
+	const uint32_t id = a->can.id & (a->can.ext ? CAN_EXT_ID_MASK : CAN_STD_ID_MASK);
+
+	return snprintf(str, len, "%u", id);
+}
+
+struct mac_funcs {
+	addr_cmp_func_t cmp;
+	addr_str_func_t str;
+};
+
+#define MAC_FUNCS_CANIOT 0u
+#define MAC_FUNCS_BLE 1u
+
+static const struct mac_funcs mac_medium_funcs[] = {
+	[HA_DEV_MEDIUM_CAN] = {.cmp = internal_can_addr_cmp, .str = internal_can_addr_str },
+	[HA_DEV_MEDIUM_BLE] = {.cmp = internal_ble_addr_cmp, .str = internal_ble_addr_str },
+};
+
+/* Overload the medium mac address functions */
+static const struct mac_funcs mac_type_funcs[] = {
+	[HA_DEV_TYPE_CANIOT] = { .cmp = internal_caniot_addr_cmp, .str = internal_caniot_addr_str },
+};
+
+
+static addr_cmp_func_t get_mac_medium_cmp_func(ha_dev_medium_type_t medium)
+{
+	if (medium >= ARRAY_SIZE(mac_medium_funcs)) {
 		return NULL;
-	}	
-}
-
-static bool mac_valid(const ha_dev_mac_t *mac)
-{
-	return get_mac_cmp_func(mac->medium) != NULL;
-}
-
-static int mac_cmp(const ha_dev_mac_t *m1, const ha_dev_mac_t *m2)
-{
-	int ret = -EINVAL;
-
-	mac_cmp_func_t cmpf = get_mac_cmp_func(m1->medium);
-
-	if (cmpf != NULL) {
-		ret = cmpf(&m1->addr, &m2->addr);
 	}
 
-	return ret;
+	return mac_medium_funcs[medium].cmp;
 }
 
-static ha_dev_t *get_device_by_mac(const ha_dev_mac_t *mac)
+static addr_cmp_func_t get_addr_cmp_func(ha_dev_type_t type, ha_dev_medium_type_t medium)
+{
+	addr_cmp_func_t func = NULL;
+
+	if (type < ARRAY_SIZE(mac_type_funcs)) {
+		func = mac_type_funcs[type].cmp;
+	}
+
+	if (!func) {
+		func = get_mac_medium_cmp_func(medium);
+	}
+
+	return func;
+}
+
+static addr_str_func_t get_mac_medium_str_func(ha_dev_medium_type_t medium)
+{
+	if (medium >= ARRAY_SIZE(mac_medium_funcs)) {
+		return NULL;
+	}
+
+	return mac_medium_funcs[medium].str;
+}
+
+static addr_str_func_t get_addr_str_func(ha_dev_type_t type, ha_dev_medium_type_t medium)
+{
+	addr_str_func_t func = NULL;
+
+	if (type < ARRAY_SIZE(mac_type_funcs)) {
+		func = mac_type_funcs[type].str;
+	}
+
+	if (!func) {
+		func = get_mac_medium_str_func(medium);
+	}
+
+	return func;
+}
+
+int ha_dev_addr_to_str(const ha_dev_addr_t *addr,
+		       char *buf,
+		       size_t buf_len)
+{
+	if (!buf || !buf_len) {
+		return -EINVAL;
+	}
+
+	addr_str_func_t str_func = get_addr_str_func(addr->type, addr->mac.medium);
+
+	if (str_func == NULL) {
+		*buf = '\0';
+		return -ENOTSUP;
+	}
+
+	return str_func(&addr->mac.addr, buf, buf_len);
+}
+
+static bool addr_valid(const ha_dev_addr_t *addr)
+{
+	return (addr->type != HA_DEV_TYPE_NONE) &&
+		(get_addr_cmp_func(addr->type, addr->mac.medium) != NULL);
+}
+
+static int addr_cmp(const ha_dev_addr_t *a1, const ha_dev_addr_t *a2)
+{
+	addr_cmp_func_t cmpf = get_addr_cmp_func(a1->type, a1->mac.medium);
+
+	if (cmpf == NULL) {
+		return -ENOTSUP;
+	}
+
+	return cmpf(&a1->mac.addr, &a2->mac.addr);
+}
+
+static ha_dev_t *get_device_by_addr(const ha_dev_addr_t *addr)
 {
 	ha_dev_t *device = NULL;
 
 	/* Get MAC compare function */
-	mac_cmp_func_t cmp = get_mac_cmp_func(mac->medium);
+	addr_cmp_func_t cmp = get_addr_cmp_func(addr->type, addr->mac.medium);
 
 	if (cmp != NULL) {
 		for (ha_dev_t *dev = devices.list;
@@ -98,8 +211,8 @@ static ha_dev_t *get_device_by_mac(const ha_dev_mac_t *mac)
 		     dev++) {
 			/* Device medium should match and
 			 * MAC address should match */
-			if ((dev->addr.mac.medium == mac->medium) &&
-			    (cmp(&dev->addr.mac.addr, &mac->addr) == 0)) {
+			if ((dev->addr.mac.medium == addr->mac.medium) &&
+			    (cmp(&dev->addr.mac.addr, &addr->mac.addr) == 0)) {
 				device = dev;
 				break;
 			}
@@ -125,18 +238,13 @@ static ha_dev_t *get_first_device_by_type(ha_dev_type_t type)
 	return device;
 }
 
-// static bool ha_dev_valid(ha_dev_t *const dev)
-// {
-// 	return (dev != NULL) && (mac_valid(&dev->addr.mac) == true);
-// }
-
 ha_dev_t *ha_dev_get_by_addr(const ha_dev_addr_t *addr)
 {
 	ha_dev_t *device = NULL;
 
-	if (mac_valid(&addr->mac)) {
+	if (addr_valid(addr)) {
 		/* Get device by address if possible */
-		device = get_device_by_mac(&addr->mac);
+		device = get_device_by_addr(addr);
 	} else {
 		/* if medium type is not set, device should be
 		* differienciated using their device_type */
@@ -149,8 +257,8 @@ ha_dev_t *ha_dev_get_by_addr(const ha_dev_addr_t *addr)
 int ha_dev_addr_cmp(const ha_dev_addr_t *a,
 		    const ha_dev_addr_t *b)
 {
-	if (mac_valid(&a->mac) && mac_valid(&b->mac)) {
-		return mac_cmp(&a->mac, &b->mac);
+	if (addr_valid(a) && addr_valid(b)) {
+		return addr_cmp(a, b);
 	} else {
 		return a->type - b->type;
 	}
@@ -535,7 +643,11 @@ static bool event_match_sub(struct ha_ev_subs *sub,
 	}
 
 	if (sub->flags & HA_EV_SUBS_DEVICE_ADDR) {
-		if (mac_cmp(&sub->device_addr, &event->dev->addr.mac) != 0) {
+		ha_dev_addr_t addr = {
+			.type = sub->device_type,
+			.mac = sub->device_mac
+		};
+		if (addr_cmp(&addr, &event->dev->addr) != 0) {
 			return false;
 		}
 	}
@@ -642,7 +754,8 @@ static bool subscription_conf_validate(const ha_ev_subs_conf_t *conf)
 	}
 
 	if (conf->flags & HA_EV_SUBS_DEVICE_ADDR) {
-		if (conf->device_addr == 0) {
+		if ((conf->device_mac == NULL) ||
+		    (conf->device_type == HA_DEV_TYPE_NONE)) {
 			return false;
 		}
 	}
@@ -693,7 +806,7 @@ int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
 	psub->flags = conf->flags;
 	psub->device_type = conf->device_type;
 	if (conf->flags & HA_EV_SUBS_DEVICE_ADDR) {
-		memcpy(&psub->device_addr, conf->device_addr, sizeof(ha_dev_mac_t));
+		memcpy(&psub->device_mac, conf->device_mac, sizeof(ha_dev_mac_t));
 	}
 
 	/* Set on_queued hook */
@@ -804,4 +917,20 @@ struct ha_room *ha_dev_get_room(ha_dev_t *const dev)
 	}
 
 	return room;
+}
+
+ha_ev_t *ha_dev_ref_last_event(ha_dev_t *dev)
+{
+	if (!dev) {
+		return NULL;
+	}
+
+	k_mutex_lock(&devices.mutex, K_FOREVER);
+	ha_ev_t *ev = dev->last_data_event;
+	if (ev) {
+		ha_ev_ref(ev);
+	}
+	k_mutex_unlock(&devices.mutex);
+
+	return ev;
 }

@@ -138,6 +138,10 @@ typedef void ha_dev_iterate_cb_t(ha_dev_t *dev,
 int ha_dev_addr_cmp(const ha_dev_addr_t *a,
 		    const ha_dev_addr_t *b);
 
+int ha_dev_addr_to_str(const ha_dev_addr_t *addr,
+		       char *buf,
+		       size_t buf_len);
+
 size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 		      const ha_dev_filter_t *filter,
 		      void *user_data);
@@ -246,7 +250,7 @@ typedef struct ha_ev_subs
 
 	/* Depends on filter */
 	event_subs_filter_func_t func;
-	ha_dev_mac_t device_addr;
+	ha_dev_mac_t device_mac;
 	ha_dev_type_t device_type;
 
 } ha_ev_subs_t;
@@ -275,7 +279,7 @@ typedef struct ha_ev_subs_conf
 
 	/* Depends on filter */
 	event_subs_filter_func_t func;
-	const ha_dev_mac_t *device_addr;
+	const ha_dev_mac_t *device_mac;
 	ha_dev_type_t device_type;
 	
 	/* Callback */
@@ -328,5 +332,7 @@ struct ha_room_assoc
 };
 
 struct ha_room *ha_dev_get_room(ha_dev_t *const dev);
+
+ha_ev_t *ha_dev_ref_last_event(ha_dev_t *dev);
 
 #endif /* _HA_DEVS_H_ */

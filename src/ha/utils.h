@@ -8,8 +8,15 @@
 #define _HA_UTILS_H
 
 #include <stdint.h>
+
 #include <caniot/caniot.h>
 #include <drivers/can.h>
+
+#include "ha.h"
+
+const char *ha_dev_medium_to_str(ha_dev_medium_type_t medium);
+
+const char *ha_dev_type_to_str(ha_dev_type_t type);
 
 int zcan_to_caniot(const struct zcan_frame *zcan,
 		   struct caniot_frame *caniot);

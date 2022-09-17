@@ -160,7 +160,6 @@ static bool state_machine(void)
 			}
 
 			/* Check whether the application function can be called */
-
 			if (mqttc_ready() == false) {
 				fds[FDS_APP].events &= ~POLLIN;
 				fds[FDS_APP].revents &= ~POLLIN;

@@ -23,25 +23,37 @@
 
 #define HA_MAX_DEVICES (HA_CANIOT_MAX_DEVICES + HA_XIAOMI_MAX_DEVICES + HA_OTHER_MAX_DEVICES)
 
+#define HA_DEV_ADDR_STR_MAX_LEN MAX(BT_ADDR_LE_STR_LEN, sizeof("0x1FFFFFFF"))
+#define HA_DEV_ADDR_TYPE_STR_MAX_LEN 16u
+#define HA_DEV_ADDR_MEDIUM_STR_MAX_LEN 10u
+
 // TODO move to CANIOT library
 #define HA_CANIOT_MAX_TEMPERATURES 4U
 
 typedef enum {
 	HA_DEV_MEDIUM_NONE = 0,
-	HA_DEV_MEDIUM_BLE,
-	HA_DEV_MEDIUM_CAN,
+	HA_DEV_MEDIUM_BLE, 	/* MAC address e.g. 23:45:67:89:AB:CD */
+	HA_DEV_MEDIUM_CAN, 	/* CAN ID e.g. 0x123 or extended e.g. 0x12345678 */
 } ha_dev_medium_type_t;
 
 typedef enum {
 	HA_DEV_TYPE_NONE = 0,
 	HA_DEV_TYPE_XIAOMI_MIJIA, /* Xiaomi Mijia LYWSD03MMC */
-	HA_DEV_TYPE_CANIOT,
+	HA_DEV_TYPE_CANIOT, 	/* CANIOT device addr e.g. 18 */
 	HA_DEV_TYPE_NUCLEO_F429ZI,
 } ha_dev_type_t;
+
+typedef struct
+{
+	uint32_t id : 29u;
+	uint32_t ext : 1u;
+	uint32_t bus: 2u;
+} can_addr_t;
 
 typedef union {
 	bt_addr_le_t ble;
 	caniot_did_t caniot;
+	can_addr_t can;
 } ha_dev_mac_addr_t;
 
 typedef struct

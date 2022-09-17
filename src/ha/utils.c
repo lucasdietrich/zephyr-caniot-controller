@@ -80,3 +80,31 @@ int ha_parse_xps_command(const char *str)
 	};
 	return MAX(0, string_get_index_in_list(str, cmds));
 }
+
+const char *ha_dev_medium_to_str(ha_dev_medium_type_t medium)
+{
+	switch (medium) {
+	case HA_DEV_MEDIUM_CAN:
+		return "can";
+	case HA_DEV_MEDIUM_BLE:
+		return "ble";
+	case HA_DEV_MEDIUM_NONE:
+	default:
+		return "";
+	}
+}
+
+const char *ha_dev_type_to_str(ha_dev_type_t type)
+{
+	switch (type) {
+	case HA_DEV_TYPE_CANIOT:
+		return "caniot";
+	case HA_DEV_TYPE_NUCLEO_F429ZI:
+		return "nucleo_f429zi";
+	case HA_DEV_TYPE_XIAOMI_MIJIA:
+		return "xiaomi_mijia";
+	case HA_DEV_TYPE_NONE:
+	default:
+		return "<unknown>";
+	}
+}
