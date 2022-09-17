@@ -721,23 +721,35 @@ exit:
 
 int ha_ev_unsubscribe(struct ha_ev_subs *sub)
 {
-	int ret = -EINVAL;
+	if (sub == NULL) {
+		return -EINVAL;
+	}
 
-	if ((sub != NULL) &&
-	    atomic_test_and_clear_bit(&sub->flags, HA_EV_SUBS_FLAG_SUBSCRIBED_BIT)) {
+	if (atomic_test_and_clear_bit(&sub->flags, HA_EV_SUBS_FLAG_SUBSCRIBED_BIT)) {
+		/* Remove from the active subscription list */
 		k_mutex_lock(&sub_mutex, K_FOREVER);
 		sys_dlist_remove(&sub->_handle);
 		k_mutex_unlock(&sub_mutex);
 
-		/* TODO how to cancel all threads waiting on this sub ? */
-		k_fifo_cancel_wait(&sub->evq);
+		if (k_fifo_is_empty(&sub->evq)) {
+			/* TODO how to cancel all threads waiting on this sub ? */
+			k_fifo_cancel_wait(&sub->evq);
+		} else {
+			/* Empty the fifo if not empty */
+			ha_ev_t *ev;
+			uint32_t count = 0u;
+			while ((ev = k_fifo_get(&sub->evq, K_NO_WAIT)) != NULL) {
+				ha_ev_unref(ev);
+				count++;
+			}
+			LOG_WRN("%u events not consumed because of "
+				"unsubscription of %p", count, sub);
+		}
 
 		sub_free(sub);
-
-		ret = 0;
 	}
 
-	return ret;
+	return 0;
 }
 
 ha_ev_t *ha_ev_wait(struct ha_ev_subs *sub,
