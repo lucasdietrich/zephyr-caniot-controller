@@ -37,6 +37,7 @@ Documentation is available in the `docs` folder for following topics:
 - [Credentials (AWS IoT, HTTPS server, etc.)](./docs/credentials.md)
 - [UDP Discovery Server](./docs/discovery-server.md)
 - [User IO (LEDs, buttons, etc.)](./docs/userio.md)
+- [Cloud AWS](./docs/cloud-aws.md)
 
 
 - Enabling/disabling features
