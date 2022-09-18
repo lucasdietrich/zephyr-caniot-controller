@@ -70,8 +70,9 @@ sign_complete:
 		--slot-size 0xc0000 \
 		--pad
 
+# Caution: this will erase the whole flash
 flash_bootloader:
-	$(PYOCD) flash -e chip -a 0x08000000 mcuboot.bin
+	$(PYOCD) flash -e chip -a 0x08000000 bins/bootloader_debug.bin
 
 flash_slot0:
 	$(PYOCD) flash -a 0x08020000 build/zephyr/zephyr.signed.bin

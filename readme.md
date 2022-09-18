@@ -120,6 +120,21 @@ You may want to enable a specific feature, to do so, set `-DOVERLAY_CONFIG`
 If you're using features that requires credentials (like HTTPS server of AWS IoT),
 please refer to the [docs/credentials.md](./docs/credentials.md) documentation.
 
+### Flash the bootloader
+
+You will need to flash the MCUBoot bootloader to be able to run the application 
+on a real board. You can find the bootloader in the `bins` directory:
+- [bins/bootloader_debug.bin](./bins/bootloader_debug.bin)
+
+You can flash it using `make flash_bootloader`, from the project root directory.
+
+Caution: The command erases the whole flash memory.
+
+Note: In case you want to sign and encrypt your own applications, you will need
+to build and flash a custom bootloader.
+
+More details are available here: [docs/mcuboot.md](./docs/mcuboot.md).
+
 ### Build the project
 
 To build the project, make sure you have activated the Python virtual environment 
