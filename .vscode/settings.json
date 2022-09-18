@@ -194,11 +194,13 @@
                 "garage.h": "c",
                 "f429zi.h": "c",
                 "all.h": "c",
-                "atomic_c.h": "c"
+                "atomic_c.h": "c",
+                "flash_img.h": "c",
+                "mcuboot.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",
-        "cortex-debug.variableUseNaturalFormat": true,
+        "cortex-debug.variableUseNaturalFormat": false,
         "yaml.schemas": {
                 "openapi:v3": "file:///home/lucas/zephyrproject/zephyr-caniot-controller/docs/caniot-local-api.yaml"
         },

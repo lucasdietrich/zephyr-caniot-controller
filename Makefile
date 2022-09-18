@@ -12,6 +12,9 @@ GEN_CMD=ninja
 GEN_OPT=
 endif
 
+# Get ap^plication VERSION
+VERSION := $(shell cat VERSION)
+
 all: build make
 
 tmp:
@@ -59,7 +62,8 @@ creds_hardcoded:
 sign:
 	west sign -t imgtool -- \
 		--key creds/mcuboot/root-ec-p256.pem \
-		--pad
+		--pad \
+		--version $(VERSION)
 
 sign_complete:
 	west sign -t imgtool -- \
@@ -68,7 +72,11 @@ sign_complete:
 		--align 4 \
 		--version 1.2 \
 		--slot-size 0xc0000 \
-		--pad
+		--pad \
+		--version $(VERSION)
+
+signed_info:
+	hexdump build/zephyr/zephyr.signed.bin -C -n 0x200
 
 # Caution: this will erase the whole flash
 flash_bootloader:

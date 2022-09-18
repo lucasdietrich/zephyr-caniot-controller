@@ -19,7 +19,7 @@ add_subdirectory_ifdef(CONFIG_LUA lua)
 add_subdirectory_ifndef(CONFIG_QEMU_TARGET userio)
 add_subdirectory_ifndef(CONFIG_QEMU_TARGET drivers)
 add_subdirectory_ifndef(CONFIG_QEMU_TARGET settings)
-add_subdirectory_ifndef(CONFIG_BOOTLOADER_MCUBOOT dfu)
+add_subdirectory_ifdef(CONFIG_BOOTLOADER_MCUBOOT dfu)
 
 FILE(GLOB app_sources *.c*)
 target_sources(app PRIVATE ${app_sources})

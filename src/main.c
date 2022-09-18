@@ -17,6 +17,8 @@
 #include "lua/orchestrator.h"
 #include "utils/freelist.h"
 
+#include "dfu/dfu.h"
+
 #include "ha/devices/f429zi.h"
 
 #include "userio/leds.h"
@@ -110,9 +112,10 @@ static void debug_mbedtls_memory(void)
 extern int lua_fs_populate(void);
 
 void main(void)
-{	
-	/* don't do it, too dangerous */
-	// sys_free_lists_init();
+{
+#if defined(CONFIG_BOOTLOADER_MCUBOOT)
+	dfu_image_check();
+#endif 
 
 #if defined(CONFIG_CAN_INTERFACE)
 	if_can_init();
