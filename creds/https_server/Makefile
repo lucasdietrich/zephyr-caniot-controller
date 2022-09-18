@@ -1,4 +1,4 @@
-keysize=2048
+keysize=4096
 endpoint=192.0.2.1:443
 
 all: rsa/cert.pem

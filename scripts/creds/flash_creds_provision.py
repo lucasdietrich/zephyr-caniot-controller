@@ -45,10 +45,11 @@ class TargetCredsConfig:
 
     cred_block_size: hex = 0x1000
 
+# TODO parse from generated devicetree
 stm32f4_cfg = TargetCredsConfig(
     flash_addr=0x08000000,
-    offset=0x1e0000,
-    size=0x20000,
+    offset=0x010000,
+    size=0x10000,
     openocd_base_args=[
         "-f", "interface/stlink.cfg",
         "-f", "target/stm32f4x.cfg",
@@ -236,7 +237,7 @@ if __name__ == "__main__":
     cm.erase_sector()
 
     # Parse credentials configuration file
-    creds = parse_creds_json()
+    creds = parse_creds_json("./creds/creds.json")
 
     # Write credentials in flashs
     print("Writing credentials ...")

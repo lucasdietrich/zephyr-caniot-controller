@@ -12,8 +12,11 @@ Payloads on topic : `caniot_controller/data`
 
 ```
 {
-  "bt_mac": "A4:C1:38:0A:1E:38",
   "timestamp": 1663419649,
+  "bt_mac": "A4:C1:38:0A:1E:38",
+  "room": "Living Room",
+  "medium": "ble",
+  "type": "xiaomi",
   "measures": {
     "rssi": -59,
     "temperature": "23.83",

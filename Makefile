@@ -2,6 +2,8 @@
 # GENERATOR=Ninja
 GENERATOR=Ninja
 
+PYOCD = pyocd
+
 ifeq ($(GENERATOR),Unix Makefiles)
 GEN_CMD=make
 GEN_OPT=--no-print-directory
@@ -53,3 +55,29 @@ clean:
 
 creds_hardcoded:
 	python3 ./scripts/creds/hardcoded_creds_xxd.py
+
+sign:
+	west sign -t imgtool -- \
+		--key creds/mcuboot/root-ec-p256.pem \
+		--pad
+
+sign_complete:
+	west sign -t imgtool -- \
+		--key creds/mcuboot/root-ec-p256.pem \
+		--header-size 0x200 \
+		--align 4 \
+		--version 1.2 \
+		--slot-size 0xc0000 \
+		--pad
+
+flash_bootloader:
+	$(PYOCD) flash -e chip -a 0x08000000 mcuboot.bin
+
+flash_slot0:
+	$(PYOCD) flash -a 0x08020000 build/zephyr/zephyr.signed.bin
+
+flash_slot1:
+	$(PYOCD) flash -a 0x08120000 build/zephyr/zephyr.signed.bin
+
+dis:
+	./scripts/dis.sh

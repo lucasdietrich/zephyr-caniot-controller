@@ -39,7 +39,7 @@ const uint32_t flash_creds_slots_count = MIN(FLASH_CREDS_SLOTS_COUNT, FLASH_CRED
 
 #define BLANK 0xFFFFFFFFu
 
-#if CREDS_AREA_SIZE != 128u*1024u
+#if CREDS_AREA_SIZE != 64u*1024u
 #warning "credentials area size is not 128KB as expected"
 #endif
 

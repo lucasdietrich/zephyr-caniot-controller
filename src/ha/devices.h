@@ -306,6 +306,12 @@ typedef struct ha_ev_subs
 #define HA_EV_SUBS_DEVICE_ERROR 	BIT(6u)
 #define HA_EV_SUBS_FUNCTION 		BIT(7u)
 
+/* Notify subscriber only after a minimum interval (per device) */
+#define HA_EV_SUBS_INTERVAL_MS 		BIT(8u)
+
+/* Notify subscriber only every n events (per device) */
+#define HA_EV_SUBS_ONE_OF_N 		BIT(9u)
+
 #define HA_EV_SUBS_SUBSCRIBED(_subs) (atomic_test_bit(&_subs->flags, HA_EV_SUBS_FLAG_SUBSCRIBED_BIT))
 
 typedef struct ha_ev_subs_conf

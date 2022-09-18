@@ -15,7 +15,7 @@
             "label": "Build",
             "detail": "Build for nucleo-f429zi",
             "type": "shell",
-            "command": "${westPath} build",
+            "command": "source ${venvPath}/bin/activate && ${westPath} build",
             "args": [
 
             ],

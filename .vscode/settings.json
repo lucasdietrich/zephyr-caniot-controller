@@ -200,7 +200,7 @@
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",
         "cortex-debug.variableUseNaturalFormat": true,
         "yaml.schemas": {
-                "openapi:v3": "file:///home/lucas/zephyrproject/stm32f429zi-caniot-controller/docs/caniot-local-api.yaml"
+                "openapi:v3": "file:///home/lucas/zephyrproject/zephyr-caniot-controller/docs/caniot-local-api.yaml"
         },
         "editor.guides.bracketPairs": true,
         "editor.guides.highlightActiveIndentation": true,

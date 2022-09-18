@@ -46,18 +46,46 @@
                 compatible = "fixed-partitions";
                 #address-cells = <0x1>;
                 #size-cells = <0x1>;
-                application_partition: partition@0 {
-                        label = "application";
-                        reg = <0x0 DT_SIZE_K(1024)>;
+                /* 64KB for bootloader */
+                boot_partition: partition@0 {
+                        label = "mcuboot";
+                        reg = <0x0 DT_SIZE_K(64)>;
+                        read-only;
                 };
+                /* Credentials partition */
+                credentials_partition: partition@10000 {
+                        label = "credentials";
+                        reg = <0x00010000 DT_SIZE_K(64)>;
+                };
+		/* application image slot: 896KB = 7*128KB */
+		slot0_partition: partition@20000 {
+			label = "image-0";
+			reg = <0x00020000 DT_SIZE_K(768)>; /* 6 * 128KB sectors */
+		};
+                /* The scratch area must have a size that is enough to store at 
+                 * least the largest sector that is going to be swapped */
+                /* swap slot: 128Kb */
+                scratch_partition: partition@e0000 {
+			label = "image-scratch";
+			reg = <0x00e0000 DT_SIZE_K(128)>;
+		};
                 storage_partition: partition@100000 {
 			label = "storage";
-			reg = <0x100000 DT_SIZE_K(64)>;
+			reg = <0x00100000 DT_SIZE_K(64)>;
 		};
-                credentials_partition: partition@1e0000 {
-                        label = "credentials";
-                        reg = <0x1e0000 DT_SIZE_K(128)>;
-                };
+                misc1: partition@110000 {
+			label = "misc1";
+			reg = <0x00110000 DT_SIZE_K(64)>;
+		};
+		/* backup slot: 768KB = 6*128KB */
+		slot1_partition: partition@120000 {
+			label = "image-1";
+			reg = <0x00120000 DT_SIZE_K(768)>;
+		};
+                misc2: partition@1e0000 {
+			label = "misc2";
+			reg = <0x001e0000 DT_SIZE_K(128)>;
+		};
         };
 };
 
@@ -241,7 +269,7 @@ Sample application : https://github.com/zephyrproject-rtos/zephyr/tree/main/samp
  */
 / {
         chosen {
-                zephyr,code-partition = &application_partition;
+                zephyr,code-partition = &slot0_partition;
         };
 };
 

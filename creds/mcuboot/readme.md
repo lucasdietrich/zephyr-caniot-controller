@@ -1,0 +1,1 @@
+Generate your keys for MCUboot

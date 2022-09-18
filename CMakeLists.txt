@@ -20,7 +20,9 @@ endif()
 #  set(DTC_OVERLAY_FILE "boards/nucleo_f429zi.overlay")
 #  set(CONF_FILE "prj.conf")
 # set(OVERLAY_CONFIG "boards/nucleo_f429zi.conf boards/f429zi_spi_disk.conf ${OVERLAY_CONFIG}")
-set(OVERLAY_CONFIG "overlays/f429zi_spi_disk.conf ${OVERLAY_CONFIG}")
+if (BOARD STREQUAL "nucleo_f429zi")
+    set(OVERLAY_CONFIG "overlays/f429zi_spi_disk.conf overlays/mcuboot.conf ${OVERLAY_CONFIG}")
+endif()
 
 set(ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/modules/lua ${CMAKE_CURRENT_SOURCE_DIR}/modules/uart_ipc ${CMAKE_CURRENT_SOURCE_DIR}/modules/caniot-lib)
 
