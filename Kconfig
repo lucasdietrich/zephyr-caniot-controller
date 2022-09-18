@@ -94,6 +94,12 @@ config MY_STM32_HAL
         select USE_STM32_HAL_CRC
         select USE_STM32_HAL_GPIO
 
+config DFU
+        bool "Enable DFU"
+        default n
+        depends on (BOOTLOADER_MCUBOOT && IMG_MANAGER) || QEMU_TARGET
+        help
+                Enable DFU features
 
 if MBEDTLS
 config MBEDTLS_CUSTOM_HEAP_SIZE

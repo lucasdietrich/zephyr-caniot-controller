@@ -7,12 +7,6 @@
 #ifndef _HTTP_FILES_SERVER_H_
 #define _HTTP_FILES_SERVER_H_
 
-#include <stdint.h>
-
-#include <data/json.h>
-#include <net/http_parser.h>
-
-#include "http_utils.h"
 #include "http_request.h"
 #include "http_response.h"
 

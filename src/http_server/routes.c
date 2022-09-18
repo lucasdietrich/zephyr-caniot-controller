@@ -21,6 +21,7 @@ LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 #include "files_server.h"
 #include "test_server.h"
 #include "http_utils.h"
+#include "dfu_server.h"
 
 #define REST REST_RESSOURCE
 #define WEB WEB_RESSOURCE
@@ -34,9 +35,9 @@ LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 
 #define HTTP_ROUTE(_m, _r, _qh, _rh, _t, _c, _k, _mt) \
 	{ \
+		.method = _m, \
 		.route = _r, \
 		.route_len = sizeof(_r) - 1, \
-		.method = _m, \
 		.server = _t, \
 		.req_handler = _qh, \
 		.resp_handler = _rh, \
@@ -91,6 +92,13 @@ static const struct http_route routes[] = {
 	REST(DELETE, "/files/lua", rest_fs_remove_lua_script, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
 
 	REST(POST, "/lua/execute", rest_lua_run_script, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
+
+#if defined(CONFIG_DFU)
+	HTTP_ROUTE(POST, "/dfu", http_dfu_image_upload, http_dfu_image_upload_response,
+		HTTP_DFU_SERVER, HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA, 0u,
+		HTTP_ROUTE_MATCH_EXACT_NOARGS),
+	REST(GET, "/dfu", http_dfu_status, 0u, HTTP_ROUTE_MATCH_EXACT_NOARGS),
+#endif
 
 #if defined(CONFIG_CANIOT_CONTROLLER)
 	REST(GET, "/devices/garage", rest_devices_garage_get, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),

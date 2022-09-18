@@ -43,11 +43,11 @@ void dfu_image_check(void)
 	    (header.h.v1.sem_ver.minor == 0)) {
 		LOG_WRN("Development image (version=0.0.%u+%u)",
 			header.h.v1.sem_ver.revision, header.h.v1.sem_ver.build_num);
-		return;
 	}
 
 	/* Mark image as confirmed */
 	if (!confirmed) {
-		boot_write_img_confirmed();
+		ret = boot_write_img_confirmed();
+		LOG_DBG("Image confirmed: ret=%d", ret);
 	}
 }

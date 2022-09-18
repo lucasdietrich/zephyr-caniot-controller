@@ -4,7 +4,19 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-SET(app_sources http_server.c http_utils.c http_conn.c http_request.c http_response.c routes.c rest_server.c web_server.c prometheus_client.c files_server.c)
+SET(app_sources 
+    http_server.c 
+    http_utils.c 
+    http_conn.c 
+    http_request.c 
+    http_response.c 
+    routes.c 
+    rest_server.c 
+    web_server.c 
+    prometheus_client.c 
+    files_server.c
+)
 
 target_sources(app PRIVATE ${app_sources})
 target_sources_ifdef(CONFIG_HTTP_TEST_SERVER app PRIVATE test_server.c)
+target_sources_ifdef(CONFIG_DFU app PRIVATE dfu_server.c)

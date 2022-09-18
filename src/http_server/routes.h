@@ -22,6 +22,7 @@ typedef enum {
 	HTTP_PROMETHEUS_CLIENT,
 	HTTP_FILES_SERVER,
 	HTTP_TEST_SERVER,
+	HTTP_DFU_SERVER,
 } http_server_t;
 
 struct http_request;

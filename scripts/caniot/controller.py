@@ -14,6 +14,7 @@ from enum import IntEnum, auto
 import struct
 import pprint
 import time
+import os.path
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -36,6 +37,8 @@ class API(IntEnum):
     ExecuteLua = auto()
     BLCCommand = auto()
     CAN = auto()
+    DFUStatus = auto()
+    DFUUpload = auto()
 
 
 urls = {
@@ -53,6 +56,8 @@ urls = {
     API.ExecuteLua: (Method.POST, "lua/execute"),
     API.FileDownload: (Method.GET, "files/{filepath}"),
     API.CAN: (Method.POST, "if/can/{id:X}"),
+    API.DFUStatus: (Method.GET, "dfu"),
+    API.DFUUpload: (Method.POST, "dfu"),
 }
 
 RouteType = Tuple[Method, str]
@@ -242,6 +247,40 @@ class Controller:
         return self._request_json(API.ExecuteLua, None, None, {
             "App-Script-Filename": path,
         })
+
+    def dfu_status(self) -> requests.Response:
+        return self._request_json(API.DFUStatus)
+
+    def dfu_upload(self, image: str, chunk_size: int = 4096) -> requests.Response:
+        method, path = urls[API.DFUUpload]
+
+        # get file size
+        size = os.path.getsize(image)
+
+        print(f"Uploading image {image} of size {size} to {self.host}")
+
+        def image_reader(image: str, chunk_size: int):
+            with open(image, "rb") as fp:
+                while True:
+                    chunk = fp.read(chunk_size)
+
+                    if not chunk:
+                        return
+
+                    yield chunk
+
+        req = self.default_req | {
+            "method": method.name,
+            "url": (self.url + path).project(),
+            "data": image_reader(image, chunk_size),
+            "timeout": self.get_req_timeout(),
+        }
+
+        start = time.perf_counter()
+        resp = requests.request(**req)
+        end = time.perf_counter()
+        
+        return resp, end - start
 
     def __enter__(self, did: int) -> DeviceContext:
         return DeviceContext(did)

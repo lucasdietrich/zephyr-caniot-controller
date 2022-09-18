@@ -7,9 +7,13 @@
 #include "files_server.h"
 
 #include <libgen.h>
-
 #include <appfs.h>
 #include <fs/fs.h>
+
+#include <data/json.h>
+#include <net/http_parser.h>
+
+#include "http_utils.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(files_server, LOG_LEVEL_INF);
