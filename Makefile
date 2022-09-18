@@ -88,5 +88,7 @@ flash_slot0:
 flash_slot1:
 	$(PYOCD) flash -a 0x08120000 build/zephyr/zephyr.signed.bin
 
+flash_upgrade: flash_slot1
+
 dis:
 	./scripts/dis.sh
