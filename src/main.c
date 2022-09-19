@@ -17,7 +17,9 @@
 #include "lua/orchestrator.h"
 #include "utils/freelist.h"
 
+#if defined(CONFIG_DFU)
 #include "dfu/dfu.h"
+#endif
 
 #include "ha/devices/f429zi.h"
 

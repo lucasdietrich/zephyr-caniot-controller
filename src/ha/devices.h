@@ -328,7 +328,7 @@ typedef struct ha_ev_subs_conf
 } ha_ev_subs_conf_t;
 
 /**
- * @brief Notify waiters of an event
+ * @brief Notify an event to all subscribers
  * 
  * @param event 
  * @return int Number of waiters notified, negative on error
@@ -375,5 +375,7 @@ struct ha_room_assoc
 struct ha_room *ha_dev_get_room(ha_dev_t *const dev);
 
 ha_ev_t *ha_dev_ref_last_event(ha_dev_t *dev);
+
+int ha_dev_get_index(ha_dev_t *dev);
 
 #endif /* _HA_DEVS_H_ */

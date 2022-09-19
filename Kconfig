@@ -97,7 +97,7 @@ config MY_STM32_HAL
 config DFU
         bool "Enable DFU"
         default n
-        depends on (BOOTLOADER_MCUBOOT && IMG_MANAGER) || QEMU_TARGET
+        depends on BOOTLOADER_MCUBOOT && IMG_MANAGER
         help
                 Enable DFU features
 

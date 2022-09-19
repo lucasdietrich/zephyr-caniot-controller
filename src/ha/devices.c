@@ -412,12 +412,11 @@ size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 		      const ha_dev_filter_t *filter,
 		      void *user_data)
 {
-	k_mutex_lock(&devices.mutex, K_FOREVER);
-
 	size_t count = 0U;
+	const uint32_t devices_count = devices.count;
 
 	for (ha_dev_t *dev = devices.list;
-	     dev < devices.list + devices.count;
+	     dev < devices.list + devices_count;
 	     dev++) {
 		if (ha_dev_match_filter(dev, filter) == true) {
 			bool zcontinue;
@@ -442,8 +441,6 @@ size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 		}
 	}
 
-	k_mutex_unlock(&devices.mutex);
-
 	return count;
 }
 
@@ -459,8 +456,6 @@ static int device_process_data(ha_dev_t *dev,
 	int ret = -EINVAL;
 	ha_ev_t *ev = NULL;
 	struct ha_xiaomi_dataset *odata = NULL;
-
-	k_mutex_lock(&devices.mutex, K_FOREVER);
 
 	/* Allocate memory */
 	ev = ha_ev_alloc_and_reset();
@@ -521,8 +516,6 @@ exit:
 	if ((ev != NULL) && ((ret < 0) || (atomic_get(&ev->ref_count) == 0u))) {
 		ha_ev_free(ev);
 	}
-
-	k_mutex_unlock(&devices.mutex);
 
 	return ret;
 }
@@ -945,12 +938,19 @@ ha_ev_t *ha_dev_ref_last_event(ha_dev_t *dev)
 		return NULL;
 	}
 
-	k_mutex_lock(&devices.mutex, K_FOREVER);
 	ha_ev_t *ev = dev->last_data_event;
 	if (ev) {
 		ha_ev_ref(ev);
 	}
-	k_mutex_unlock(&devices.mutex);
 
 	return ev;
+}
+
+int ha_dev_get_index(ha_dev_t *dev)
+{
+	if (!dev) {
+		return -EINVAL;
+	}
+	
+	return (int) dev_get_index(dev);
 }

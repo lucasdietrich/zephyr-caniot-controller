@@ -12,3 +12,6 @@
 
 # # Apply
 # sudo iptables-save
+
+sudo iptables -t nat -I PREROUTING -p tcp -i ens160 --dport 9080 -j DNAT --to 192.0.2.1:80
+sudo iptables -t nat -I PREROUTING -p tcp -i ens160 --dport 9443 -j DNAT --to 192.0.2.1:443
