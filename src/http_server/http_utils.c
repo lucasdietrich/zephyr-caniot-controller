@@ -7,15 +7,16 @@
 #include <stdio.h>
 #include <kernel.h>
 
-#include "http_utils.h"
-
 #include "utils/buffers.h"
 #include "utils/misc.h"
 
+#include "http_utils.h"
+
+#include "http_request.h"
+#include "http_response.h"
+
 #include <logging/log.h>
 LOG_MODULE_REGISTER(http_utils, LOG_LEVEL_WRN);
-
-
 
 
 struct code_str
@@ -152,10 +153,71 @@ const char *http_content_type_to_str(http_content_type_t content_type)
 }
 
 
+int parse_url_query_args(char *url, struct query_arg qargs[], size_t alen)
+{
+	if (!url || (!qargs && alen))
+		return -EINVAL;
+
+	/* Temporary query argument.
+	 * To keep track of current state */
+	struct query_arg zarg;
+
+	struct query_arg *arg = NULL;
+	size_t count = 0u;
+
+	char *chr = url;
+
+	do {
+		switch (*chr) {
+		case '?':
+			if (count)
+				/* If argument already found, return error */
+				return -EINVAL;
+		case '&':
+			*chr = '\0';
+			/* If previous argument is not valid, ignore it */
+			if (!arg || *arg->name != '\0') {
+				arg = (count < alen) ? &qargs[count] : &zarg;
+				arg->name = chr + 1u;
+				arg->value = NULL; /* In case no value is found */
+				count++;
+			}
+			break;
+		case '=':
+			*chr = '\0';
+			if (arg) {
+				arg->value = chr + 1u;
+			}
+			break;
+		default:
+			break;
+		}
+
+		chr++;
+	} while (*chr != '\0');
+
+	/* If last argument is empty, skip it */
+	if (arg && *arg->name == '\0') {
+		count--;
+	}
+
+	return (int)count;
+}
+
+char *query_arg_get(const char *name, struct query_arg qargs[], size_t alen)
+{
+	for (size_t i = 0u; i < alen; i++) {
+		struct query_arg *const arg = &qargs[i];
+		if (arg->name && strcmp(arg->name, name) == 0) {
+			return arg->value;
+		}
+	}
+
+	return NULL;
+}
 
 
-#include "http_request.h"
-#include "http_response.h"
+/*____________________________________________________________________________*/
 
 void http_test_init_context(struct http_test_context *ctx)
 {

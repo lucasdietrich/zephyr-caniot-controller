@@ -7,10 +7,12 @@
 #ifndef _HTTP_UTILS_H_
 #define _HTTP_UTILS_H_
 
-#include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
 
-#include <utils/buffers.h>
+#include "utils/buffers.h"
 
 typedef enum {
 	HTTP_CONTENT_TYPE_NONE = 0,
@@ -85,19 +87,26 @@ bool http_code_has_payload(uint16_t status_code);
 
 const char *http_content_type_to_str(http_content_type_t content_type);
 
-// typedef struct
-// {
-// 	uint8_t *buf;
-// 	uint16_t 
-// 	uint16_t len;
-// 	uint16_t id;
-// } http_chunk_t;
+/* HTTP query string parser */
 
+struct query_arg
+{
+	char *name;
+	char *value;
+};
 
+int parse_url_query_args(char *url, struct query_arg qargs[], size_t alen);
 
+char *query_arg_get(const char *name, struct query_arg qargs[], size_t alen);
+
+static inline bool query_arg_is_set(const char *name, struct query_arg qargs[], size_t alen)
+{
+	return query_arg_get(name, qargs, alen) != NULL;
+}
+
+/*____________________________________________________________________________*/
 
 /* Test Utils */
-
 typedef enum {
 	HTTP_TEST_RESULT_OK = 0,
 	HTTP_TEST_NO_CONTEXT_GIVEN,
