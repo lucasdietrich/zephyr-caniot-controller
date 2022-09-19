@@ -176,12 +176,12 @@ int parse_url_query_args(char *url, struct query_arg qargs[], size_t alen)
 		case '&':
 			*chr = '\0';
 			/* If previous argument is not valid, ignore it */
-			if (!arg || *arg->name != '\0') {
+			if (!arg || *arg->key != '\0') {
 				arg = (count < alen) ? &qargs[count] : &zarg;
-				arg->name = chr + 1u;
 				arg->value = NULL; /* In case no value is found */
 				count++;
 			}
+			arg->key = chr + 1u;
 			break;
 		case '=':
 			*chr = '\0';
@@ -197,18 +197,18 @@ int parse_url_query_args(char *url, struct query_arg qargs[], size_t alen)
 	} while (*chr != '\0');
 
 	/* If last argument is empty, skip it */
-	if (arg && *arg->name == '\0') {
+	if (arg && *arg->key == '\0') {
 		count--;
 	}
 
 	return (int)count;
 }
 
-char *query_arg_get(const char *name, struct query_arg qargs[], size_t alen)
+char *query_arg_get(const char *key, struct query_arg qargs[], size_t alen)
 {
 	for (size_t i = 0u; i < alen; i++) {
 		struct query_arg *const arg = &qargs[i];
-		if (arg->name && strcmp(arg->name, name) == 0) {
+		if (arg->key && strcmp(arg->key, key) == 0) {
 			return arg->value;
 		}
 	}

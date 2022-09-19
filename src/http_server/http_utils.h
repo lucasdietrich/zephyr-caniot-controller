@@ -91,17 +91,17 @@ const char *http_content_type_to_str(http_content_type_t content_type);
 
 struct query_arg
 {
-	char *name;
+	char *key;
 	char *value;
 };
 
 int parse_url_query_args(char *url, struct query_arg qargs[], size_t alen);
 
-char *query_arg_get(const char *name, struct query_arg qargs[], size_t alen);
+char *query_arg_get(const char *key, struct query_arg qargs[], size_t alen);
 
-static inline bool query_arg_is_set(const char *name, struct query_arg qargs[], size_t alen)
+static inline bool query_arg_is_set(const char *key, struct query_arg qargs[], size_t alen)
 {
-	return query_arg_get(name, qargs, alen) != NULL;
+	return query_arg_get(key, qargs, alen) != NULL;
 }
 
 /*____________________________________________________________________________*/

@@ -154,6 +154,27 @@ int http_test_route_args(struct http_request *req,
 	LOG_INF("arg1=%u, arg2=%u arg3=%u",
 		req->route_args[0], req->route_args[1], req->route_args[2]);
 
+	/* Parse the query string */
+	struct query_arg qal[10u];
+	int ret = parse_url_query_args(req->url, qal, ARRAY_SIZE(qal));
+	if (ret < 0) {
+		LOG_WRN("Failed to parse query string ret=%d", ret);
+	} else if (ret >= 0) {
+		LOG_INF("%d query args found", ret);
+
+		struct query_arg *arg;
+		for (int i = 0; i < ret; i++) {
+			arg = &qal[i];
+			LOG_DBG("%u: %s : %s", i, log_strdup(arg->key),
+				arg->value ? log_strdup(arg->value) : "(null)");
+		}
+
+		char *val = query_arg_get("name", qal, ret);
+		LOG_DBG("Parameter 'name' = %s", val ? log_strdup(val) : "(null)");
+	}
+
+	
+
 	return 0;
 }
 

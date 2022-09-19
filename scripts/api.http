@@ -59,6 +59,11 @@ MYPAYLOAD
 
 ###
 
+GET http://{{host}}/test/route_args/23/1/24?test=qsdf&fdsf=826h&name=Lucas&&qsfd=86
+
+###
+
+
 GET http://{{host}}/metrics_controller
 
 ###

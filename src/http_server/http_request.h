@@ -19,6 +19,8 @@
 struct http_connection;
 typedef struct http_connection http_connection_t;
 
+#define HTTP_URL_MAX_LEN 128u
+
 typedef enum {
 	/**
 	 * @brief Route not in the list or failed to match
@@ -157,7 +159,7 @@ struct http_request
 	uint32_t timeout_ms;
 
 	/* parsed url */
-	char url[64U];
+	char url[HTTP_URL_MAX_LEN];
 	size_t url_len;
 
 	/* route for the current request */
