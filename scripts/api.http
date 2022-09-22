@@ -26,7 +26,7 @@ GET http://{{host}}/404
 
 ###
 
-GET http://{{host}}/devices/caniot/24/ll/3/query_telemetry
+GET http://{{host}}/devices/caniot/40/endpoint/3/telemetry
 
 ###
 
@@ -59,7 +59,7 @@ MYPAYLOAD
 
 ###
 
-GET http://{{host}}/test/route_args/23/1/24?test=qsdf&fdsf=826h&name=Lucas&&qsfd=86
+GET http://{{host}}/test/route_args/23/1/24?test=sdf&fdsf=826h&name=Lucas&&qsfd=86
 
 ###
 
