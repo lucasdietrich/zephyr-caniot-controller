@@ -21,17 +21,23 @@
 #include "ha/utils.h"
 #include "utils/misc.h"
 #include "ha/devices/caniot.h"
+#include "emu.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(caniot, LOG_LEVEL_INF);
 
 #define HA_CIOT_QUERY_TIMEOUT_TOLERANCE_MS 50
 
+
+#if defined(CONFIG_CAN_INTERFACE)
 CAN_MSGQ_DEFINE(can_rxq, 4U);
+#endif
 
 /* initialized with 0 */
 static ha_ciot_ctrl_did_cb_t did_callbacks[CANIOT_DID_MAX_VALUE];
 
+// CONFIG CAN_INTERFACE
+// CONFIG_HA_EMULATED_DEVICES
 
 static void thread(void *_a, void *_b, void *_c);
 
@@ -41,11 +47,24 @@ K_THREAD_DEFINE(ha_ciot_thread, 0x800, thread, NULL, NULL, NULL,
 static int z_can_send(const struct caniot_frame *frame,
 		      uint32_t delay_ms)
 {
+	int ret;
+
 	__ASSERT(frame != NULL, "frame is NULL");
 
+#if defined(CONFIG_CAN_INTERFACE)
 	struct zcan_frame zframe;
 	caniot_to_zcan(&zframe, frame);
-	return if_can_send(CAN_BUS_CANIOT, &zframe);
+	ret = if_can_send(CAN_BUS_CANIOT, &zframe);
+	if (ret) goto exit;
+#endif
+
+#if defined(CONFIG_HA_EMULATED_DEVICES)
+	ret = emu_caniot_send((struct caniot_frame *)frame);
+	if (ret) goto exit;
+#endif
+
+exit:
+	return ret;
 }
 
 const struct caniot_drivers_api driv =
@@ -60,7 +79,6 @@ const struct caniot_drivers_api driv =
 static struct caniot_controller ctrl;
 
 K_FIFO_DEFINE(fifo_queries);
-// K_FIFO_DEFINE(fifo_waiting);
 
 typedef enum {
 	SYNCQ_IMMEDIATE, /* Query but returned immediately (as timeout was 0) */
@@ -167,8 +185,7 @@ bool event_cb(const caniot_controller_event_t *ev,
 
 		response_is_set = true;
 
-		if ((resp->id.type == CANIOT_FRAME_TYPE_TELEMETRY) &&
-		    (resp->id.endpoint == CANIOT_ENDPOINT_BOARD_CONTROL)) {
+		if (resp->id.type == CANIOT_FRAME_TYPE_TELEMETRY) {
 			if (resp->len != 8U) {
 				LOG_WRN("Expected length for board control "
 					"telemetry is 8, got %d",
@@ -178,7 +195,8 @@ bool event_cb(const caniot_controller_event_t *ev,
 			ret = ha_dev_register_caniot_telemetry(
 				net_time_get(),
 				CANIOT_DID(resp->id.cls, resp->id.sid),
-				AS_BOARD_CONTROL_TELEMETRY(resp->buf)
+				AS_BLC0_TELEMETRY(resp->buf),
+				(caniot_id_t *)&resp->id
 			);
 		}
 	}
@@ -235,6 +253,19 @@ bool event_cb(const caniot_controller_event_t *ev,
 	return true;
 }
 
+typedef struct
+{
+	struct k_poll_event query;
+#if defined(CONFIG_CAN_INTERFACE)
+	struct k_poll_event can;
+#endif
+#if defined(CONFIG_HA_EMULATED_DEVICES)
+	struct k_poll_event can_emu;
+#endif
+} kpoll_can_events_t;
+
+#define KPOLL_CAN_EVENTS_COUNT (sizeof(kpoll_can_events_t) / sizeof(struct k_poll_event))
+
 static void thread(void *_a, void *_b, void *_c)
 {
 	ARG_UNUSED(_a);
@@ -243,6 +274,8 @@ static void thread(void *_a, void *_b, void *_c)
 
 	int ret;
 	static struct caniot_frame frame;
+	
+#if defined(CONFIG_CAN_INTERFACE)
 	static struct zcan_frame zframe;
 
 	struct zcan_filter filter = {
@@ -254,18 +287,27 @@ static void thread(void *_a, void *_b, void *_c)
 		LOG_ERR("Failed to attach CAN RX queue: %d", ret);
 		return;
 	}
+#endif 
 
 	caniot_controller_driv_init(&ctrl, &driv, event_cb, NULL);
 
-	struct k_poll_event events[] = {
-		K_POLL_EVENT_STATIC_INITIALIZER(
-			K_POLL_TYPE_MSGQ_DATA_AVAILABLE,
-			K_POLL_MODE_NOTIFY_ONLY,
-			&can_rxq, 0),
-		K_POLL_EVENT_STATIC_INITIALIZER(
+	kpoll_can_events_t events = {
+		.query = K_POLL_EVENT_STATIC_INITIALIZER(
 			K_POLL_TYPE_FIFO_DATA_AVAILABLE,
 			K_POLL_MODE_NOTIFY_ONLY,
 			&fifo_queries, 0),
+#if defined(CONFIG_CAN_INTERFACE)
+		.can = K_POLL_EVENT_STATIC_INITIALIZER(
+			K_POLL_TYPE_MSGQ_DATA_AVAILABLE,
+			K_POLL_MODE_NOTIFY_ONLY,
+			&can_rxq, 0),
+#endif
+#if defined(CONFIG_HA_EMULATED_DEVICES)
+		.can_emu = K_POLL_EVENT_STATIC_INITIALIZER(
+			K_POLL_TYPE_MSGQ_DATA_AVAILABLE,
+			K_POLL_MODE_NOTIFY_ONLY,
+			&emu_caniot_rxq, 0),
+#endif 
 	};
 
 	uint32_t reftime = k_uptime_get_32();
@@ -273,19 +315,35 @@ static void thread(void *_a, void *_b, void *_c)
 	while (1) {
 		const uint32_t timeout_ms = caniot_controller_next_timeout(&ctrl);
 		LOG_DBG("k_poll(., ., %u)", timeout_ms);
-		ret = k_poll(events, ARRAY_SIZE(events), K_MSEC(timeout_ms));
+		ret = k_poll((struct k_poll_event *) &events, 
+			     KPOLL_CAN_EVENTS_COUNT, K_MSEC(timeout_ms));
 		if (ret == 0) {
 			struct caniot_frame *resp = NULL;
 
+#if defined(CONFIG_CAN_INTERFACE)
 			/* events */
-			if (events[0].state == K_POLL_STATE_MSGQ_DATA_AVAILABLE) {
+			if (!resp && (events.can.state == K_POLL_STATE_MSGQ_DATA_AVAILABLE)) {
 				ret = k_msgq_get(&can_rxq, &zframe, K_NO_WAIT);
 				if (ret == 0) {
 					zcan_to_caniot(&zframe, &frame);
 					log_caniot_frame(&frame);
 					resp = &frame;
 				}
+				events.can.state = K_POLL_STATE_NOT_READY;
 			}
+#endif
+
+#if defined(CONFIG_HA_EMULATED_DEVICES)
+			/* "!resp" is to be sure to process a single frame at a time */
+			if (!resp && (events.can_emu.state == K_POLL_STATE_MSGQ_DATA_AVAILABLE)) {
+				ret = k_msgq_get(&emu_caniot_rxq, &frame, K_NO_WAIT);
+				if (ret == 0) {
+					log_caniot_frame(&frame);
+					resp = &frame;
+				}
+				events.can_emu.state = K_POLL_STATE_NOT_READY;
+			}
+#endif
 
 			/* we need to process the response before sending a query,
 			 * otherwise the query could timeout immediately because
@@ -295,7 +353,7 @@ static void thread(void *_a, void *_b, void *_c)
 			caniot_controller_process_single(&ctrl, delta, resp);
 
 			struct syncq *qx;
-			if ((events[1].state == K_POLL_STATE_FIFO_DATA_AVAILABLE) &&
+			if ((events.query.state == K_POLL_STATE_FIFO_DATA_AVAILABLE) &&
 			    ((qx = k_fifo_get(&fifo_queries, K_NO_WAIT)) != NULL)) {
 
 				__ASSERT_NO_MSG(qx->timeout != CANIOT_TIMEOUT_FOREVER);
@@ -325,6 +383,8 @@ static void thread(void *_a, void *_b, void *_c)
 					qx->delta = k_uptime_delta32(&qx->uptime);
 					k_sem_give(&qx->_sem);
 				}
+
+				events.query.state = K_POLL_STATE_NOT_READY;
 			}
 		} else if (ret == -EAGAIN) { /* k_poll timed out */
 			const uint32_t delta = k_uptime_delta32(&reftime);
@@ -333,9 +393,6 @@ static void thread(void *_a, void *_b, void *_c)
 			LOG_ERR("k_poll failed: %d", ret);
 			break;
 		}
-
-		events[0].state = K_POLL_STATE_NOT_READY;
-		events[1].state = K_POLL_STATE_NOT_READY;
 	}
 }
 
@@ -347,7 +404,7 @@ int ha_ciot_ctrl_query(struct caniot_frame *__restrict req,
 	int ret = -EINVAL;
 	struct syncq *qx = NULL;
 
-	if ((req == NULL) || (resp == NULL) || (timeout == NULL)) {
+	if (!req || !resp || !timeout) {
 		goto exit;
 	}
 
@@ -377,7 +434,8 @@ int ha_ciot_ctrl_query(struct caniot_frame *__restrict req,
 
 	/* wait for response */
 	ret = k_sem_take(&qx->_sem, K_MSEC(qx->timeout + HA_CIOT_QUERY_TIMEOUT_TOLERANCE_MS));
-	__ASSERT(ret == 0, "k_sem_take shouldn't timeout");
+	/* TODO, remove this ASSERT which cannot be detected easily */
+	__ASSERT(ret == 0, "k_sem_take shouldn't timeout"); 
 	if (ret == -EAGAIN) {
 		ret = -EAGAIN;
 		LOG_ERR("k_sem_take( ...) Should not timeout (%u)", qx->timeout);
@@ -387,7 +445,7 @@ int ha_ciot_ctrl_query(struct caniot_frame *__restrict req,
 	switch (qx->status) {
 	case SYNCQ_IMMEDIATE:
 		ret = 0;
-		*timeout = 0;
+		qx->delta = 0; /* no delta */
 		break;
 	case SYNCQ_ANSWERED:
 		ret = 1;

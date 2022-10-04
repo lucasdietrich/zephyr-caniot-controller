@@ -67,7 +67,7 @@ int process_event(ha_ev_t *event)
 
 		struct json_xiaomi_record json_data;
 
-		const struct ha_xiaomi_dataset *const data = ha_ev_get_data(event);
+		const struct ha_ds_xiaomi *const data = ha_ev_get_data(event);
 
 		char temp_str[9u];
 		char bt_mac_str[BT_ADDR_STR_LEN];

@@ -18,6 +18,12 @@
 #ifndef _HA_EMU_H_
 #define _HA_EMU_H_
 
+#include <zephyr.h>
 
+#include <caniot/caniot.h>
+
+extern struct k_msgq emu_caniot_rxq;
+
+int emu_caniot_send(struct caniot_frame *f);
 
 #endif /* _HA_EMU_H_ */

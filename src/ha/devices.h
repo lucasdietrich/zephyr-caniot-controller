@@ -11,11 +11,17 @@
 
 #include <zephyr.h>
 
+#include <sys/types.h>
+
+#include <sys/slist.h>
+
 #include "ha.h"
 #include "room.h"
 
 /* No filters, iterate over all devices */
 #define HA_DEV_FILTER_DISABLED NULL
+
+#define HA_DEV_ENDPOINT_MAX_COUNT 2u
 
 #define _HA_DEV_FILTER_BY_DEVICE_MEDIUM(_medium) \
 	(&(ha_dev_filter_t) { \
@@ -36,13 +42,14 @@
 #define HA_DEV_FILTER_XIAOMI_MIJIA _HA_DEV_FILTER_BY_DEVICE_TYPE(HA_DEV_TYPE_XIAOMI_MIJIA)
 #define HA_DEV_FILTER_NUCLEO_F429ZI _HA_DEV_FILTER_BY_DEVICE_TYPE(HA_DEV_TYPE_NUCLEO_F429ZI)
 
+#define HA_DEV_API_SELECT_ENDPOINT_0_CB NULL
 
 
 typedef enum
 {
 	HA_DEV_FILTER_MEDIUM = BIT(0), /* filter by medium */
 	HA_DEV_FILTER_DEVICE_TYPE = BIT(1), /* filter by device type */
-	HA_DEV_FILTER_DATA_EXIST = BIT(2), /* Filter by existing data */
+	HA_DEV_FILTER_DATA_EXIST = BIT(2), /* Filter by existing data on given endpoint */
 	// HA_DEV_FILTER_SENSOR_TYPE, /* filter by temperature sensor type */
 	HA_DEV_FILTER_DATA_TIMESTAMP = BIT(3), /* filter devices with recent measurements */
 	// HA_DEV_FILTER_REGISTERED_TIMESTAMP, /* filter recent devices */
@@ -63,9 +70,16 @@ typedef struct
 	ha_dev_type_t device_type;
 	uint32_t data_timestamp;
 	ha_room_id_t rid;
-	uint32_t from_index;
-	uint32_t to_index;
+	uint32_t from_index: 8u;
+	uint32_t to_index: 8u;
+	uint32_t endpoint: 8u;
 } ha_dev_filter_t;
+
+typedef struct ha_dev_cmd
+{
+	/* Command type */
+	uint32_t type;
+} ha_dev_cmd_t;
 
 struct ha_dev_stats
 {
@@ -87,24 +101,81 @@ struct ha_event_stats
 	uint32_t alive_ms; /* Time the event has been alive (ms) */
 };
 
+typedef enum 
+{
+	HA_DEV_ENDPOINT_NONE,
+	HA_DEV_ENDPOINT_XIAOMI_MIJIA,
+	HA_DEV_ENDPOINT_NUCLEO_F429ZI,
+	HA_DEV_ENDPOINT_CANIOT_BLC,
+} ha_endpoint_id_t;
+
+#define HA_ENDPOINT_INDEX(_idx) (_idx)
+
 struct ha_device;
+
+struct ha_device_endpoint
+{
+	/* Endpoint identifier */
+	ha_endpoint_id_t eid: 8u;
+
+	/* Endpoint data size, internal format */
+	size_t data_size : 8u;
+
+	/* Endpoint expected payload size, 0 for unspecified*/
+	size_t expected_payload_size : 8u;
+
+	size_t _unused: 8u;
+
+	/* Device last data event item */
+	struct ha_event *last_data_event;
+
+	int (*ingest)(struct ha_event *ev,
+		      struct ha_dev_payload *pl);
+
+	int (*command)(struct ha_device *dev,
+		       const ha_dev_cmd_t *cmd);
+};
+
+#define HA_DEV_ENDPOINT_INIT(_eid, _data_size, _expected_payload_size, _ingest, _command) \
+	{ \
+		.eid = _eid, \
+		.data_size = _data_size, \
+		.expected_payload_size = _expected_payload_size, \
+		.ingest = _ingest, \
+		.command = _command, \
+	}
+
 
 struct ha_device_api {
 	/**
-	 * @brief Called when a new device is registered.
+	 * @brief 
 	 * 
 	 * @param addr Device address
+	 * @param api Allow to overwrite the default device API
 	 * @return true to accept the device, false to refuse the registration
 	 */
-	bool (*on_registration)(const ha_dev_addr_t *addr);
+	int (*init_endpoints)(const ha_dev_addr_t *addr,
+			      struct ha_device_endpoint **endpoints,
+			      uint8_t *endpoints_count);
+
+	/**
+	 * @brief Choose which endpoint to use for a given payload
+	 * 
+	 * If NULL, the first endpoint is used
+	 */
+	int (*select_endpoint)(const ha_dev_addr_t *addr,
+			       const struct ha_dev_payload *pl);
 
 	/**
 	 * @brief Called when a new data is received, in order to know what size
 	 * should be allocated for the data.
+	 * 
+	 * y is a pointer to additionnal specific context for data (NULL to ignore)
 	 */
-	size_t(*get_internal_format_size)(struct ha_device *dev,
-					  const void *idata,
-					  size_t ilen);
+	// ssize_t(*get_internal_format_size)(struct ha_device *dev,
+	// 				   const void *ipayload,
+	// 				   size_t ilen,
+	// 				   void *y);
 
 	/**
 	 * @brief Called when a new data is received from the device, 
@@ -113,13 +184,16 @@ struct ha_device_api {
 	 * Or at least should just copy the data to the internal buffer.
 	 * 
 	 * The timestamp variable allow to adjust the timestamp of the data.
+	 * 
+	 * y is a pointer to additionnal specific context for data (NULL to ignore)
 	 */
-	bool (*convert_data)(struct ha_device *dev,
-			     const void *idata,
-			     size_t ilen,
-			     void *odata,
-			     size_t olen,
-			     uint32_t *timestamp);
+	// int (*convert_data)(struct ha_device *dev,
+	// 		     const void *ipayload,
+	// 		     size_t ilen,
+	// 		     void *odata,
+	// 		     size_t olen,
+	// 		     uint32_t *timestamp,
+	// 		     void *y);
 };
 
 struct ha_device {
@@ -135,8 +209,11 @@ struct ha_device {
 	/* Device statistics */
 	struct ha_dev_stats stats;
 
-	/* Device last data event item */
-	struct ha_event *last_data_event;
+	/* Endpoints */
+	struct ha_device_endpoint *endpoints[HA_DEV_ENDPOINT_MAX_COUNT];
+
+	/* Endpoints count */
+	uint8_t endpoints_count;
 
 	/* Room where the device is */
 	struct ha_room *room;
@@ -144,21 +221,60 @@ struct ha_device {
 
 typedef struct ha_device ha_dev_t;
 
+typedef enum
+{
+	HA_EV_TYPE_DATA = 0u,
+	// HA_EV_TYPE_CONTROL = 1,
+	HA_EV_TYPE_COMMAND = 2u,
+	HA_EV_TYPE_ERROR = 3u,
+} ha_ev_type_t;
+
+typedef struct ha_event {
+
+	/******************/
+	/* Private members */
+	/******************/
+
+	/* Event type */
+	ha_ev_type_t type: 8u;
+
+	/* Number of times the event is referenced
+	 * If ref_count is 0, the event data can be freed */
+	atomic_val_t ref_count;
+
+	/* Device the event is related to */
+	ha_dev_t *dev;
+
+	/* Singly linked list of data item */
+	sys_slist_t slist;
+
+	/******************/
+	/* Public members */
+	/******************/
+
+	/* Event time */
+	uint32_t timestamp;
+
+	/* Event payload */
+	void *data;
+} ha_ev_t;
+
 ha_dev_t *ha_dev_get_by_addr(const ha_dev_addr_t *addr);
 
 // ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr);
 
 int ha_dev_register_data(const ha_dev_addr_t *addr,
-			 const void *data,
-			 size_t data_len,
-			 uint32_t timestamp);
+			 const void *payload,
+			 size_t payload_len,
+			 uint32_t timestamp,
+			 void *y);
 
-const void *ha_dev_get_last_data(ha_dev_t *dev);
+ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, ha_endpoint_id_t ep);
 
-#define HA_DEV_GET_CAST_LAST_DATA(_dev, _type) \
-	((_type *)ha_dev_get_last_data(_dev))
+const void *ha_dev_get_last_event_data(ha_dev_t *dev, ha_endpoint_id_t ep);
 
-
+#define HA_DEV_EP0_GET_CAST_LAST_DATA(_dev, _type) \
+	((_type *)ha_dev_get_last_event_data(_dev, 0u))
 
 typedef bool ha_dev_iterate_cb_t(ha_dev_t *dev,
 				 void *user_data);
@@ -169,6 +285,8 @@ int ha_dev_addr_cmp(const ha_dev_addr_t *a,
 int ha_dev_addr_to_str(const ha_dev_addr_t *addr,
 		       char *buf,
 		       size_t buf_len);
+
+int ha_dev_get_index(ha_dev_t *dev);
 
 /**
  * @brief Iterate over all devices, with the option to filter them
@@ -225,41 +343,11 @@ static inline void ha_dev_inc_stats_tx(ha_dev_t *dev, uint32_t tx_bytes)
 	dev->stats.tx++;
 }
 
-typedef enum
-{
-	HA_EV_TYPE_DATA = 0u,
-	// HA_EV_TYPE_CONTROL = 1,
-	HA_EV_TYPE_COMMAND = 2u,
-	HA_EV_TYPE_ERROR = 3u,
-} ha_ev_type_t;
-
-typedef struct ha_event {
-
-	/* Event time */
-	uint32_t time;
-
-	/* Event type */
-	ha_ev_type_t type;
-
-	/* Number of times the event is referenced
-	 * If ref_count is 0, the event data can be freed */
-	atomic_val_t ref_count;
-
-	/* Flags */
-	uint32_t isbroadcast: 1u;
-
-	/* Device the event is related to */
-	ha_dev_t *dev;
-
-	/* Event data */
-	void *data;
-} ha_ev_t;
-
 uint32_t ha_ev_free_count(void);
 
 void ha_ev_ref(ha_ev_t *event);
 
-const void *ha_ev_get_data(const ha_ev_t *event);
+void *ha_ev_get_data(const ha_ev_t *event);
 
 const void *ha_ev_get_data_check_type(const ha_ev_t *event,
 					 ha_dev_type_t expected_type);
@@ -374,8 +462,10 @@ struct ha_room_assoc
 
 struct ha_room *ha_dev_get_room(ha_dev_t *const dev);
 
-ha_ev_t *ha_dev_ref_last_event(ha_dev_t *dev);
+/*____________________________________________________________________________*/
 
-int ha_dev_get_index(ha_dev_t *dev);
+ha_ev_t *ha_dev_command(const ha_dev_addr_t *addr,
+			ha_dev_cmd_t *cmd,
+			k_timeout_t timeout);
 
 #endif /* _HA_DEVS_H_ */

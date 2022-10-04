@@ -13,7 +13,7 @@
 #include "../devices.h"
 #include "../ble/xiaomi_record.h"
 
-struct ha_xiaomi_dataset
+struct ha_ds_xiaomi
 {
 	int8_t rssi;
 
@@ -67,6 +67,6 @@ struct ha_xiaomi_dataset
 
 int ha_dev_register_xiaomi_record(const xiaomi_record_t *record);
 
-const struct ha_xiaomi_dataset *ha_ev_get_xiaomi_data(const ha_ev_t *ev);
+const struct ha_ds_xiaomi *ha_ev_get_xiaomi_data(const ha_ev_t *ev);
 
 #endif /* _HA_DEVICES_XIAOMI_H */

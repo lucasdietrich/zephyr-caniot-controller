@@ -26,13 +26,13 @@ void ha_dev_garage_cmd_init(struct ha_dev_garage_cmd *cmd)
 	}
 }
 
-static void ha_dev_garage_payload_build(struct caniot_board_control_command *payload,
+static void ha_dev_garage_payload_build(struct caniot_blc0_command *payload,
 					const struct ha_dev_garage_cmd *cmd)
 {
 	__ASSERT_NO_MSG(payload != NULL);
 	__ASSERT_NO_MSG(cmd != NULL);
 
-	caniot_board_control_command_init(payload);
+	caniot_blc0_command_init(payload);
 
 	if (cmd->actuate_left == 1U) {
 		payload->crl1 = CANIOT_XPS_TOGGLE;
@@ -46,7 +46,7 @@ static void ha_dev_garage_payload_build(struct caniot_board_control_command *pay
 int ha_dev_garage_cmd_send(const struct ha_dev_garage_cmd *cmd)
 {
 	struct caniot_frame frame;
-	struct caniot_board_control_command payload;
+	struct caniot_blc0_command payload;
 
 	ha_dev_garage_payload_build(&payload, cmd);
 

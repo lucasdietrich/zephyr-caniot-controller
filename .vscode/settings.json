@@ -198,7 +198,9 @@
                 "flash_img.h": "c",
                 "mcuboot.h": "c",
                 "dfu.h": "c",
-                "dfu_server.h": "c"
+                "dfu_server.h": "c",
+                "emu.h": "c",
+                "stdlib.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

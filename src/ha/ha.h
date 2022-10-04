@@ -13,6 +13,8 @@
 #include <caniot/caniot.h>
 #include <caniot/datatype.h>
 
+#include "data.h"
+
 #define XIAOMI_BT_LE_ADDR_0 0xA4U
 #define XIAOMI_BT_LE_ADDR_1 0xC1U
 #define XIAOMI_BT_LE_ADDR_2 0x38U
@@ -29,6 +31,8 @@
 
 // TODO move to CANIOT library
 #define HA_CANIOT_MAX_TEMPERATURES 4U
+
+typedef uint32_t ha_timestamp_t;
 
 typedef enum {
 	HA_DEV_MEDIUM_NONE = 0,
@@ -67,12 +71,59 @@ typedef struct ha_device_addr {
 	ha_dev_mac_t mac;
 } ha_dev_addr_t;
 
-typedef enum {
-	HA_DEV_SENSOR_TYPE_NONE = 0,
-	HA_DEV_SENSOR_TYPE_EMBEDDED,
-	HA_DEV_SENSOR_TYPE_EXTERNAL1,
-	HA_DEV_SENSOR_TYPE_EXTERNAL2,
-	HA_DEV_SENSOR_TYPE_EXTERNAL3,
-} ha_dev_sensor_type_t;
+typedef struct ha_dev_payload
+{
+	/* Payload timestamp */
+	ha_timestamp_t timestamp;
+
+	/* Payload */
+	const char *buffer;
+
+	/* Payload size */
+	size_t len;
+
+	/* Additionnal specific context for data
+	 * interpretation */
+	void *y;
+} ha_dev_payload_t;
+
+#define HA_DEV_PAYLOAD_INIT(_buf, _len, _ts, _y) \
+	{ \
+		.timestamp = _ts, \
+		.buffer = _buf, \
+		.len = _len, \
+		.y = _y, \
+	}
+
+/* Var for variant */
+
+// typedef enum {
+// 	HA_VAR_TEMPERATURE,
+// 	HA_VAR_HUMIDITY,
+// } ha_var_gen_t;
+
+// typedef enum {
+// 	HA_VAR_BATTERY,
+// 	HA_VAR_RSSI,
+// } ha_var_medium_t;
+
+// typedef enum {
+// 	HA_VAR_CANIOT_XIAOMI,
+// 	HA_VAR_CANIOT_BLC,
+// 	HA_VAR_CANIOT_ATTR,
+// } ha_var_device_type_t;
+
+// typedef enum {
+// 	HA_VAR_GARAGE_DOORS_CTRL,
+// 	HA_VAR_HEATER,
+// } ha_var_device_t;
+
+// typedef struct ha_var
+// {
+// 	ha_var_gen_t global: 8u;
+// 	ha_var_medium_t medium: 8u;
+// 	ha_var_device_type_t device_type: 8u;
+// 	ha_var_device_t device: 8u;
+// } ha_var_t;
 
 #endif /* _HA_H_ */

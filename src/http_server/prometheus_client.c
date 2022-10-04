@@ -545,7 +545,7 @@ static void prom_metric_feed_dev_measurement_timestamp(uint32_t timestamp,
 	val->uvalue = timestamp;
 }
 
-static void prom_metric_feed_xiaomi_temperature(const struct ha_xiaomi_dataset *dt,
+static void prom_metric_feed_xiaomi_temperature(const struct ha_ds_xiaomi *dt,
 						struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
@@ -553,7 +553,7 @@ static void prom_metric_feed_xiaomi_temperature(const struct ha_xiaomi_dataset *
 	val->fvalue = dt->temperature.value / 100.0;
 }
 
-static void prom_metric_feed_xiaomi_humidity(const struct ha_xiaomi_dataset *dt,
+static void prom_metric_feed_xiaomi_humidity(const struct ha_ds_xiaomi *dt,
 					     struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
@@ -561,21 +561,21 @@ static void prom_metric_feed_xiaomi_humidity(const struct ha_xiaomi_dataset *dt,
 	val->fvalue = dt->humidity / 100.0;
 }
 
-static void prom_metric_feed_xiaomi_battery_level(const struct ha_xiaomi_dataset *dt,
+static void prom_metric_feed_xiaomi_battery_level(const struct ha_ds_xiaomi *dt,
 						  struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
 	val->uvalue = dt->battery_level;
 }
 
-static void prom_metric_feed_xiaomi_rssi(const struct ha_xiaomi_dataset *dt,
+static void prom_metric_feed_xiaomi_rssi(const struct ha_ds_xiaomi *dt,
 					 struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_INT32;
 	val->svalue = (float) dt->rssi;
 }
 
-static void prom_metric_feed_xiaomi_battery_voltage(const struct ha_xiaomi_dataset *dt,
+static void prom_metric_feed_xiaomi_battery_voltage(const struct ha_ds_xiaomi *dt,
 						  struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
@@ -595,8 +595,8 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 		bt_addr_to_str(&dev->addr.mac.addr.ble.a,
 			       mac_addr, sizeof(mac_addr));
 
-		const struct ha_xiaomi_dataset *const dt = 
-			HA_DEV_GET_CAST_LAST_DATA(dev, const struct ha_xiaomi_dataset);
+		const struct ha_ds_xiaomi *const dt = 
+			HA_DEV_EP0_GET_CAST_LAST_DATA(dev, const struct ha_ds_xiaomi);
 
 		union measurements_tags_values tags_values = {
 			.medium = prom_myd_medium_to_str(dev->addr.mac.medium),
@@ -627,7 +627,8 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 		prom_metric_feed_xiaomi_battery_voltage(dt, &val);
 		encode_metric(buffer, &val, &mdef_device_battery_voltage, false);
 
-		prom_metric_feed_dev_measurement_timestamp(dev->last_data_event->time, &val);
+		ha_ev_t *last_ev = ha_dev_get_last_event(dev, 0u);
+		prom_metric_feed_dev_measurement_timestamp(last_ev->timestamp, &val);
 		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
 
 	} else if (dev->addr.type == HA_DEV_TYPE_CANIOT) {
@@ -637,8 +638,8 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 				       caniot_addr_str,
 				       sizeof(caniot_addr_str));
 
-		const struct ha_caniot_blt_dataset *const dt = 
-			HA_DEV_GET_CAST_LAST_DATA(dev, const struct ha_caniot_blt_dataset);
+		const struct ha_ds_caniot_blc0_telemetry *const dt = 
+			HA_DEV_EP0_GET_CAST_LAST_DATA(dev, const struct ha_ds_caniot_blc0_telemetry);
 
 		union measurements_tags_values tags_values = {
 			.medium = prom_myd_medium_to_str(dev->addr.mac.medium),
@@ -668,13 +669,14 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 				encode_metric(buffer, &val, &mdef_device_temperature, false);
 			}
 		}
-
-		prom_metric_feed_dev_measurement_timestamp(dev->last_data_event->time, &val);
+		
+		ha_ev_t *last_ev = ha_dev_get_last_event(dev, 0u);
+		prom_metric_feed_dev_measurement_timestamp(last_ev->timestamp, &val);
 		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
 
 	} else if (dev->addr.type == HA_DEV_TYPE_NUCLEO_F429ZI) {
-		const struct ha_f429zi_dataset *const dt =
-			HA_DEV_GET_CAST_LAST_DATA(dev, const struct ha_f429zi_dataset);
+		const struct ha_ds_f429zi *const dt =
+			HA_DEV_EP0_GET_CAST_LAST_DATA(dev, const struct ha_ds_f429zi);
 
 		
 		union measurements_tags_values tags_values = {
@@ -699,7 +701,8 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 
 		encode_metric(buffer, &val, &mdef_device_temperature, false);
 
-		prom_metric_feed_dev_measurement_timestamp(dev->last_data_event->time, &val);
+		ha_ev_t *last_ev = ha_dev_get_last_event(dev, 0u);
+		prom_metric_feed_dev_measurement_timestamp(last_ev->timestamp, &val);
 		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
 	}
 

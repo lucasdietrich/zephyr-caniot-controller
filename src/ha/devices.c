@@ -309,15 +309,6 @@ ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 		goto exit;
 	}
 
-	/* Get default api */
-	const struct ha_device_api *api = ha_device_get_default_api(addr->type);
-	
-	if (api == NULL) {
-		LOG_WRN("(addr %p) Unknown device type %d",
-			addr, addr->type);
-		goto exit;
-	}
-
 	/* Allocate memory */
 	dev = devices.list + devices.count;
 
@@ -325,14 +316,30 @@ ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 
 	dev->addr = *addr;
 	dev->registered_timestamp = sys_time_get();
-	dev->api = api;
+	
+	dev->api = ha_device_get_default_api(addr->type);
+	if (dev->api == NULL) {
+		LOG_WRN("No api for device type %p", addr);
+		goto exit;
+	}
 
-	if ((api != NULL) && (api->on_registration != NULL)) {
-		if (api->on_registration(addr) != true) {
-			LOG_WRN("(addr %p) Device registration refused", addr);
-			dev = NULL;
-			goto exit;
-		}
+	/* Clear endpoints */
+	for (int i = 0; i < HA_DEV_ENDPOINT_MAX_COUNT; i++) {
+		dev->endpoints[i] = NULL;
+	}
+
+	const int ret = dev->api->init_endpoints(&dev->addr,
+						 dev->endpoints,
+						 &dev->endpoints_count);
+	if (ret < 0) {
+		LOG_ERR("Failed to register device %p", addr);
+		goto exit;
+	}
+
+	if (dev->endpoints_count > HA_DEV_ENDPOINT_MAX_COUNT) {
+		LOG_ERR("Too many endpoints (%hhu) defined for device addr %p", 
+			dev->endpoints_count, addr);
+		goto exit;
 	}
 
 	/* Increment device count */
@@ -386,14 +393,19 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 		}
 	}
 
+	struct ha_event *ev = NULL;
+
 	if (filter->flags & HA_DEV_FILTER_DATA_EXIST) {
-		if (dev->last_data_event == NULL) {
-			return false;
+		if (filter->endpoint < dev->endpoints_count) {
+			ev = dev->endpoints[filter->endpoint]->last_data_event;
+			if (!ev || !ev->data) {
+				return false;
+			}
 		}
 	}
 
 	if (filter->flags & HA_DEV_FILTER_DATA_TIMESTAMP) {
-		if (dev->last_data_event->time < filter->data_timestamp) {
+		if (ev && ev->timestamp < filter->data_timestamp) {
 			return false;
 		}
 	}
@@ -419,19 +431,15 @@ size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 	     dev < devices.list + devices_count;
 	     dev++) {
 		if (ha_dev_match_filter(dev, filter) == true) {
-			bool zcontinue;
-			if (dev->last_data_event != NULL) {
-				/* Reference device event in case the callback wants to
-				* access it.
-				* Even the callback may reference the event itself,
-				* if it needs to access it after the callback returns
-				*/
-				ha_ev_ref(dev->last_data_event);
-				zcontinue = callback(dev, user_data);
-				ha_ev_unref(dev->last_data_event);
-			} else {
-				zcontinue = callback(dev, user_data);
-			}
+
+			/* ????? TODO HOW TO ?????
+			 * 
+			 * Reference device event in case the callback wants to
+			 * access it.
+			 * Even the callback may reference the event itself,
+			 * if it needs to access it after the callback returns
+			 */
+			bool zcontinue = callback(dev, user_data);
 
 			count++;
 
@@ -444,18 +452,24 @@ size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 	return count;
 }
 
+int ha_dev_get_index(ha_dev_t *dev)
+{
+	if (!dev) {
+		return -EINVAL;
+	}
+	
+	return (int) dev_get_index(dev);
+}
+
 static int device_process_data(ha_dev_t *dev,
-			       const void *data,
-			       size_t data_len,
-			       uint32_t timestamp)
+			       struct ha_dev_payload *pl)
 {
 	__ASSERT_NO_MSG(dev != NULL);
 	__ASSERT_NO_MSG(dev->api != NULL);
-	__ASSERT_NO_MSG(data != NULL);
+	__ASSERT_NO_MSG(pl->buffer != NULL);
 
 	int ret = -EINVAL;
 	ha_ev_t *ev = NULL;
-	struct ha_xiaomi_dataset *odata = NULL;
 
 	/* Allocate memory */
 	ev = ha_ev_alloc_and_reset();
@@ -464,47 +478,68 @@ static int device_process_data(ha_dev_t *dev,
 		goto exit;
 	}
 
+	ev->data = NULL;
 	ev->dev = dev;
 	ev->type = HA_EV_TYPE_DATA;
-	ev->time = timestamp ? timestamp : sys_time_get();
+	ev->timestamp = pl->timestamp ? pl->timestamp : sys_time_get();
+	sys_slist_init(&ev->slist);
 
-	size_t odata_size = dev->api->get_internal_format_size(dev, data, data_len);
-	LOG_DBG("(%p) get_internal_format_size(%p, %p, %u) = %u",
-		ev, dev, data, data_len, odata_size);
-	if (odata_size != 0) {
-		/* Allocate buffer to handle data to be converted */
-		odata = k_malloc(odata_size);
-		if (!odata) {
-			LOG_ERR("(%p) Failed to allocate data req len=%u",
-				dev, odata_size);
+	/* Find endpoint */
+	uint8_t ep_index = 0u;
+	if (dev->api->select_endpoint != NULL) {
+		ret = dev->api->select_endpoint(&dev->addr, pl);
+		if (ret < 0) {
+			LOG_ERR("(%p) Failed to select endpoint", dev);
 			goto exit;
 		}
-
-		/* Convert data to internal format */
-		LOG_DBG("(%p) convert_data(%p, %p, %u, %p, %u, *%u)",
-			ev, dev, data, data_len, odata, odata_size, ev->time);
-		if (dev->api->convert_data(dev, data, data_len, odata, 
-					   odata_size, &ev->time) != true) {
-			LOG_ERR("(%p) Conversion failed", dev);
-			goto exit;
-		}
+		ep_index = (uint8_t) ret;
 	}
 
-	ev->data = odata;
+	if (ep_index >= MIN(dev->endpoints_count, HA_DEV_ENDPOINT_MAX_COUNT)) {
+		LOG_ERR("(%p) Invalid payloadid %u", dev, ep_index);
+		goto exit;
+	}
+
+	struct ha_device_endpoint *ep = dev->endpoints[ep_index];
+	if (ep->eid == HA_DEV_ENDPOINT_NONE) {
+		LOG_ERR("(%p) %u is not a valid endpoint", dev, ep_index);
+		goto exit;
+	}
+
+	if (ep->expected_payload_size && (ep->expected_payload_size != pl->len)) {
+		LOG_ERR("(%p) Invalid payload size %u, expected %u for endpoint %u",
+			dev, pl->len, ep->expected_payload_size, ep_index);
+		goto exit;
+	}
+
+	/* Allocate buffer to handle data to be converted */
+	ev->data = k_malloc(ep->data_size);
+	if (!ev->data) {
+		LOG_ERR("(%p) Failed to allocate data req len=%u",
+			dev, ep->data_size);
+		goto exit;
+	}
+
+	/* Convert data to internal format */
+	ret = ep->ingest(ev, pl);
+	if (ret != 0) {
+		LOG_ERR("(%p) Conversion failed reason=%d", dev, ret);
+		goto exit;
+	}
 
 	/* If there is a previous data event is referenced here, unref it */
-	ha_ev_t *const prev_data_ev = dev->last_data_event;
+	ha_ev_t *const prev_data_ev = ep->last_data_event;
 	if (prev_data_ev != NULL) {
-		dev->last_data_event = NULL;
+		ep->last_data_event = NULL;
 		ha_ev_unref(prev_data_ev);
 	}
 
 	/* Update statistics */
-	ha_dev_inc_stats_rx(dev, odata_size);
+	ha_dev_inc_stats_rx(dev, ep->data_size);
 
 	/* Reference current event */
 	atomic_set(&ev->ref_count, 1u);
-	dev->last_data_event = ev;	
+	ep->last_data_event = ev;	
 
 	/* Notify the event to listeners */
 	ret = ha_ev_notify_all(ev);
@@ -521,9 +556,10 @@ exit:
 }
 
 int ha_dev_register_data(const ha_dev_addr_t *addr,
-			 const void *data,
-			 size_t data_len,
-			 uint32_t timestamp)
+			 const void *payload,
+			 size_t payload_len,
+			 uint32_t timestamp,
+			 void *y)
 {
 	ha_dev_t *dev;
 	int ret = -ENOMEM;
@@ -534,20 +570,46 @@ int ha_dev_register_data(const ha_dev_addr_t *addr,
 		dev = ha_dev_register(addr);
 	}
 
+	struct ha_dev_payload pl = {
+		.timestamp = timestamp,
+		.buffer = payload,
+		.len = payload_len,
+		.y = y,
+	};
+
 	if (dev != NULL) {
-		ret = device_process_data(dev, data, data_len, timestamp);
+		ret = device_process_data(dev, &pl);
 	}
 
 	return ret;
 }
 
-const void *ha_dev_get_last_data(ha_dev_t *dev)
+
+ha_ev_t *ha_dev_command(const ha_dev_addr_t *addr,
+			ha_dev_cmd_t *cmd,
+			k_timeout_t timeout)
 {
-	if (dev != NULL) {
-		return ha_ev_get_data(dev->last_data_event);
+	return NULL;
+}
+
+ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, ha_endpoint_id_t ep)
+{
+	if (dev && (ep < dev->endpoints_count)) {
+		return dev->endpoints[ep]->last_data_event;
 	}
 
 	return NULL;
+}
+
+const void *ha_dev_get_last_event_data(ha_dev_t *dev, ha_endpoint_id_t ep)
+{
+	ha_ev_t *ev = ha_dev_get_last_event(dev, ep);
+	
+	if (ev) {
+		return ev->data;
+	} else {
+		return NULL;
+	}
 }
 
 /* Subscription structure can be allocated from any thread, so we need to protect it */
@@ -826,8 +888,8 @@ int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
 	if (conf->flags & HA_EV_SUBS_FLAG_ON_QUEUED_HOOK) {
 		psub->on_queued = conf->on_queued;
 	}
-
-	/* prefer irq_lock() to mutex here */
+	
+	/* prefer k_spin_lock() to mutex here */
 	k_mutex_lock(&sub_mutex, K_FOREVER);
 	sys_dlist_append(&sub_dlist, &psub->_handle);
 	k_mutex_unlock(&sub_mutex);
@@ -852,7 +914,7 @@ int ha_ev_unsubscribe(struct ha_ev_subs *sub)
 	}
 
 	if (atomic_test_and_clear_bit(&sub->flags, HA_EV_SUBS_FLAG_SUBSCRIBED_BIT)) {
-		/* Remove from the active subscription list */
+		/* prefer k_spin_lock() to mutex here */
 		k_mutex_lock(&sub_mutex, K_FOREVER);
 		sys_dlist_remove(&sub->_handle);
 		k_mutex_unlock(&sub_mutex);
@@ -887,7 +949,7 @@ ha_ev_t *ha_ev_wait(struct ha_ev_subs *sub,
 	return NULL;
 }
 
-const void *ha_ev_get_data(const ha_ev_t *event)
+void *ha_ev_get_data(const ha_ev_t *event)
 {
 	if (event != NULL) {
 		return event->data;
@@ -930,27 +992,4 @@ struct ha_room *ha_dev_get_room(ha_dev_t *const dev)
 	}
 
 	return room;
-}
-
-ha_ev_t *ha_dev_ref_last_event(ha_dev_t *dev)
-{
-	if (!dev) {
-		return NULL;
-	}
-
-	ha_ev_t *ev = dev->last_data_event;
-	if (ev) {
-		ha_ev_ref(ev);
-	}
-
-	return ev;
-}
-
-int ha_dev_get_index(ha_dev_t *dev)
-{
-	if (!dev) {
-		return -EINVAL;
-	}
-	
-	return (int) dev_get_index(dev);
 }

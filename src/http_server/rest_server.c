@@ -392,8 +392,8 @@ static int ha_json_xiaomi_record_feed_latest(struct json_xiaomi_record *json_dat
 					     struct json_xiaomi_record_buf *buf,
 					     ha_dev_t *dev)
 {
-	const struct ha_xiaomi_dataset *const data =
-		HA_DEV_GET_CAST_LAST_DATA(dev, const struct ha_xiaomi_dataset);
+	ha_ev_t *ev = ha_dev_get_last_event(dev, 0u);
+	const struct ha_ds_xiaomi *const data = ev->data;
 
 	json_data->bt_mac = buf->addr;
 	json_data->measures.rssi = data->rssi;
@@ -403,7 +403,7 @@ static int ha_json_xiaomi_record_feed_latest(struct json_xiaomi_record *json_dat
 	json_data->measures.battery_level = data->battery_level;
 	json_data->measures.battery_voltage = data->battery_mv;
 
-	json_data->base.timestamp = dev->last_data_event->time;
+	json_data->base.timestamp = ev->timestamp;
 
 	bt_addr_le_to_str(&dev->addr.mac.addr.ble,
 			  json_data->bt_mac,
@@ -510,14 +510,15 @@ static bool caniot_device_cb(ha_dev_t *dev,
 	struct caniot_records_encoding_context *const ctx =
 		(struct caniot_records_encoding_context *)user_data;
 	struct json_caniot_telemetry *const rec = &ctx->arr.records[ctx->arr.count];
-	const struct ha_caniot_blt_dataset *const dt =
-		HA_DEV_GET_CAST_LAST_DATA(dev, struct ha_caniot_blt_dataset);
+	const struct ha_ds_caniot_blc0_telemetry *const dt =
+		HA_DEV_EP0_GET_CAST_LAST_DATA(dev, struct ha_ds_caniot_blc0_telemetry);
 
-	rec->base.timestamp = dev->last_data_event->time;
+	ha_ev_t *ev = ha_dev_get_last_event(dev, 0u);
+	rec->base.timestamp = ev->timestamp;
 	rec->did = (uint32_t)dev->addr.mac.addr.caniot;
 	rec->temperatures_count = 0U;
-	rec->dio = dt->dio;
-	rec->pdio = dt->pdio;
+	rec->dio = dt->dio.value;
+	rec->pdio = dt->pdio.value;
 
 	/* encode temperatures */
 	for (size_t i = 0; i < HA_CANIOT_MAX_TEMPERATURES; i++) {
@@ -643,11 +644,11 @@ static bool devices_cb(ha_dev_t *dev,
 	struct json_device_array *const arr = user_data;
 	struct json_device *jd = &arr->devices[arr->count];
 
-	ha_ev_t *last_ev = dev->last_data_event;
+	ha_ev_t *last_ev = ha_dev_get_last_event(dev, 0u);
 	if (last_ev) {
 		jd->last_event.addr = (uint32_t) last_ev;
 		jd->last_event.refcount = last_ev->ref_count;
-		jd->last_event.timestamp = last_ev->time;
+		jd->last_event.timestamp = last_ev->timestamp;
 		jd->last_event.type = last_ev->type;
 	} else {
 		memset(&jd->last_event, 0, sizeof(jd->last_event));
@@ -820,8 +821,8 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 					     http_response_t *resp,
 					     uint32_t timeout)
 {
-	struct ha_caniot_blt_dataset blt;
-	ha_data_can_to_blt(&blt, AS_BOARD_CONTROL_TELEMETRY(r->buf));
+	struct ha_ds_caniot_blc0_telemetry blt;
+	ha_dev_caniot_blc_cls0_to_blt(&blt, AS_BLC0_TELEMETRY(r->buf));
 
 	struct json_caniot_telemetry json = {
 		.did = CANIOT_DID(r->id.cls, r->id.sid),
@@ -829,8 +830,8 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 			.timestamp = net_time_get(),
 		},
 		.duration = timeout,
-		.dio = blt.dio,
-		.pdio = blt.dio,
+		.dio = blt.dio.value,
+		.pdio = blt.dio.value,
 		.temperatures_count = 0U, /* TODO temperatures */
 	};
 
@@ -1008,7 +1009,7 @@ const struct json_obj_descr json_caniot_blcommand_post_descr[] = {
 };
 
 int rest_devices_caniot_blc_command(http_request_t *req,
-				  http_response_t *resp)
+				    http_response_t *resp)
 {
 	int ret = 0;
 	struct json_caniot_blcommand_post post;
@@ -1025,8 +1026,8 @@ int rest_devices_caniot_blc_command(http_request_t *req,
 	}
 
 	/* build command */
-	struct caniot_board_control_command cmd;
-	caniot_board_control_command_init(&cmd);
+	struct caniot_blc0_command cmd;
+	caniot_blc0_command_init(&cmd);
 
 	if (FIELD_SET(map, 0U)) {
 		cmd.coc1 = ha_parse_xps_command(post.coc1);
@@ -1201,6 +1202,10 @@ exit:
 	return ret;
 }
 
+#endif /* CONFIG_CANIOT_CONTROLLER */
+
+#if defined(CONFIG_CAN_INTERFACE)
+
 int rest_if_can(http_request_t *req,
 		http_response_t *resp)
 {
@@ -1229,7 +1234,7 @@ exit:
 	return ret;
 }
 
-#endif /* CONFIG_CANIOT_CONTROLLER */
+#endif /* CONFIG_CAN_INTERFACE */
 
 #define REST_FS_FILES_LIST_MAX_COUNT 32U
 

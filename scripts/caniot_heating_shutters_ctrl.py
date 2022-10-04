@@ -33,10 +33,10 @@ def build_payload(h1=CANIOT_HEATER_NONE,
         s4,
     ]
 
-did = 0x5 << 3
+heating_controller = 0x5 << 3
 
 def cmd_shutter(**kwargs):
-    ctrl.command(did, 0, build_payload(**kwargs))
+    ctrl.command(heating_controller, 0, build_payload(**kwargs))
     
 
 def reset():
@@ -60,6 +60,31 @@ def case2():
     cmd_shutter(s1 = 0, s2 = 100)
     time.sleep(1.5)
     reset()
+
+did = 4 << 3
+ctrl.timeout = 5.0
+
+def blc():
+    # resp = ctrl.request_telemetry(did, 3)
+    resp = ctrl.blc_command(did, 3, 3, 0, 5)
+    print(resp.text)
+    time.sleep(0.200)
+    resp = ctrl.blc_command(did, 3, 3, 5, 0)
+    print(resp.text)
+    time.sleep(0.200)
+    resp = ctrl.blc_command(did, 3, 3, 5, 0)
+    print(resp.text)
+
+# blc()
+
+# ctrl.config_reset(did)
+# resp = ctrl.read_attribute(did, 0x20C0)
+# print(resp.text)
+
+# resp = ctrl.write_attribute(did, 0x20C0, 0)
+# print(resp.text)
+
+# ctrl.config_reset(did)
 
 
 # payload = build_payload(s1 = 0, s2 = 100)

@@ -137,7 +137,7 @@ class Controller:
     def write_attribute(self, did: int, attr: int, value: Union[int, bytes]):
 
         data = {
-            "value": BytesToU32(value)
+            "value": value if isinstance(value, int) else BytesToU32(value)
         }
 
         args = {
@@ -159,6 +159,11 @@ class Controller:
             "ep": ep
         })
     
+    def config_reset(self, did: int):
+        self.can((did << 3) | (3 << 9), [
+            0, 0, 0, 0, 0, 0, 0, 1 << 5
+        ])
+
     def blc_command(self, did: int, coc1: int = 0, coc2: int = 0, crl1: int = 0, crl2: int = 0) -> requests.Response:
         XPS = ["none", "set_on", "set_off", "toggle", "reset", "pulse_on", "pulse_off", "pulse_cancel"]
         

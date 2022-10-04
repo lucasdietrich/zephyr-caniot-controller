@@ -6,20 +6,7 @@
 #include "ha/devices.h"
 #include "ble/xiaomi_record.h"
 
-static bool on_registration(const ha_dev_addr_t *addr)
-{
-	/* Check if BLE address is valid */
-	return true;
-}
-
-static size_t get_internal_format_size(struct ha_device *dev, 
-				       const void *idata,
-				       size_t data_len)
-{
-	return sizeof(struct ha_xiaomi_dataset);
-}
-
-static void ble_record_to_xiaomi(struct ha_xiaomi_dataset *xiaomi,
+static void ble_record_to_xiaomi(struct ha_ds_xiaomi *xiaomi,
 				 const xiaomi_record_t *rec,
 				 uint32_t *timestamp)
 {
@@ -33,24 +20,38 @@ static void ble_record_to_xiaomi(struct ha_xiaomi_dataset *xiaomi,
 	*timestamp = rec->time;
 }
 
-static bool convert_data(struct ha_device *dev,
-			 const void *idata,
-			 size_t ilen,
-			 void *odata,
-			 size_t olen,
-			 uint32_t *timestamp)
+static int ingest(struct ha_event *ev,
+	   struct ha_dev_payload *pl)
 {
-	__ASSERT_NO_MSG(dev->addr.type == HA_DEV_TYPE_XIAOMI_MIJIA);
 
-	ble_record_to_xiaomi(odata, idata, timestamp);
+	ble_record_to_xiaomi(ev->data,
+			     (const xiaomi_record_t *)pl->buffer,
+			     &ev->timestamp);
 
-	return true;
+	return 0;
+}
+
+static struct ha_device_endpoint ep = HA_DEV_ENDPOINT_INIT(
+	HA_DEV_ENDPOINT_XIAOMI_MIJIA,
+	sizeof(struct ha_ds_xiaomi),
+	sizeof(xiaomi_record_t),
+	ingest,
+	NULL
+);
+
+static int init_endpoints(const ha_dev_addr_t *addr,
+			  struct ha_device_endpoint **endpoints,
+			  uint8_t *endpoints_count)
+{
+	endpoints[0] = &ep;
+	*endpoints_count = 1U;
+
+	return 0;
 }
 
 const struct ha_device_api ha_device_api_xiaomi = {
-	.on_registration = on_registration,
-	.get_internal_format_size = get_internal_format_size,
-	.convert_data = convert_data
+	.init_endpoints = init_endpoints,
+	.select_endpoint = HA_DEV_API_SELECT_ENDPOINT_0_CB
 };
 
 int ha_dev_register_xiaomi_record(const xiaomi_record_t *record)
@@ -63,11 +64,11 @@ int ha_dev_register_xiaomi_record(const xiaomi_record_t *record)
 		}
 	};
 
-	return ha_dev_register_data(&addr, (void *)record, 
-				    sizeof(xiaomi_record_t), record->time);
+	return ha_dev_register_data(&addr, (void *)record,
+				    sizeof(xiaomi_record_t), record->time, NULL);
 }
 
-const struct ha_xiaomi_dataset *ha_ev_get_xiaomi_data(const ha_ev_t *ev)
-{	
-	return HA_EV_GET_CAST_DATA(ev, const struct ha_xiaomi_dataset);
+const struct ha_ds_xiaomi *ha_ev_get_xiaomi_data(const ha_ev_t *ev)
+{
+	return HA_EV_GET_CAST_DATA(ev, const struct ha_ds_xiaomi);
 }

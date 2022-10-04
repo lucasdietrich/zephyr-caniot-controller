@@ -10,7 +10,7 @@
 #include "../ha.h"
 #include "../devices.h"
 
-struct ha_f429zi_dataset
+struct ha_ds_f429zi
 {
 	float die_temperature; /* °C */
 };
