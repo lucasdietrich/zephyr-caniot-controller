@@ -93,6 +93,8 @@ static const struct http_route routes[] = {
 
 	REST(POST, "/lua/execute", rest_lua_run_script, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
 
+	REST(GET, "/demo/json", rest_demo_json, 0u, HTTP_ROUTE_MATCH_EXACT_NOARGS),
+
 #if defined(CONFIG_DFU)
 	HTTP_ROUTE(POST, "/dfu", http_dfu_image_upload, http_dfu_image_upload_response,
 		HTTP_DFU_SERVER, HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA, 0u,

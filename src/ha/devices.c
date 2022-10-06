@@ -24,7 +24,7 @@
 #include "devices/xiaomi.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_WRN);
+LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_INF);
 
 // #define HA_DEVICES_IGNORE_UNVERIFIED_DEVICES 1
 
@@ -419,27 +419,66 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 	return true;
 }
 
+static uint32_t dev_ep_lock_ev_mask(ha_dev_t *dev, uint32_t mask)
+{
+	uint32_t ep_index = 0u;
+	uint32_t locked_mask = 0u;
+	while (mask) {
+		if (ep_index < dev->endpoints_count) {
+			if (mask & 1u) {
+				ha_ev_t *ev = dev->endpoints[ep_index]->last_data_event;
+				ha_ev_ref(ev);
+				locked_mask |= BIT(ep_index);
+			}
+			mask >>= 1u;
+			ep_index++;
+		} else {
+			mask = 0u;
+		}
+	}
+	return locked_mask;
+}
+
+static void dev_ep_unlock_ev_mask(ha_dev_t *dev, uint32_t locked_mask)
+{
+	uint32_t ep_index = 0u;
+	while (locked_mask) {
+		if (locked_mask & 1u) {
+			ha_ev_t *ev = dev->endpoints[ep_index++]->last_data_event;
+			ha_ev_unref(ev);
+		}
+		locked_mask >>= 1u;
+	}
+}
 
 size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 		      const ha_dev_filter_t *filter,
+		      const ha_dev_iter_opt_t *options,
 		      void *user_data)
 {
 	size_t count = 0U;
 	const uint32_t devices_count = devices.count;
+
+	/* Lock only first endpoint event by default */
+	if (options == NULL) {
+		options = &HA_DEV_ITER_OPT_DEFAULT();
+	}
 
 	for (ha_dev_t *dev = devices.list;
 	     dev < devices.list + devices_count;
 	     dev++) {
 		if (ha_dev_match_filter(dev, filter) == true) {
 
-			/* ????? TODO HOW TO ?????
-			 * 
-			 * Reference device event in case the callback wants to
-			 * access it.
-			 * Even the callback may reference the event itself,
-			 * if it needs to access it after the callback returns
+			/*
+			 * Reference endpoints devices event in case the 
+			 * callback wants to keep a reference to it/them.
 			 */
+			const uint32_t locked_mask = dev_ep_lock_ev_mask(
+				dev, options->ep_lock_last_ev_mask);
+
 			bool zcontinue = callback(dev, user_data);
+
+			dev_ep_unlock_ev_mask(dev, locked_mask);
 
 			count++;
 
@@ -592,16 +631,36 @@ ha_ev_t *ha_dev_command(const ha_dev_addr_t *addr,
 	return NULL;
 }
 
-ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, ha_endpoint_id_t ep)
+struct ha_device_endpoint *ha_dev_get_endpoint(ha_dev_t *dev, uint32_t ep)
 {
-	if (dev && (ep < dev->endpoints_count)) {
-		return dev->endpoints[ep]->last_data_event;
+	if (!dev || (ep >= dev->endpoints_count)) {
+		return NULL;
+	}
+
+	return dev->endpoints[ep];
+}
+
+struct ha_device_endpoint *ha_dev_get_endpoint_by_id(ha_dev_t *dev, ha_endpoint_id_t eid)
+{
+	if (!dev) {
+		return NULL;
+	}
+
+	for (uint8_t i = 0; i < dev->endpoints_count; i++) {
+		if (dev->endpoints[i]->eid == eid) {
+			return dev->endpoints[i];
+		}
 	}
 
 	return NULL;
 }
 
-const void *ha_dev_get_last_event_data(ha_dev_t *dev, ha_endpoint_id_t ep)
+ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, uint32_t ep)
+{
+	return ha_dev_get_endpoint(dev, ep)->last_data_event;
+}
+
+const void *ha_dev_get_last_event_data(ha_dev_t *dev, uint32_t ep)
 {
 	ha_ev_t *ev = ha_dev_get_last_event(dev, ep);
 	
@@ -692,19 +751,27 @@ uint32_t ha_ev_free_count(void)
 
 void ha_ev_ref(struct ha_event *event)
 {
-	__ASSERT_NO_MSG(event != NULL);
-	
-	atomic_inc(&event->ref_count);
+	if (event) {
+		atomic_val_t prev_val = atomic_inc(&event->ref_count);
+
+		LOG_INF("[ ev %p ref_count %u ++> %u ]", 
+			event, (uint32_t)prev_val, (uint32_t)(prev_val + 1));
+	}
 }
 
 void ha_ev_unref(struct ha_event *event)
 {
 	if (event != NULL) {
 		/* If last reference, free the event */
-		if (atomic_dec(&event->ref_count) == (atomic_val_t)1) {
+		atomic_val_t prev_val = atomic_dec(&event->ref_count);
+
+		if (prev_val == (atomic_val_t)1) {
 			/* Deallocate event buffer */
 			ha_ev_free(event);
 		}
+
+		LOG_INF("[ ev %p ref_count %u --> %u ]",
+			event, (uint32_t)prev_val, (uint32_t)(prev_val - 1));
 	}
 }
 
@@ -899,6 +966,8 @@ int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
 
 	*sub = psub;
 
+	LOG_INF("%p subscribed", *sub);
+
 	ret = 0;
 exit:
 	if (ret != 0) {
@@ -933,6 +1002,8 @@ int ha_ev_unsubscribe(struct ha_ev_subs *sub)
 			LOG_WRN("%u events not consumed because of "
 				"unsubscription of %p", count, sub);
 		}
+
+		LOG_INF("%p unsubscribed", sub);
 
 		sub_free(sub);
 	}

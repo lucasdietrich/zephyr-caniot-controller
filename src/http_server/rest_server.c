@@ -554,12 +554,22 @@ int rest_caniot_records(http_request_t *req,
 	return rest_encode_response_json_array(resp, &ctx.arr, json_caniot_telemetry_array_descr);
 }
 
-struct json_device_last_event
+struct json_dev_ep_last_ev
 {
 	uint32_t addr;
 	uint32_t timestamp;
 	uint32_t refcount;
 	uint32_t type;
+};
+
+struct json_device_endpoint
+{
+	uint32_t eid;
+	uint32_t data_size;
+	uint32_t in_data_size;
+	struct json_dev_ep_last_ev last_event;
+	uint32_t telemetry; /* ingest */
+	uint32_t command;
 };
 
 struct json_device {
@@ -570,12 +580,13 @@ struct json_device {
 
 	uint32_t registered_timestamp;
 
-	struct json_device_last_event last_event;
-
 	uint32_t rid;
 	const char *room_name;
 
 	struct ha_dev_stats stats;
+
+	uint32_t endpoints_count;
+	struct json_device_endpoint endpoints[HA_DEV_ENDPOINT_MAX_COUNT];
 };
 
 struct json_device_buf
@@ -583,11 +594,20 @@ struct json_device_buf
 	char addr_repr[HA_DEV_ADDR_STR_MAX_LEN];
 };
 
-static const struct json_obj_descr json_device_last_event_descr[] = {
-	JSON_OBJ_DESCR_PRIM(struct json_device_last_event, addr, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_device_last_event, timestamp, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_device_last_event, refcount, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_device_last_event, type, JSON_TOK_NUMBER),
+static const struct json_obj_descr json_dev_ep_last_ev_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_dev_ep_last_ev, addr, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_dev_ep_last_ev, timestamp, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_dev_ep_last_ev, refcount, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_dev_ep_last_ev, type, JSON_TOK_NUMBER),
+};
+
+static const struct json_obj_descr json_device_endpoint_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_device_endpoint, eid, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_device_endpoint, data_size, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_device_endpoint, in_data_size, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_OBJECT(struct json_device_endpoint, last_event, json_dev_ep_last_ev_descr),
+	JSON_OBJ_DESCR_PRIM(struct json_device_endpoint, telemetry, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_device_endpoint, command, JSON_TOK_NUMBER),
 };
 
 static const struct json_obj_descr json_device_status_descr[] = {
@@ -604,26 +624,20 @@ static const struct json_obj_descr json_device_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_device, addr_medium, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_PRIM(struct json_device, addr_repr, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_PRIM(struct json_device, registered_timestamp, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_OBJECT(struct json_device, last_event, json_device_last_event_descr),
+	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_device, endpoints, HA_DEV_ENDPOINT_MAX_COUNT,
+		endpoints_count, json_device_endpoint_descr, ARRAY_SIZE(json_device_endpoint_descr)),
 	JSON_OBJ_DESCR_PRIM(struct json_device, rid, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_device, room_name, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_OBJECT(struct json_device, stats, json_device_status_descr),
 };
 
-// static const struct json_obj_descr json_device_noevent_descr[] = {
-// 	JSON_OBJ_DESCR_PRIM(struct json_device, index, JSON_TOK_NUMBER),
-// 	JSON_OBJ_DESCR_PRIM(struct json_device, addr_repr, JSON_TOK_STRING),
-// 	JSON_OBJ_DESCR_PRIM(struct json_device, registered_timestamp, JSON_TOK_NUMBER),
-// 	JSON_OBJ_DESCR_PRIM(struct json_device, rid, JSON_TOK_NUMBER),
-// 	JSON_OBJ_DESCR_PRIM(struct json_device, room_name, JSON_TOK_NUMBER),
-// 	JSON_OBJ_DESCR_OBJECT(struct json_device, stats, json_device_status_descr),
-// };
+/* ~154 per device */
+#define JSON_HA_MAX_DEVICES MIN(HA_MAX_DEVICES, 10u)
 
-/* ~2200B */
 struct json_device_array
 {
-	struct json_device_buf _bufs[HA_MAX_DEVICES];
-	struct json_device devices[HA_MAX_DEVICES];
+	struct json_device_buf _bufs[JSON_HA_MAX_DEVICES];
+	struct json_device devices[JSON_HA_MAX_DEVICES];
 	size_t count;
 };
 
@@ -631,7 +645,7 @@ static const struct json_obj_descr json_device_array_descr[] = {
 	JSON_OBJ_DESCR_OBJ_ARRAY(
 		struct json_device_array,
 		devices,
-		HA_CANIOT_MAX_DEVICES,
+		JSON_HA_MAX_DEVICES,
 		count,
 		json_device_descr,
 		ARRAY_SIZE(json_device_descr)
@@ -644,14 +658,30 @@ static bool devices_cb(ha_dev_t *dev,
 	struct json_device_array *const arr = user_data;
 	struct json_device *jd = &arr->devices[arr->count];
 
-	ha_ev_t *last_ev = ha_dev_get_last_event(dev, 0u);
-	if (last_ev) {
-		jd->last_event.addr = (uint32_t) last_ev;
-		jd->last_event.refcount = last_ev->ref_count;
-		jd->last_event.timestamp = last_ev->timestamp;
-		jd->last_event.type = last_ev->type;
-	} else {
-		memset(&jd->last_event, 0, sizeof(jd->last_event));
+	jd->endpoints_count = 0u; 
+
+	for (uint32_t i = 0u; i < dev->endpoints_count; i++) {
+		struct ha_device_endpoint *ep = ha_dev_get_endpoint(dev, i);
+		if (ep) {
+			struct json_device_endpoint *jep = &jd->endpoints[jd->endpoints_count];
+			jep->eid = ep->eid;
+			jep->data_size = ep->data_size;
+			jep->in_data_size = ep->expected_payload_size;
+			jep->telemetry = (uint32_t) ep->ingest;
+			jep->command = (uint32_t) ep->command;
+
+			jd->endpoints_count++;
+
+			ha_ev_t *const last_ev = ep->last_data_event;
+			if (last_ev) {
+				jep->last_event.addr = (uint32_t) last_ev;
+				jep->last_event.refcount = last_ev->ref_count;
+				jep->last_event.timestamp = last_ev->timestamp;
+				jep->last_event.type = last_ev->type;
+			} else {
+				memset(&jep->last_event, 0, sizeof(jep->last_event));
+			}
+		}
 	}
 
 	jd->index = arr->count + 1u;
@@ -673,7 +703,7 @@ static bool devices_cb(ha_dev_t *dev,
 
 	arr->count++;
 
-	return true;
+	return arr->count < JSON_HA_MAX_DEVICES;
 }
 
 
@@ -684,7 +714,12 @@ int rest_devices_list(http_request_t *req,
 
 	arr.count = 0u;
 
-	ha_dev_iterate(devices_cb, HA_DEV_FILTER_DISABLED, &arr);
+	ha_dev_iterate(devices_cb, HA_DEV_FILTER_DISABLED, 
+		       &HA_DEV_ITER_OPT_LOCK_ALL(), &arr);
+
+	/* TODO use "json_obj_encode()" to encode incrementally 
+	 * all the devices with CHUNKED encoding
+	 */
 
 	return rest_encode_response_json_array(
 		resp, &arr, json_device_array_descr
@@ -709,7 +744,8 @@ int rest_room_devices_list(http_request_t *req,
 		.rid = HA_ROOM_MY,
 	};
 
-	ha_dev_iterate(room_devices_cb, &filter, &resp->buffer);
+	ha_dev_iterate(room_devices_cb, &filter, 
+		       &HA_DEV_ITER_OPT_LOCK_ALL(), &resp->buffer);
 
 	return 0;
 }
@@ -1419,3 +1455,86 @@ int rest_flash_credentials_list(http_request_t *req,
 }
 
 #endif
+
+#define MY_ARRAY_SIZE 4u
+
+struct mystruct_obj
+{
+	uint32_t a;
+	/* Uncomment following line to get an encoding error */
+	uint32_t b;
+	uint32_t n;
+};
+
+static const struct json_obj_descr descr_mystruct_obj[] = {
+	JSON_OBJ_DESCR_PRIM(struct mystruct_obj, a, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct mystruct_obj, n, JSON_TOK_NUMBER),
+};
+
+struct mystruct_arr
+{
+	struct mystruct_obj items[MY_ARRAY_SIZE];
+	size_t count;
+};
+
+static const struct json_obj_descr descr_mystruct_arr[] = {
+	JSON_OBJ_DESCR_OBJ_ARRAY(
+		struct mystruct_arr,
+		items,
+		MY_ARRAY_SIZE,
+		count,
+		descr_mystruct_obj,
+		ARRAY_SIZE(descr_mystruct_obj)
+	)
+};
+
+void test(void)
+{
+	char buf[0x400];
+
+	struct mystruct_arr arr = { .count = 0u };
+
+	for (uint8_t i = 0u; i < MY_ARRAY_SIZE; i++) {
+		arr.items[i].a = 3;
+		arr.items[i].b = 0xFFFFFFFF;
+		arr.items[i].n = i;
+		arr.count++;
+	}
+
+	json_arr_encode_buf(descr_mystruct_arr,
+			    &arr,
+			    buf,
+			    sizeof(buf));
+				      
+	LOG_HEXDUMP_WRN(buf, strlen(buf), "JSON");
+}
+
+int rest_demo_json(http_request_t *req,
+		   http_response_t *resp)
+{
+	struct mystruct_arr arr = { .count = 0u };
+
+	for (uint8_t i = 0u; i < MY_ARRAY_SIZE; i++) {
+		arr.items[i].a = 3;
+		// arr.items[i].b = 0xFFFFFFFF;
+		arr.items[i].n = i;
+		arr.count++;
+	}
+
+	int ret = json_arr_encode_buf(descr_mystruct_arr,
+				      &arr,
+				      resp->buffer.data,
+				      resp->buffer.size);
+
+	if (ret == 0) {
+		resp->buffer.filling = strlen(resp->buffer.data);
+
+		http_response_set_content_length(resp, resp->buffer.filling);
+	}
+
+	return ret;
+
+	// return rest_encode_response_json_array(
+	// 	resp, &arr, descr_mystruct_arr
+	// );
+}

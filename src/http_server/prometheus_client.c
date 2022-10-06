@@ -733,7 +733,8 @@ int prometheus_metrics(http_request_t *req,
 		.to_index = next_index + CONFIG_PROMETHEUS_METRICS_PER_FLUSH,
 	};
 
-	size_t count = ha_dev_iterate(prom_ha_devs_iterate_cb, &filter,
+	size_t count = ha_dev_iterate(prom_ha_devs_iterate_cb, &filter, 
+				      &HA_DEV_ITER_OPT_LOCK_ALL(),
 				      (void *)&resp->buffer);
 
 	/* Check wether there are more metrics to encode */

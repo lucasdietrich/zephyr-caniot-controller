@@ -93,4 +93,7 @@ int rest_if_can(http_request_t *req,
 int rest_flash_credentials_list(http_request_t *req,
 				http_response_t *resp);
 
+int rest_demo_json(http_request_t *req,
+		   http_response_t *resp);
+
 #endif

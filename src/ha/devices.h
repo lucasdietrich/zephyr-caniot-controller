@@ -65,15 +65,33 @@ typedef struct
 {
 	ha_dev_filter_flags_t flags;
 
-	/* filters values */
+	/* Filter rules */
 	ha_dev_medium_type_t medium;
 	ha_dev_type_t device_type;
 	uint32_t data_timestamp;
 	ha_room_id_t rid;
 	uint32_t from_index: 8u;
 	uint32_t to_index: 8u;
-	uint32_t endpoint: 8u;
+	uint32_t endpoint: 3u;
 } ha_dev_filter_t;
+
+typedef struct
+{
+	/**
+	 * @brief Tells wether the last event of the endpoint should be locked
+	 */
+	uint8_t ep_lock_last_ev_mask;
+} ha_dev_iter_opt_t;
+
+#define HA_DEV_ITER_OPT_DEFAULT() \
+	((const ha_dev_iter_opt_t) { \
+		.ep_lock_last_ev_mask = 1u, \
+	})
+
+#define HA_DEV_ITER_OPT_LOCK_ALL() \
+	((const ha_dev_iter_opt_t) { \
+		.ep_lock_last_ev_mask = (uint8_t) -1, \
+	})
 
 typedef struct ha_dev_cmd
 {
@@ -269,9 +287,13 @@ int ha_dev_register_data(const ha_dev_addr_t *addr,
 			 uint32_t timestamp,
 			 void *y);
 
-ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, ha_endpoint_id_t ep);
+struct ha_device_endpoint *ha_dev_get_endpoint(ha_dev_t *dev, uint32_t ep);
 
-const void *ha_dev_get_last_event_data(ha_dev_t *dev, ha_endpoint_id_t ep);
+struct ha_device_endpoint *ha_dev_get_endpoint_by_id(ha_dev_t *dev, ha_endpoint_id_t eid);
+
+ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, uint32_t ep);
+
+const void *ha_dev_get_last_event_data(ha_dev_t *dev, uint32_t ep);
 
 #define HA_DEV_EP0_GET_CAST_LAST_DATA(_dev, _type) \
 	((_type *)ha_dev_get_last_event_data(_dev, 0u))
@@ -298,6 +320,7 @@ int ha_dev_get_index(ha_dev_t *dev);
  */
 size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 		      const ha_dev_filter_t *filter,
+		      const ha_dev_iter_opt_t *options,
 		      void *user_data);
 
 static inline size_t ha_dev_xiaomi_iterate_data(ha_dev_iterate_cb_t callback,
@@ -310,7 +333,7 @@ static inline size_t ha_dev_xiaomi_iterate_data(ha_dev_iterate_cb_t callback,
 		.device_type = HA_DEV_TYPE_XIAOMI_MIJIA,
 	};
 
-	return ha_dev_iterate(callback, &filter, user_data);
+	return ha_dev_iterate(callback, &filter, NULL, user_data);
 }
 
 
@@ -324,7 +347,7 @@ static inline size_t ha_dev_caniot_iterate_data(ha_dev_iterate_cb_t callback,
 		.device_type = HA_DEV_TYPE_CANIOT,
 	};
 
-	return ha_dev_iterate(callback, &filter, user_data);
+	return ha_dev_iterate(callback, &filter, NULL, user_data);
 }
 
 static inline void ha_dev_inc_stats_rx(ha_dev_t *dev, uint32_t rx_bytes)
