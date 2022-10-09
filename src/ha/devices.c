@@ -466,13 +466,12 @@ static void dev_ep_unlock_ev_mask(ha_dev_t *dev, uint32_t locked_mask)
 	}
 }
 
-size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
-		      const ha_dev_filter_t *filter,
-		      const ha_dev_iter_opt_t *options,
-		      void *user_data)
+ssize_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
+		       const ha_dev_filter_t *filter,
+		       const ha_dev_iter_opt_t *options,
+		       void *user_data)
 {
-	size_t count = 0U;
-	const uint32_t devices_count = devices.count;
+	size_t count = 0u, max_count = devices.count;
 
 	/* Lock only first endpoint event by default */
 	if (options == NULL) {
@@ -480,7 +479,7 @@ size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 	}
 
 	ha_dev_t *dev = devices.list;
-	ha_dev_t *last = devices.list + devices_count;
+	ha_dev_t *last = devices.list + devices.count;
 
 	/* Take boundaries into account */
 	if (filter) {
@@ -492,6 +491,15 @@ size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 			/* Never go beyond the end of the list of registered devices */
 			last = MIN(last, devices.list + filter->to_index);
 		}
+
+		if (filter->flags & HA_DEV_FILTER_TO_COUNT) {
+			max_count = filter->to_count;
+		}
+	}
+
+	/* Check that we are actually iterating over existing devices */
+	if (dev >= last) {
+		return -ENOENT;
 	}
 
 	while (dev < last) {
@@ -509,7 +517,7 @@ size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 
 			count++;
 
-			if (!zcontinue) {
+			if (!zcontinue || (count >= max_count)) {
 				break;
 			}
 		}

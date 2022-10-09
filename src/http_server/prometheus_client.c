@@ -40,7 +40,7 @@
 #include "utils/buffers.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(prom, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(prom, LOG_LEVEL_INF);
 
 /* Number of metrics to encode between each HTTP response buffer flush */
 #define CONFIG_PROMETHEUS_METRICS_PER_FLUSH 4u
@@ -728,22 +728,19 @@ int prometheus_metrics(http_request_t *req,
 		.flags =
 			HA_DEV_FILTER_DATA_EXIST |
 			HA_DEV_FILTER_FROM_INDEX |
-			HA_DEV_FILTER_TO_INDEX |
-			HA_DEV_FILTER_DEVICE_TYPE,
+			HA_DEV_FILTER_TO_INDEX,
 		.from_index = next_index,
 		.to_index = next_index + CONFIG_PROMETHEUS_METRICS_PER_FLUSH,
-		.device_type = HA_DEV_TYPE_XIAOMI_MIJIA,
 	};
 
-	size_t count = ha_dev_iterate(prom_ha_devs_iterate_cb, &filter, 
+	ssize_t count = ha_dev_iterate(prom_ha_devs_iterate_cb, &filter, 
 				      &HA_DEV_ITER_OPT_LOCK_ALL(),
 				      (void *)&resp->buffer);
-
+	
 	/* Check wether there are more metrics to encode */
-	if (count == CONFIG_PROMETHEUS_METRICS_PER_FLUSH) {
+	if (count != -ENOENT) {
 		http_response_more_data(resp);
-		
-		next_index += count;
+		next_index += CONFIG_PROMETHEUS_METRICS_PER_FLUSH;
 	}
 
 	resp->status_code = 200;

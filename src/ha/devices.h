@@ -57,6 +57,9 @@ typedef enum
 	HA_DEV_FILTER_ROOM_ID = BIT(5), /* filter devices with defined room id */
 	HA_DEV_FILTER_FROM_INDEX = BIT(6), /* filter devices from index (included) */
 	HA_DEV_FILTER_TO_INDEX = BIT(7), /* filter devices to index (excluded) */
+
+	/* filter devices until count of valid devices reach the given value "to_count" */
+	HA_DEV_FILTER_TO_COUNT = BIT(8), 
 } ha_dev_filter_flags_t;
 
 /* TODO Incompatible masks */
@@ -72,6 +75,7 @@ typedef struct
 	ha_room_id_t rid;
 	uint32_t from_index: 8u;
 	uint32_t to_index: 8u;
+	uint32_t to_count: 4u;
 	uint32_t endpoint: 3u;
 } ha_dev_filter_t;
 
@@ -420,12 +424,12 @@ int ha_dev_get_index(ha_dev_t *dev);
  * @param user_data 
  * @return size_t Number of devices iterated, negative on error
  */
-size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
-		      const ha_dev_filter_t *filter,
-		      const ha_dev_iter_opt_t *options,
-		      void *user_data);
+ssize_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
+		       const ha_dev_filter_t *filter,
+		       const ha_dev_iter_opt_t *options,
+		       void *user_data);
 
-static inline size_t ha_dev_xiaomi_iterate_data(ha_dev_iterate_cb_t callback,
+static inline ssize_t ha_dev_xiaomi_iterate_data(ha_dev_iterate_cb_t callback,
 					   void *user_data)
 {
 	const ha_dev_filter_t filter = {
@@ -439,7 +443,7 @@ static inline size_t ha_dev_xiaomi_iterate_data(ha_dev_iterate_cb_t callback,
 }
 
 
-static inline size_t ha_dev_caniot_iterate_data(ha_dev_iterate_cb_t callback,
+static inline ssize_t ha_dev_caniot_iterate_data(ha_dev_iterate_cb_t callback,
 						void *user_data)
 {
 	const ha_dev_filter_t filter = {
