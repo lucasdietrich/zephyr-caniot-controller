@@ -95,14 +95,31 @@ struct query_arg
 	char *value;
 };
 
-int parse_url_query_args(char *url, struct query_arg qargs[], size_t alen);
+/**
+ * @brief Parse a query string and store the key-value pairs in the args array
+ * 
+ * @param url 
+ * @param qargs 
+ * @param alen 
+ * @return int 
+ */
+int query_args_parse(char *url, struct query_arg qargs[], size_t alen);
 
-char *query_arg_get(const char *key, struct query_arg qargs[], size_t alen);
+char *query_arg_get(struct query_arg qargs[], size_t alen, const char *key);
 
 static inline bool query_arg_is_set(const char *key, struct query_arg qargs[], size_t alen)
 {
-	return query_arg_get(key, qargs, alen) != NULL;
+	return query_arg_get(qargs, alen, key) != NULL;
 }
+
+/**
+ * @brief Parse a query string, but only return the value for the given key
+ * 
+ * @param url 
+ * @param key 
+ * @return char* 
+ */
+char *query_args_parse_find(char *url, const char *key);
 
 /*____________________________________________________________________________*/
 

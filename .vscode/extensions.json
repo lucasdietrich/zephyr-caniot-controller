@@ -8,7 +8,8 @@
         "arjun.swagger-viewer",
         "42crunch.vscode-openapi",
         "nordic-semiconductor.nrf-kconfig",
-        "trond-snekvik.devicetree"
+        "trond-snekvik.devicetree",
+        "ms-toolsai.jupyter",
     ],
     "unwantedRecommendations": [
     ]

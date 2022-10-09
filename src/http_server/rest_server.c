@@ -10,6 +10,7 @@
 #include <assert.h>
 
 #include <string.h>
+#include <stdlib.h>
 
 #include <net/http_parser.h>
 
@@ -625,8 +626,9 @@ static const struct json_obj_descr json_device_descr[] = {
 	JSON_OBJ_DESCR_OBJECT(struct json_device, stats, json_device_stats_descr),
 };
 
-/* ~154 per device */
-#define JSON_HA_MAX_DEVICES MIN(HA_MAX_DEVICES, 10u)
+/* ~154 B per device */
+#define REST_HA_DEVICES_MAX_COUNT_PER_PAGE 10u
+#define JSON_HA_MAX_DEVICES MIN(HA_MAX_DEVICES, REST_HA_DEVICES_MAX_COUNT_PER_PAGE)
 
 struct json_device_array
 {
@@ -678,7 +680,7 @@ static bool devices_cb(ha_dev_t *dev,
 		}
 	}
 
-	jd->index = arr->count + 1u;
+	jd->index = ha_dev_get_index(dev);
 	jd->addr_repr = arr->_bufs[arr->count].addr_repr;
 	ha_dev_addr_to_str(&dev->addr, jd->addr_repr, HA_DEV_ADDR_STR_MAX_LEN);
 	jd->addr_medium = ha_dev_medium_to_str(dev->addr.mac.medium);
@@ -700,15 +702,36 @@ static bool devices_cb(ha_dev_t *dev,
 	return arr->count < JSON_HA_MAX_DEVICES;
 }
 
-
 int rest_devices_list(http_request_t *req,
 		      http_response_t *resp)
 {
+	/* Parge page */
+	int page_n = 0;
+
+	char *const page_str = query_args_parse_find(req->url + req->route->route_len,
+						     "page");
+	if (page_str) {
+		page_n = atoi(page_str);
+	}
+	if (page_n < 0) {
+		page_n = 0;
+	}
+
 	struct json_device_array arr;
 
 	arr.count = 0u;
 
-	ha_dev_iterate(devices_cb, HA_DEV_FILTER_DISABLED, 
+	const ha_dev_filter_t filter = {
+		.flags = HA_DEV_FILTER_FROM_INDEX |
+			 HA_DEV_FILTER_TO_INDEX,
+		.from_index = 
+			REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n,
+		.to_index = 
+			REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n +
+			REST_HA_DEVICES_MAX_COUNT_PER_PAGE
+	};
+
+	ha_dev_iterate(devices_cb, &filter, 
 		       &HA_DEV_ITER_OPT_LOCK_ALL(), &arr);
 
 	/* TODO use "json_obj_encode()" to encode incrementally 

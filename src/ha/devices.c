@@ -494,7 +494,7 @@ size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 		}
 	}
 
-	while (dev++ < last) {
+	while (dev < last) {
 		if (ha_dev_match_filter(dev, filter) == true) {
 			/*
 			 * Reference endpoints devices event in case the 
@@ -513,6 +513,9 @@ size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 				break;
 			}
 		}
+
+		/* Fetch next device */
+		dev++;
 	}
 
 	return count;

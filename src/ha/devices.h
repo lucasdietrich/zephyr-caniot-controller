@@ -78,16 +78,23 @@ typedef struct
 typedef struct
 {
 	/**
-	 * @brief Tells wether the last event of the endpoint should be locked
+	 * @brief Bitmask of flags telling the last events of the endpoint 
+	 * should be locked. Bit n is set if the endpoint n last event should be locked.
 	 */
 	uint8_t ep_lock_last_ev_mask;
 } ha_dev_iter_opt_t;
 
+/**
+ * @brief Lock only the last event of the first endpoint
+ */
 #define HA_DEV_ITER_OPT_DEFAULT() \
 	((const ha_dev_iter_opt_t) { \
 		.ep_lock_last_ev_mask = 1u, \
 	})
 
+/**
+ * @brief Lock the last event of all endpoints
+ */
 #define HA_DEV_ITER_OPT_LOCK_ALL() \
 	((const ha_dev_iter_opt_t) { \
 		.ep_lock_last_ev_mask = (uint8_t) -1, \
@@ -102,7 +109,7 @@ typedef struct ha_dev_cmd
 struct ha_stats
 {
 	/* General stats */
-	uint8_t ev; /* Number of events successfully processed */
+	uint32_t ev; /* Number of events successfully processed */
 
 	uint32_t dev_dropped; /* Number of devices dropped */
 

@@ -156,7 +156,7 @@ int http_test_route_args(struct http_request *req,
 
 	/* Parse the query string */
 	struct query_arg qal[10u];
-	int ret = parse_url_query_args(req->url, qal, ARRAY_SIZE(qal));
+	int ret = query_args_parse(req->url, qal, ARRAY_SIZE(qal));
 	if (ret < 0) {
 		LOG_WRN("Failed to parse query string ret=%d", ret);
 	} else if (ret >= 0) {
@@ -169,7 +169,7 @@ int http_test_route_args(struct http_request *req,
 				arg->value ? log_strdup(arg->value) : "(null)");
 		}
 
-		char *val = query_arg_get("name", qal, ret);
+		char *val = query_arg_get(qal, ret, "name");
 		LOG_DBG("Parameter 'name' = %s", val ? log_strdup(val) : "(null)");
 	}
 

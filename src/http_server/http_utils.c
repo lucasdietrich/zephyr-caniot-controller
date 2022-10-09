@@ -153,7 +153,7 @@ const char *http_content_type_to_str(http_content_type_t content_type)
 }
 
 
-int parse_url_query_args(char *url, struct query_arg qargs[], size_t alen)
+int query_args_parse(char *url, struct query_arg qargs[], size_t alen)
 {
 	if (!url || (!qargs && alen))
 		return -EINVAL;
@@ -204,8 +204,28 @@ int parse_url_query_args(char *url, struct query_arg qargs[], size_t alen)
 	return (int)count;
 }
 
-char *query_arg_get(const char *key, struct query_arg qargs[], size_t alen)
+/* TODO improve this: don't directly use query_args_parse
+ * but try to parse the string with the same method
+ * but trying to find the key
+ */
+char *query_args_parse_find(char *url, const char *key)
 {
+	struct query_arg qargs[10u];
+	char *value = NULL;
+
+	int count = query_args_parse(url, qargs, ARRAY_SIZE(qargs));
+	if (count > 0) {
+		value = query_arg_get(qargs, MIN(count, ARRAY_SIZE(qargs)), key);
+	}
+
+	return value;
+}
+
+char *query_arg_get(struct query_arg qargs[], size_t alen, const char *key)
+{
+	if (!qargs || !key)
+		return NULL;
+
 	for (size_t i = 0u; i < alen; i++) {
 		struct query_arg *const arg = &qargs[i];
 		if (arg->key && strcmp(arg->key, key) == 0) {

@@ -79,7 +79,7 @@ static const struct http_route routes[] = {
 	PROM(GET, "/metrics_controller", prometheus_metrics_controller),
 	PROM(GET, "/metrics_demo", prometheus_metrics_demo),
 
-	REST(GET, "/devices", rest_devices_list, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
+	REST(GET, "/devices", rest_devices_list, 0U, HTTP_ROUTE_MATCH_LEASE_NOARGS),
 	REST(GET, "/room/%u", rest_room_devices_list, 1U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
 	REST(GET, "/devices/xiaomi", rest_xiaomi_records, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
 	REST(GET, "/devices/caniot", rest_caniot_records, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
