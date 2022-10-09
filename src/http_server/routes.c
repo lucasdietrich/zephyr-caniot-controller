@@ -83,6 +83,7 @@ static const struct http_route routes[] = {
 	REST(GET, "/room/%u", rest_room_devices_list, 1U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
 	REST(GET, "/devices/xiaomi", rest_xiaomi_records, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
 	REST(GET, "/devices/caniot", rest_caniot_records, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
+	REST(GET, "/ha/stats", rest_ha_stats, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
 
 	FILE_RESSOURCE(POST, "/files", http_file_upload, http_file_upload, 0U, HTTP_ROUTE_MATCH_LEASE_NOARGS),
 	FILE_RESSOURCE(POST, "/files/", http_file_upload, http_file_upload, 0U, HTTP_ROUTE_MATCH_LEASE_NOARGS),

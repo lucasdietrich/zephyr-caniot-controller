@@ -8,13 +8,12 @@ manifest:
   remotes:
     - name: zephyrproject-rtos
       url-base: https://github.com/zephyrproject-rtos
-    - name: lucasdietrich
+    - name: zephyrproject-rtos-fork
       url-base: https://github.com/lucasdietrich
       
-
   projects:
     - name: zephyr
-      remote: zephyrproject-rtos
-      revision: v3.0.0
+      remote: zephyrproject-rtos-fork
+      revision: v3.0.0_hotfixes
       import: true
       

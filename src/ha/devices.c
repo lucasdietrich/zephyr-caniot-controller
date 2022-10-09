@@ -28,9 +28,6 @@ LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_INF);
 
 // #define HA_DEVICES_IGNORE_UNVERIFIED_DEVICES 1
 
-#define HA_EV_SUBS_BLOCK_COUNT 8u
-#define HA_EV_COUNT 32u
-
 /* Forward declaration */
 
 static struct ha_event *ha_ev_alloc_and_reset(void);
@@ -43,6 +40,13 @@ struct {
 } devices = {
 	.mutex = Z_MUTEX_INITIALIZER(devices.mutex),
 	.count = 0U
+};
+
+static struct ha_stats stats = 
+{
+	.mem_ev_remaining = HA_EV_MAX_COUNT,
+	.mem_device_remaining = HA_MAX_DEVICES,
+	.mem_sub_remaining = HA_EV_SUBS_MAX_COUNT,
 };
 
 static uint32_t dev_get_index(ha_dev_t *dev)
@@ -306,6 +310,8 @@ ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 	k_mutex_lock(&devices.mutex, K_FOREVER);
 
 	if (devices.count >= ARRAY_SIZE(devices.list)) {
+		stats.dev_dropped++;
+		stats.dev_no_mem++;
 		goto exit;
 	}
 
@@ -319,24 +325,38 @@ ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 	
 	dev->api = ha_device_get_default_api(addr->type);
 	if (dev->api == NULL) {
+		stats.dev_dropped++;
+		stats.dev_no_api++;
 		LOG_WRN("No api for device type %p", addr);
 		goto exit;
 	}
 
 	/* Clear endpoints */
 	for (int i = 0; i < HA_DEV_ENDPOINT_MAX_COUNT; i++) {
-		dev->endpoints[i] = NULL;
+		dev->endpoints[i].api = NULL;
+		dev->endpoints[i].last_data_event = NULL;
 	}
 
 	const int ret = dev->api->init_endpoints(&dev->addr,
 						 dev->endpoints,
 						 &dev->endpoints_count);
 	if (ret < 0) {
+		stats.dev_dropped++;
+		stats.dev_ep_init++;
 		LOG_ERR("Failed to register device %p", addr);
 		goto exit;
 	}
 
+	if (dev->endpoints_count == 0) {
+		stats.dev_dropped++;
+		stats.dev_ep_init++;
+		LOG_WRN("No endpoints for device %p", addr);
+		goto exit;
+	}
+
 	if (dev->endpoints_count > HA_DEV_ENDPOINT_MAX_COUNT) {
+		stats.dev_dropped++;
+		stats.dev_toomuch_ep++;
 		LOG_ERR("Too many endpoints (%hhu) defined for device addr %p", 
 			dev->endpoints_count, addr);
 		goto exit;
@@ -344,6 +364,9 @@ ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 
 	/* Increment device count */
 	devices.count++;
+
+	stats.mem_device_count++;
+	stats.mem_device_remaining--;
 
 	/* Reference the room */
 	if ((dev->room = ha_dev_get_room(dev)) != NULL) {
@@ -369,17 +392,9 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 		return true;
 	}
 
-	if (filter->flags & HA_DEV_FILTER_FROM_INDEX) {
-		if (dev_get_index(dev) < filter->from_index) {
-			return false;
-		}
-	}
-
-	if (filter->flags & HA_DEV_FILTER_TO_INDEX) {
-		if (dev_get_index(dev) >= filter->to_index) {
-			return false;
-		}
-	}
+	/* Note: HA_DEV_FILTER_FROM_INDEX and HA_DEV_FILTER_TO_INDEX
+	 * have been moved to ha_dev_iterate() function
+	 */
 
 	if (filter->flags & HA_DEV_FILTER_MEDIUM) {
 		if (dev->addr.mac.medium != filter->medium) {
@@ -397,7 +412,7 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 
 	if (filter->flags & HA_DEV_FILTER_DATA_EXIST) {
 		if (filter->endpoint < dev->endpoints_count) {
-			ev = dev->endpoints[filter->endpoint]->last_data_event;
+			ev = dev->endpoints[filter->endpoint].last_data_event;
 			if (!ev || !ev->data) {
 				return false;
 			}
@@ -426,7 +441,7 @@ static uint32_t dev_ep_lock_ev_mask(ha_dev_t *dev, uint32_t mask)
 	while (mask) {
 		if (ep_index < dev->endpoints_count) {
 			if (mask & 1u) {
-				ha_ev_t *ev = dev->endpoints[ep_index]->last_data_event;
+				ha_ev_t *ev = dev->endpoints[ep_index].last_data_event;
 				ha_ev_ref(ev);
 				locked_mask |= BIT(ep_index);
 			}
@@ -444,7 +459,7 @@ static void dev_ep_unlock_ev_mask(ha_dev_t *dev, uint32_t locked_mask)
 	uint32_t ep_index = 0u;
 	while (locked_mask) {
 		if (locked_mask & 1u) {
-			ha_ev_t *ev = dev->endpoints[ep_index++]->last_data_event;
+			ha_ev_t *ev = dev->endpoints[ep_index++].last_data_event;
 			ha_ev_unref(ev);
 		}
 		locked_mask >>= 1u;
@@ -464,11 +479,23 @@ size_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 		options = &HA_DEV_ITER_OPT_DEFAULT();
 	}
 
-	for (ha_dev_t *dev = devices.list;
-	     dev < devices.list + devices_count;
-	     dev++) {
-		if (ha_dev_match_filter(dev, filter) == true) {
+	ha_dev_t *dev = devices.list;
+	ha_dev_t *last = devices.list + devices_count;
 
+	/* Take boundaries into account */
+	if (filter) {
+		if (filter->flags & HA_DEV_FILTER_FROM_INDEX) {
+			dev += filter->from_index;
+		}
+
+		if (filter->flags & HA_DEV_FILTER_TO_INDEX) {
+			/* Never go beyond the end of the list of registered devices */
+			last = MIN(last, devices.list + filter->to_index);
+		}
+	}
+
+	while (dev++ < last) {
+		if (ha_dev_match_filter(dev, filter) == true) {
 			/*
 			 * Reference endpoints devices event in case the 
 			 * callback wants to keep a reference to it/them.
@@ -513,6 +540,9 @@ static int device_process_data(ha_dev_t *dev,
 	/* Allocate memory */
 	ev = ha_ev_alloc_and_reset();
 	if (!ev) {
+		ret = -ENOMEM;
+		dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_NO_MEM;
+		stats.ev_no_mem++;
 		LOG_ERR("(%p) Failed to allocate ha_ev_t", dev);
 		goto exit;
 	}
@@ -528,44 +558,69 @@ static int device_process_data(ha_dev_t *dev,
 	if (dev->api->select_endpoint != NULL) {
 		ret = dev->api->select_endpoint(&dev->addr, pl);
 		if (ret < 0) {
-			LOG_ERR("(%p) Failed to select endpoint", dev);
+			dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_NO_EP;
+			stats.ev_no_ep++;
+			LOG_DBG("(%p) No endpoint for payload", dev);
 			goto exit;
 		}
 		ep_index = (uint8_t) ret;
 	}
 
 	if (ep_index >= MIN(dev->endpoints_count, HA_DEV_ENDPOINT_MAX_COUNT)) {
-		LOG_ERR("(%p) Invalid payloadid %u", dev, ep_index);
+		dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_EP;
+		stats.ev_ep++;
+		ret = -ENOENT;
+		LOG_DBG("(%p) Invalid endpoint %u", dev, ep_index);
 		goto exit;
 	}
 
-	struct ha_device_endpoint *ep = dev->endpoints[ep_index];
-	if (ep->eid == HA_DEV_ENDPOINT_NONE) {
-		LOG_ERR("(%p) %u is not a valid endpoint", dev, ep_index);
+	struct ha_device_endpoint_api *const ep_api = dev->endpoints[ep_index].api;
+	if (ep_api->eid == HA_DEV_ENDPOINT_NONE) {
+		dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_NO_EP;
+		stats.ev_no_ep++;
+		ret = -ENOENT;
+		LOG_DBG("(%p) %u is not a valid endpoint", dev, ep_index);
 		goto exit;
 	}
 
-	if (ep->expected_payload_size && (ep->expected_payload_size != pl->len)) {
-		LOG_ERR("(%p) Invalid payload size %u, expected %u for endpoint %u",
-			dev, pl->len, ep->expected_payload_size, ep_index);
+	if (ep_api->expected_payload_size && (ep_api->expected_payload_size != pl->len)) {
+		dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_PAYLOAD_SIZE;
+		stats.ev_payload_size++;
+		ret = -ENOTSUP;
+		LOG_DBG("(%p) Invalid payload size %u, expected %u for endpoint %u",
+			dev, pl->len, ep_api->expected_payload_size, ep_index);
 		goto exit;
 	}
 
-	/* Allocate buffer to handle data to be converted */
-	ev->data = k_malloc(ep->data_size);
-	if (!ev->data) {
-		LOG_ERR("(%p) Failed to allocate data req len=%u",
-			dev, ep->data_size);
-		goto exit;
+	if (ep_api->data_size) {
+		/* Allocate buffer to handle data to be converted if not null */
+		ev->data = k_malloc(ep_api->data_size);
+		if (ev->data) {
+			stats.mem_heap_alloc += ep_api->data_size;
+			stats.mem_heap_total += ep_api->data_size;
+			ev->data_size = ep_api->data_size;
+		} else {
+			ret = -ENOMEM;
+			dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_NO_DATA_MEM;
+			stats.ev_no_data_mem++;
+			LOG_ERR("(%p) Failed to allocate data req len=%u",
+				dev, ep_api->data_size);
+			goto exit;
+		}
 	}
 
 	/* Convert data to internal format */
-	ret = ep->ingest(ev, pl);
-	if (ret != 0) {
-		LOG_ERR("(%p) Conversion failed reason=%d", dev, ret);
+	ret = ep_api->ingest(ev, pl);
+	if (ret < 0) {
+		dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_INGEST;
+		stats.ev_ingest++;
+		LOG_DBG("(%p) Conversion failed reason=%d", dev, ret);
 		goto exit;
 	}
 
+
+	struct ha_device_endpoint *const ep = &dev->endpoints[ep_index];
+	
 	/* If there is a previous data event is referenced here, unref it */
 	ha_ev_t *const prev_data_ev = ep->last_data_event;
 	if (prev_data_ev != NULL) {
@@ -574,7 +629,7 @@ static int device_process_data(ha_dev_t *dev,
 	}
 
 	/* Update statistics */
-	ha_dev_inc_stats_rx(dev, ep->data_size);
+	ha_dev_inc_stats_rx(dev, ep_api->data_size);
 
 	/* Reference current event */
 	atomic_set(&ev->ref_count, 1u);
@@ -583,12 +638,22 @@ static int device_process_data(ha_dev_t *dev,
 	/* Notify the event to listeners */
 	ret = ha_ev_notify_all(ev);
 
-	LOG_INF("Event %p notified to %d listeners", ev, ret);
+	stats.ev++;
+
+	LOG_DBG("Event %p notified to %d listeners", ev, ret);
 
 exit:
 	/* Free event on error or if not referenced anymore */
-	if ((ev != NULL) && ((ret < 0) || (atomic_get(&ev->ref_count) == 0u))) {
+	if (!ev || (ret < 0)) {
+		if (ev) {
+			ha_ev_free(ev);
+		}
+		stats.ev_dropped++;
+		stats.ev_data_dropped++;
+		dev->stats.err_ev++;
+	} else if (atomic_get(&ev->ref_count) == 0u) {
 		ha_ev_free(ev);
+		stats.ev_never_ref++;
 	}
 
 	return ret;
@@ -637,7 +702,7 @@ struct ha_device_endpoint *ha_dev_get_endpoint(ha_dev_t *dev, uint32_t ep)
 		return NULL;
 	}
 
-	return dev->endpoints[ep];
+	return &dev->endpoints[ep];
 }
 
 struct ha_device_endpoint *ha_dev_get_endpoint_by_id(ha_dev_t *dev, ha_endpoint_id_t eid)
@@ -647,12 +712,27 @@ struct ha_device_endpoint *ha_dev_get_endpoint_by_id(ha_dev_t *dev, ha_endpoint_
 	}
 
 	for (uint8_t i = 0; i < dev->endpoints_count; i++) {
-		if (dev->endpoints[i]->eid == eid) {
-			return dev->endpoints[i];
+		if (dev->endpoints[i].api->eid == eid) {
+			return &dev->endpoints[i];
 		}
 	}
 
 	return NULL;
+}
+
+int ha_dev_get_endpoint_idx_by_id(ha_dev_t *dev, ha_endpoint_id_t eid)
+{
+	if (!dev) {
+		return -EINVAL;
+	}
+
+	for (uint8_t i = 0; i < dev->endpoints_count; i++) {
+		if (dev->endpoints[i].api->eid == eid) {
+			return i;
+		}
+	}
+
+	return -ENOENT;
 }
 
 ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, uint32_t ep)
@@ -672,7 +752,7 @@ const void *ha_dev_get_last_event_data(ha_dev_t *dev, uint32_t ep)
 }
 
 /* Subscription structure can be allocated from any thread, so we need to protect it */
-K_MEM_SLAB_DEFINE(sub_slab, sizeof(struct ha_ev_subs), HA_EV_SUBS_BLOCK_COUNT, 4);
+K_MEM_SLAB_DEFINE(sub_slab, sizeof(struct ha_ev_subs), HA_EV_SUBS_MAX_COUNT, 4);
 
 K_MUTEX_DEFINE(sub_mutex);
 static sys_dlist_t sub_dlist = SYS_DLIST_STATIC_INIT(&sub_dlist);
@@ -682,6 +762,8 @@ static struct ha_ev_subs *sub_alloc(void)
 	static struct ha_ev_subs *sub;
 
 	if (k_mem_slab_alloc(&sub_slab, (void **)&sub, K_NO_WAIT) == 0) {
+		stats.mem_sub_count++;
+		stats.mem_sub_remaining--;
 		LOG_DBG("Sub %p allocated", sub);
 	}
 
@@ -692,6 +774,8 @@ static void sub_free(struct ha_ev_subs *sub)
 {
 	if (sub != NULL) {
 		k_mem_slab_free(&sub_slab, (void **)&sub);
+		stats.mem_sub_count--;
+		stats.mem_sub_remaining++;
 		LOG_DBG("Sub %p freed", sub);
 	}
 }
@@ -704,7 +788,7 @@ static void sub_init(struct ha_ev_subs *sub)
 	sub->on_queued = NULL;
 }
 
-K_MEM_SLAB_DEFINE(ev_slab, sizeof(struct ha_event), HA_EV_COUNT, 4);
+K_MEM_SLAB_DEFINE(ev_slab, sizeof(struct ha_event), HA_EV_MAX_COUNT, 4);
 
 static struct ha_event *ha_ev_alloc(void)
 {
@@ -714,7 +798,8 @@ static struct ha_event *ha_ev_alloc(void)
 	if (k_mem_slab_alloc(&ev_slab, (void **)&ev, K_NO_WAIT) != 0) {
 		ev = NULL;
 	} else {
-		LOG_DBG("Event %p allocated", ev);
+		stats.mem_ev_count++;
+		stats.mem_ev_remaining--;
 	}
 
 	return ev;
@@ -739,9 +824,14 @@ static void ha_ev_free(struct ha_event *ev)
 	/* Deallocate event data buffer */
 	k_free(ev->data);
 
+	/* Decrease before freeing */
+	stats.mem_heap_alloc -= ev->data_size;
+
 	/* Same comment */
 	k_mem_slab_free(&ev_slab, (void **)&ev);
-	LOG_DBG("Event %p freed", ev);
+	
+	stats.mem_ev_count--;
+	stats.mem_ev_remaining++;
 }
 
 uint32_t ha_ev_free_count(void)
@@ -754,7 +844,7 @@ void ha_ev_ref(struct ha_event *event)
 	if (event) {
 		atomic_val_t prev_val = atomic_inc(&event->ref_count);
 
-		LOG_INF("[ ev %p ref_count %u ++> %u ]", 
+		LOG_DBG("[ ev %p ref_count %u ++> %u ]", 
 			event, (uint32_t)prev_val, (uint32_t)(prev_val + 1));
 	}
 }
@@ -770,7 +860,7 @@ void ha_ev_unref(struct ha_event *event)
 			ha_ev_free(event);
 		}
 
-		LOG_INF("[ ev %p ref_count %u --> %u ]",
+		LOG_DBG("[ ev %p ref_count %u --> %u ]",
 			event, (uint32_t)prev_val, (uint32_t)(prev_val - 1));
 	}
 }
@@ -966,7 +1056,7 @@ int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
 
 	*sub = psub;
 
-	LOG_INF("%p subscribed", *sub);
+	LOG_DBG("%p subscribed", *sub);
 
 	ret = 0;
 exit:
@@ -1003,7 +1093,7 @@ int ha_ev_unsubscribe(struct ha_ev_subs *sub)
 				"unsubscription of %p", count, sub);
 		}
 
-		LOG_INF("%p unsubscribed", sub);
+		LOG_DBG("%p unsubscribed", sub);
 
 		sub_free(sub);
 	}
@@ -1063,4 +1153,15 @@ struct ha_room *ha_dev_get_room(ha_dev_t *const dev)
 	}
 
 	return room;
+}
+
+int ha_stats_copy(struct ha_stats *dest)
+{
+	if (dest == NULL) {
+		return -EINVAL;
+	}
+
+	memcpy(dest, &stats, sizeof(struct ha_stats));
+
+	return 0;
 }

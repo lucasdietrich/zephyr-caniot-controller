@@ -99,6 +99,67 @@ typedef struct ha_dev_cmd
 	uint32_t type;
 } ha_dev_cmd_t;
 
+struct ha_stats
+{
+	/* General stats */
+	uint8_t ev; /* Number of events successfully processed */
+
+	uint32_t dev_dropped; /* Number of devices dropped */
+
+	/* Reasons for dropped devices */
+	uint32_t dev_no_mem; /* No Slot available */
+	uint32_t dev_no_api; /* No API found */
+	uint32_t dev_ep_init; /* Endpoints initialization failed */
+	uint32_t dev_no_ep; /* No endpoints found */
+	uint32_t dev_toomuch_ep; /* Too much endpoints */
+
+	/* Dropped events */
+	uint32_t ev_dropped; /* Number of events dropped */
+	uint32_t ev_data_dropped; /* Number of data events dropped */
+	uint32_t ev_cmd_dropped; /* Number of command events dropped */
+
+	/* Reasons for dropped events */
+	uint32_t ev_no_mem; /* No memory available */
+	uint32_t ev_no_ep; /* No endpoint found */
+	uint32_t ev_ep; /* Invalid endpoint */
+	uint32_t ev_payload_size; /* Payload size too big */
+	uint32_t ev_no_data_mem; /* No memory available for data */
+	uint32_t ev_ingest; /* DATA Ingestion failed */
+	uint32_t ev_never_ref; /* Event never referenced */
+
+	/* Memory, buffers, blocks usage */
+	uint32_t mem_ev_count; /* Number of events currently in use (allocated) */
+	uint32_t mem_ev_remaining; /* Number of events remaining */
+	uint32_t mem_device_count; /* Maximum number of events in use (allocated) */
+	uint32_t mem_device_remaining; /* Number of events remaining */
+	uint32_t mem_sub_count; /* Number of subscriptions currently in use (allocated) */
+	uint32_t mem_sub_remaining; /* Number of subscriptions remaining */
+
+	uint32_t mem_heap_alloc; /* Heap currently allocated */
+	uint32_t mem_heap_total; /* Heap allocated in total */
+};
+
+#define HA_DEV_STATS_ERR_FLAG_MASK 0xFFu
+
+/* No memory available for event */
+#define HA_DEV_STATS_ERR_FLAG_EV_NO_MEM BIT(0u)
+
+/* No endpoint found for event */
+#define HA_DEV_STATS_ERR_FLAG_EV_NO_EP BIT(1u)
+
+/* Invalid endpoint for event */
+#define HA_DEV_STATS_ERR_FLAG_EV_EP BIT(2u)
+
+/* Payload size too big for event */
+#define HA_DEV_STATS_ERR_FLAG_EV_PAYLOAD_SIZE BIT(3u)
+
+/* No memory available for data */
+#define HA_DEV_STATS_ERR_FLAG_EV_NO_DATA_MEM BIT(4u)
+
+/* DATA Ingestion failed */
+#define HA_DEV_STATS_ERR_FLAG_EV_INGEST BIT(5u)
+
+
 struct ha_dev_stats
 {
 	uint32_t rx; /* number of received packets */
@@ -108,6 +169,12 @@ struct ha_dev_stats
 	uint32_t tx_bytes; /* number of transmitted bytes */
 
 	uint32_t max_inactivity; /* number of seconds without any activity */
+
+	/* Events errors count */
+	uint32_t err_ev;
+
+	/* Error flags */
+	uint32_t err_flags;
 };
 
 /* Forward declaration */
@@ -124,28 +191,39 @@ typedef enum
 	HA_DEV_ENDPOINT_NONE,
 	HA_DEV_ENDPOINT_XIAOMI_MIJIA,
 	HA_DEV_ENDPOINT_NUCLEO_F429ZI,
-	HA_DEV_ENDPOINT_CANIOT_BLC,
+
+	/* CANIOT Board Level Control */
+	HA_DEV_ENDPOINT_CANIOT_BLC0,
+	HA_DEV_ENDPOINT_CANIOT_BLC1,
+	HA_DEV_ENDPOINT_CANIOT_BLC2,
+	HA_DEV_ENDPOINT_CANIOT_BLC3,
+	HA_DEV_ENDPOINT_CANIOT_BLC4,
+	HA_DEV_ENDPOINT_CANIOT_BLC5,
+	HA_DEV_ENDPOINT_CANIOT_BLC6,
+	HA_DEV_ENDPOINT_CANIOT_BLC7,
+
+	/* CANIOT specific application endpoints */
+	HA_DEV_ENDPOINT_CANIOT_HEATING,
 } ha_endpoint_id_t;
 
 #define HA_ENDPOINT_INDEX(_idx) (_idx)
 
 struct ha_device;
 
-struct ha_device_endpoint
+struct ha_device_endpoint_api
 {
 	/* Endpoint identifier */
 	ha_endpoint_id_t eid: 8u;
 
 	/* Endpoint data size, internal format */
-	size_t data_size : 8u;
+	uint32_t data_size : 8u;
 
 	/* Endpoint expected payload size, 0 for unspecified*/
-	size_t expected_payload_size : 8u;
+	uint32_t expected_payload_size : 8u;
 
-	size_t _unused: 8u;
+	uint32_t retain_last_event: 1u;
 
-	/* Device last data event item */
-	struct ha_event *last_data_event;
+	size_t _unused: 7u;
 
 	int (*ingest)(struct ha_event *ev,
 		      struct ha_dev_payload *pl);
@@ -154,7 +232,15 @@ struct ha_device_endpoint
 		       const ha_dev_cmd_t *cmd);
 };
 
-#define HA_DEV_ENDPOINT_INIT(_eid, _data_size, _expected_payload_size, _ingest, _command) \
+struct ha_device_endpoint
+{
+	struct ha_device_endpoint_api *api;
+
+	/* Endpoint last data event item */
+	struct ha_event *last_data_event;
+};
+
+#define HA_DEV_ENDPOINT_API_INIT(_eid, _data_size, _expected_payload_size, _ingest, _command) \
 	{ \
 		.eid = _eid, \
 		.data_size = _data_size, \
@@ -173,7 +259,7 @@ struct ha_device_api {
 	 * @return true to accept the device, false to refuse the registration
 	 */
 	int (*init_endpoints)(const ha_dev_addr_t *addr,
-			      struct ha_device_endpoint **endpoints,
+			      struct ha_device_endpoint *endpoints,
 			      uint8_t *endpoints_count);
 
 	/**
@@ -224,11 +310,13 @@ struct ha_device {
 	/* Device API */
 	const struct ha_device_api *api;
 
+#if defined(CONFIG_HA_DEVICE_STATS)
 	/* Device statistics */
 	struct ha_dev_stats stats;
+#endif
 
 	/* Endpoints */
-	struct ha_device_endpoint *endpoints[HA_DEV_ENDPOINT_MAX_COUNT];
+	struct ha_device_endpoint endpoints[HA_DEV_ENDPOINT_MAX_COUNT];
 
 	/* Endpoints count */
 	uint8_t endpoints_count;
@@ -275,6 +363,11 @@ typedef struct ha_event {
 
 	/* Event payload */
 	void *data;
+
+#if defined(CONFIG_HA_STATS)
+	uint16_t data_size;
+#endif
+
 } ha_ev_t;
 
 ha_dev_t *ha_dev_get_by_addr(const ha_dev_addr_t *addr);
@@ -290,6 +383,8 @@ int ha_dev_register_data(const ha_dev_addr_t *addr,
 struct ha_device_endpoint *ha_dev_get_endpoint(ha_dev_t *dev, uint32_t ep);
 
 struct ha_device_endpoint *ha_dev_get_endpoint_by_id(ha_dev_t *dev, ha_endpoint_id_t eid);
+
+int ha_dev_get_endpoint_idx_by_id(ha_dev_t *dev, ha_endpoint_id_t eid);
 
 ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, uint32_t ep);
 
@@ -490,5 +585,9 @@ struct ha_room *ha_dev_get_room(ha_dev_t *const dev);
 ha_ev_t *ha_dev_command(const ha_dev_addr_t *addr,
 			ha_dev_cmd_t *cmd,
 			k_timeout_t timeout);
+
+/*____________________________________________________________________________*/
+
+int ha_stats_copy(struct ha_stats *dest);
 
 #endif /* _HA_DEVS_H_ */

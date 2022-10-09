@@ -24,9 +24,9 @@
 #include "emu.h"
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(caniot, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(caniot, LOG_LEVEL_WRN);
 
-#define HA_CIOT_QUERY_TIMEOUT_TOLERANCE_MS 50
+#define HA_CIOT_QUERY_TIMEOUT_TOLERANCE_MS 1u
 
 
 #if defined(CONFIG_CAN_INTERFACE)
@@ -195,7 +195,7 @@ bool event_cb(const caniot_controller_event_t *ev,
 			ret = ha_dev_register_caniot_telemetry(
 				net_time_get(),
 				CANIOT_DID(resp->id.cls, resp->id.sid),
-				AS_BLC0_TELEMETRY(resp->buf),
+				(char *)resp->buf,
 				(caniot_id_t *)&resp->id
 			);
 		}
@@ -434,11 +434,9 @@ int ha_ciot_ctrl_query(struct caniot_frame *__restrict req,
 
 	/* wait for response */
 	ret = k_sem_take(&qx->_sem, K_MSEC(qx->timeout + HA_CIOT_QUERY_TIMEOUT_TOLERANCE_MS));
-	/* TODO, remove this ASSERT which cannot be detected easily */
-	__ASSERT(ret == 0, "k_sem_take shouldn't timeout"); 
-	if (ret == -EAGAIN) {
+	if (ret != 0) {
+		LOG_ERR("k_sem_take shouldn't timeout ret=%d", ret);
 		ret = -EAGAIN;
-		LOG_ERR("k_sem_take( ...) Should not timeout (%u)", qx->timeout);
 		goto exit;
 	}
 

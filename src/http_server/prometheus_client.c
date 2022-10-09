@@ -728,9 +728,11 @@ int prometheus_metrics(http_request_t *req,
 		.flags =
 			HA_DEV_FILTER_DATA_EXIST |
 			HA_DEV_FILTER_FROM_INDEX |
-			HA_DEV_FILTER_TO_INDEX,
+			HA_DEV_FILTER_TO_INDEX |
+			HA_DEV_FILTER_DEVICE_TYPE,
 		.from_index = next_index,
 		.to_index = next_index + CONFIG_PROMETHEUS_METRICS_PER_FLUSH,
+		.device_type = HA_DEV_TYPE_XIAOMI_MIJIA,
 	};
 
 	size_t count = ha_dev_iterate(prom_ha_devs_iterate_cb, &filter, 

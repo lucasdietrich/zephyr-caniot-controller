@@ -31,7 +31,7 @@ static int ingest(struct ha_event *ev,
 	return 0;
 }
 
-static struct ha_device_endpoint ep = HA_DEV_ENDPOINT_INIT(
+static struct ha_device_endpoint_api ep = HA_DEV_ENDPOINT_API_INIT(
 	HA_DEV_ENDPOINT_XIAOMI_MIJIA,
 	sizeof(struct ha_ds_xiaomi),
 	sizeof(xiaomi_record_t),
@@ -40,10 +40,10 @@ static struct ha_device_endpoint ep = HA_DEV_ENDPOINT_INIT(
 );
 
 static int init_endpoints(const ha_dev_addr_t *addr,
-			  struct ha_device_endpoint **endpoints,
+			  struct ha_device_endpoint *endpoints,
 			  uint8_t *endpoints_count)
 {
-	endpoints[0] = &ep;
+	endpoints[0].api = &ep;
 	*endpoints_count = 1U;
 
 	return 0;

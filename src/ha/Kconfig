@@ -12,3 +12,18 @@ config HA_EMULATED_DEVICES
         depends on !CLOUD
         help
                 Enable HA Emulated Devices.
+
+# TODO: Not fully implemented yet
+config HA_STATS
+        bool "Enable HA Stats"
+        default y
+        help
+                Enable HA Stats.
+
+# TODO: Not fully implemented yet
+config HA_DEVICE_STATS
+        bool "Enable HA Stats for individual devices"
+        default y
+        depends on HA_STATS
+        help
+                Enable HA Device Stats.

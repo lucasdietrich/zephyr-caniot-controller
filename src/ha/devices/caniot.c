@@ -5,6 +5,11 @@
 
 #include "caniot.h"
 
+#define GARAGE_DOOR_CONTROLLER_DEV CANIOT_DID(CANIOT_DEVICE_CLASS0, 0x1)
+#define ALARM_CONTROLLER_DID CANIOT_DID(CANIOT_DEVICE_CLASS0, 0x3)
+#define DEV_BOARD_DID CANIOT_DID(CANIOT_DEVICE_CLASS0, 0x4)
+#define HEATING_CONTROLLER_DID CANIOT_DID(CANIOT_DEVICE_CLASS1, 0x0)
+
 /* TODO remove one of the duplicates (see devices/caniot.c) */
 static int save_caniot_temperature(struct ha_ds_caniot_blc0_telemetry *blt,
 				   uint8_t temp_index,
@@ -50,17 +55,24 @@ void ha_dev_caniot_blc_cls0_to_blt(struct ha_ds_caniot_blc0_telemetry *blt,
 	blt->pdio.mask = 0xFFU;
 }
 
-static int blc_ingest(struct ha_event *ev,
-		      struct ha_dev_payload *pl)
+static int blc0_ingest(struct ha_event *ev,
+		       struct ha_dev_payload *pl)
 {
-	if (CANIOT_DID_CLS(ev->dev->addr.mac.addr.caniot) == CANIOT_DEVICE_CLASS0) {
-		ha_dev_caniot_blc_cls0_to_blt(
-			ev->data,
-			(const struct caniot_blc0_telemetry *)pl->buffer);
-	} else {
-		return -ENOTSUP;
-	}
+	ha_dev_caniot_blc_cls0_to_blt(ev->data,
+				      (const struct caniot_blc0_telemetry *)pl->buffer);
 
+	return 0;
+}
+
+static int blc1_ingest(struct ha_event *ev,
+		       struct ha_dev_payload *pl)
+{
+	return 0;
+}
+
+static int ep_heating_control_ingest(struct ha_event *ev,
+				     struct ha_dev_payload *pl)
+{
 	return 0;
 }
 
@@ -73,27 +85,59 @@ static int select_endpoint(const ha_dev_addr_t *addr,
 
 	if (id->endpoint == CANIOT_ENDPOINT_BOARD_CONTROL) {
 		return HA_ENDPOINT_INDEX(0);
+	} else if (id->endpoint == CANIOT_ENDPOINT_APP) {
+		return HA_ENDPOINT_INDEX(1);
 	}
+	
+	// ha_dev_get_endpoint_idx_by_id()
 
-	return -ENOTSUP;
+	return -ENOENT;
 }
 
 /* TODO reference endpoint instead of allocating two for EACH device */
 
-static struct ha_device_endpoint ep_blc = HA_DEV_ENDPOINT_INIT(
-	HA_DEV_ENDPOINT_CANIOT_BLC,
-	sizeof(struct ha_ds_caniot_blc0_telemetry),
-	sizeof(struct caniot_blc0_telemetry),
-	blc_ingest,
-	NULL
-);
+static struct ha_device_endpoint_api ep_blc0 = {
+	.eid = HA_DEV_ENDPOINT_CANIOT_BLC0,
+	.data_size = sizeof(struct ha_ds_caniot_blc0_telemetry),
+	.expected_payload_size = 8u,
+	.ingest = blc0_ingest,
+	.command = NULL
+};
+
+static struct ha_device_endpoint_api ep_blc1 = {
+	.eid = HA_DEV_ENDPOINT_CANIOT_BLC1,
+	.data_size = 0u,
+	.expected_payload_size = 8u,
+	.ingest = blc1_ingest,
+	.command = NULL
+};
+
+static struct ha_device_endpoint_api ep_heating_control = {
+	.eid = HA_DEV_ENDPOINT_CANIOT_HEATING,
+	.data_size = sizeof(struct ha_ds_caniot_heating_control_telemetry),
+	.expected_payload_size = 8u,
+	.ingest = ep_heating_control_ingest,
+	.command = NULL
+};
 
 static int init_endpoints(const ha_dev_addr_t *addr,
-			  struct ha_device_endpoint **endpoints,
+			  struct ha_device_endpoint *endpoints,
 			  uint8_t *endpoints_count)
 {
-	endpoints[0] = &ep_blc;
-	*endpoints_count = 1U;
+	if (CANIOT_DID_CLS(addr->mac.addr.caniot) == CANIOT_DEVICE_CLASS0) {
+		endpoints[0].api = &ep_blc0;
+		*endpoints_count = 1U;
+	} else if (CANIOT_DID_CLS(addr->mac.addr.caniot) == CANIOT_DEVICE_CLASS1) {
+		endpoints[0].api = &ep_blc1;
+		*endpoints_count = 1U;
+	} else {
+		return -ENOTSUP;
+	}
+
+	if (caniot_deviceid_equal(addr->mac.addr.caniot, HEATING_CONTROLLER_DID)) {
+		endpoints[1u].api = &ep_heating_control;
+		*endpoints_count = 2u;
+	}
 
 	return 0;
 }
@@ -105,7 +149,7 @@ const struct ha_device_api ha_device_api_caniot = {
 
 int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 				     caniot_did_t did,
-				     const struct caniot_blc0_telemetry *data,
+				     char buf[8u],
 				     caniot_id_t *id)
 {
 	/* check if device already exists */
@@ -117,11 +161,7 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 		}
 	};
 
-	return ha_dev_register_data(&addr,
-				    data,
-				    CANIOT_BLT_SIZE,
-				    timestamp,
-				    (void *)id);
+	return ha_dev_register_data(&addr, buf, 8u, timestamp, (void *)id);
 }
 
 const struct caniot_blc0_telemetry *ha_ev_get_caniot_telemetry(const ha_ev_t *ev)

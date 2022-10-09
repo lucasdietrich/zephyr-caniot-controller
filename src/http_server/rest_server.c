@@ -487,6 +487,7 @@ struct json_caniot_telemetry_array
 {
 	struct json_caniot_telemetry records[HA_CANIOT_MAX_DEVICES];
 	size_t count;
+	char temp_repr[HA_CANIOT_MAX_DEVICES][HA_CANIOT_MAX_TEMPERATURES][9U];
 };
 
 const struct json_obj_descr json_caniot_telemetry_array_descr[] = {
@@ -494,22 +495,13 @@ const struct json_obj_descr json_caniot_telemetry_array_descr[] = {
 	count, json_caniot_telemetry_descr, ARRAY_SIZE(json_caniot_telemetry_descr))
 };
 
-struct caniot_records_encoding_context
-{
-	struct json_caniot_telemetry_array arr;
-	/* x = devices
-	 * y = temperatures per device
-	 * z = string length
-	 */
-	char temp_repr[HA_CANIOT_MAX_DEVICES][HA_CANIOT_MAX_TEMPERATURES][9U];
-};
-
 static bool caniot_device_cb(ha_dev_t *dev,
 			     void *user_data)
 {
-	struct caniot_records_encoding_context *const ctx =
-		(struct caniot_records_encoding_context *)user_data;
-	struct json_caniot_telemetry *const rec = &ctx->arr.records[ctx->arr.count];
+	struct json_caniot_telemetry_array *const arr =
+		(struct json_caniot_telemetry_array *)user_data;
+
+	struct json_caniot_telemetry *const rec = &arr->records[arr->count];
 	const struct ha_ds_caniot_blc0_telemetry *const dt =
 		HA_DEV_EP0_GET_CAST_LAST_DATA(dev, struct ha_ds_caniot_blc0_telemetry);
 
@@ -526,18 +518,18 @@ static bool caniot_device_cb(ha_dev_t *dev,
 		if (dt->temperatures[i].type != HA_DEV_SENSOR_TYPE_NONE) {
 			const size_t j = rec->temperatures_count;
 
-			sprintf(ctx->temp_repr[ctx->arr.count][j],
+			sprintf(arr->temp_repr[arr->count][j],
 				"%.2f",
 				dt->temperatures[i].value / 100.0);
 
-			rec->temperatures[j].repr = ctx->temp_repr[ctx->arr.count][j];
+			rec->temperatures[j].repr = arr->temp_repr[arr->count][j];
 			rec->temperatures[j].sens_type = dt->temperatures[i].type;
 			rec->temperatures[j].value = dt->temperatures[i].value;
 			rec->temperatures_count++;
 		}
 	}
 
-	ctx->arr.count++;
+	arr->count++;
 
 	return true;
 }
@@ -545,13 +537,14 @@ static bool caniot_device_cb(ha_dev_t *dev,
 int rest_caniot_records(http_request_t *req,
 			http_response_t *resp)
 {
-	struct caniot_records_encoding_context ctx;
+	struct json_caniot_telemetry_array arr;
 
-	ctx.arr.count = 0;
+	arr.count = 0;
 
-	ha_dev_caniot_iterate_data(caniot_device_cb, &ctx);
+	ha_dev_caniot_iterate_data(caniot_device_cb, &arr);
 
-	return rest_encode_response_json_array(resp, &ctx.arr, json_caniot_telemetry_array_descr);
+	return rest_encode_response_json_array(resp, &arr,
+					       json_caniot_telemetry_array_descr);
 }
 
 struct json_dev_ep_last_ev
@@ -610,12 +603,13 @@ static const struct json_obj_descr json_device_endpoint_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_device_endpoint, command, JSON_TOK_NUMBER),
 };
 
-static const struct json_obj_descr json_device_status_descr[] = {
+static const struct json_obj_descr json_device_stats_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, rx, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, rx_bytes, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, tx, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, tx_bytes, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, max_inactivity, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, err_ev, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, err_flags, JSON_TOK_NUMBER),
 };
 
 static const struct json_obj_descr json_device_descr[] = {
@@ -628,7 +622,7 @@ static const struct json_obj_descr json_device_descr[] = {
 		endpoints_count, json_device_endpoint_descr, ARRAY_SIZE(json_device_endpoint_descr)),
 	JSON_OBJ_DESCR_PRIM(struct json_device, rid, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_device, room_name, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_OBJECT(struct json_device, stats, json_device_status_descr),
+	JSON_OBJ_DESCR_OBJECT(struct json_device, stats, json_device_stats_descr),
 };
 
 /* ~154 per device */
@@ -664,11 +658,11 @@ static bool devices_cb(ha_dev_t *dev,
 		struct ha_device_endpoint *ep = ha_dev_get_endpoint(dev, i);
 		if (ep) {
 			struct json_device_endpoint *jep = &jd->endpoints[jd->endpoints_count];
-			jep->eid = ep->eid;
-			jep->data_size = ep->data_size;
-			jep->in_data_size = ep->expected_payload_size;
-			jep->telemetry = (uint32_t) ep->ingest;
-			jep->command = (uint32_t) ep->command;
+			jep->eid = ep->api->eid;
+			jep->data_size = ep->api->data_size;
+			jep->in_data_size = ep->api->expected_payload_size;
+			jep->telemetry = (uint32_t) ep->api->ingest;
+			jep->command = (uint32_t) ep->api->command;
 
 			jd->endpoints_count++;
 
@@ -724,6 +718,44 @@ int rest_devices_list(http_request_t *req,
 	return rest_encode_response_json_array(
 		resp, &arr, json_device_array_descr
 	);
+}
+
+static const struct json_obj_descr json_ha_stats_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, ev, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, dev_dropped, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, dev_no_mem, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, dev_no_api, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, dev_ep_init, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, dev_no_ep, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, dev_toomuch_ep, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, ev_dropped, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, ev_data_dropped, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, ev_cmd_dropped, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, ev_no_mem, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, ev_no_ep, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, ev_ep, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, ev_payload_size, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, ev_no_data_mem, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, ev_ingest, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, ev_never_ref, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, mem_ev_count, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, mem_ev_remaining, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, mem_device_count, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, mem_device_remaining, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, mem_sub_count, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, mem_sub_remaining, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, mem_heap_alloc, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_stats, mem_heap_total, JSON_TOK_NUMBER),
+};
+
+int rest_ha_stats(http_request_t *req,
+		  http_response_t *resp)
+{
+	struct ha_stats stats;
+	ha_stats_copy(&stats);
+
+	return rest_encode_response_json(resp, &stats, json_ha_stats_descr,
+					 ARRAY_SIZE(json_ha_stats_descr));
 }
 
 static bool room_devices_cb(ha_dev_t *dev,

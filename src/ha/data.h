@@ -5,6 +5,8 @@
 
 #include <stdint.h>
 
+#include <caniot/datatype.h>
+
 typedef enum {
 	HA_DATA_TEMPERATURE,
 	HA_DATA_HUMIDITY,
@@ -48,6 +50,15 @@ struct ha_data_digital {
 
 struct ha_data_analog {
 	uint32_t value; /* 1e-6 V */
+};
+
+struct ha_heater_mode {
+	caniot_heating_status_t mode;
+};
+
+struct ha_shutter_position {
+	uint8_t position; /* % */
+	uint8_t moving; /* 0: stopped, 1: moving */
 };
 
 typedef struct ha_data

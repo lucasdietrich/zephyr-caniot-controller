@@ -45,6 +45,9 @@ int rest_xiaomi_records(http_request_t *req,
 int rest_devices_list(http_request_t *req,
 		      http_response_t *resp);
 
+int rest_ha_stats(http_request_t *req,
+		  http_response_t *resp);
+		  
 int rest_room_devices_list(http_request_t *req,
 			   http_response_t *resp);
 
