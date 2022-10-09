@@ -8,3 +8,7 @@
 	path = modules/lua
 	url = git@github.com:lucasdietrich/lua.git
 	branch = zephyr-lua
+[submodule "scripts/caniot-sdk"]
+	path = scripts/caniot-sdk
+	url = https://github.com/lucasdietrich/canot-sdk.git
+	branch = main
