@@ -228,5 +228,6 @@
                 }
         },
         "devicetree.defaultBoard": "nucleo_f429zi",
-        "editor.rulers": [80]
+        "editor.rulers": [80],
+        "python.defaultInterpreterPath": "../.venv/bin/python",
 }
