@@ -4,7 +4,7 @@
 
 #include "devices.h"
 
-static size_t get_data_size(ha_data_type_t type)
+size_t get_data_size(ha_data_type_t type)
 {
 	switch (type) {
 	case HA_DATA_TEMPERATURE:
@@ -19,76 +19,32 @@ static size_t get_data_size(ha_data_type_t type)
 		return sizeof(struct ha_data_digital);
 	case HA_DATA_ANALOG:
 		return sizeof(struct ha_data_analog);
+	case HA_DATA_HEATER_MODE:
+		return sizeof(struct ha_heater_mode);
+	case HA_DATA_SHUTTER_POSITION:
+		return sizeof(struct ha_shutter_position);
 	default:
 		return 0;
 	}
 }
 
-ha_data_t *ha_data_alloc(ha_data_type_t type)
+void *ha_data_get(void *data,
+		  const struct ha_data_descr *descr,
+		  size_t descr_size,
+		  ha_data_type_t type,
+		  uint8_t index)
 {
-	const size_t data_size = get_data_size(type);
-	if (data_size == 0) {
+	if (!data || !descr || !descr_size)
 		return NULL;
-	}
 
-	ha_data_t *container = NULL;
+	const struct ha_data_descr *d;
 
-	container = k_malloc(sizeof(ha_data_t));
-	if (!container) {
-		goto error;
-	}
-
-	container->data = k_malloc(data_size);
-	if (!container->data) {
-		goto error;
-	}
-
-	return container;
-
-error:
-	if (container) {
-		k_free(container);
-
-		if (container->data) {
-			k_free(container->data);
+	for (d = descr; d < descr + descr_size; d++) {
+		if ((d->type == type) && (index-- == 0)) {
+			return (uint8_t *)data + d->offset;
+			break;
 		}
 	}
 
 	return NULL;
 }
-
-void ha_data_free(ha_data_t *data)
-{
-	k_free(data);
-}
-
-void ha_data_append(sys_slist_t *list, ha_data_t *data)
-{
-	sys_slist_append(list, &data->_node);
-}
-
-void ha_data_free_list(sys_slist_t *list)
-{
-	sys_snode_t *node;
-
-	while ((node = sys_slist_get(list)) != NULL) {
-		ha_data_free(CONTAINER_OF(node, ha_data_t, _node));
-	}
-}
-
-// ha_data_t *ha_ev_data_alloc_queue(struct ha_event *ev,
-// 				  ha_data_type_t type)
-// {
-// 	if (!ev) {
-// 		return -EINVAL;
-// 	}
-
-// 	ha_data_t *mem = ha_data_alloc(type);
-// 	if (!mem) {
-// 		return -ENOMEM;
-// 	}
-
-// 	sys_slist_append(&ev->slist, &mem->_node);
-
-// 	return 0;
-// }

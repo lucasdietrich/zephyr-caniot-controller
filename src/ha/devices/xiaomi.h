@@ -15,18 +15,10 @@
 
 struct ha_ds_xiaomi
 {
-	int8_t rssi;
-
-	uint16_t humidity; /* 1e-2 % */
-
-	struct {
-		int16_t value; /* 1e-2 °C */
-		ha_dev_sensor_type_t type;
-	} temperature;
-
-	uint16_t battery_mv; /* mV */
-
-	uint8_t battery_level; /* % */
+	struct ha_data_rssi rssi;
+	struct ha_data_humidity humidity;
+	struct ha_data_temperature temperature;
+	struct ha_data_battery_level battery_level;
 };
 
 #define HA_BT_ADDR_LE_PUBLIC_INIT(_b0, _b1, _b2, _b3, _b4, _b5) \

@@ -558,21 +558,21 @@ static void prom_metric_feed_xiaomi_humidity(const struct ha_ds_xiaomi *dt,
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
 	val->encoding.digits = 3U;
-	val->fvalue = dt->humidity / 100.0;
+	val->fvalue = dt->humidity.value / 100.0;
 }
 
 static void prom_metric_feed_xiaomi_battery_level(const struct ha_ds_xiaomi *dt,
 						  struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
-	val->uvalue = dt->battery_level;
+	val->uvalue = dt->battery_level.level;
 }
 
 static void prom_metric_feed_xiaomi_rssi(const struct ha_ds_xiaomi *dt,
 					 struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_INT32;
-	val->svalue = (float) dt->rssi;
+	val->svalue = (float) dt->rssi.value;
 }
 
 static void prom_metric_feed_xiaomi_battery_voltage(const struct ha_ds_xiaomi *dt,
@@ -580,7 +580,7 @@ static void prom_metric_feed_xiaomi_battery_voltage(const struct ha_ds_xiaomi *d
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
 	val->encoding.digits = 3U;
-	val->fvalue = dt->battery_mv / 1000.0;
+	val->fvalue = dt->battery_level.voltage / 1000.0;
 }
 
 static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
@@ -632,6 +632,7 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
 
 	} else if (dev->addr.type == HA_DEV_TYPE_CANIOT) {
+		__ASSERT_NO_MSG(dev->endpoints[0].api->eid == HA_DEV_ENDPOINT_CANIOT_BLC0);
 		char caniot_addr_str[CANIOT_ADDR_LEN];
 
 		caniot_encode_deviceid(dev->addr.mac.addr.caniot,
@@ -692,7 +693,7 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 		struct metric_value val = {
 			.tags_values = tags_values.list,
 			.tags_values_count = ARRAY_SIZE(tags_values.list),
-			.fvalue = dt->die_temperature,
+			.fvalue = dt->die_temperature.value / 100.0f,
 			.encoding = {
 				.type = VALUE_ENCODING_TYPE_FLOAT,
 				.digits = 1

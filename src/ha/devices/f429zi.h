@@ -12,7 +12,7 @@
 
 struct ha_ds_f429zi
 {
-	float die_temperature; /* °C */
+	struct ha_data_temperature die_temperature;
 };
 
 int ha_dev_register_die_temperature(uint32_t timestamp, float die_temperature);

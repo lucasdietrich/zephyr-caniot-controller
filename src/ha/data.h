@@ -14,6 +14,8 @@ typedef enum {
 	HA_DATA_RSSI,
 	HA_DATA_DIGITAL,
 	HA_DATA_ANALOG,
+	HA_DATA_HEATER_MODE,
+	HA_DATA_SHUTTER_POSITION,
 } ha_data_type_t;
 
 typedef enum {
@@ -35,8 +37,8 @@ struct ha_data_humidity {
 };
 
 struct ha_data_battery_level {
-	uint8_t value; /* % */
-	uint16_t mvoltage; /* 1e-3 V */
+	uint8_t level; /* % */
+	uint16_t voltage; /* 1e-3 V */
 };
 
 struct ha_data_rssi {
@@ -61,34 +63,22 @@ struct ha_shutter_position {
 	uint8_t moving; /* 0: stopped, 1: moving */
 };
 
-typedef struct ha_data
+struct ha_data_descr
 {
-	sys_snode_t _node;
-
 	ha_data_type_t type;
-	
-	union {
-		void *data;
-		// struct ha_data_temperature *temp;
-		// struct ha_data_humidity *hum;
-		// struct ha_data_battery_level *bat;
-		// struct ha_data_rssi *rssi;
-		// struct ha_data_digital *dig;
-		// struct ha_data_analog *analog;
-	};
-} ha_data_t;
+	uint16_t offset;
+};
 
-ha_data_t *ha_data_alloc(ha_data_type_t type);
+#define HA_DATA_DESCR(_struct, _member, _type) \
+	{ \
+		.type = _type, \
+		.offset = offsetof(_struct, _member), \
+	}
 
-void ha_data_free(ha_data_t *data);
-
-void ha_data_append(sys_slist_t *list, ha_data_t *data);
-
-void ha_data_free_list(sys_slist_t *list);
-
-struct ha_event;
-
-ha_data_t *ha_ev_data_alloc_queue(struct ha_event *ev,
-				  ha_data_type_t type);
+void *ha_data_get(void *data,
+		  const struct ha_data_descr *descr,
+		  size_t descr_size,
+		  ha_data_type_t type,
+		  uint8_t index);
 
 #endif /* _HA_DATA_H_ */

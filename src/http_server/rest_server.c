@@ -397,12 +397,12 @@ static int ha_json_xiaomi_record_feed_latest(struct json_xiaomi_record *json_dat
 	const struct ha_ds_xiaomi *const data = ev->data;
 
 	json_data->bt_mac = buf->addr;
-	json_data->measures.rssi = data->rssi;
+	json_data->measures.rssi = data->rssi.value;
 	json_data->measures.temperature = buf->temperature;
 	json_data->measures.temperature_raw = data->temperature.value;
-	json_data->measures.humidity = data->humidity;
-	json_data->measures.battery_level = data->battery_level;
-	json_data->measures.battery_voltage = data->battery_mv;
+	json_data->measures.humidity = data->humidity.value;
+	json_data->measures.battery_level = data->battery_level.level;
+	json_data->measures.battery_voltage = data->battery_level.voltage;
 
 	json_data->base.timestamp = ev->timestamp;
 

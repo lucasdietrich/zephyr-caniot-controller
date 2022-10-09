@@ -96,26 +96,60 @@ static int select_endpoint(const ha_dev_addr_t *addr,
 
 /* TODO reference endpoint instead of allocating two for EACH device */
 
-static struct ha_device_endpoint_api ep_blc0 = {
+static const struct ha_data_descr ha_ds_caniot_blc0_telemetry_descr[] = {
+	HA_DATA_DESCR(struct ha_ds_caniot_blc0_telemetry, temperatures[0u], HA_DATA_TEMPERATURE),
+	HA_DATA_DESCR(struct ha_ds_caniot_blc0_telemetry, temperatures[1u], HA_DATA_TEMPERATURE),
+	HA_DATA_DESCR(struct ha_ds_caniot_blc0_telemetry, temperatures[2u], HA_DATA_TEMPERATURE),
+	HA_DATA_DESCR(struct ha_ds_caniot_blc0_telemetry, temperatures[3u], HA_DATA_TEMPERATURE),
+	HA_DATA_DESCR(struct ha_ds_caniot_blc0_telemetry, dio, HA_DATA_DIGITAL),
+	HA_DATA_DESCR(struct ha_ds_caniot_blc0_telemetry, pdio, HA_DATA_DIGITAL),
+};
+
+static const struct ha_device_endpoint_api ep_blc0 = {
 	.eid = HA_DEV_ENDPOINT_CANIOT_BLC0,
 	.data_size = sizeof(struct ha_ds_caniot_blc0_telemetry),
 	.expected_payload_size = 8u,
+	.descr = ha_ds_caniot_blc0_telemetry_descr,
+	.descr_size = ARRAY_SIZE(ha_ds_caniot_blc0_telemetry_descr),
 	.ingest = blc0_ingest,
 	.command = NULL
 };
 
-static struct ha_device_endpoint_api ep_blc1 = {
+static const struct ha_data_descr ha_ds_caniot_blc1_telemetry_descr[] = {
+
+};
+
+static const struct ha_device_endpoint_api ep_blc1 = {
 	.eid = HA_DEV_ENDPOINT_CANIOT_BLC1,
 	.data_size = 0u,
 	.expected_payload_size = 8u,
+	.descr_size = ARRAY_SIZE(ha_ds_caniot_blc1_telemetry_descr),
+	.descr = ha_ds_caniot_blc1_telemetry_descr,
 	.ingest = blc1_ingest,
 	.command = NULL
 };
 
-static struct ha_device_endpoint_api ep_heating_control = {
+static const struct ha_data_descr ha_ds_caniot_ep_heating_control_descr[] = {
+	HA_DATA_DESCR(struct ha_ds_caniot_heating_control_telemetry, temperatures[0u], HA_DATA_TEMPERATURE),
+	HA_DATA_DESCR(struct ha_ds_caniot_heating_control_telemetry, temperatures[1u], HA_DATA_TEMPERATURE),
+	HA_DATA_DESCR(struct ha_ds_caniot_heating_control_telemetry, temperatures[2u], HA_DATA_TEMPERATURE),
+	HA_DATA_DESCR(struct ha_ds_caniot_heating_control_telemetry, temperatures[3u], HA_DATA_TEMPERATURE),
+	HA_DATA_DESCR(struct ha_ds_caniot_heating_control_telemetry, heaters[0u], HA_DATA_HEATER_MODE),
+	HA_DATA_DESCR(struct ha_ds_caniot_heating_control_telemetry, heaters[1u], HA_DATA_HEATER_MODE),
+	HA_DATA_DESCR(struct ha_ds_caniot_heating_control_telemetry, heaters[2u], HA_DATA_HEATER_MODE),
+	HA_DATA_DESCR(struct ha_ds_caniot_heating_control_telemetry, heaters[3u], HA_DATA_HEATER_MODE),
+	HA_DATA_DESCR(struct ha_ds_caniot_heating_control_telemetry, shutters[0u], HA_DATA_SHUTTER_POSITION),
+	HA_DATA_DESCR(struct ha_ds_caniot_heating_control_telemetry, shutters[1u], HA_DATA_SHUTTER_POSITION),
+	HA_DATA_DESCR(struct ha_ds_caniot_heating_control_telemetry, shutters[2u], HA_DATA_SHUTTER_POSITION),
+	HA_DATA_DESCR(struct ha_ds_caniot_heating_control_telemetry, shutters[3u], HA_DATA_SHUTTER_POSITION),
+};
+
+static const struct ha_device_endpoint_api ep_heating_control = {
 	.eid = HA_DEV_ENDPOINT_CANIOT_HEATING,
 	.data_size = sizeof(struct ha_ds_caniot_heating_control_telemetry),
 	.expected_payload_size = 8u,
+	.descr_size = ARRAY_SIZE(ha_ds_caniot_ep_heating_control_descr),
+	.descr = ha_ds_caniot_ep_heating_control_descr,
 	.ingest = ep_heating_control_ingest,
 	.command = NULL
 };

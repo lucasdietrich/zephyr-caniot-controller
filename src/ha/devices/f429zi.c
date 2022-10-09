@@ -9,7 +9,7 @@
 static void f429zi_temp_convert(struct ha_ds_f429zi *dt,
 				const float *die_temp)
 {
-	dt->die_temperature = *die_temp;
+	dt->die_temperature.value = *die_temp * 100u;
 }
 
 static int ingest(struct ha_event *ev,
@@ -65,5 +65,5 @@ float ha_ev_get_die_temperature(const ha_ev_t *ev)
 	const struct ha_ds_f429zi *dt =
 		HA_EV_GET_CAST_DATA(ev, struct ha_ds_f429zi);
 
-	return dt->die_temperature;
+	return dt->die_temperature.value / 100.0f;
 }

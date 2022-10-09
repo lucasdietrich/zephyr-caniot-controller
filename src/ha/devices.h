@@ -17,6 +17,7 @@
 
 #include "ha.h"
 #include "room.h"
+#include "data.h"
 
 /* No filters, iterate over all devices */
 #define HA_DEV_FILTER_DISABLED NULL
@@ -234,7 +235,9 @@ struct ha_device_endpoint_api
 
 	uint32_t retain_last_event: 1u;
 
-	size_t _unused: 7u;
+	size_t descr_size: 7u;
+
+	const struct ha_data_descr *descr;
 
 	int (*ingest)(struct ha_event *ev,
 		      struct ha_dev_payload *pl);
@@ -245,7 +248,7 @@ struct ha_device_endpoint_api
 
 struct ha_device_endpoint
 {
-	struct ha_device_endpoint_api *api;
+	const struct ha_device_endpoint_api *api;
 
 	/* Endpoint last data event item */
 	struct ha_event *last_data_event;

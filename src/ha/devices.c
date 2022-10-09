@@ -585,7 +585,7 @@ static int device_process_data(ha_dev_t *dev,
 		goto exit;
 	}
 
-	struct ha_device_endpoint_api *const ep_api = dev->endpoints[ep_index].api;
+	const struct ha_device_endpoint_api *const ep_api = dev->endpoints[ep_index].api;
 	if (ep_api->eid == HA_DEV_ENDPOINT_NONE) {
 		dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_NO_EP;
 		stats.ev_no_ep++;
