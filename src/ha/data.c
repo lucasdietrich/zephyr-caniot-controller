@@ -48,3 +48,39 @@ void *ha_data_get(void *data,
 
 	return NULL;
 }
+
+bool ha_data_descr_data_type_has(const struct ha_data_descr *descr,
+				 size_t descr_size,
+				 ha_data_type_t type)
+{
+	if (!descr) {
+		return false;
+	}
+
+	const struct ha_data_descr *d;
+
+	for (d = descr; d < descr + descr_size; d++) {
+		if (d->type == type) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+uint32_t ha_data_descr_data_types_mask(const struct ha_data_descr *descr,
+				       size_t descr_size)
+{
+	if (!descr)
+		return 0;
+
+	uint32_t mask = 0;
+	const struct ha_data_descr *d;
+
+	for (d = descr; d < descr + descr_size; d++) {
+		mask |= (1 << d->type);
+	}
+
+	return mask;
+}

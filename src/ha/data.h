@@ -81,4 +81,11 @@ void *ha_data_get(void *data,
 		  ha_data_type_t type,
 		  uint8_t index);
 
+bool ha_data_descr_data_type_has(const struct ha_data_descr *descr,
+				 size_t descr_size,
+				 ha_data_type_t type);
+
+uint32_t ha_data_descr_data_types_mask(const struct ha_data_descr *descr,
+				       size_t descr_size);
+
 #endif /* _HA_DATA_H_ */

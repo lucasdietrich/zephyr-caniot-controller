@@ -241,7 +241,7 @@ void emu_caniot_cmd_thread(void *_a, void *_b, void *_c)
 
 		ret = ha_ciot_ctrl_query(&req, &resp, did, &timeout);
 
-		LOG_INF("CMD ret=%d timeout=%u", ret, timeout);
+		LOG_DBG("CMD ret=%d timeout=%u", ret, timeout);
 
 		timeout = 200u;
 
@@ -249,7 +249,7 @@ void emu_caniot_cmd_thread(void *_a, void *_b, void *_c)
 
 		ret = ha_ciot_ctrl_query(&req, &resp, did, &timeout);
 
-		LOG_INF("TLM ret=%d timeout=%u", ret, timeout);
+		LOG_DBG("TLM ret=%d timeout=%u", ret, timeout);
 
 		k_sleep(K_MSEC(EMU_CAN_CMD_RDM_MS));
 	}

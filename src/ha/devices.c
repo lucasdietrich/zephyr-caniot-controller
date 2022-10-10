@@ -7,7 +7,7 @@
 #include <zephyr.h>
 
 #include <stdio.h>
-#include <string.h>
+#include <malloc.h>
 
 #include <caniot/datatype.h>
 
@@ -362,6 +362,15 @@ ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 		goto exit;
 	}
 
+#if HA_DEVICES_ENDPOINT_TYPE_SEARCH_OPTIMIZATION
+	/* Finalize endpoints initialization */
+	for (int i = 0; i < dev->endpoints_count; i++) {
+		dev->endpoints[i]._data_types = ha_data_descr_data_types_mask(
+			dev->endpoints[i].api->descr,
+			dev->endpoints[i].api->descr_size);
+	}
+#endif /* HA_DEVICES_ENDPOINT_TYPE_SEARCH_OPTIMIZATION */
+
 	/* Increment device count */
 	devices.count++;
 
@@ -605,7 +614,7 @@ static int device_process_data(ha_dev_t *dev,
 
 	if (ep_api->data_size) {
 		/* Allocate buffer to handle data to be converted if not null */
-		ev->data = k_malloc(ep_api->data_size);
+		ev->data = malloc(ep_api->data_size);
 		if (ev->data) {
 			stats.mem_heap_alloc += ep_api->data_size;
 			stats.mem_heap_total += ep_api->data_size;
@@ -833,12 +842,11 @@ static void ha_ev_free(struct ha_event *ev)
 	__ASSERT_NO_MSG(atomic_get(&ev->ref_count) == (atomic_val_t)0);
 
 	/* Deallocate event data buffer */
-	k_free(ev->data);
+	free(ev->data);
 
 	/* Decrease before freeing */
 	stats.mem_heap_alloc -= ev->data_size;
 
-	/* Same comment */
 	k_mem_slab_free(&ev_slab, (void **)&ev);
 	
 	stats.mem_ev_count--;
@@ -1175,4 +1183,27 @@ int ha_stats_copy(struct ha_stats *dest)
 	memcpy(dest, &stats, sizeof(struct ha_stats));
 
 	return 0;
+}
+
+bool ha_dev_endpoint_has_datatype(const ha_dev_t *dev,
+				  uint8_t endpoint_index,
+				  const ha_data_type_t datatype)
+{
+	if (!dev) {
+		return false;
+	}
+
+	if (endpoint_index >= dev->endpoints_count) {
+		return false;
+	}
+
+	const struct ha_device_endpoint *const ep = &dev->endpoints[endpoint_index];
+	
+#if HA_DEVICES_ENDPOINT_TYPE_SEARCH_OPTIMIZATION
+	return (bool) (ep->_data_types & (1u << datatype));
+#else
+	return ha_data_descr_data_type_has(ep->data_descr, 
+					   ep->data_descr_count, 
+					   datatype);
+#endif
 }

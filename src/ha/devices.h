@@ -24,6 +24,8 @@
 
 #define HA_DEV_ENDPOINT_MAX_COUNT 2u
 
+#define HA_DEVICES_ENDPOINT_TYPE_SEARCH_OPTIMIZATION 1u
+
 #define _HA_DEV_FILTER_BY_DEVICE_MEDIUM(_medium) \
 	(&(ha_dev_filter_t) { \
 		.flags = HA_DEV_FILTER_MEDIUM, \
@@ -252,6 +254,13 @@ struct ha_device_endpoint
 
 	/* Endpoint last data event item */
 	struct ha_event *last_data_event;
+
+#if HA_DEVICES_ENDPOINT_TYPE_SEARCH_OPTIMIZATION
+	/* Flags telling what kind of data types can be found in the endpoint 
+	 * For optimization purpose
+	 */
+	uint32_t _data_types;
+#endif /* HA_DEVICES_ENDPOINT_TYPE_SEARCH_OPTIMIZATION */
 };
 
 #define HA_DEV_ENDPOINT_API_INIT(_eid, _data_size, _expected_payload_size, _ingest, _command) \
@@ -603,5 +612,11 @@ ha_ev_t *ha_dev_command(const ha_dev_addr_t *addr,
 /*____________________________________________________________________________*/
 
 int ha_stats_copy(struct ha_stats *dest);
+
+/*____________________________________________________________________________*/
+
+bool ha_dev_endpoint_has_datatype(const ha_dev_t *dev,
+				  uint8_t endpoint_index,
+				  const ha_data_type_t datatype);
 
 #endif /* _HA_DEVS_H_ */

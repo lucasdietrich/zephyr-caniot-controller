@@ -200,7 +200,8 @@
                 "dfu.h": "c",
                 "dfu_server.h": "c",
                 "emu.h": "c",
-                "stdlib.h": "c"
+                "stdlib.h": "c",
+                "malloc.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

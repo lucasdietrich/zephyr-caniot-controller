@@ -21,13 +21,19 @@ static int ingest(struct ha_event *ev,
 	return 0;
 }
 
-static struct ha_device_endpoint_api ep = HA_DEV_ENDPOINT_API_INIT(
-	HA_DEV_ENDPOINT_NUCLEO_F429ZI,
-	sizeof(struct ha_ds_f429zi),
-	sizeof(float),
-	ingest,
-	NULL
-);
+static const struct ha_data_descr ha_ds_f429zi_descr[] = {
+	HA_DATA_DESCR(struct ha_ds_f429zi, die_temperature, HA_DATA_TEMPERATURE),
+};
+
+static struct ha_device_endpoint_api ep = {
+	.eid = HA_DEV_ENDPOINT_NUCLEO_F429ZI,
+	.data_size = sizeof(struct ha_ds_f429zi),
+	.expected_payload_size = sizeof(float),
+	.descr_size = ARRAY_SIZE(ha_ds_f429zi_descr),
+	.descr = ha_ds_f429zi_descr,
+	.ingest = ingest,
+	.command = NULL
+};
 
 static int init_endpoints(const ha_dev_addr_t *addr,
 			  struct ha_device_endpoint *endpoints,
