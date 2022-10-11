@@ -84,3 +84,22 @@ uint32_t ha_data_descr_data_types_mask(const struct ha_data_descr *descr,
 
 	return mask;
 }
+
+int ha_data_descr_extract(const struct ha_data_descr *descr,
+			  size_t data_descr_size,
+			  void *data_structure,
+			  void *destination,
+			  size_t index)
+{
+	if (!descr || !data_structure || !destination)
+		return -EINVAL;
+
+	if (index >= data_descr_size)
+		return -ENOENT;
+
+	memcpy(destination,
+	       (uint8_t *)data_structure + descr[index].offset,
+	       get_data_size(descr[index].type));
+
+	return 0;
+}

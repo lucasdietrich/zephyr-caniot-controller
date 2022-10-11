@@ -128,4 +128,20 @@ bool ha_data_descr_data_type_has(const struct ha_data_descr *descr,
 uint32_t ha_data_descr_data_types_mask(const struct ha_data_descr *descr,
 				       size_t data_descr_size);
 
+/**
+ * @brief Extract data at given index from a data structure using a descriptor
+ * 
+ * @param descr 
+ * @param data_descr_size 
+ * @param data_structure 
+ * @param data_extract 
+ * @param index 
+ * @return int 0 on success, negative value on error
+ */
+int ha_data_descr_extract(const struct ha_data_descr *descr,
+			  size_t data_descr_size,
+			  void *data_structure,
+			  void *data_extract,
+			  size_t index);
+
 #endif /* _HA_DATA_H_ */
