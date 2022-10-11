@@ -237,9 +237,13 @@ struct ha_device_endpoint_api
 
 	uint32_t retain_last_event: 1u;
 
-	size_t descr_size: 7u;
+	uint32_t _unused: 7u;
 
-	const struct ha_data_descr *descr;
+	const struct ha_data_descr *data_descr;
+	const struct ha_data_descr *cmd_descr;
+
+	uint8_t data_descr_size;
+	uint8_t cmd_descr_size;
 
 	int (*ingest)(struct ha_event *ev,
 		      struct ha_dev_payload *pl);
@@ -615,8 +619,27 @@ int ha_stats_copy(struct ha_stats *dest);
 
 /*____________________________________________________________________________*/
 
+bool ha_dev_endpoint_exists(const ha_dev_t *dev,
+			    uint8_t endpoint_index);
+
 bool ha_dev_endpoint_has_datatype(const ha_dev_t *dev,
 				  uint8_t endpoint_index,
 				  const ha_data_type_t datatype);
+
+bool ha_dev_endpoint_check_data_support(const ha_dev_t *dev,
+				  uint8_t endpoint_index);
+
+bool ha_dev_endpoint_check_cmd_support(const ha_dev_t *dev,
+				 uint8_t endpoint_index);
+
+/*____________________________________________________________________________*/
+
+/* Iterate over all devices/endpoints and count all data inputs matching given filter */
+int ha_dev_count_data_inputs(ha_data_type_t type,
+			     ha_data_assignement_t assignement);
+
+/* Iterate over all devices/endpoints and count all control outputs matching given filter */
+int ha_dev_count_control_outputs(ha_data_type_t type,
+				 ha_data_assignement_t assignement);
 
 #endif /* _HA_DEVS_H_ */

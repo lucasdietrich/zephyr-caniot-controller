@@ -639,8 +639,8 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 				       caniot_addr_str,
 				       sizeof(caniot_addr_str));
 
-		const struct ha_ds_caniot_blc0_telemetry *const dt = 
-			HA_DEV_EP0_GET_CAST_LAST_DATA(dev, const struct ha_ds_caniot_blc0_telemetry);
+		const struct ha_ds_caniot_blc0 *const dt = 
+			HA_DEV_EP0_GET_CAST_LAST_DATA(dev, const struct ha_ds_caniot_blc0);
 
 		union measurements_tags_values tags_values = {
 			.medium = prom_myd_medium_to_str(dev->addr.mac.medium),

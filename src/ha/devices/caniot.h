@@ -14,24 +14,44 @@
 #include "../data.h"
 
 /* blt stands for board level telemetry */
-struct ha_ds_caniot_blc0_telemetry
+struct ha_ds_caniot_blc0
 {
 	struct ha_data_temperature temperatures[HA_CANIOT_MAX_TEMPERATURES];
 	struct ha_data_digital dio;
 	struct ha_data_digital pdio;
 };
 
-struct ha_ds_caniot_blc1_telemetry
+struct ha_cmd_caniot_blc0
+{
+	struct ha_data_xps oc1;
+	struct ha_data_xps oc2;
+	struct ha_data_xps rl1;
+	struct ha_data_xps rl2;
+};
+
+struct ha_ds_caniot_blc1
 {
 	
 };
 
-struct ha_ds_caniot_heating_control_telemetry
+struct ha_cmd_caniot_blc1
+{
+	
+};
+
+struct ha_ds_caniot_heating_control
 {
 	struct ha_data_temperature temperatures[HA_CANIOT_MAX_TEMPERATURES];
 	struct ha_heater_mode heaters[4u];
 	struct ha_shutter_position shutters[4u];
 };
+
+struct ha_cmd_caniot_heating_control
+{
+	struct ha_heater_mode heaters[4u];
+	struct ha_shutter_position shutters[4u];
+};
+
 
 #define HA_DEV_CANIOT_MAC_INIT(_did) \
 	(ha_dev_mac_t) { \
@@ -46,7 +66,7 @@ struct ha_ds_caniot_heating_control_telemetry
 	}
 
 /* feed a board level telemetry dataset from a received CAN BLT/BCT buffer */
-void ha_dev_caniot_blc_cls0_to_blt(struct ha_ds_caniot_blc0_telemetry *blt,
+void ha_dev_caniot_blc_cls0_to_blt(struct ha_ds_caniot_blc0 *blt,
 				   const struct caniot_blc0_telemetry *can_buf);
 
 int ha_dev_register_caniot_telemetry(uint32_t timestamp,

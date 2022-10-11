@@ -503,8 +503,8 @@ static bool caniot_device_cb(ha_dev_t *dev,
 		(struct json_caniot_telemetry_array *)user_data;
 
 	struct json_caniot_telemetry *const rec = &arr->records[arr->count];
-	const struct ha_ds_caniot_blc0_telemetry *const dt =
-		HA_DEV_EP0_GET_CAST_LAST_DATA(dev, struct ha_ds_caniot_blc0_telemetry);
+	const struct ha_ds_caniot_blc0 *const dt =
+		HA_DEV_EP0_GET_CAST_LAST_DATA(dev, struct ha_ds_caniot_blc0);
 
 	ha_ev_t *ev = ha_dev_get_last_event(dev, 0u);
 	rec->base.timestamp = ev->timestamp;
@@ -912,7 +912,7 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 					     http_response_t *resp,
 					     uint32_t timeout)
 {
-	struct ha_ds_caniot_blc0_telemetry blt;
+	struct ha_ds_caniot_blc0 blt;
 	ha_dev_caniot_blc_cls0_to_blt(&blt, AS_BLC0_TELEMETRY(r->buf));
 
 	struct json_caniot_telemetry json = {

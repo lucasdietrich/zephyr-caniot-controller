@@ -33,18 +33,18 @@ static int ingest(struct ha_event *ev,
 }
 
 static const struct ha_data_descr ha_ds_xiaomi_descr[] = {
-	HA_DATA_DESCR(struct ha_ds_xiaomi, rssi, HA_DATA_RSSI),
-	HA_DATA_DESCR(struct ha_ds_xiaomi, humidity, HA_DATA_HUMIDITY),
-	HA_DATA_DESCR(struct ha_ds_xiaomi, temperature, HA_DATA_TEMPERATURE),
-	HA_DATA_DESCR(struct ha_ds_xiaomi, battery_level, HA_DATA_BATTERY_LEVEL),
+	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_xiaomi, rssi, HA_DATA_RSSI),
+	HA_DATA_DESCR(struct ha_ds_xiaomi, humidity, HA_DATA_HUMIDITY, HA_ASSIGN_BOARD_HUMIDITY),
+	HA_DATA_DESCR(struct ha_ds_xiaomi, temperature, HA_DATA_TEMPERATURE, HA_ASSIGN_BOARD_TEMPERATURE),
+	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_xiaomi, battery_level, HA_DATA_BATTERY_LEVEL),
 };
 
 static struct ha_device_endpoint_api ep = {
 	.eid = HA_DEV_ENDPOINT_XIAOMI_MIJIA,
 	.data_size = sizeof(struct ha_ds_xiaomi),
 	.expected_payload_size = sizeof(xiaomi_record_t),
-	.descr_size = ARRAY_SIZE(ha_ds_xiaomi_descr),
-	.descr = ha_ds_xiaomi_descr,
+	.data_descr_size = ARRAY_SIZE(ha_ds_xiaomi_descr),
+	.data_descr = ha_ds_xiaomi_descr,
 	.ingest = ingest,
 	.command = NULL
 };

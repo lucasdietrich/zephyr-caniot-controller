@@ -8,6 +8,26 @@
 #include <caniot/datatype.h>
 
 typedef enum {
+	HA_ASSIGN_UNASSIGNED = 0u,
+
+	HA_ASSIGN_SOC_TEMPERATURE,
+	HA_ASSIGN_BOARD_TEMPERATURE,
+	HA_ASSIGN_EXTERNAL_TEMPERATURE_SENSOR,
+
+	HA_ASSIGN_BOARD_HUMIDITY,
+	HA_ASSIGN_EXTERNAL_HUMIDITY_SENSOR,
+
+	HA_ASSIGN_OPEN_COLLECTOR,
+	HA_ASSIGN_RELAY,
+
+	HA_ASSIGN_DIGITAL_IO,
+
+} ha_data_assignement_t;
+
+typedef enum {
+	HA_DATA_UNSPEC = 0u,
+
+	/* Standard types */
 	HA_DATA_TEMPERATURE,
 	HA_DATA_HUMIDITY,
 	HA_DATA_BATTERY_LEVEL,
@@ -16,10 +36,14 @@ typedef enum {
 	HA_DATA_ANALOG,
 	HA_DATA_HEATER_MODE,
 	HA_DATA_SHUTTER_POSITION,
+
+	/* Special types */
+	HA_DATA_XPS = 0x80u,
 } ha_data_type_t;
 
 typedef enum {
 	HA_DEV_SENSOR_TYPE_NONE = 0,
+
 	HA_DEV_SENSOR_TYPE_EMBEDDED,
 	HA_DEV_SENSOR_TYPE_EXTERNAL1,
 	HA_DEV_SENSOR_TYPE_EXTERNAL2,
@@ -55,7 +79,7 @@ struct ha_data_analog {
 };
 
 struct ha_heater_mode {
-	caniot_heating_status_t mode;
+	caniot_heating_status_t mode: 8u;
 };
 
 struct ha_shutter_position {
@@ -63,29 +87,45 @@ struct ha_shutter_position {
 	uint8_t moving; /* 0: stopped, 1: moving */
 };
 
-struct ha_data_descr
-{
-	ha_data_type_t type;
-	uint16_t offset;
+struct ha_data_xps {
+	caniot_complex_digital_cmd_t cmd: 8u;
 };
 
-#define HA_DATA_DESCR(_struct, _member, _type) \
+struct ha_data_descr
+{
+	const char *name;
+	ha_data_assignement_t measure: 8u;
+	ha_data_type_t type : 8u;
+	uint32_t offset : 16u;
+};
+
+#define HA_DATA_DESCR_NAMED(_struct, _name, _member, _type, _meas) \
 	{ \
+		.name = _name, \
+		.measure = _meas, \
 		.type = _type, \
 		.offset = offsetof(_struct, _member), \
 	}
 
+#define HA_DATA_DESCR(_struct, _member, _type, _meas) \
+	HA_DATA_DESCR_NAMED(_struct, NULL, _member, _type, _meas)
+
+#define HA_DATA_DESCR_UNASSIGNED(_struct, _member, _type) \
+	HA_DATA_DESCR(_struct, _member, _type, HA_ASSIGN_UNASSIGNED)
+
+
+
 void *ha_data_get(void *data,
 		  const struct ha_data_descr *descr,
-		  size_t descr_size,
+		  size_t data_descr_size,
 		  ha_data_type_t type,
 		  uint8_t index);
 
 bool ha_data_descr_data_type_has(const struct ha_data_descr *descr,
-				 size_t descr_size,
+				 size_t data_descr_size,
 				 ha_data_type_t type);
 
 uint32_t ha_data_descr_data_types_mask(const struct ha_data_descr *descr,
-				       size_t descr_size);
+				       size_t data_descr_size);
 
 #endif /* _HA_DATA_H_ */

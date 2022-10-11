@@ -30,16 +30,16 @@ size_t get_data_size(ha_data_type_t type)
 
 void *ha_data_get(void *data,
 		  const struct ha_data_descr *descr,
-		  size_t descr_size,
+		  size_t data_descr_size,
 		  ha_data_type_t type,
 		  uint8_t index)
 {
-	if (!data || !descr || !descr_size)
+	if (!data || !descr || !data_descr_size)
 		return NULL;
 
 	const struct ha_data_descr *d;
 
-	for (d = descr; d < descr + descr_size; d++) {
+	for (d = descr; d < descr + data_descr_size; d++) {
 		if ((d->type == type) && (index-- == 0)) {
 			return (uint8_t *)data + d->offset;
 			break;
@@ -50,7 +50,7 @@ void *ha_data_get(void *data,
 }
 
 bool ha_data_descr_data_type_has(const struct ha_data_descr *descr,
-				 size_t descr_size,
+				 size_t data_descr_size,
 				 ha_data_type_t type)
 {
 	if (!descr) {
@@ -59,7 +59,7 @@ bool ha_data_descr_data_type_has(const struct ha_data_descr *descr,
 
 	const struct ha_data_descr *d;
 
-	for (d = descr; d < descr + descr_size; d++) {
+	for (d = descr; d < descr + data_descr_size; d++) {
 		if (d->type == type) {
 			return true;
 		}
@@ -70,7 +70,7 @@ bool ha_data_descr_data_type_has(const struct ha_data_descr *descr,
 
 
 uint32_t ha_data_descr_data_types_mask(const struct ha_data_descr *descr,
-				       size_t descr_size)
+				       size_t data_descr_size)
 {
 	if (!descr)
 		return 0;
@@ -78,7 +78,7 @@ uint32_t ha_data_descr_data_types_mask(const struct ha_data_descr *descr,
 	uint32_t mask = 0;
 	const struct ha_data_descr *d;
 
-	for (d = descr; d < descr + descr_size; d++) {
+	for (d = descr; d < descr + data_descr_size; d++) {
 		mask |= (1 << d->type);
 	}
 

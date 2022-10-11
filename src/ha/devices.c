@@ -366,8 +366,8 @@ ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 	/* Finalize endpoints initialization */
 	for (int i = 0; i < dev->endpoints_count; i++) {
 		dev->endpoints[i]._data_types = ha_data_descr_data_types_mask(
-			dev->endpoints[i].api->descr,
-			dev->endpoints[i].api->descr_size);
+			dev->endpoints[i].api->data_descr,
+			dev->endpoints[i].api->data_descr_size);
 	}
 #endif /* HA_DEVICES_ENDPOINT_TYPE_SEARCH_OPTIMIZATION */
 
@@ -1185,15 +1185,17 @@ int ha_stats_copy(struct ha_stats *dest)
 	return 0;
 }
 
+bool ha_dev_endpoint_exists(const ha_dev_t *dev,
+			    uint8_t endpoint_index)
+{
+	return dev && (endpoint_index < dev->endpoints_count);
+}
+
 bool ha_dev_endpoint_has_datatype(const ha_dev_t *dev,
 				  uint8_t endpoint_index,
 				  const ha_data_type_t datatype)
 {
-	if (!dev) {
-		return false;
-	}
-
-	if (endpoint_index >= dev->endpoints_count) {
+	if (!ha_dev_endpoint_exists(dev, endpoint_index)) {
 		return false;
 	}
 
@@ -1206,4 +1208,34 @@ bool ha_dev_endpoint_has_datatype(const ha_dev_t *dev,
 					   ep->data_descr_count, 
 					   datatype);
 #endif
+}
+
+bool ha_dev_endpoint_check_data_support(const ha_dev_t *dev,
+					uint8_t endpoint_index)
+{
+	bool support = false;
+
+	if (ha_dev_endpoint_exists(dev, endpoint_index)) {
+		const struct ha_device_endpoint_api *const api =
+			dev->endpoints[endpoint_index].api;
+
+		support = api->ingest && api->data_descr && api->data_descr_size;
+	}
+
+	return support == true;
+}
+
+bool ha_dev_endpoint_check_cmd_support(const ha_dev_t *dev,
+				       uint8_t endpoint_index)
+{
+	bool support = false;
+
+	if (ha_dev_endpoint_exists(dev, endpoint_index)) {
+		const struct ha_device_endpoint_api *const api =
+			dev->endpoints[endpoint_index].api;
+
+		support = api->command && api->cmd_descr && api->cmd_descr_size;
+	}
+
+	return support == true;
 }
