@@ -31,12 +31,35 @@ struct ha_cmd_caniot_blc0
 
 struct ha_ds_caniot_blc1
 {
-	
+	struct ha_data_temperature temperatures[HA_CANIOT_MAX_TEMPERATURES];
+	struct ha_data_digital dio;
+	struct ha_data_digital pdio;
 };
 
 struct ha_cmd_caniot_blc1
 {
+	struct ha_data_xps pc0;
+	struct ha_data_xps pc1;
+	struct ha_data_xps pc2;
+	struct ha_data_xps pc3;
+
+	struct ha_data_xps pd4;
+	struct ha_data_xps pd5;
+	struct ha_data_xps pd6;
+	struct ha_data_xps pd7;
 	
+	struct ha_data_xps eio0;
+	struct ha_data_xps eio1;
+	struct ha_data_xps eio2;
+	struct ha_data_xps eio3;
+	struct ha_data_xps eio4;
+	struct ha_data_xps eio5;
+	struct ha_data_xps eio6;
+	struct ha_data_xps eio7;
+
+	struct ha_data_xps pb0;
+	struct ha_data_xps pe0;
+	struct ha_data_xps pe1;
 };
 
 struct ha_ds_caniot_heating_control

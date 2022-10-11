@@ -32,13 +32,17 @@ typedef enum {
 	HA_DATA_HUMIDITY,
 	HA_DATA_BATTERY_LEVEL,
 	HA_DATA_RSSI,
-	HA_DATA_DIGITAL,
+	HA_DATA_DIGITAL_INOUT, /* Mix of in and out */
+	HA_DATA_DIGITAL_IN,
+	HA_DATA_DIGITAL_OUT,
 	HA_DATA_ANALOG,
 	HA_DATA_HEATER_MODE,
 	HA_DATA_SHUTTER_POSITION,
 
 	/* Special types */
 	HA_DATA_XPS = 0x80u,
+	HA_DATA_TS,
+	HA_DATA_SS,
 } ha_data_type_t;
 
 typedef enum {
@@ -70,8 +74,19 @@ struct ha_data_rssi {
 };
 
 struct ha_data_digital {
-	uint32_t value;
-	uint32_t mask;
+	uint32_t value; /* 1 bit per pin */
+	uint32_t mask; /* 1 if active*/
+	uint32_t direction; /* 1 if output */
+};
+
+struct ha_data_digital_in {
+	uint32_t value; /* 1 bit per pin */
+	uint32_t mask; /* 1 if active*/
+};
+
+struct ha_data_digital_out {
+	uint32_t value; /* 1 bit per pin */
+	uint32_t mask; /* 1 if active*/
 };
 
 struct ha_data_analog {
@@ -88,7 +103,15 @@ struct ha_shutter_position {
 };
 
 struct ha_data_xps {
-	caniot_complex_digital_cmd_t cmd: 8u;
+	caniot_complex_digital_cmd_t cmd: 3u;
+};
+
+struct ha_data_ts {
+	caniot_twostate_cmd_t cmd : 2u;
+};
+
+struct ha_data_ss {
+	caniot_onestate_cmd_t cmd : 1u;
 };
 
 struct ha_data_descr

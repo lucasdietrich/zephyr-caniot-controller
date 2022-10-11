@@ -15,7 +15,7 @@ size_t get_data_size(ha_data_type_t type)
 		return sizeof(struct ha_data_battery_level);
 	case HA_DATA_RSSI:
 		return sizeof(struct ha_data_rssi);
-	case HA_DATA_DIGITAL:
+	case HA_DATA_DIGITAL_INOUT:
 		return sizeof(struct ha_data_digital);
 	case HA_DATA_ANALOG:
 		return sizeof(struct ha_data_analog);

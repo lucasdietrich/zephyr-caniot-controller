@@ -105,8 +105,8 @@ static const struct ha_data_descr ha_ds_caniot_blc0_descr[] = {
 		HA_DATA_TEMPERATURE, HA_ASSIGN_EXTERNAL_TEMPERATURE_SENSOR),
 	HA_DATA_DESCR(struct ha_ds_caniot_blc0, temperatures[3u], 
 		HA_DATA_TEMPERATURE, HA_ASSIGN_EXTERNAL_TEMPERATURE_SENSOR),
-	HA_DATA_DESCR(struct ha_ds_caniot_blc0, dio, HA_DATA_DIGITAL, HA_ASSIGN_DIGITAL_IO),
-	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_caniot_blc0, pdio, HA_DATA_DIGITAL),
+	HA_DATA_DESCR(struct ha_ds_caniot_blc0, dio, HA_DATA_DIGITAL_INOUT, HA_ASSIGN_DIGITAL_IO),
+	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_caniot_blc0, pdio, HA_DATA_DIGITAL_INOUT),
 };
 
 static const struct ha_data_descr ha_cmd_caniot_blc0_descr[] = {
@@ -128,16 +128,16 @@ static const struct ha_device_endpoint_api ep_blc0 = {
 	.command = NULL
 };
 
-static const struct ha_data_descr ha_ds_caniot_blc1_telemetry_descr[] = {
-
+static const struct ha_data_descr ha_ds_caniot_blc1_descr[] = {
+	// ha_ds_caniot_blc1
 };
 
 static const struct ha_device_endpoint_api ep_blc1 = {
 	.eid = HA_DEV_ENDPOINT_CANIOT_BLC1,
 	.data_size = 0u,
 	.expected_payload_size = 8u,
-	.data_descr_size = ARRAY_SIZE(ha_ds_caniot_blc1_telemetry_descr),
-	.data_descr = ha_ds_caniot_blc1_telemetry_descr,
+	.data_descr_size = ARRAY_SIZE(ha_ds_caniot_blc1_descr),
+	.data_descr = ha_ds_caniot_blc1_descr,
 	.ingest = blc1_ingest,
 	.command = NULL
 };
