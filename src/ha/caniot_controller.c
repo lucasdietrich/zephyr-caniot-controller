@@ -418,6 +418,7 @@ int ha_ciot_ctrl_query(struct caniot_frame *__restrict req,
 	/* alloc and prepare */
 	ret = k_mem_slab_alloc(&sq_pool, (void **)&qx, K_NO_WAIT);
 	if (ret != 0) {
+		LOG_ERR("k_mem_slab_alloc() failed: %d", ret);
 		goto exit;
 	}
 

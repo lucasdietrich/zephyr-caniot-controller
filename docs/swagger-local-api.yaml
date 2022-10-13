@@ -120,7 +120,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AttributeInfo'
+                $ref: '#/components/schemas/AttributeResp'
         '404':
           description: CANIOT device not found
         '400':
@@ -135,7 +135,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AttributeInfo'
+                $ref: '#/components/schemas/AttributeResp'
         '404':
           description: CANIOT device not found
 
@@ -151,7 +151,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/BoardLevelCommand"
+              oneOf:
+                - $ref: "#/components/schemas/class0_blc"
+                - $ref: "#/components/schemas/class1blc"
 
       responses:
         '200':
@@ -159,7 +161,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BoardLevelTelemetry"
+                $ref: "#/components/schemas/class0_blc_teleme"
         '400':
           description: Request malformed
         '500':
@@ -207,7 +209,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BoardLevelTelemetry"
+                $ref: "#/components/schemas/class0_blc_teleme"
         '404':
           description: CANIOT device or endpoint not found
         '400':
@@ -232,10 +234,19 @@ components:
           type: integer
           example: 1653726896
 
-    AttributeInfo:
+    AttributeResp:
       description: CANIOT device attribute informations
       type: object
       properties:
+        status:
+          type: string
+          example: "OK"
+        caniot_error:
+          type: integer
+          example: 0
+        duration:
+          type: integer
+          example: 167
         key:
           type: integer
           example: 8208
@@ -320,7 +331,7 @@ components:
         right_door:
           $ref: "#/components/schemas/SSCommand"
 
-    BoardLevelTelemetry:
+    class0_blc_teleme:
       description: Board level telemetry
       type: object
       properties:
@@ -351,56 +362,11 @@ components:
               sens_type:
                 type: integer
                 example: 4
-        # oc1: 
-        #   type: integer
-        #   example: 0
-        # oc2:
-        #   type: integer
-        #   example: 0
-        # rl1:
-        #   type: integer
-        #   example: 0
-        # rl2:
-        #   type: integer
-        #   example: 0
-        # in1:
-        #   type: integer
-        #   example: 0
-        # in2:
-        #   type: integer
-        #   example: 0
-        # in3:
-        #   type: integer
-        #   example: 0
-        # in4:
-        #   type: integer
-        #   example: 0
-        # poc1:
-        #   type: integer
-        #   example: 0
-        # poc2:
-        #   type: integer
-        #   example: 0
-        # prl1:
-        #   type: integer
-        #   example: 0
-        # prl2:
-        #   type: integer
-        #   example: 0
 
-    BoardLevelCommand:
-      description: CANIOT Board level command
+    class_common_blc:
+      description: CANIOT CLASS Commong BLC Command 
       type: object
       properties:
-        coc1:
-          $ref: "#/components/schemas/XPSCommand"
-        coc2:
-          $ref: "#/components/schemas/XPSCommand"
-        crl1:
-          $ref: "#/components/schemas/XPSCommand"
-        crl2:
-          $ref: "#/components/schemas/XPSCommand"
-        
         hardware_reset:
           description: "Hardware Reset"
           type: boolean
@@ -410,7 +376,7 @@ components:
           type: boolean
           default: false
         wdt_reset:
-          description: "Rest by Watchdog"
+          description: "Reset by Watchdog"
           type: boolean
           default: false
         wdt:
@@ -420,6 +386,84 @@ components:
           description: "Configuration reset"
           type: boolean
           default: false
+
+    class0_blc:
+      description: CANIOT CLASS 0 BLC Command 
+      type: object
+      properties:
+        class:
+          type: integer
+          example: 0
+        command:
+          description: CANIOT CLASS 0 BLC Command 
+          type: object
+          properties:
+            coc1:
+              $ref: "#/components/schemas/XPSCommand"
+            coc2:
+              $ref: "#/components/schemas/XPSCommand"
+            crl1:
+              $ref: "#/components/schemas/XPSCommand"
+            crl2:
+              $ref: "#/components/schemas/XPSCommand"
+        
+        common:
+          $ref: "#/components/schemas/class_common_blc"
+    
+    class1blc:
+      description: CANIOT CLASS 1 BLC Command 
+      type: object
+      properties:
+        class:
+          type: integer
+          example: 0
+        command:
+          description: CANIOT CLASS 1 BLC Command 
+          type: object
+          properties:
+            pc0:
+              $ref: "#/components/schemas/XPSCommand"
+            pc1:
+              $ref: "#/components/schemas/XPSCommand"
+            pc2:
+              $ref: "#/components/schemas/XPSCommand"
+            pc3:
+              $ref: "#/components/schemas/XPSCommand"
+            pd0:
+              $ref: "#/components/schemas/XPSCommand"
+            pd1:
+              $ref: "#/components/schemas/XPSCommand"
+            pd2:
+              $ref: "#/components/schemas/XPSCommand"
+            pd3:
+              $ref: "#/components/schemas/XPSCommand"
+            pd4:
+              $ref: "#/components/schemas/XPSCommand"
+            eio0:
+              $ref: "#/components/schemas/XPSCommand"
+            eio1:
+              $ref: "#/components/schemas/XPSCommand"
+            eio2:
+              $ref: "#/components/schemas/XPSCommand"
+            eio3:
+              $ref: "#/components/schemas/XPSCommand"
+            eio4:
+              $ref: "#/components/schemas/XPSCommand"
+            eio5:
+              $ref: "#/components/schemas/XPSCommand"
+            eio6:
+              $ref: "#/components/schemas/XPSCommand"
+            eio7:
+              $ref: "#/components/schemas/XPSCommand"
+            pb0:
+              $ref: "#/components/schemas/XPSCommand"
+            pe0:
+              $ref: "#/components/schemas/XPSCommand"
+            pe1:
+              $ref: "#/components/schemas/XPSCommand"
+            
+        common:
+          $ref: "#/components/schemas/class_common_blc"
     
     CaniotGenericCommand:
       description: CANIOT generic command

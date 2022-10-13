@@ -829,13 +829,11 @@ int rest_test_caniot_query_telemetry(http_request_t *req,
 	caniot_build_query_command(&query, CANIOT_ENDPOINT_APP, (uint8_t *)&buf, sizeof(buf));
 	const caniot_did_t did = CANIOT_DID(CANIOT_DEVICE_CLASS0, CANIOT_DEVICE_SID4);
 
-	uint32_t timeout = 1000U;
+	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
 	ha_ciot_ctrl_query(&query, &response, did, &timeout);
 
 	return 0;
 }
-
-
 
 
 #if defined(CONFIG_CANIOT_CONTROLLER)
@@ -948,41 +946,6 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 					 ARRAY_SIZE(json_caniot_query_telemetry_descr));
 }
 
-struct json_caniot_attr {
-	uint32_t key;
-	char *key_repr;
-	uint32_t value;
-	char *value_repr;
-};
-
-static const struct json_obj_descr json_caniot_attr_descr[] = {
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, key, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, key_repr, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, value, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, value_repr, JSON_TOK_STRING),
-};
-
-static int json_format_caniot_attr_resp(struct caniot_frame *r,
-					http_response_t *resp,
-					uint32_t timeout)
-{
-	char key_repr[sizeof("0xFFFF")];
-	char val_repr[sizeof("0xFFFFFFFF")];
-
-	snprintf(key_repr, sizeof(key_repr), "0x%04X", r->attr.key);
-	snprintf(val_repr, sizeof(val_repr), "0x%04X", r->attr.val);
-
-	struct json_caniot_attr json = {
-		.key = r->attr.key,
-		.key_repr = key_repr,
-		.value = r->attr.val,
-		.value_repr = val_repr,
-	};
-
-	return rest_encode_response_json(resp, &json, json_caniot_attr_descr,
-					 ARRAY_SIZE(json_caniot_attr_descr));
-}
-
 /* QUERY CANIOT COMMAND/TELEMETRY and BUILD JSON RESPONSE */
 int caniot_q_ct_to_json_resp(struct caniot_frame *q,
 			     caniot_did_t did,
@@ -998,46 +961,6 @@ int caniot_q_ct_to_json_resp(struct caniot_frame *q,
 		/* Ok */
 		resp->status_code = 200U;
 		ret = json_format_caniot_telemetry_resp(&r, resp, *timeout);
-		break;
-	case 0:
-		/* No response expected */
-		resp->status_code = 204U;
-		break;
-	case 2:
-		/* returned but with error */
-		resp->status_code = 204U;
-		break;
-	case -EAGAIN:
-		/* timeout */
-		resp->status_code = 404U;
-		break;
-	case -EINVAL:
-		/* Invalid arguments */
-		resp->status_code = 400U;
-		break;
-	default:
-		/* Other unhandled error */
-		resp->status_code = 500U;
-		break;
-	}
-
-	return 0;
-}
-
-int caniot_q_attr_to_json_resp(struct caniot_frame *q,
-			       caniot_did_t did,
-			       uint32_t *timeout,
-			       http_response_t *resp)
-{
-	struct caniot_frame r;
-
-	int ret = ha_ciot_ctrl_query(q, &r, did, timeout);
-
-	switch (ret) {
-	case 1:
-		/* Ok */
-		resp->status_code = 200U;
-		ret = json_format_caniot_attr_resp(&r, resp, *timeout);
 		break;
 	case 0:
 		/* No response expected */
@@ -1083,7 +1006,6 @@ int rest_devices_caniot_telemetry(http_request_t *req,
 
 	return 0;
 }
-
 
 struct json_caniot_blcommand_post {
 	const char *coc1;
@@ -1227,67 +1149,166 @@ exit:
 	return ret;
 }
 
-int rest_devices_caniot_attr_read(http_request_t *req,
-				  http_response_t *resp)
-{
-	int ret = 0;
-	uint32_t did = 0, key = 0;
-	route_arg_get(req, 0U, &did);
-	route_arg_get(req, 1U, &key);
+struct json_caniot_attr {
+	char *status;
+	int duration;
+	int32_t caniot_error;
 
-	/* If doesn't fit in a uint16_t, we reject */
-	if ((key > 0xFFFFLU) || (did > CANIOT_DID_MAX_VALUE)) {
-		resp->status_code = 400U;
-		goto exit;
-	}
+	uint32_t key;
+	uint32_t value;
 
-	struct caniot_frame q;
-	caniot_build_query_read_attribute(&q, (uint16_t)key);
+	char *key_repr;
+	char *value_repr;
+};
 
-	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
-	ret = caniot_q_attr_to_json_resp(&q, did, &timeout, resp);
+static const struct json_obj_descr json_caniot_attr_ok_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, status, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, duration, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, caniot_error, JSON_TOK_NUMBER),
 
-exit:
-	return ret;
-}
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, key, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, value, JSON_TOK_NUMBER),
+
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, key_repr, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, value_repr, JSON_TOK_STRING),
+};
+
+static const struct json_obj_descr json_caniot_attr_nok_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, status, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, duration, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, caniot_error, JSON_TOK_NUMBER),
+
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, key, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr, key_repr, JSON_TOK_STRING),
+};
 
 struct json_caniot_attr_write_value {
-	uint32_t value;
+	char *value;
 };
 
 const struct json_obj_descr json_caniot_attr_write_value_descr[] = {
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr_write_value, value, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_attr_write_value, value, JSON_TOK_STRING),
 };
 
-int rest_devices_caniot_attr_write(http_request_t *req,
-				   http_response_t *resp)
+int rest_devices_caniot_attr_read_write(http_request_t *req,
+					http_response_t *resp)
 {
 	int ret = 0;
 	uint32_t did = 0, key = 0;
+	struct caniot_frame q, r;
+	const struct json_obj_descr *descr = json_caniot_attr_nok_descr;
+	size_t descr_size = ARRAY_SIZE(json_caniot_attr_nok_descr);
+
+	/* Parse request*/
 	route_arg_get(req, 0U, &did);
 	route_arg_get(req, 1U, &key);
 
 	/* default status code */
 	resp->status_code = 400U;
 
-	/* If doesn't fit in a uint16_t, we reject */
-	if ((key > 0xFFFFLU) || (did > CANIOT_DID_MAX_VALUE)) {
+	if (!caniot_deviceid_valid(did)) {
 		goto exit;
 	}
 
-	/* try to parse content */
-	uint32_t value;
-	int map = json_obj_parse(req->payload.loc, req->payload.len,
-				 json_caniot_blcommand_post_descr,
-				 ARRAY_SIZE(json_caniot_blcommand_post_descr),
-				 &value);
-	if ((map > 0) && FIELD_SET(map, 0U)) {
-		struct caniot_frame q;
-		caniot_build_query_write_attribute(&q, (uint16_t)key, value);
+	if (req->method == HTTP_PUT) {
+		/* It's an attribute write */
+		if (key > 0xFFFFLU) {
+			goto exit;
+		}
 
-		uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
-		ret = caniot_q_attr_to_json_resp(&q, did, &timeout, resp);
+		/* try to parse content */
+		char *value_str;
+		int map = json_obj_parse(req->payload.loc, req->payload.len,
+					 json_caniot_attr_write_value_descr,
+					 ARRAY_SIZE(json_caniot_attr_write_value_descr),
+					 &value_str);
+		if ((map <= 0) || !FIELD_SET(map, 0U)) {
+			goto exit;
+		}
+
+		uint32_t value;
+		if (sscanf(value_str, "0x%x", &value) != 1) {
+			if (sscanf(value_str, "%u", &value) != 1) {
+				goto exit;
+			}
+		}
+
+		caniot_build_query_write_attribute(&q, key, value);
+	} else {
+		/* It's an attribute read */
+		caniot_build_query_read_attribute(&q, key);
 	}
+
+	/* Make CANIOT request */
+
+	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
+
+	ret = ha_ciot_ctrl_query(&q, &r, did, &timeout);
+
+	/* Prepare response*/
+
+	char key_repr[sizeof("0xFFFF")];
+	char val_repr[sizeof("0xFFFFFFFF")];
+
+	struct json_caniot_attr json = {
+		.duration = timeout,
+		.caniot_error = 0,
+		
+		.key = key,
+		.value = 0,
+
+		.key_repr = key_repr,
+		.value_repr = val_repr,
+	};
+
+	switch (ret) {
+	case 1:
+		/* Ok */
+		resp->status_code = 200U;
+
+		json.status = "OK";
+		json.key = r.attr.key;
+		json.value = r.attr.val;
+
+		snprintf(val_repr, sizeof(val_repr), "0x%08X", r.attr.val);
+
+		/* Use ok descriptor */
+		descr = json_caniot_attr_ok_descr;
+		descr_size = ARRAY_SIZE(json_caniot_attr_ok_descr);
+
+		break;
+	case 0:
+		/* No response was expected */
+		resp->status_code = 200U;
+
+		json.status = "NO_RESP";
+		break;
+	case 2:
+		/* returned but with CANIOT error */
+		resp->status_code = 200U;
+
+		json.status = "ERROR";
+		json.caniot_error = r.err;
+		break;
+	case -EAGAIN:
+		/* timeout */
+		resp->status_code = 200U;
+		
+		json.status = "TIMEOUT";
+		break;
+	case -EINVAL:
+		/* Invalid arguments */
+		resp->status_code = 400U;
+		break;
+	default:
+		/* Other unhandled error */
+		resp->status_code = 500U;
+		goto exit;
+	}
+
+	snprintf(key_repr, sizeof(key_repr), "0x%04X", r.attr.key);
+
+	ret = rest_encode_response_json(resp, &json, descr, descr_size);
 
 exit:
 	return ret;

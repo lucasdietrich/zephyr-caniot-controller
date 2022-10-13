@@ -79,7 +79,7 @@ static const struct http_route routes[] = {
 	PROM(GET, "/metrics_controller", prometheus_metrics_controller),
 	PROM(GET, "/metrics_demo", prometheus_metrics_demo),
 
-	REST(GET, "/devices", rest_devices_list, 0U, HTTP_ROUTE_MATCH_LEASE_NOARGS),
+	REST(GET, "/devices", rest_devices_list, 0U, HTTP_ROUTE_MATCH_QUERY_NOARGS),
 	REST(GET, "/room/%u", rest_room_devices_list, 1U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
 	REST(GET, "/devices/xiaomi", rest_xiaomi_records, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
 	REST(GET, "/devices/caniot", rest_caniot_records, 0U, HTTP_ROUTE_MATCH_EXACT_NOARGS),
@@ -111,8 +111,8 @@ static const struct http_route routes[] = {
 	REST(POST, "/devices/caniot/%u/endpoint/%u/command", rest_devices_caniot_command, 2U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
 	REST(POST, "/devices/caniot/%u/endpoint/blc/command", rest_devices_caniot_blc_command, 1U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
 
-	REST(GET, "/devices/caniot/%u/attribute/%x", rest_devices_caniot_attr_read, 2U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
-	REST(PUT, "/devices/caniot/%u/attribute/%x", rest_devices_caniot_attr_write, 2U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
+	REST(GET, "/devices/caniot/%u/attribute/%x", rest_devices_caniot_attr_read_write, 2U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
+	REST(PUT, "/devices/caniot/%u/attribute/%x", rest_devices_caniot_attr_read_write, 2U, HTTP_ROUTE_MATCH_EXACT_WITHARGS),
 #endif
 
 #if defined(CONFIG_CAN_INTERFACE)
@@ -174,6 +174,14 @@ const struct http_route *route_resolve(enum http_method method,
 		case HTTP_ROUTE_MATCH_LEASE_NOARGS:
 			if (url_match_noarg(route, url, url_len, false)) {
 				return route;
+			}
+			break;
+		case HTTP_ROUTE_MATCH_QUERY_NOARGS:
+			if (url_match_noarg(route, url, url_len, false)) {
+				if (url[route->route_len] == '\0' ||
+				    url[route->route_len] == '?') {
+					return route;
+				}
 			}
 			break;
 		case HTTP_ROUTE_MATCH_EXACT_WITHARGS:

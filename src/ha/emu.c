@@ -26,7 +26,7 @@ LOG_MODULE_REGISTER(ha_emu, LOG_LEVEL_INF);
 
 #define EMU_BLE_RDM_MIN_MS 		100
 #define EMU_BLE_RDM_MAX_MS 		250
-#define EMU_CAN_BROADCAST_RDM_MS 	5
+#define EMU_CAN_BROADCAST_RDM_MS 	1000
 #define EMU_CAN_CMD_RDM_MS 		1000
 
 #define PRODUCER_THREADS_START_DELAY_MS 2000u
@@ -66,10 +66,10 @@ K_THREAD_DEFINE(emu_consumer3, 1024u, emu_consumer, NULL, NULL, NULL,
 K_THREAD_DEFINE(emu_consumer4, 1024u, emu_consumer, NULL, NULL, NULL,
 		K_PRIO_COOP(4u), 0u, CONSUMER_THREADS_START_DELAY_MS);
 
-K_THREAD_DEFINE(emu_caniot_broadcast_thread1, 1024u, emu_caniot_broadcast_thread, NULL, NULL, NULL,
-		K_PRIO_COOP(4u), 0u, COMMAND_THREADS_START_DELAY_MS);
-K_THREAD_DEFINE(emu_caniot_cmd_thread1, 1024u, emu_caniot_cmd_thread, NULL, NULL, NULL,
-		K_PRIO_COOP(4u), 0u, COMMAND_THREADS_START_DELAY_MS);
+// K_THREAD_DEFINE(emu_caniot_broadcast_thread1, 1024u, emu_caniot_broadcast_thread, NULL, NULL, NULL,
+// 		K_PRIO_COOP(4u), 0u, COMMAND_THREADS_START_DELAY_MS);
+// K_THREAD_DEFINE(emu_caniot_cmd_thread1, 1024u, emu_caniot_cmd_thread, NULL, NULL, NULL,
+// 		K_PRIO_COOP(4u), 0u, COMMAND_THREADS_START_DELAY_MS);
 
 K_THREAD_DEFINE(emu_caniot_devices_thread1, 1024u, emu_caniot_devices_thread, NULL, NULL, NULL,
 		K_PRIO_COOP(4u), 0u, CANIOT_THREADS_START_DELAY_MS);
@@ -273,6 +273,8 @@ int caniot_emu_telem(struct caniot_device *dev,
 	memcpy(buf, &caniot_emu_state, 8u);
 	*len = 8u;
 
+	k_sleep(K_MSEC(10u));
+
 	return 0;
 }
 
@@ -416,7 +418,6 @@ void emu_caniot_devices_thread(void *_a, void *_b, void *_c)
 			if (caniot_deviceid_match(emu_dev->id.did,
 						  CANIOT_DID(req.id.cls, req.id.sid))) {
 				ret = caniot_device_handle_rx_frame(&emu_dev->dev, &req, &resp);
-				if (ret) goto error;
 
 				ret = k_msgq_put(&emu_caniot_rxq, &resp, K_FOREVER);
 				if (ret) goto error;

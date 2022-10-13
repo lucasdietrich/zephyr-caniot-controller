@@ -43,9 +43,10 @@ typedef int (*http_handler_t) (struct http_request *__restrict req,
 // 				  size_t url_len);
 
 typedef enum {
-	HTTP_ROUTE_MATCH_EXACT_NOARGS = 0,
-	HTTP_ROUTE_MATCH_EXACT_WITHARGS,
-	HTTP_ROUTE_MATCH_LEASE_NOARGS,
+	HTTP_ROUTE_MATCH_EXACT_NOARGS = 0, /* Expect route base only */
+	HTTP_ROUTE_MATCH_EXACT_WITHARGS, /* Expect route base with args */
+	HTTP_ROUTE_MATCH_LEASE_NOARGS, /* Expect route base, then anything*/
+	HTTP_ROUTE_MATCH_QUERY_NOARGS, /* Expect nothing or a query string after the route base*/
 } http_route_match_type_t;
 
 struct http_route

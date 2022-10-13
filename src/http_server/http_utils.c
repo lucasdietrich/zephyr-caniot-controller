@@ -130,7 +130,8 @@ int http_encode_endline(buffer_t *buf)
 
 bool http_code_has_payload(uint16_t status_code)
 {
-	return (status_code == HTTP_STATUS_OK || status_code == HTTP_STATUS_BAD_REQUEST);
+	return (status_code == HTTP_STATUS_OK || 
+		status_code == HTTP_STATUS_BAD_REQUEST);
 }
 
 const char *http_content_type_to_str(http_content_type_t content_type)

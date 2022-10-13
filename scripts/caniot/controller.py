@@ -133,31 +133,6 @@ class Controller:
 
     def get_req_timeout(self) -> float:
         return self.timeout + 2.0
-
-    def write_attribute(self, did: int, attr: int, value: Union[int, bytes]):
-
-        data = {
-            "value": value if isinstance(value, int) else BytesToU32(value)
-        }
-
-        args = {
-            "did": did,
-            "attr": attr
-        }
-
-        return self._request_json(API.WriteAttribute, data, args)
-
-    def read_attribute(self, did: int, attr: int) -> requests.Response:
-        return self._request_json(API.ReadAttribute, None, {
-            "did": did,
-            "attr": attr
-        })
-
-    def request_telemetry(self, did: int, ep: int) -> requests.Response:
-        return self._request_json(API.RequestTelemetry, None, {
-            "did": did,
-            "ep": ep
-        })
     
     def config_reset(self, did: int):
         self.can((did << 3) | (3 << 9), [
@@ -176,26 +151,7 @@ class Controller:
             "did": did,
         })
 
-    def command(self, did: int, ep: int, vals: Iterable[int]) -> requests.Response:
-        if vals is None:
-            vals = []
-        arr = list(vals)
-        assert len(arr) <= 8
-        assert all(map(lambda x: 0 <= x <= 255 and isinstance(x, int), arr))
-        return self._request_json(API.Command, json=arr, args={
-            "did": did,
-            "ep": ep,
-        })
 
-    def can(self, arbitration_id: int, vals: Iterable[int] = None) -> requests.Response:
-        if vals is None:
-            vals = []
-        arr = list(vals)
-        assert len(arr) <= 8
-        assert all(map(lambda x: 0 <= x <= 255 and isinstance(x, int), arr))
-        return self._request_json(API.CAN, json=arr, args={
-            "id": arbitration_id,
-        })
 
     def list_lua_scripts(self, detailled: bool = True) -> requests.Response:
         if detailled:
