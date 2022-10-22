@@ -654,7 +654,7 @@ static bool devices_cb(ha_dev_t *dev,
 	struct json_device_array *const arr = user_data;
 	struct json_device *jd = &arr->devices[arr->count];
 
-	jd->endpoints_count = 0u; 
+	jd->endpoints_count = 0u;
 
 	for (uint32_t i = 0u; i < dev->endpoints_count; i++) {
 		struct ha_device_endpoint *ep = ha_dev_get_endpoint(dev, i);
@@ -663,14 +663,14 @@ static bool devices_cb(ha_dev_t *dev,
 			jep->eid = ep->api->eid;
 			jep->data_size = ep->api->data_size;
 			jep->in_data_size = ep->api->expected_payload_size;
-			jep->telemetry = (uint32_t) ep->api->ingest;
-			jep->command = (uint32_t) ep->api->command;
+			jep->telemetry = (uint32_t)ep->api->ingest;
+			jep->command = (uint32_t)ep->api->command;
 
 			jd->endpoints_count++;
 
 			ha_ev_t *const last_ev = ep->last_data_event;
 			if (last_ev) {
-				jep->last_event.addr = (uint32_t) last_ev;
+				jep->last_event.addr = (uint32_t)last_ev;
 				jep->last_event.refcount = last_ev->ref_count;
 				jep->last_event.timestamp = last_ev->timestamp;
 				jep->last_event.type = last_ev->type;
@@ -724,17 +724,17 @@ int rest_devices_list(http_request_t *req,
 	const ha_dev_filter_t filter = {
 		.flags = HA_DEV_FILTER_FROM_INDEX |
 			 HA_DEV_FILTER_TO_INDEX,
-		.from_index = 
+		.from_index =
 			REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n,
-		.to_index = 
+		.to_index =
 			REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n +
 			REST_HA_DEVICES_MAX_COUNT_PER_PAGE
 	};
 
-	ha_dev_iterate(devices_cb, &filter, 
+	ha_dev_iterate(devices_cb, &filter,
 		       &HA_DEV_ITER_OPT_LOCK_ALL(), &arr);
 
-	/* TODO use "json_obj_encode()" to encode incrementally 
+	/* TODO use "json_obj_encode()" to encode incrementally
 	 * all the devices with CHUNKED encoding
 	 */
 
@@ -799,7 +799,7 @@ int rest_room_devices_list(http_request_t *req,
 		.rid = HA_ROOM_MY,
 	};
 
-	ha_dev_iterate(room_devices_cb, &filter, 
+	ha_dev_iterate(room_devices_cb, &filter,
 		       &HA_DEV_ITER_OPT_LOCK_ALL(), &resp->buffer);
 
 	return 0;
@@ -1007,29 +1007,29 @@ int rest_devices_caniot_telemetry(http_request_t *req,
 	return 0;
 }
 
-struct json_caniot_blcommand_post {
+struct json_caniot_blc0_cmd_post_descr {
 	const char *coc1;
 	const char *coc2;
 	const char *crl1;
 	const char *crl2;
 };
 
-const struct json_obj_descr json_caniot_blcommand_post_descr[] = {
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, coc1, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, coc2, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, crl1, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct json_caniot_blcommand_post, crl2, JSON_TOK_STRING),
+const struct json_obj_descr json_caniot_blc0_cmd_post_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_blc0_cmd_post_descr, coc1, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_blc0_cmd_post_descr, coc2, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_blc0_cmd_post_descr, crl1, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_blc0_cmd_post_descr, crl2, JSON_TOK_STRING),
 };
 
-int rest_devices_caniot_blc_command(http_request_t *req,
-				    http_response_t *resp)
+int rest_devices_caniot_blc0_command(http_request_t *req,
+				     http_response_t *resp)
 {
 	int ret = 0;
-	struct json_caniot_blcommand_post post;
+	struct json_caniot_blc0_cmd_post_descr post;
 
 	int map = json_obj_parse(req->payload.loc, req->payload.len,
-				 json_caniot_blcommand_post_descr,
-				 ARRAY_SIZE(json_caniot_blcommand_post_descr),
+				 json_caniot_blc0_cmd_post_descr,
+				 ARRAY_SIZE(json_caniot_blc0_cmd_post_descr),
 				 &post);
 
 	/* if no commands are given, we do nothing */
@@ -1076,6 +1076,57 @@ int rest_devices_caniot_blc_command(http_request_t *req,
 
 exit:
 	return ret;
+}
+
+struct json_caniot_blc1_cmd_post {
+	const char *xps[19u];
+	uint32_t count;
+};
+
+const struct json_obj_descr json_caniot_blc1_cmd_post_descr[] = {
+	JSON_OBJ_DESCR_ARRAY(
+		struct json_caniot_blc1_cmd_post, xps,
+		19U, count, JSON_TOK_STRING)
+};
+
+int rest_devices_caniot_blc1_command(http_request_t *req,
+				    http_response_t *resp)
+{
+	/* parse did */
+	int ret = 0;
+	uint32_t did = 0;
+	route_arg_get(req, 0U, &did);
+
+	resp->status_code = HTTP_STATUS_BAD_REQUEST;
+
+	if (caniot_deviceid_valid(did)) {
+		goto exit;
+	}
+
+	/* parse payload */
+	struct json_caniot_blc1_cmd_post post;
+	ret = json_arr_parse(req->payload.loc, req->payload.len,
+			     json_caniot_blc1_cmd_post_descr,
+			     &post);
+	if (ret < 0) {
+		ret = 0;
+		goto exit;
+	}
+
+	resp->status_code = HTTP_STATUS_OK;
+
+	LOG_INF("POST /devices/caniot/%u/endpoints/blc/command -> %d", did, ret);
+	LOG_INF("Array size: %u", post.count);
+
+exit:
+	return ret;
+}
+
+
+int rest_devices_caniot_blc_command(http_request_t *req,
+				    http_response_t *resp)
+{
+	return -ENOTSUP;
 }
 
 struct json_can_payload {
@@ -1253,7 +1304,7 @@ int rest_devices_caniot_attr_read_write(http_request_t *req,
 	struct json_caniot_attr json = {
 		.duration = timeout,
 		.caniot_error = 0,
-		
+
 		.key = key,
 		.value = 0,
 
@@ -1293,7 +1344,7 @@ int rest_devices_caniot_attr_read_write(http_request_t *req,
 	case -EAGAIN:
 		/* timeout */
 		resp->status_code = 200U;
-		
+
 		json.status = "TIMEOUT";
 		break;
 	case -EINVAL:
@@ -1396,7 +1447,7 @@ static bool fs_list_lua_scripts_detailled_cb(const char *path,
 }
 
 int rest_fs_list_lua_scripts(http_request_t *req,
-				       http_response_t *resp)
+			     http_response_t *resp)
 {
 	/* willingly not clearing the whole buffer */
 	struct json_fs_file_entries_list data;
@@ -1416,7 +1467,7 @@ int rest_fs_list_lua_scripts(http_request_t *req,
 int rest_fs_remove_lua_script(http_request_t *req,
 			      http_response_t *resp)
 {
-	
+
 	return -ENOTSUP;
 }
 
@@ -1581,7 +1632,7 @@ void test(void)
 			    &arr,
 			    buf,
 			    sizeof(buf));
-				      
+
 	LOG_HEXDUMP_WRN(buf, strlen(buf), "JSON");
 }
 

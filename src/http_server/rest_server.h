@@ -31,10 +31,10 @@ int rest_encode_response_json_array(http_response_t *resp,
 	int rest_##name(http_request_t *req, http_response_t *resp)
 
 int rest_index(http_request_t *req,
-               http_response_t *resp);
+	       http_response_t *resp);
 
 int rest_info(http_request_t *req,
-              http_response_t *resp);
+	      http_response_t *resp);
 
 int rest_caniot_records(http_request_t *req,
 			http_response_t *resp);
@@ -47,7 +47,7 @@ int rest_devices_list(http_request_t *req,
 
 int rest_ha_stats(http_request_t *req,
 		  http_response_t *resp);
-		  
+
 int rest_room_devices_list(http_request_t *req,
 			   http_response_t *resp);
 
@@ -73,7 +73,13 @@ int rest_devices_caniot_command(http_request_t *req,
 				http_response_t *resp);
 
 int rest_devices_caniot_blc_command(http_request_t *req,
-				  http_response_t *resp);
+				    http_response_t *resp);
+
+int rest_devices_caniot_blc0_command(http_request_t *req,
+				     http_response_t *resp);
+
+int rest_devices_caniot_blc1_command(http_request_t *req,
+				     http_response_t *resp);
 
 int rest_devices_caniot_attr_read(http_request_t *req,
 				  http_response_t *resp);
