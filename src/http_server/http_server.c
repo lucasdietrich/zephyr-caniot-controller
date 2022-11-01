@@ -9,15 +9,15 @@
 #include <stdio.h>
 #include <stddef.h>
 
-#include <posix/poll.h>
-#include <net/socket.h>
-#include <net/net_core.h>
-#include <net/net_ip.h>
-#include <net/net_if.h>
-#include <net/net_config.h>
-#include <net/tls_credentials.h>
+#include <zephyr/posix/poll.h>
+#include <zephyr/net/socket.h>
+#include <zephyr/net/net_core.h>
+#include <zephyr/net/net_ip.h>
+#include <zephyr/net/net_if.h>
+#include <zephyr/net/net_config.h>
+#include <zephyr/net/tls_credentials.h>
 
-#include <net/http_parser.h>
+#include <zephyr/net/http_parser.h>
 
 #include "app_sections.h"
 #include "http_response.h"
@@ -33,7 +33,7 @@
 
 #include "creds/manager.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF); /* INF */
 
 
@@ -288,7 +288,7 @@ static int srv_accept(int serv_sock)
 	conn = http_conn_alloc();
 	if (conn == NULL) {
 		LOG_WRN("(%d) Connection refused from %s:%d, cli sock = %d", serv_sock,
-			log_strdup(ipv4_str), htons(addr.sin_port), sock);
+			ipv4_str, htons(addr.sin_port), sock);
 
 		zsock_close(sock);
 
@@ -296,7 +296,7 @@ static int srv_accept(int serv_sock)
 		goto exit;
 	} else {
 		LOG_INF("(%d) Connection accepted from %s:%d, cli sock = %d", serv_sock,
-			log_strdup(ipv4_str), htons(addr.sin_port), sock);
+			ipv4_str, htons(addr.sin_port), sock);
 
 		__ASSERT_NO_MSG(clients_count < CONFIG_HTTP_MAX_CONNECTIONS);
 

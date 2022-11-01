@@ -7,14 +7,14 @@
 #ifndef _UTILS_MISC_H_
 #define _UTILS_MISC_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
-#include <drivers/can.h>
-#include <net/net_ip.h>
+#include <zephyr/drivers/can.h>
+#include <zephyr/net/net_ip.h>
 #include <sys/types.h>
 
 #define CHECK_OR_EXIT(cond) \
@@ -83,6 +83,6 @@ int strcicmp(char const *a, char const *b);
 
 int strncicmp(char const *a, char const *b, size_t len);
 
-int get_repr_can_frame(struct zcan_frame *frame, char *buf, size_t len);
+int get_repr_can_frame(struct can_frame *frame, char *buf, size_t len);
 
 #endif /* _UTILS_H_ */

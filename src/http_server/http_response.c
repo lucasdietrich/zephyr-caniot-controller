@@ -6,7 +6,7 @@
 
 #include "http_response.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(http_response, LOG_LEVEL_WRN);
 
 void http_response_init(http_response_t *resp)

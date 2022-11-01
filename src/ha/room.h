@@ -7,7 +7,7 @@
 #ifndef _HA_ROOM_H_
 #define _HA_ROOM_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include <stdint.h>
 

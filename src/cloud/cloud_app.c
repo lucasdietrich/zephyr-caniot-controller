@@ -1,4 +1,4 @@
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include <stdio.h>
 #include <stdint.h>
@@ -16,7 +16,7 @@
 #include "net/mqtt.h"
 
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(cloud_app, LOG_LEVEL_DBG);
 
 static struct ha_ev_subs *sub = NULL;

@@ -6,28 +6,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr.h>
-#include <device.h>
-#include <devicetree.h>
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/devicetree.h>
 
-#include <storage/flash_map.h>
-#include <storage/disk_access.h>
+#include <zephyr/storage/flash_map.h>
+#include <zephyr/storage/disk_access.h>
 #include <ff.h>
 // #include <fs/littlefs.h>
 
 #include "appfs.h"
 
-#include <logging/log.h>
-LOG_MODULE_REGISTER(app_fs, LOG_LEVEL_INF);
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(app_fs, LOG_LEVEL_DBG);
 
+#define APPFS_LIST_ROOT_FILES 0
 
-
+#if defined(CONFIG_DISK_DRIVER_SDMMC) && \
+	!DT_HAS_COMPAT_STATUS_OKAY(zephyr_sdhc_spi_slot)
+#warning "SDMMC driver enabled but no compatible slot found"
+#endif
 
 int app_fs_stats(const char *abs_path);
 int app_fs_lsdir(const char *path);
-
-
-
 
 #if defined(CONFIG_DISK_DRIVER_RAM)
 
@@ -43,11 +44,8 @@ static struct fs_mount_t mp_ram = {
 
 #endif /* CONFIG_DISK_DRIVER_RAM */
 
-
-
-
 #if defined(CONFIG_DISK_DRIVER_SDMMC) && \
-	DT_HAS_COMPAT_STATUS_OKAY(zephyr_mmc_spi_slot)
+	DT_HAS_COMPAT_STATUS_OKAY(zephyr_sdhc_spi_slot)
 
 static FATFS fat_fs_mmc;
 
@@ -74,7 +72,7 @@ int disk_get_info(const char *disk_pdrv,
 			 struct appfs_disk_info *dinfo)
 {
 	int rc;
-	uint64_t memory_size_mb;
+	uint32_t memory_size_mb;
 	uint32_t block_count;
 	uint32_t block_size;
 
@@ -91,23 +89,22 @@ int disk_get_info(const char *disk_pdrv,
 		LOG_ERR("Unable to get sector count, rc=%d", rc);
 		goto exit;
 	}
-	LOG_INF("Block count %u", block_count);
 
 	if (disk_access_ioctl(disk_pdrv,
 			      DISK_IOCTL_GET_SECTOR_SIZE, &block_size)) {
 		LOG_ERR("Unable to get sector size, rc=%d", rc);
 		goto exit;
 	}
-	LOG_INF("Sector size %u", block_size);
 
-	memory_size_mb = (uint64_t)block_count * block_size;
-	LOG_INF("Memory Size(MB) %u", (uint32_t)(memory_size_mb >> 20));
+	memory_size_mb = ((uint64_t)block_count * block_size) >> 20u;
 
 	if (dinfo != NULL) {
 		dinfo->memory_size_mb = memory_size_mb;
 		dinfo->block_count = block_count;
 		dinfo->block_size = block_size;
 	}
+	LOG_DBG("SD Blocks %u of size %u, total size %uMB",
+		block_count, block_size, memory_size_mb);
 exit:
 	return rc;
 }
@@ -122,8 +119,8 @@ struct fs_mount_t *appfs_mp[] = {
 	&mp_ram,
 #endif
 #if defined(CONFIG_DISK_DRIVER_SDMMC) && \
-	DT_HAS_COMPAT_STATUS_OKAY(zephyr_mmc_spi_slot)
-	& mp_mmc,
+	DT_HAS_COMPAT_STATUS_OKAY(zephyr_sdhc_spi_slot)
+	&mp_mmc,
 #endif
 };
 
@@ -177,19 +174,19 @@ int app_fs_file_add(const char *fpath, const char *data, size_t size)
 	fs_file_t_init(&file);
 	rc = fs_open(&file, fpath, FS_O_CREATE | FS_O_WRITE);
 	if (rc < 0) {
-		LOG_ERR("FAIL: open %s: %d", log_strdup(fpath), rc);
+		LOG_ERR("FAIL: open %s: %d", fpath, rc);
 		return rc;
 	}
 
 	rc = fs_seek(&file, 0, FS_SEEK_SET);
 	if (rc < 0) {
-		LOG_ERR("FAIL: seek %s: %d", log_strdup(fpath), rc);
+		LOG_ERR("FAIL: seek %s: %d", fpath, rc);
 		goto out;
 	}
 
 	rc = fs_write(&file, data, size);
 	if (rc < 0) {
-		LOG_ERR("FAIL: write %s: %d", log_strdup(fpath), rc);
+		LOG_ERR("FAIL: write %s: %d", fpath, rc);
 		goto out;
 	}
 
@@ -198,7 +195,7 @@ int app_fs_file_add(const char *fpath, const char *data, size_t size)
 out:
 	rc = fs_close(&file);
 	if (rc < 0) {
-		LOG_ERR("FAIL: close %s: %d", log_strdup(fpath), rc);
+		LOG_ERR("FAIL: close %s: %d", fpath, rc);
 		return rc;
 	}
 
@@ -238,24 +235,21 @@ int app_fs_init(void)
 	struct fs_mount_t **mp;
 
 	/* get MMC disk info */
-#if (_LOG_LEVEL >= LOG_LEVEL_INF) && !defined(CONFIG_SDMMC_LOG_LEVEL_INF) && \
-	defined(CONFIG_SDMMC_LOG_LEVEL_DBG)
 	const char *mmc_disk_pdrv = CONFIG_SDMMC_VOLUME_NAME;
 	disk_get_info(mmc_disk_pdrv, NULL);
-#endif
 
 	/* Mount all configured disks */
 	for (mp = appfs_mp; mp < appfs_mp + ARRAY_SIZE(appfs_mp); mp++) {
 		rc = fs_mount(*mp);
 		if (rc < 0) {
-			LOG_ERR("fs_mount( %s ) failed, err=%d", 
-				log_strdup((*mp)->mnt_point), rc);
+			LOG_ERR("fs_mount( %s ) failed, err=%d",
+				(*mp)->mnt_point, rc);
 			goto exit;
 		}
 
-		LOG_INF("FS mounted %s", log_strdup((*mp)->mnt_point));
+		LOG_INF("FS mounted %s", (*mp)->mnt_point);
 		
-#if _LOG_LEVEL >= LOG_LEVEL_DBG
+#if APPFS_LIST_ROOT_FILES
 		app_fs_stats((*mp)->mnt_point);
 #endif 
 	}

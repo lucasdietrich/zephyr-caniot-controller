@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 
-#include <kernel.h>
+#include <zephyr/kernel.h>
 
 #include "net_time.h"
 

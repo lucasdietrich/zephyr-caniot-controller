@@ -69,7 +69,7 @@ int strncicmp(char const *a, char const *b, size_t len)
         return 0;
 }
 
-int get_repr_can_frame(struct zcan_frame *frame, char *buf, size_t len)
+int get_repr_can_frame(struct can_frame *frame, char *buf, size_t len)
 {
 	return snprintf(buf, len, "can id: 0x%x, len: %d, data: %02x %02x %02x %02x %02x %02x"
 			" %02x %02x", frame->id, frame->dlc, frame->data[0], frame->data[1],

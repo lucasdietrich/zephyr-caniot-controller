@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 
-#include <bluetooth/addr.h>
+#include <zephyr/bluetooth/addr.h>
 
 /* size is 7B */
 typedef struct {

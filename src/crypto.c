@@ -6,7 +6,7 @@
 
 #include "crypto.h"
 
-#include <linker/sections.h>
+#include <zephyr/linker/sections.h>
 #include <mbedtls/memory_buffer_alloc.h>
 
 /* __ccm_noinit_section config in CONFIG_ARM context only */

@@ -18,7 +18,7 @@
 #ifndef _HA_EMU_H_
 #define _HA_EMU_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include <caniot/caniot.h>
 

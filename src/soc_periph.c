@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <device.h>
-#include <devicetree.h>
+#include <zephyr/device.h>
+#include <zephyr/devicetree.h>
 
 #if DT_HAS_COMPAT_STATUS_OKAY(st_stm32_crc)
 
@@ -22,7 +22,7 @@ uint32_t crc_calculate32(uint32_t *buf, size_t len)
 
 #else
 
-#include <sys/crc.h>
+#include <zephyr/sys/crc.h>
 
 uint32_t crc_calculate32(const uint32_t *buf, size_t len)
 {

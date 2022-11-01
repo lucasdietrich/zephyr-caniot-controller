@@ -7,7 +7,7 @@
 #ifndef _CREDS_MANAGER_H_
 #define _CREDS_MANAGER_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include "utils/buffers.h"
 #include "credentials.h"

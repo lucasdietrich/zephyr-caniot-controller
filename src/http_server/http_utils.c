@@ -5,7 +5,7 @@
  */
 
 #include <stdio.h>
-#include <kernel.h>
+#include <zephyr/kernel.h>
 
 #include "utils/buffers.h"
 #include "utils/misc.h"
@@ -15,7 +15,7 @@
 #include "http_request.h"
 #include "http_response.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(http_utils, LOG_LEVEL_WRN);
 
 
@@ -550,7 +550,7 @@ exit:
 ret:
 	if (result != HTTP_TEST_RESULT_OK) {
 		LOG_ERR("(%p / %p) Test failed with %s (%d)", req, resp,
-			log_strdup(http_test_result_to_str(result)), result);
+			http_test_result_to_str(result), result);
 	}
 	return result;
 }

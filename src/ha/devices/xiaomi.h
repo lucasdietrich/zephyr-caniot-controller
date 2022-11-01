@@ -7,7 +7,7 @@
 #ifndef _HA_DEVICES_XIAOMI_H
 #define _HA_DEVICES_XIAOMI_H
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include "../ha.h"
 #include "../devices.h"

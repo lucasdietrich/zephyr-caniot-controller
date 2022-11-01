@@ -9,8 +9,8 @@
 
 #include <stdint.h>
 
-#include <data/json.h>
-#include <net/http_parser.h>
+#include <zephyr/data/json.h>
+#include <zephyr/net/http_parser.h>
 
 #include "http_utils.h"
 #include "http_request.h"

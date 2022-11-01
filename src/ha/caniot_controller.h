@@ -7,7 +7,7 @@
 #ifndef _CAN_CANIOT_CONTROLLER_H
 #define _CAN_CANIOT_CONTROLLER_H	
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include <caniot/caniot.h>
 #include <caniot/device.h>

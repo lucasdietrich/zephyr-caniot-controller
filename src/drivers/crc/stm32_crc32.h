@@ -31,8 +31,8 @@
 #ifndef _UTILS_STM32_CRC32_H_
 #define _UTILS_STM32_CRC32_H_
 
-#include <zephyr.h>
-#include <device.h>
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
 
 typedef uint32_t(*crc_calculate_t)(const struct device *dev,
 				   const uint32_t *buf,

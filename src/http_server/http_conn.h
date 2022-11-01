@@ -11,13 +11,13 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#include <net/net_ip.h>
-#include <net/http_parser.h>
+#include <zephyr/net/net_ip.h>
+#include <zephyr/net/http_parser.h>
 
-#include <sys/dlist.h>
+#include <zephyr/sys/dlist.h>
 
-#include <sys/dlist.h>
-#include <sys/slist.h>
+#include <zephyr/sys/dlist.h>
+#include <zephyr/sys/slist.h>
 
 #include "http_request.h"
 #include "http_response.h"

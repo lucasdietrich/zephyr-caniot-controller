@@ -7,9 +7,9 @@
 #ifndef _CAN_INTERFACE_H
 #define _CAN_INTERFACE_H
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
-#include <drivers/can.h>
+#include <zephyr/drivers/can.h>
 
 #include <caniot/caniot.h>
 #include <caniot/device.h>
@@ -26,9 +26,9 @@ int if_can_init(void);
 
 int if_can_attach_rx_msgq(can_bus_id_t canbus, 
 			  struct k_msgq *rx_msgq,
-			  struct zcan_filter *filter);
+			  struct can_filter *filter);
 
 int if_can_send(can_bus_id_t canbus, 
-		struct zcan_frame *frame);
+		struct can_frame *frame);
 
 #endif /* _CAN_INTERFACE_H */

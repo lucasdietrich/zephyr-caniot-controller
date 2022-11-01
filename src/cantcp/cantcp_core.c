@@ -7,11 +7,11 @@
 #include <stddef.h>
 #include <sys/types.h>
 
-#include <net/socket.h>
+#include <zephyr/net/socket.h>
 
 #include "cantcp.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(cantcp_core, LOG_LEVEL_WRN);
 
 
@@ -85,12 +85,12 @@ int cantcp_core_tunnel_init(cantcp_tunnel_t *tunnel)
 	return 0U;
 }
 
-static size_t get_frame_length(struct zcan_frame *msg)
+static size_t get_frame_length(struct can_frame *msg)
 {
-	return sizeof(struct zcan_frame);
+	return sizeof(struct can_frame);
 }
 
-int cantcp_core_send_frame(cantcp_tunnel_t *tunnel, struct zcan_frame *msg)
+int cantcp_core_send_frame(cantcp_tunnel_t *tunnel, struct can_frame *msg)
 {
 	int ret;
 	size_t sent = 0U;
@@ -124,7 +124,7 @@ exit:
 	return ret;
 }
 
-int cantcp_core_recv_frame(cantcp_tunnel_t *tunnel, struct zcan_frame *msg)
+int cantcp_core_recv_frame(cantcp_tunnel_t *tunnel, struct can_frame *msg)
 {
 	int ret;
 	size_t recv = 0U;
@@ -141,9 +141,9 @@ int cantcp_core_recv_frame(cantcp_tunnel_t *tunnel, struct zcan_frame *msg)
 		goto exit;
 	}
 
-	if (header.length != sizeof(struct zcan_frame)) {
+	if (header.length != sizeof(struct can_frame)) {
 		LOG_ERR("invalid frame length = %hu, expected %u", 
-			header.length, sizeof(struct zcan_frame));
+			header.length, sizeof(struct can_frame));
 		ret = -1;
 		goto exit;
 	}
@@ -195,8 +195,8 @@ struct cantcp_frame
 	struct cantcp_header header;
 
 	union {
-		struct zcan_frame frame;
-		struct zcan_filter filter;
+		struct can_frame frame;
+		struct can_filter filter;
 		struct cantcp_control_frame control;
 		struct cantcp_error_frame error;
 	};

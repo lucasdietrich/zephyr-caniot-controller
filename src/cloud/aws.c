@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include "creds/manager.h"
 #include "net/tls_credentials.h"
@@ -18,7 +18,7 @@
 #include "utils.h"
 #include "cloud_internal.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(aws, LOG_LEVEL_DBG);
 
 #define AWS_CERT_DER 1

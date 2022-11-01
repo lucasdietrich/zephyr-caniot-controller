@@ -11,7 +11,7 @@
 #include <sys/times.h>
 #include <string.h>
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #define DUMMY_STDLIB_FUNCTIONS
 #ifdef DUMMY_STDLIB_FUNCTIONS

@@ -19,7 +19,7 @@
 #include "utils/misc.h"
 
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(http_req, LOG_LEVEL_WRN);
 
 /* parsing */
@@ -336,7 +336,7 @@ static int header_keep(http_request_t *req,
 		sys_dlist_append(&req->headers, &buf->handle);
 	} else {
 		LOG_WRN("(%p) Cannot allocate header buffer for %s", 
-			req, log_strdup(hdr->name));
+			req, hdr->name);
 	}
 
 	return 0;
@@ -415,7 +415,7 @@ static int on_headers_complete(struct http_parser *parser)
 		req, req->parsed_content_length, parser->content_length, (uint32_t)parser->flags);
 
 	LOG_INF("(%p) Headers complete url=%s stream=%u [hdr buf %u/%u]",
-		req, log_strdup(req->url), http_request_is_stream(req),
+		req, req->url, http_request_is_stream(req),
 		hdr_allocated, CONFIG_HTTP_REQUEST_HEADERS_BUFFER_SIZE);
 
 	/* TODO add explicit logs to know which route has not been found */
@@ -636,7 +636,7 @@ void http_request_discard(http_request_t *req,
 	mark_discarded(req, reason);
 	
 	LOG_DBG("(%p) Discarding request, reason: %s (%u)",
-		req, log_strdup(discard_reason_to_str(reason)), reason);
+		req, discard_reason_to_str(reason), reason);
 }
 
 const char *http_header_get_value(http_request_t *req,

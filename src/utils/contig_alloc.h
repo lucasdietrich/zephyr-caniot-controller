@@ -10,7 +10,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <sys/dlist.h>
+#include <zephyr/sys/dlist.h>
 
 #define Z_CONFIG_BUF_SYM(_name) \
 	(_contig_buf ## _name)

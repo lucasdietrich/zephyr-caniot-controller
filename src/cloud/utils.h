@@ -7,8 +7,8 @@
 #ifndef _CLOUD_UTILS_H_
 #define _CLOUD_UTILS_H_
 
-#include <zephyr.h>
-#include <net/mqtt.h>
+#include <zephyr/kernel.h>
+#include <zephyr/net/mqtt.h>
 
 const char *mqtt_evt_get_str(enum mqtt_evt_type evt_type);
 

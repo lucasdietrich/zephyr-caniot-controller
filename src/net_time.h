@@ -18,7 +18,7 @@
 #ifndef _NET_TIME_H_
 #define _NET_TIME_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include <stdint.h>
 #include <stdbool.h>

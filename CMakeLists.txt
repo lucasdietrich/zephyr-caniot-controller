@@ -24,6 +24,9 @@ if (BOARD STREQUAL "nucleo_f429zi")
     set(OVERLAY_CONFIG "overlays/f429zi_spi_disk.conf overlays/mcuboot.conf ${OVERLAY_CONFIG}")
 endif()
 
+# Debug.conf
+# set(OVERLAY_CONFIG "overlays/debug.conf ${OVERLAY_CONFIG}")
+
 set(ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/modules/lua ${CMAKE_CURRENT_SOURCE_DIR}/modules/uart_ipc ${CMAKE_CURRENT_SOURCE_DIR}/modules/caniot-lib)
 
 find_package(Zephyr)

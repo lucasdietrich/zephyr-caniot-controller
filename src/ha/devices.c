@@ -4,14 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include <stdio.h>
 #include <malloc.h>
 
 #include <caniot/datatype.h>
 
-#include "drivers/can.h"
+#include <zephyr/drivers/can.h>
 
 #include "devices.h"
 #include "net_time.h"
@@ -23,7 +23,7 @@
 #include "devices/garage.h"
 #include "devices/xiaomi.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_INF);
 
 // #define HA_DEVICES_IGNORE_UNVERIFIED_DEVICES 1

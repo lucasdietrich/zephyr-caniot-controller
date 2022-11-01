@@ -4,21 +4,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
-#include <storage/flash_map.h>
-#include <dfu/flash_img.h>
-#include <dfu/mcuboot.h>
+#include <zephyr/storage/flash_map.h>
+#include <zephyr/dfu/flash_img.h>
+#include <zephyr/dfu/mcuboot.h>
 
 #include "dfu_server.h"
 #include "http_utils.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(http_dfu, LOG_LEVEL_DBG);
 
-#define FLASH_DEVICE 		FLASH_AREA_DEVICE(image_0)
-#define FLASH_AREA_SLOT0_ID 	FLASH_AREA_ID(image_0)
-#define FLASH_AREA_SLOT1_ID 	FLASH_AREA_ID(image_1)
+#define FLASH_SLOT0_PARTITION 	slot0_partition
+#define FLASH_SLOT1_PARTITION 	slot1_partition
+
+#define FLASH_DEVICE 		FIXED_PARTITION_DEVICE(FLASH_SLOT0_PARTITION)
+#define FLASH_AREA_SLOT0_ID 	FIXED_PARTITION_ID(FLASH_SLOT0_PARTITION)
+#define FLASH_AREA_SLOT1_ID 	FIXED_PARTITION_ID(FLASH_SLOT1_PARTITION)
 
 int http_dfu_status(struct http_request *req,
 		    struct http_response *resp)

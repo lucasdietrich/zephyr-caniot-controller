@@ -1,7 +1,7 @@
 #ifndef _HA_DATA_H_
 #define _HA_DATA_H_
 
-#include <sys/slist.h>
+#include <zephyr/sys/slist.h>
 
 #include <stdint.h>
 

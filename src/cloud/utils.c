@@ -6,10 +6,10 @@
 
 #include "utils.h"
 
-#include <net/socket.h>
-#include <net/net_core.h>
+#include <zephyr/net/socket.h>
+#include <zephyr/net/net_core.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(cloud_utils, LOG_LEVEL_DBG);
 
 const char *mqtt_evt_get_str(enum mqtt_evt_type evt_type)
@@ -59,7 +59,7 @@ int resolve_hostname(struct sockaddr_in *addr,
 				&addr->sin_addr,
 				addr_str,
 				sizeof(addr_str));
-		LOG_INF("Resolved %s -> %s", log_strdup(hostname), log_strdup(addr_str));
+		LOG_INF("Resolved %s -> %s", hostname, addr_str);
 	}
 
 	zsock_freeaddrinfo(ai);

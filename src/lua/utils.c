@@ -14,7 +14,7 @@
 #include <lua/lualib.h>
 #include <lua/lstate.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(lua_utils, LOG_LEVEL_DBG);
 
 #include "modules.h"

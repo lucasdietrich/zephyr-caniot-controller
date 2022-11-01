@@ -14,7 +14,7 @@
 #include "modules.h"
 #include "utils.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(lua, LOG_LEVEL_DBG);
 
 #define CONFIG_LUA_ORCHESTRATOR_WORK_Q_STACK_SIZE 	4096u

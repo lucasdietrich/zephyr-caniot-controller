@@ -6,11 +6,11 @@
 
 #if defined(CONFIG_CANTCP_SERVER)
 
-#include <net/socket.h>
-#include <net/net_core.h>
-#include <net/net_ip.h>
-#include <net/net_if.h>
-#include <net/net_config.h>
+#include <zephyr/net/socket.h>
+#include <zephyr/net/net_core.h>
+#include <zephyr/net/net_ip.h>
+#include <zephyr/net/net_if.h>
+#include <zephyr/net/net_config.h>
 #include <poll.h>
 #include <posix/sys/eventfd.h>
 
@@ -21,7 +21,7 @@
 
 
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(cantcp_server, LOG_LEVEL_DBG);
 
 
@@ -60,7 +60,7 @@ static cantcp_tunnel_t *tunnels[CANTCP_MAX_CLIENTS];
 
 static uint32_t connections_count = 0U;
 
-K_MSGQ_DEFINE(tx_msgq, sizeof(struct zcan_frame),
+K_MSGQ_DEFINE(tx_msgq, sizeof(struct can_frame),
 	      CANTCP_DEFAULT_MAX_TX_QUEUE_SIZE, 4U);
 
 
@@ -96,7 +96,7 @@ static inline int notify_control_fd(control_event_type_t type)
 	return eventfd_write(control_event_fd, (eventfd_t) 1U);
 }
 
-int cantcp_server_broadcast(struct zcan_frame *msg)
+int cantcp_server_broadcast(struct can_frame *msg)
 {
 	int ret;
 
@@ -240,7 +240,7 @@ int accept_connection(int serv_sock)
 	ret = allocate_tunnel(&tunnel);
 	if (ret != 0U) {
 		LOG_WRN("(%d) Connection refused from %s:%d, cli sock = %d", serv_sock,
-			log_strdup(ipv4_str), htons(addr.sin_port), sock);
+			ipv4_str, htons(addr.sin_port), sock);
 
 		zsock_close(sock);
 
@@ -248,7 +248,7 @@ int accept_connection(int serv_sock)
 	}
 
 	LOG_INF("(%d) Connection accepted from %s:%d, cli sock = %d", serv_sock,
-		log_strdup(ipv4_str), htons(addr.sin_port), sock);
+		ipv4_str, htons(addr.sin_port), sock);
 
 	// prepare tunnel
 	tunnel->sock = sock;
@@ -279,7 +279,7 @@ static void handle_incoming_connection(struct pollfd *pfd)
 static void handle_outgoing_msgs(void)
 {
 	int ret;
-	struct zcan_frame msg;
+	struct can_frame msg;
 
 	if (k_msgq_get(&tx_msgq, &msg, K_NO_WAIT) == 0) {
 
@@ -307,7 +307,7 @@ static int handle_connection(struct pollfd *pfd, cantcp_tunnel_t *tunnel)
 	}
 
 	int rcvd = 0, ret;
-	struct zcan_frame msg;
+	struct can_frame msg;
 
 	if (pfd->revents & POLLIN) {
 		rcvd = cantcp_core_recv_frame(tunnel, &msg);

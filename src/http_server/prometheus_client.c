@@ -39,7 +39,7 @@
 
 #include "utils/buffers.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(prom, LOG_LEVEL_INF);
 
 /* Number of metrics to encode between each HTTP response buffer flush */

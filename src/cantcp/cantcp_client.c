@@ -6,8 +6,8 @@
 
 #include "cantcp.h"
 
-#include <net/socket.h>
-#include <net/net_if.h>
+#include <zephyr/net/socket.h>
+#include <zephyr/net/net_if.h>
 
 #include <fcntl.h>
 
@@ -15,7 +15,7 @@
 
 #include "utils.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(cantcp_client, LOG_LEVEL_DBG);
 
 void cantcp_client_tunnel_init(cantcp_tunnel_t *tunnel)
@@ -177,12 +177,12 @@ bool cantcp_connected(cantcp_tunnel_t *tunnel)
 	return tunnel->sock >= 0;
 }
 
-int cantcp_send(cantcp_tunnel_t *tunnel, struct zcan_frame *msg)
+int cantcp_send(cantcp_tunnel_t *tunnel, struct can_frame *msg)
 {
 	return cantcp_core_send_frame(tunnel, msg);
 }
 
-int cantcp_recv(cantcp_tunnel_t *tunnel, struct zcan_frame *msg)
+int cantcp_recv(cantcp_tunnel_t *tunnel, struct can_frame *msg)
 {
 	return cantcp_core_recv_frame(tunnel, msg);
 }

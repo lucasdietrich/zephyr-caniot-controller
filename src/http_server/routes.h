@@ -8,7 +8,7 @@
 #define _HTTP_SERVER_ROUTES_H_
 
 #include <stddef.h>
-#include <net/http_parser.h>
+#include <zephyr/net/http_parser.h>
 
 #include "http_utils.h"
 

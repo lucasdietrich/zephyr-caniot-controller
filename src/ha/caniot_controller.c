@@ -10,7 +10,7 @@
 #include <caniot/controller.h>
 #include <caniot/datatype.h>
 
-#include <sys/dlist.h>
+#include <zephyr/sys/dlist.h>
 #include <assert.h>
 
 #include "can/can_interface.h"
@@ -23,7 +23,7 @@
 #include "ha/devices/caniot.h"
 #include "emu.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(caniot, LOG_LEVEL_WRN);
 
 #define HA_CIOT_QUERY_TIMEOUT_TOLERANCE_MS 1u
@@ -52,7 +52,7 @@ static int z_can_send(const struct caniot_frame *frame,
 	__ASSERT(frame != NULL, "frame is NULL");
 
 #if defined(CONFIG_CAN_INTERFACE)
-	struct zcan_frame zframe;
+	struct can_frame zframe;
 	caniot_to_zcan(&zframe, frame);
 	ret = if_can_send(CAN_BUS_CANIOT, &zframe);
 	if (ret) goto exit;
@@ -164,7 +164,7 @@ void log_caniot_frame(const struct caniot_frame *frame)
 	char repr[64];
 	int ret = caniot_explain_frame_str(frame, repr, sizeof(repr));
 	if (ret > 0) {
-		LOG_INF("%s", log_strdup(repr));
+		LOG_INF("%s", repr);
 	} else {
 		LOG_WRN("Failed to encode frame, ret = %d", ret);
 	}
@@ -276,14 +276,14 @@ static void thread(void *_a, void *_b, void *_c)
 	static struct caniot_frame frame;
 	
 #if defined(CONFIG_CAN_INTERFACE)
-	static struct zcan_frame zframe;
+	static struct can_frame zframe;
 
-	struct zcan_filter filter = {
+	struct can_filter filter = {
 		.id_type = CAN_ID_STD
 	};
 
 	ret = if_can_attach_rx_msgq(CAN_BUS_CANIOT, &can_rxq, &filter);
-	if(ret) {
+	if(ret < 0) {
 		LOG_ERR("Failed to attach CAN RX queue: %d", ret);
 		return;
 	}

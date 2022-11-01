@@ -1,7 +1,7 @@
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
-#include <data/json.h>
-#include <bluetooth/addr.h>
+#include <zephyr/data/json.h>
+#include <zephyr/bluetooth/addr.h>
 
 #include "devices.h"
 

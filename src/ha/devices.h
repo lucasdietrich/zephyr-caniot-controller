@@ -9,11 +9,11 @@
 #ifndef _HA_DEVS_H_
 #define _HA_DEVS_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include <sys/types.h>
 
-#include <sys/slist.h>
+#include <zephyr/sys/slist.h>
 
 #include "ha.h"
 #include "room.h"

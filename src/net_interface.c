@@ -6,19 +6,19 @@
 
 #include "net_interface.h"
 
-#include <net/net_if.h>
-#include <net/net_core.h>
-#include <net/net_context.h>
-#include <net/net_mgmt.h>
-#include <net/net_config.h>
-#include <net/ethernet_mgmt.h>
-#include <net/net_config.h>
-#include <net/sntp.h>
+#include <zephyr/net/net_if.h>
+#include <zephyr/net/net_core.h>
+#include <zephyr/net/net_context.h>
+#include <zephyr/net/net_mgmt.h>
+#include <zephyr/net/net_config.h>
+#include <zephyr/net/ethernet_mgmt.h>
+#include <zephyr/net/net_config.h>
+#include <zephyr/net/sntp.h>
 
 #include "userio/leds.h"
 #include "net_time.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(ethernet_if, LOG_LEVEL_INF);
 
 static struct net_mgmt_event_callback mgmt_cb[3];
@@ -39,18 +39,18 @@ static void show_ipv4(void)
                 char *ipv4_str = net_addr_ntop(AF_INET,
                                                &ifcfg->ip.ipv4->unicast[i].address.in_addr,
                                                buf, sizeof(buf));
-                LOG_INF("Your address: %s", log_strdup(ipv4_str));
+                LOG_INF("Your address: %s", ipv4_str);
 #if defined(CONFIG_NET_DHCPV4)
                 LOG_INF("Lease time: %u seconds", ifcfg->dhcpv4.lease_time);
 #endif
                 LOG_INF("Subnet: %s",
-                        log_strdup(net_addr_ntop(AF_INET,
+                        net_addr_ntop(AF_INET,
                                                  &ifcfg->ip.ipv4->netmask,
-                                                 buf, sizeof(buf))));
+                                                 buf, sizeof(buf)));
                 LOG_INF("Router: %s",
-                        log_strdup(net_addr_ntop(AF_INET,
+                        net_addr_ntop(AF_INET,
                                                  &ifcfg->ip.ipv4->gw,
-                                                 buf, sizeof(buf))));
+                                                 buf, sizeof(buf)));
         }
 }
 

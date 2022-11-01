@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include <net/http_parser.h>
+#include <zephyr/net/http_parser.h>
 
 #include "utils/buffers.h"
 #include "http_utils.h"

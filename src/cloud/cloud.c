@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,14 +20,14 @@
 
 #include <sys/eventfd.h>
 
-#include <net/socket.h>
-#include <net/net_core.h>
+#include <zephyr/net/socket.h>
+#include <zephyr/net/net_core.h>
 
 #include "net_time.h"
 
 #include "cloud/mqttc.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(cloud, LOG_LEVEL_DBG);
 
 #define AWS_THREAD_STACK_SIZE 2096u
@@ -96,8 +96,8 @@ static void set_state(enum cloud_state new_state)
 {
 	if (state != new_state) {
 		LOG_INF("State changed: %s (%d) -> %s (%d)", 
-			log_strdup(cloud_state_to_str(state)), state, 
-			log_strdup(cloud_state_to_str(new_state)), new_state);
+			cloud_state_to_str(state), state, 
+			cloud_state_to_str(new_state), new_state);
 		state = new_state;
 	}
 }

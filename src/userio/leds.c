@@ -6,11 +6,11 @@
 
 #include "leds.h"
 
-#include <devicetree.h>
-#include <drivers/pwm.h>
-#include <drivers/gpio.h>
+#include <zephyr/devicetree.h>
+#include <zephyr/drivers/pwm.h>
+#include <zephyr/drivers/gpio.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(leds, LOG_LEVEL_INF);
 
 #define PWM_GREEN_LED_NODE	DT_NODELABEL(green_pwm_led)
@@ -54,15 +54,15 @@ int leds_init(void)
 {
 	int ret;
 
-	ret = pwm_pin_set_usec(PWM_GREEN_DEVICE, PWM_GREEN_CHANNEL,
-			       PWM_GREEN_PERIOD, 0U, PWM_GREEN_FLAGS);
+	ret = pwm_set(PWM_GREEN_DEVICE, PWM_GREEN_CHANNEL,
+		      PWM_USEC(PWM_GREEN_PERIOD), PWM_USEC(0U), PWM_GREEN_FLAGS);
 	if (ret != 0) {
 		LOG_ERR("Failed to set green PWM, ret: %d", ret);
 		goto exit;
 	}
 
-	ret = pwm_pin_set_usec(PWM_BLUE_DEVICE, PWM_BLUE_CHANNEL,
-			       PWM_BLUE_PERIOD, 0U, PWM_BLUE_FLAGS);
+	ret = pwm_set(PWM_BLUE_DEVICE, PWM_BLUE_CHANNEL,
+		      PWM_USEC(PWM_BLUE_PERIOD), PWM_USEC(0U), PWM_BLUE_FLAGS);
 	if (ret != 0) {
 		LOG_ERR("Failed to set blue PWM, ret: %d", ret);
 		goto exit;
@@ -88,18 +88,18 @@ exit:
 int leds_set_blinking_phase(led_t led, uint32_t period_us, uint32_t phase_us)
 {
 	if (led == LED_GREEN) {
-		return pwm_pin_set_usec(PWM_GREEN_DEVICE,
-					PWM_GREEN_CHANNEL,
-					period_us,
-					phase_us, 
-					PWM_GREEN_FLAGS);
+		return pwm_set(PWM_GREEN_DEVICE,
+			       PWM_GREEN_CHANNEL,
+			       PWM_USEC(period_us),
+			       PWM_USEC(phase_us),
+			       PWM_GREEN_FLAGS);
 
 	} else if (led == LED_BLUE) {
-		return pwm_pin_set_usec(PWM_BLUE_DEVICE,
-					PWM_BLUE_CHANNEL,
-					period_us,
-					phase_us,
-					PWM_BLUE_FLAGS);
+		return pwm_set(PWM_BLUE_DEVICE,
+			       PWM_BLUE_CHANNEL,
+			       PWM_USEC(period_us),
+			       PWM_USEC(phase_us),
+			       PWM_BLUE_FLAGS);
 	}
 
 	return -EINVAL;

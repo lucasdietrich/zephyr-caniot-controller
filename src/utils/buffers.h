@@ -7,7 +7,7 @@
 #ifndef _UTILS_BUFFERS_H_
 #define _UTILS_BUFFERS_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include <stddef.h>
 #include <stdint.h>

@@ -90,7 +90,7 @@
                 }
             },
             "problemMatcher": []
-        }
+        },
         {
             "label": "Build QEMU",
             "detail": "make build_qemu",

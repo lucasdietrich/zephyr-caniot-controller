@@ -7,7 +7,7 @@
 #ifndef _CREDS_UTILS_H
 #define _CREDS_UTILS_H
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include "credentials.h"
 #include "flash_creds.h"

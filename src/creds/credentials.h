@@ -7,7 +7,7 @@
 #ifndef _CREDS_CREDENTIALS_H_
 #define _CREDS_CREDENTIALS_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include <stdint.h>
 

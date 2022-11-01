@@ -6,7 +6,7 @@
 
 #include "backoff.h"
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include <random/rand32.h>
 

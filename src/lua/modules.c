@@ -8,11 +8,11 @@
 #include <lua/lauxlib.h>
 #include <lua/lualib.h>
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include "modules.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(lua_mod, LOG_LEVEL_DBG);
 
 /* Default modules */
@@ -58,7 +58,7 @@ static int lm_dum_hello(lua_State *L)
 	size_t len; 
 	const char *name = luaL_checklstring(L, 1, &len);
 
-	LOG_DBG("name=%s [len = %u]", log_strdup(name), len);
+	LOG_DBG("name=%s [len = %u]", name, len);
 	
 	char buffer[30u];
 	snprintf(buffer, sizeof(buffer), "Hello %s", name);

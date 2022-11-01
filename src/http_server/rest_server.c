@@ -6,27 +6,27 @@
 
 #include "rest_server.h"
 
-#include <kernel.h>
+#include <zephyr/kernel.h>
 #include <assert.h>
 
 #include <string.h>
 #include <stdlib.h>
 
-#include <net/http_parser.h>
+#include <zephyr/net/http_parser.h>
 
-#include <posix/time.h>
+#include <zephyr/posix/time.h>
 #include "utils/buffers.h"
-#include <net/net_if.h>
-#include <net/net_ip.h>
-#include <net/ethernet.h>
+#include <zephyr/net/net_if.h>
+#include <zephyr/net/net_ip.h>
+#include <zephyr/net/ethernet.h>
 
-#include <net/net_stats.h>
-#include <net/net_mgmt.h>
-#include <net/net_if.h>
+#include <zephyr/net/net_stats.h>
+#include <zephyr/net/net_mgmt.h>
+#include <zephyr/net/net_if.h>
 
 #include <mbedtls/memory_buffer_alloc.h>
 
-#include <bluetooth/addr.h>
+#include <zephyr/bluetooth/addr.h>
 #include "ha/devices.h"
 #include "ha/config.h"
 #include "ha/utils.h"
@@ -55,7 +55,7 @@
 #include "config.h"
 #include "net_time.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_WRN);
 
 #define REST_CANIOT_QUERY_MAX_TIMEOUT_MS		(5000U)
@@ -1377,7 +1377,7 @@ int rest_if_can(http_request_t *req,
 	uint32_t arbitration_id = 0u;
 	route_arg_get(req, 0U, &arbitration_id);
 
-	struct zcan_frame frame = { 0 };
+	struct can_frame frame = { 0 };
 
 	int dlc = json_parse_can_payload(req->payload.loc, req->payload.len, frame.data);
 	if (dlc < 0) {

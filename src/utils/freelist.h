@@ -3,8 +3,8 @@
 
 #include <stdio.h>
 
-#include <zephyr.h>
-#include <sys/slist.h>
+#include <zephyr/kernel.h>
+#include <zephyr/sys/slist.h>
 
 struct _flist_info {
 	sys_slist_t *free_list;

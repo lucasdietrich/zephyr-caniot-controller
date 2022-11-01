@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <kernel.h>
+#include <zephyr/kernel.h>
 
 #include "ble_controller.h"
 
@@ -19,7 +19,7 @@
 #include <uart_ipc/ipc_frame.h>
 #include <uart_ipc/ipc.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(ble_ctrlr, LOG_LEVEL_WRN);
 
 K_MSGQ_DEFINE(ipc_ble_msgq, sizeof(ipc_frame_t), 1U, 4U);
@@ -67,7 +67,7 @@ int process_xiaomi_dataframe(xiaomi_dataframe_t *frame)
 		LOG_INF("BLE Xiaomi rec %u [%d s]: %s [rssi %d] " \
 			"temp: %d°C hum: %u %% bat: %u mV (%u %%)",
 			i, record_rel_time,
-			log_strdup(addr_str), 
+			addr_str, 
 			(int32_t)rec->measurements.rssi,
 			(int32_t)rec->measurements.temperature / 100,
 			(uint32_t)rec->measurements.humidity / 100,

@@ -7,7 +7,7 @@
 #ifndef _CREDS_HARDCODED_CREDS_H_
 #define _CREDS_HARDCODED_CREDS_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include "credentials.h"
 

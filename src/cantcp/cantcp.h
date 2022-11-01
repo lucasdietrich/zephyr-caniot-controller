@@ -7,10 +7,10 @@
 #ifndef _CANTCP_H
 #define _CANTCP_H
 
-#include <kernel.h>
+#include <zephyr/kernel.h>
 
-#include <drivers/can.h>
-#include <net/net_ip.h>
+#include <zephyr/drivers/can.h>
+#include <zephyr/net/net_ip.h>
 
 
 
@@ -60,7 +60,7 @@ typedef enum
 
 typedef struct cantcp_tunnel cantcp_tunnel_t;
 
-// typedef void (*cantcp_rx_callback_t)(cantcp_tunnel_t *tunnel, struct zcan_frame *msg);
+// typedef void (*cantcp_rx_callback_t)(cantcp_tunnel_t *tunnel, struct can_frame *msg);
 
 struct cantcp_tunnel
 {
@@ -113,9 +113,9 @@ int cantcp_connect(cantcp_tunnel_t *tunnel);
 int cantcp_disconnect(cantcp_tunnel_t *tunnel);
 
 /* server & client */
-int cantcp_send(cantcp_tunnel_t *tunnel, struct zcan_frame *msg);
+int cantcp_send(cantcp_tunnel_t *tunnel, struct can_frame *msg);
 
-int cantcp_recv(cantcp_tunnel_t *tunnel, struct zcan_frame *msg);
+int cantcp_recv(cantcp_tunnel_t *tunnel, struct can_frame *msg);
 
 int cantcp_live(cantcp_tunnel_t *tunnel);
 

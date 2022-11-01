@@ -13,7 +13,7 @@
 
 #include "utils/misc.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(creds_manager, LOG_LEVEL_DBG);
 
 int creds_manager_init(void)

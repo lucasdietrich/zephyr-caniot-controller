@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <kernel.h>
+#include <zephyr/kernel.h>
 
-#include <drivers/can.h>
+#include <zephyr/drivers/can.h>
 
 #include "cantcp/cantcp.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(cantcp_test, LOG_LEVEL_NONE);
 
 void thread(void *_a, void *_b, void *_c);
@@ -21,7 +21,7 @@ void thread(void *_a, void *_b, void *_c)
 {
 	int ret;
 	struct cantcp_tunnel tunnel;
-	struct zcan_frame frame;
+	struct can_frame frame;
 
 	cantcp_client_tunnel_init(&tunnel);
 

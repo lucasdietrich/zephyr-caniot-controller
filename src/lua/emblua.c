@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
-#include <fs/fs.h>
+#include <zephyr/fs/fs.h>
 #include <string.h>
 #include <stdio.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(app_fs, LOG_LEVEL_INF);
 
 #include "../appfs.h"

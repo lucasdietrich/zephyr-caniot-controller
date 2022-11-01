@@ -12,7 +12,7 @@
 
 #include <stdio.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(web_server, LOG_LEVEL_INF);
 
 #define HTML_BEGIN_TO_TITLE "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>"

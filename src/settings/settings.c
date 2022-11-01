@@ -4,26 +4,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
-#include <device.h>
-#include <drivers/flash.h>
-#include <storage/flash_map.h>
-#include <fs/nvs.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/flash.h>
+#include <zephyr/storage/flash_map.h>
+#include <zephyr/fs/nvs.h>
 
 #include "settings.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(settings, LOG_LEVEL_INF);
 
-#define STORAGE_NODE DT_NODE_BY_FIXED_PARTITION_LABEL(storage)
-#define STORAGE_AREA_OFFSET FLASH_AREA_OFFSET(storage)
-#define FLASH_NODE DT_MTD_FROM_FIXED_PARTITION(STORAGE_NODE)
+#define STORAGE_PARTITION	storage_partition
+
+#define STORAGE_NODE 		DT_NODE_BY_FIXED_PARTITION_LABEL(STORAGE_PARTITION)
+#define STORAGE_AREA_OFFSET 	FIXED_PARTITION_OFFSET(STORAGE_PARTITION)
+#define FLASH_NODE 		DT_MTD_FROM_FIXED_PARTITION(STORAGE_NODE)
+#define FLASH_DEVICE 		FIXED_PARTITION_DEVICE(storage_partition)
 
 /* or use flash_area_get_sectors() at runtime */
 #define SECTOR_COUNT 4U
 
-static const struct device *const flash_dev = DEVICE_DT_GET(FLASH_NODE);
+static const struct device *const flash_dev = FLASH_DEVICE;
 static struct nvs_fs fs;
 static struct flash_pages_info info;
 
@@ -50,7 +53,7 @@ int settings_init(void)
 	fs.sector_size = info.size;
 	fs.sector_count = SECTOR_COUNT;
 
-	rc = nvs_init(&fs, flash_dev->name);
+	rc = nvs_mount(&fs);
 	if (rc) {
 		LOG_ERR("Unable to initialize nvs rc=%d\n", rc);
 		goto exit;

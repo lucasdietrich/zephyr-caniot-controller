@@ -6,10 +6,10 @@
 
 #include "net_time.h"
 
-#include <net/sntp.h>
-#include <posix/time.h>
+#include <zephyr/net/sntp.h>
+#include <zephyr/posix/time.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(net_time, LOG_LEVEL_INF);
 
 static void sntp_handler(struct k_work *work);
@@ -61,7 +61,7 @@ static void sntp_handler(struct k_work *work)
 		ret = k_condvar_broadcast(&ctx->condvar);
 
 		LOG_INF("SNTP time from %s:123 = %u, %d thread(s) signaled",
-			log_strdup(ctx->server), (uint32_t)time.seconds, ret);
+			ctx->server, (uint32_t)time.seconds, ret);
 	} else {
 		ctx->failures++;
 

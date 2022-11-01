@@ -6,13 +6,13 @@
 
 #include "routes.h"
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 #include <assert.h>
 
 #include <string.h>
 #include <stdio.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 
 #include "rest_server.h"

@@ -8,14 +8,14 @@
 
 #include <string.h>
 
-#include <device.h>
-#include <devicetree.h>
-#include <drivers/flash.h>
-#include <storage/flash_map.h>
+#include <zephyr/device.h>
+#include <zephyr/devicetree.h>
+#include <zephyr/drivers/flash.h>
+#include <zephyr/storage/flash_map.h>
 
-#include <sys/crc.h>
+#include <zephyr/sys/crc.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(flash_creds);
 
 /* Using flash device here for reading is like directly reading the address
@@ -27,11 +27,12 @@ LOG_MODULE_REGISTER(flash_creds);
 // CONFIG_FLASH_BASE_ADDRESS
 // CONFIG_SOC_FLASH_STM32
 
-#define FLASH_DEVICE FLASH_AREA_DEVICE(credentials)
+#define CREDS_PARTITION 	credentials_partition
 
-#define CREDS_AREA_ID FLASH_AREA_ID(credentials)
-#define CREDS_AREA_OFFSET FLASH_AREA_OFFSET(credentials)
-#define CREDS_AREA_SIZE FLASH_AREA_SIZE(credentials)
+#define CREDS_FLASH_DEVICE	FIXED_PARTITION_DEVICE(CREDS_PARTITION)
+#define CREDS_AREA_ID 		FIXED_PARTITION_ID(CREDS_PARTITION)
+#define CREDS_AREA_OFFSET 	FIXED_PARTITION_OFFSET(CREDS_PARTITION)
+#define CREDS_AREA_SIZE 	FIXED_PARTITION_SIZE(CREDS_PARTITION)
 
 #define FLASH_CREDS_SLOTS_COUNT (CREDS_AREA_SIZE / FLASH_CRED_BLOCK_SIZE)
 
@@ -43,7 +44,7 @@ const uint32_t flash_creds_slots_count = MIN(FLASH_CREDS_SLOTS_COUNT, FLASH_CRED
 #warning "credentials area size is not 128KB as expected"
 #endif
 
-static const struct device *flash_dev = FLASH_DEVICE;
+static const struct device *flash_dev = CREDS_FLASH_DEVICE;
 
 int flash_creds_init(void)
 {

@@ -6,8 +6,8 @@
 
 #include "system.h"
 
-#include <device.h>
-#include <drivers/sensor.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/sensor.h>
 
 
 controller_status_t controller_status = {

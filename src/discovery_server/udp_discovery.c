@@ -4,14 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <kernel.h>
+#include <zephyr/kernel.h>
 
-#include <net/socket.h>
-#include <net/net_core.h>
-#include <net/net_ip.h>
-#include <net/net_if.h>
-#include <net/net_config.h>
-#include <net/udp.h>
+#include <zephyr/net/socket.h>
+#include <zephyr/net/net_core.h>
+#include <zephyr/net/net_ip.h>
+#include <zephyr/net/net_if.h>
+#include <zephyr/net/net_config.h>
+#include <zephyr/net/udp.h>
 
 #include <sys/types.h>
 
@@ -23,7 +23,7 @@
 #define CONFIG_DISCOVERY_SERVER_LOG_LEVEL 0
 #endif /* CONFIG_DISCOVERY_SERVER_LOG_LEVEL */
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(discovery, CONFIG_DISCOVERY_SERVER_LOG_LEVEL);
 
 #define DISCOVERY_PORT          5000
@@ -127,7 +127,7 @@ static void thread(void *_a, void *_b, void *_c)
                 if (net_addr_ntop(AF_INET, &client.sin_addr,
                                   ipv4_str, sizeof(ipv4_str)) != NULL) {
                         LOG_INF("Processing UDP packet from %s:%d",
-                                log_strdup(ipv4_str), htons(client.sin_port));
+                                ipv4_str, htons(client.sin_port));
                 }
 
                 LOG_HEXDUMP_DBG(buffer, rc, "UDP query received");

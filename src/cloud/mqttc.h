@@ -7,7 +7,7 @@
 #ifndef _CLOUD_MQTTC_H_
 #define _CLOUD_MQTTC_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include "utils/buffers.h"
 #include "poll.h"

@@ -8,14 +8,14 @@
 
 #include <libgen.h>
 #include <appfs.h>
-#include <fs/fs.h>
+#include <zephyr/fs/fs.h>
 
-#include <data/json.h>
-#include <net/http_parser.h>
+#include <zephyr/data/json.h>
+#include <zephyr/net/http_parser.h>
 
 #include "http_utils.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(files_server, LOG_LEVEL_INF);
 
 typedef enum {
@@ -118,7 +118,7 @@ int http_file_upload(struct http_request *req,
 				 u->dirname, u->basename);
 		}
 
-		LOG_INF("Filepath: %s", log_strdup(u->filepath));
+		LOG_INF("Filepath: %s", u->filepath);
 
 		/* Prepare the file in the filesystem */
 		fs_file_t_init(&u->file);
@@ -177,9 +177,9 @@ int http_file_upload(struct http_request *req,
 		}
 
 		LOG_INF("File %s upload succeeded [size = %u]",
-			log_strdup(u->filepath), req->payload_len);
-
-		if (_LOG_LEVEL() >= LOG_LEVEL_DBG) {
+			u->filepath, req->payload_len);
+		
+		if (Z_LOG_CONST_LEVEL_CHECK(LOG_LEVEL_DBG)) {
 			app_fs_stats(CONFIG_FILE_UPLOAD_MOUNT_POINT);
 		}
 	}
@@ -246,7 +246,7 @@ int http_file_download(struct http_request *req,
 			return 0;
 		}
 
-		LOG_INF("File=%s size=%u", log_strdup(filepath), dirent.size);
+		LOG_INF("File=%s size=%u", filepath, dirent.size);
 		http_response_set_content_length(resp, dirent.size);
 
 		fs_file_t_init(&file);

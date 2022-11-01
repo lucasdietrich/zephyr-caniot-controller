@@ -7,9 +7,9 @@
 #ifndef _HA_H_
 #define _HA_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
-#include <bluetooth/addr.h>
+#include <zephyr/bluetooth/addr.h>
 #include <caniot/caniot.h>
 #include <caniot/datatype.h>
 

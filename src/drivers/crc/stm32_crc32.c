@@ -6,8 +6,8 @@
 
 #include "stm32_crc32.h"
 
-#include <zephyr.h>
-#include <device.h>
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
 
 #include <stm32f429xx.h>
 #include <stm32f4xx_ll_crc.h>

@@ -7,7 +7,7 @@
 #ifndef _APP_SECTIONS_H_
 #define _APP_SECTIONS_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 /* only in ARM CORTEX context */
 #if defined(CONFIG_APP_BIG_BUFFER_TO_CCM)

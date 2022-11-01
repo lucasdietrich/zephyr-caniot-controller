@@ -7,9 +7,9 @@
 #ifndef _CLOUD_CLOUD_INTERNAL_H_
 #define _CLOUD_CLOUD_INTERNAL_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
-#include <net/tls_credentials.h>
+#include <zephyr/net/tls_credentials.h>
 
 #define CONFIG_CLOUD_ENDPOINT_MAX_LEN 64u
 #define CONFIG_CLOUD_CLIENT_ID_MAX_LEN 32u

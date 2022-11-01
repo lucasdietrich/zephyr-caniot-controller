@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,13 +18,13 @@
 
 #include <poll.h>
 
-#include <net/mqtt.h>
-#include <net/socket.h>
-#include <net/net_core.h>
-#include <net/net_if.h>
-#include <net/net_mgmt.h>
-#include <net/dns_resolve.h>
-#include <net/tls_credentials.h>
+#include <zephyr/net/mqtt.h>
+#include <zephyr/net/socket.h>
+#include <zephyr/net/net_core.h>
+#include <zephyr/net/net_if.h>
+#include <zephyr/net/net_mgmt.h>
+#include <zephyr/net/dns_resolve.h>
+#include <zephyr/net/tls_credentials.h>
 
 #include "utils/misc.h"
 #include "utils/buffers.h"
@@ -39,7 +39,7 @@
 #include "cloud/utils.h"
 #include "cloud/mqttc.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(mqttc, LOG_LEVEL_INF);
 
 #include "cloud_internal.h"
@@ -91,7 +91,7 @@ static void handle_published_message(const struct mqtt_publish_param *msg)
 	strncpy((char *)topic, (char *)msg->message.topic.topic.utf8, topic_size);
 	topic[topic_size] = '\0';
 
-	LOG_INF("Received %u B message on topic %s", message_size, log_strdup(topic));
+	LOG_INF("Received %u B message on topic %s", message_size, topic);
 
 	/* Check if the message fit into the buffer */
 	cursor_buffer_reset(&buffer);
@@ -462,7 +462,7 @@ int mqttc_publish(const char *topic,
 	if (ret != 0) {
 		atomic_clear_bit(&state, MQTTC_BIT_INPROGRESS);
 
-		LOG_ERR("Failed to publish to topic %s: %d", log_strdup(topic), ret);
+		LOG_ERR("Failed to publish to topic %s: %d", topic, ret);
 	}
 
 	return ret;

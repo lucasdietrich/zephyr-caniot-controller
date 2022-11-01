@@ -6,7 +6,7 @@
 
 #include "manager.h"
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #include <memory.h>
 

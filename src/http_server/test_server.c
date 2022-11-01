@@ -6,12 +6,12 @@
 
 #include "test_server.h"
 
-#include <data/json.h>
-#include <net/http_parser.h>
+#include <zephyr/data/json.h>
+#include <zephyr/net/http_parser.h>
 
 #include "utils/misc.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(test_server, LOG_LEVEL_INF);
 
 static uint32_t test_checksum(uint32_t checksum, const char *str, size_t len)
@@ -165,12 +165,12 @@ int http_test_route_args(struct http_request *req,
 		struct query_arg *arg;
 		for (int i = 0; i < ret; i++) {
 			arg = &qal[i];
-			LOG_DBG("%u: %s : %s", i, log_strdup(arg->key),
-				arg->value ? log_strdup(arg->value) : "(null)");
+			LOG_DBG("%u: %s : %s", i, arg->key,
+				arg->value ? arg->value : "(null)");
 		}
 
 		char *val = query_arg_get(qal, ret, "name");
-		LOG_DBG("Parameter 'name' = %s", val ? log_strdup(val) : "(null)");
+		LOG_DBG("Parameter 'name' = %s", val ? val : "(null)");
 	}
 
 	
@@ -192,8 +192,8 @@ int http_test_headers(struct http_request *req,
 	sys_dnode_t *node;
 	SYS_DLIST_FOR_EACH_NODE(&req->headers, node) {
 		struct http_header *header = HTTP_HEADER_FROM_HANDLE(node);
-		LOG_INF("[header] %s: %s", log_strdup(header->name), 
-			log_strdup(header->value));
+		LOG_INF("[header] %s: %s", header->name, 
+			header->value);
 	}
 
 	return 0;

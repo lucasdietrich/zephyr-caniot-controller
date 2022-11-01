@@ -7,7 +7,7 @@
 #ifndef _LUA_ORCHESTRATOR_H_
 #define _LUA_ORCHESTRATOR_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 #include <assert.h>
 
 int lua_orch_init(void);

@@ -7,7 +7,7 @@
 #include "utils.h"
 
 
-int zcan_to_caniot(const struct zcan_frame *zcan,
+int zcan_to_caniot(const struct can_frame *zcan,
 		   struct caniot_frame *caniot)
 {
 	if ((zcan == NULL) || (caniot == NULL)) {
@@ -23,14 +23,14 @@ int zcan_to_caniot(const struct zcan_frame *zcan,
 }
 
 // static
-int caniot_to_zcan(struct zcan_frame *zcan,
+int caniot_to_zcan(struct can_frame *zcan,
 		   const struct caniot_frame *caniot)
 {
 	if ((zcan == NULL) || (caniot == NULL)) {
 		return -EINVAL;
 	}
 
-	memset(zcan, 0x00U, sizeof(struct zcan_frame));
+	memset(zcan, 0x00U, sizeof(struct can_frame));
 
 	zcan->id = caniot_id_to_canid(caniot->id);
 	zcan->dlc = MIN(caniot->len, 8U);

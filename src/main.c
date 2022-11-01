@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
-#include <device.h>
-#include <drivers/sensor.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/sensor.h>
 
 #include "net_interface.h"
 #include "net_time.h"
@@ -47,8 +47,8 @@
 
 #include <stdio.h>
 
-#include <logging/log.h>
-LOG_MODULE_REGISTER(main, LOG_LEVEL_NONE);
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
 #if DT_HAS_COMPAT_STATUS_OKAY(st_stm32_temp)
 #define TEMP_NODE DT_INST(0, st_stm32_temp)
@@ -115,6 +115,8 @@ extern int lua_fs_populate(void);
 
 void main(void)
 {
+	printk("Starting Zephyr application...\n");
+	
 #if defined(CONFIG_BOOTLOADER_MCUBOOT)
 	dfu_image_check();
 #endif 

@@ -7,7 +7,7 @@
 #ifndef _CANTCP_SERVER_H_
 #define _CANTCP_SERVER_H_
 
-#include <kernel.h>
+#include <zephyr/kernel.h>
 
 #include "cantcp.h"
 
@@ -17,7 +17,7 @@
  * @param msg 
  * @return int 
  */
-int cantcp_server_broadcast(struct zcan_frame *msg);
+int cantcp_server_broadcast(struct can_frame *msg);
 
 /**
  * @brief Attach msgq to receive all clients messages

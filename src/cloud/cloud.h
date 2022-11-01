@@ -7,7 +7,7 @@
 #ifndef _CLOUD_CLOUD_H_
 #define _CLOUD_CLOUD_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 struct cloud_platform *cloud_platform_get(void);
 

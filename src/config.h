@@ -7,7 +7,7 @@
 #ifndef _APP_CONFIG_H_
 #define _APP_CONFIG_H_
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 /* Application specific checks */
 
@@ -15,7 +15,7 @@
  * 12 which are the one used by the MMC
  */
 #if defined(CONFIG_DISK_DRIVER_SDMMC) && \
-	DT_HAS_COMPAT_STATUS_OKAY(zephyr_mmc_spi_slot) && \
+	DT_HAS_COMPAT_STATUS_OKAY(zephyr_sdhc_spi_slot) && \
 	defined(CONFIG_UART_IPC_DEBUG_GPIO_STM32)
 #	error "CONFIG_DISK_DRIVER_SDMMC and CONFIG_UART_IPC_DEBUG_GPIO_STM32 are mutually exclusive"
 #endif 

@@ -6,8 +6,8 @@
 
 #include "emu.h"
 
-#include <zephyr.h>
-#include <random/rand32.h>
+#include <zephyr/kernel.h>
+#include <zephyr/random/rand32.h>
 
 #include "net_time.h"
 #include "system.h"
@@ -21,7 +21,7 @@
 
 #include <caniot/device.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(ha_emu, LOG_LEVEL_INF);
 
 #define EMU_BLE_RDM_MIN_MS 		100
@@ -183,7 +183,7 @@ void emu_consumer(void *_a, void *_b, void *_c)
 
 			if (event->dev && event->dev->room) {
 				LOG_DBG("(%p %p %p) Room: %s", event, event->dev, 
-					event->dev->room, log_strdup(event->dev->room->name));
+					event->dev->room, event->dev->room->name);
 			}
 
 			ha_ev_unref(event);

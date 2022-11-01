@@ -8,7 +8,7 @@
 #define _APP_FS_H_
 
 #include <stddef.h>
-#include <fs/fs.h>
+#include <zephyr/fs/fs.h>
 
 int app_fs_init(void);
 
