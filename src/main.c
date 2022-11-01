@@ -48,7 +48,7 @@
 #include <stdio.h>
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
 #if DT_HAS_COMPAT_STATUS_OKAY(st_stm32_temp)
 #define TEMP_NODE DT_INST(0, st_stm32_temp)
