@@ -2,7 +2,7 @@ import subprocess
 import os.path
 
 if __name__ == "__main__":
-    hardcoded_creds_file = "./src/creds/hardcoded_creds_data.c"
+    hardcoded_creds_file = "./src/creds/hardcoded_creds_g.c"
 
     with open(hardcoded_creds_file, "w+") as f:
         f.write('#include "hardcoded_creds.h"\n')

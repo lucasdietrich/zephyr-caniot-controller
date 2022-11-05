@@ -4,7 +4,7 @@ import os.path
 from credentials import CredId, parse_creds_json, to_hex_c_array, get_format, CredFormat
 
 def create_hardcoded_creds_file(creds: dict, 
-                                loc: str = "./src/creds/hardcoded_creds_data.c"):
+                                loc: str = "./src/creds/hardcoded_creds_g.c"):
     with open(hardcoded_creds_file, "w+") as f:
         f.write('#include "hardcoded_creds.h"\n')
     
@@ -31,7 +31,7 @@ def create_hardcoded_creds_file(creds: dict,
 
 
 if __name__ == "__main__":
-    hardcoded_creds_file = "./src/creds/hardcoded_creds_data.c"
+    hardcoded_creds_file = "./src/creds/hardcoded_creds_g.c"
     creds = parse_creds_json("./creds/creds-qemu.json")
 
     create_hardcoded_creds_file(creds, hardcoded_creds_file)
