@@ -92,3 +92,6 @@ flash_upgrade: flash_slot1
 
 dis:
 	./scripts/dis.sh
+
+make http_routes_update:
+	python3 ./modules/embedc-utils/zephyr/genroutes.py

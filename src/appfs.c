@@ -234,9 +234,11 @@ int app_fs_init(void)
 	int rc = 0;
 	struct fs_mount_t **mp;
 
+#if defined(CONFIG_SDMMC_LOG_LEVEL_DBG)
 	/* get MMC disk info */
 	const char *mmc_disk_pdrv = CONFIG_SDMMC_VOLUME_NAME;
 	disk_get_info(mmc_disk_pdrv, NULL);
+#endif
 
 	/* Mount all configured disks */
 	for (mp = appfs_mp; mp < appfs_mp + ARRAY_SIZE(appfs_mp); mp++) {

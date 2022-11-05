@@ -12,3 +12,6 @@
 	path = scripts/caniot-sdk
 	url = https://github.com/lucasdietrich/canot-sdk.git
 	branch = main
+[submodule "modules/embedc-utils"]
+	path = modules/embedc-utils
+	url = git@github.com:lucasdietrich/embedc-utils.git

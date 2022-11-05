@@ -10,6 +10,7 @@
 #include <zephyr/net/http_parser.h>
 
 #include "utils/misc.h"
+#include <embedc/parser.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(test_server, LOG_LEVEL_INF);

@@ -47,6 +47,8 @@
 #include <caniot/caniot.h>
 #include <caniot/datatype.h>
 
+#include <embedc/parser.h>
+
 #if defined(CONFIG_UART_IPC)
 #include <uart_ipc/ipc.h>
 #endif /* CONFIG_UART_IPC */

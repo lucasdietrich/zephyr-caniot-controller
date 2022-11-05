@@ -27,7 +27,12 @@ endif()
 # Debug.conf
 # set(OVERLAY_CONFIG "overlays/debug.conf ${OVERLAY_CONFIG}")
 
-set(ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/modules/lua ${CMAKE_CURRENT_SOURCE_DIR}/modules/uart_ipc ${CMAKE_CURRENT_SOURCE_DIR}/modules/caniot-lib)
+set(ZEPHYR_EXTRA_MODULES
+    ${CMAKE_CURRENT_SOURCE_DIR}/modules/lua
+    ${CMAKE_CURRENT_SOURCE_DIR}/modules/uart_ipc
+    ${CMAKE_CURRENT_SOURCE_DIR}/modules/caniot-lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/modules/embedc-utils
+)
 
 find_package(Zephyr)
 
