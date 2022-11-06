@@ -62,6 +62,9 @@ LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_WRN);
 
 #define REST_CANIOT_QUERY_MAX_TIMEOUT_MS		(5000U)
 
+#define REST_HA_DEVICES_MAX_COUNT_PER_PAGE 10u
+#define JSON_HA_MAX_DEVICES MIN(HA_MAX_DEVICES, REST_HA_DEVICES_MAX_COUNT_PER_PAGE)
+
 #define FIELD_SET(ret, n) (((ret) & (1 << (n))) != 0)
 
 #define route_arg_get http_request_route_arg_get
@@ -488,13 +491,13 @@ static const struct json_obj_descr json_caniot_telemetry_descr[] = {
 
 struct json_caniot_telemetry_array
 {
-	struct json_caniot_telemetry records[HA_CANIOT_MAX_DEVICES];
+	struct json_caniot_telemetry records[REST_HA_DEVICES_MAX_COUNT_PER_PAGE];
 	size_t count;
-	char temp_repr[HA_CANIOT_MAX_DEVICES][HA_CANIOT_MAX_TEMPERATURES][9U];
+	char temp_repr[REST_HA_DEVICES_MAX_COUNT_PER_PAGE][HA_CANIOT_MAX_TEMPERATURES][9U];
 };
 
 const struct json_obj_descr json_caniot_telemetry_array_descr[] = {
-  JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_telemetry_array, records, HA_CANIOT_MAX_DEVICES,
+  JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_telemetry_array, records, REST_HA_DEVICES_MAX_COUNT_PER_PAGE,
 	count, json_caniot_telemetry_descr, ARRAY_SIZE(json_caniot_telemetry_descr))
 };
 
@@ -540,11 +543,34 @@ static bool caniot_device_cb(ha_dev_t *dev,
 int rest_caniot_records(http_request_t *req,
 			http_response_t *resp)
 {
-	struct json_caniot_telemetry_array arr;
+	/* Parge page */
+	int page_n = 0;
+	char *const page_str = query_args_parse_find(req->query_string, "page");
+	if (page_str) {
+		page_n = atoi(page_str);
+	}
+	if (page_n < 0) {
+		page_n = 0;
+	}
 
+	const ha_dev_filter_t filter = {
+		.flags =
+			HA_DEV_FILTER_DATA_EXIST |
+			HA_DEV_FILTER_DEVICE_TYPE |
+			HA_DEV_FILTER_FROM_INDEX |
+			HA_DEV_FILTER_TO_INDEX,
+		.device_type = HA_DEV_TYPE_CANIOT,
+		.from_index =
+			REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n,
+		.to_index =
+			REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n +
+			REST_HA_DEVICES_MAX_COUNT_PER_PAGE
+	};
+
+	struct json_caniot_telemetry_array arr;
 	arr.count = 0;
 
-	ha_dev_caniot_iterate_data(caniot_device_cb, &arr);
+	ha_dev_iterate(caniot_device_cb, &filter, NULL, &arr);
 
 	return rest_encode_response_json_array(resp, &arr,
 					       json_caniot_telemetry_array_descr);
@@ -628,10 +654,7 @@ static const struct json_obj_descr json_device_descr[] = {
 	JSON_OBJ_DESCR_OBJECT(struct json_device, stats, json_device_stats_descr),
 };
 
-/* ~154 B per device */
-#define REST_HA_DEVICES_MAX_COUNT_PER_PAGE 10u
-#define JSON_HA_MAX_DEVICES MIN(HA_MAX_DEVICES, REST_HA_DEVICES_MAX_COUNT_PER_PAGE)
-
+/* ~154 B per device here */
 struct json_device_array
 {
 	struct json_device_buf _bufs[JSON_HA_MAX_DEVICES];
@@ -709,9 +732,7 @@ int rest_devices_list(http_request_t *req,
 {
 	/* Parge page */
 	int page_n = 0;
-
-	char *const page_str = query_args_parse_find(req->url + req->route->route_len,
-						     "page");
+	char *const page_str = query_args_parse_find(req->query_string, "page");
 	if (page_str) {
 		page_n = atoi(page_str);
 	}

@@ -32,67 +32,6 @@
 #include "http_response.h"
 #include "routes.h"
 
-#define HTTP_TEST_MESSAGING_ROUTE() MESSAGING_RESSOURCE(\
-	POST, \
-	"/test/messaging", \
-	http_test_messaging, \
-	HTTP_TEST_SERVER, \
-	HTTP_CONTENT_TYPE_APPLICATION_JSON, \
-	0U,\
-	HTTP_ROUTE_MATCH_EXACT_NOARGS\
-)
-
-#define HTTP_TEST_STREAMING_ROUTE() STREAMING_RESSOURCE(\
-	POST, \
-	"/test/streaming", \
-	http_test_streaming, \
-	NULL, \
-	HTTP_TEST_SERVER, \
-	HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA, \
-	0U,\
-	HTTP_ROUTE_MATCH_EXACT_NOARGS\
-)
-
-#define HTTP_TEST_STREAMING_ROUTE_ARGS() MESSAGING_RESSOURCE(\
-	GET, \
-	"/test/route_args/%u/%u/%u", \
-	http_test_route_args, \
-	HTTP_TEST_SERVER, \
-	HTTP_CONTENT_TYPE_APPLICATION_JSON, \
-	3U,\
-	HTTP_ROUTE_MATCH_EXACT_WITHARGS\
-)
-
-#define HTTP_TEST_BIG_PAYLOAD_ROUTE() MESSAGING_RESSOURCE(\
-	POST, \
-	"/test/big_payload", \
-	http_test_big_payload, \
-	HTTP_TEST_SERVER, \
-	HTTP_CONTENT_TYPE_APPLICATION_OCTET_STREAM, \
-	0U,\
-	HTTP_ROUTE_MATCH_EXACT_NOARGS\
-)
-
-#define HTTP_TEST_HEADERS() MESSAGING_RESSOURCE(\
-	GET, \
-	"/test/headers", \
-	http_test_headers, \
-	HTTP_TEST_SERVER, \
-	HTTP_CONTENT_TYPE_APPLICATION_JSON, \
-	0U,\
-	HTTP_ROUTE_MATCH_EXACT_NOARGS\
-)
-
-#define HTTP_TEST_PAYLOAD() MESSAGING_RESSOURCE(\
-	GET, \
-	"/test/payload", \
-	http_test_payload, \
-	HTTP_TEST_SERVER, \
-	HTTP_CONTENT_TYPE_APPLICATION_JSON, \
-	0U,\
-	HTTP_ROUTE_MATCH_EXACT_NOARGS\
-)
-
 int http_test_messaging(struct http_request *req,
 			struct http_response *resp);
 

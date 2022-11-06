@@ -34,8 +34,15 @@ config HTTP_REQUEST_HEADERS_BUFFER_SIZE
         help
                 Size of the buffer used to store HTTP request headers values
 
+config ROUTE_MAX_DEPTH
+        int "Maximum depth of the route tree"
+        default 8
+        range 1 10
+        help
+                Maximum depth of the route tree
+                
 config HTTP_TEST
-        bool "Enable HTTP test"
+        bool "Enable HTTP test functions"
         default n
         help
                 Enable HTTP test for all request, responses
@@ -44,7 +51,7 @@ config HTTP_TEST_SERVER
         bool "Enable HTTP test server"
         default n
         help
-                Enable test server and corresponding routes
+                Enable test server and corresponding resources and routes
 
 config FILE_UPLOAD_MOUNT_POINT
         string "Default mount point for file upload"

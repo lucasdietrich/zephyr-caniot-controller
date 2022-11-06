@@ -157,7 +157,7 @@ int http_test_route_args(struct http_request *req,
 
 	/* Parse the query string */
 	struct query_arg qal[10u];
-	int ret = query_args_parse(req->url, qal, ARRAY_SIZE(qal));
+	int ret = query_args_parse(req->query_string, qal, ARRAY_SIZE(qal));
 	if (ret < 0) {
 		LOG_WRN("Failed to parse query string ret=%d", ret);
 	} else if (ret >= 0) {

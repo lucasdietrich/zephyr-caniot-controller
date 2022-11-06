@@ -94,6 +94,7 @@ void http_request_init(http_request_t *req)
 		.content_type = HTTP_CONTENT_TYPE_NONE,
 		.handling_mode = HTTP_REQUEST_MESSAGE,
 		.parser_settings = &parser_settings_messaging,
+		.route_parse_result_len = CONFIG_ROUTE_MAX_DEPTH,
 	};
 
 	sys_dlist_init(&req->headers);
@@ -406,11 +407,6 @@ static int on_headers_complete(struct http_parser *parser)
 {
 	http_request_t *const req = REQUEST_FROM_PARSER(parser);
 
-	/* Resolve route as we enough information */
-	const struct http_route *route =
-		route_resolve(req->method, req->url,
-			      req->url_len, &req->route_args);
-
 	LOG_DBG("(%p) content-length : %u / %llu parser content-length, flags = %x",
 		req, req->parsed_content_length, parser->content_length, (uint32_t)parser->flags);
 
@@ -418,6 +414,14 @@ static int on_headers_complete(struct http_parser *parser)
 		req, req->url, http_request_is_stream(req),
 		hdr_allocated, CONFIG_HTTP_REQUEST_HEADERS_BUFFER_SIZE);
 
+	/* Resolve route as we enough information */
+	const struct route_descr *route = 
+		route_resolve(req->method,
+			      req->url,
+			      req->route_parse_result,
+			      &req->route_parse_result_len,
+			      &req->query_string);
+			      
 	/* TODO add explicit logs to know which route has not been found */
 	if (route == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_UNKNOWN);
@@ -442,7 +446,7 @@ static int on_headers_complete(struct http_parser *parser)
 	req->_test_ctx.stream = http_request_is_stream(req);
 #endif /* CONFIG_HTTP_TEST */
 
-	req->route = route;
+	req->route_leaf = route;
 	req->headers_complete = 1U;
 
 	return 0;
@@ -465,7 +469,7 @@ static int on_body_streaming(struct http_parser *parser,
 #endif /* CONFIG_HTTP_TEST */
 
 	/* route is necessarily valid at this point */
-	int ret = req->route->req_handler(req, NULL);
+	int ret = route_get_req_handler(req->route_leaf)(req, NULL);
 	if (ret < 0) {
 		mark_discarded(req, HTTP_REQUEST_PROCESSING_ERROR);
 		LOG_ERR("(%p) Stream processing error %d", req, ret);
@@ -589,15 +593,16 @@ int http_request_route_arg_get(http_request_t *req,
 			       uint32_t *arg)
 {
 	__ASSERT_NO_MSG(req != NULL);
-	__ASSERT_NO_MSG(req->route != NULL);
+	__ASSERT_NO_MSG(req->route_leaf != NULL);
 	__ASSERT_NO_MSG(arg != NULL);
 
 	int ret = -EINVAL;
-
-	if (index < req->route->path_args_count) {
-		*arg = req->route_args[index];
-		ret = 0;
-	}
+	
+	// TODO
+	// if (index < req->route_leaf->path_args_count) {
+	// 	*arg = req->route_args[index];
+	// 	ret = 0;
+	// }
 
 	return ret;
 }
@@ -685,16 +690,4 @@ bool http_discard_reason_to_status_code(http_request_discard_reason_t reason,
 	}
 
 	return true;
-}
-
-const char *http_route_extract_subpath(http_request_t *req)
-{
-	const char *subpath = NULL;
-
-	if (route_is_valid(req->route) &&
-	    (req->route->match_type == HTTP_ROUTE_MATCH_LEASE_NOARGS)) {
-		subpath = req->url + req->route->route_len;
-	}
-
-	return subpath;
 }

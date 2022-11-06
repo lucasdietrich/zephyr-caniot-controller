@@ -16,6 +16,8 @@
 #include "http_utils.h"
 #include "routes.h"
 
+#include <embedc/parser.h>
+
 struct http_connection;
 typedef struct http_connection http_connection_t;
 
@@ -160,12 +162,21 @@ struct http_request
 
 	/* parsed url */
 	char url[HTTP_URL_MAX_LEN];
+
+	/* URL len */
 	size_t url_len;
 
-	/* route for the current request */
-	const http_route_t *route;
+	/* Pointer to the start of the query string arguments  */
+	char *query_string;
 
-	http_route_args_t route_args;
+	/* route for the current request */
+	const struct route_descr *route_leaf;
+
+	/* Route parse result array */
+	struct route_parse_result route_parse_result[CONFIG_ROUTE_MAX_DEPTH];
+
+	/* Number of parts in the route */
+	size_t route_parse_result_len;
 
 	/**
 	 * @brief Number of times the request route handler has been called
@@ -321,18 +332,5 @@ const char *http_header_get_value(http_request_t *req,
  */
 bool http_discard_reason_to_status_code(http_request_discard_reason_t reason,
 					uint16_t *status_code);
-
-/**
- * @brief If route is configured with HTTP_ROUTE_MATCH_LEASE_NOARGS
- * This function can be used to extract the rest of the URL
- * 
- * e.g. With route /files/
- * 	And given URL /files//RAM:/file.txt 
- * 	Returned string will be /RAM:/file.txt
- * 
- * @param req 
- * @return const char* 
- */
-const char *http_route_extract_subpath(http_request_t *req);
 
 #endif

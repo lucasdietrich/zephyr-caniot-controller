@@ -436,14 +436,15 @@ http_test_result_t http_test_run(struct http_test_context *ctx,
 	}
 
 	/* Application handler shouldn't be called if route is not found */
-	if (req->route == NULL) {
+	if (req->route_leaf == NULL) {
 		result = HTTP_TEST_RESULT_ROUTE_EXPECTED;
 		goto exit;
 	}
 
 	/* Application handler shouldn't be called if HTTP method doesn't
 	 * match what the route expects */
-	if (req->route->method != req->method) {
+	if ((req->route_leaf->flags & ROUTE_METHODS_MASK) 
+	    != http_method_to_route_flag(req->method)) {
 		result = HTTP_TEST_RESULT_METHOD_UNEXPECTED;
 		goto exit;
 	}

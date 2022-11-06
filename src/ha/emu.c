@@ -66,8 +66,10 @@ K_THREAD_DEFINE(emu_consumer3, 1024u, emu_consumer, NULL, NULL, NULL,
 K_THREAD_DEFINE(emu_consumer4, 1024u, emu_consumer, NULL, NULL, NULL,
 		K_PRIO_COOP(4u), 0u, CONSUMER_THREADS_START_DELAY_MS);
 
+/* Enable this to force devices to respond */
 // K_THREAD_DEFINE(emu_caniot_broadcast_thread1, 1024u, emu_caniot_broadcast_thread, NULL, NULL, NULL,
 // 		K_PRIO_COOP(4u), 0u, COMMAND_THREADS_START_DELAY_MS);
+
 // K_THREAD_DEFINE(emu_caniot_cmd_thread1, 1024u, emu_caniot_cmd_thread, NULL, NULL, NULL,
 // 		K_PRIO_COOP(4u), 0u, COMMAND_THREADS_START_DELAY_MS);
 

@@ -11,6 +11,7 @@ SET(app_sources
     http_request.c 
     http_response.c 
     routes.c 
+    routes_g.c
     rest_server.c 
     web_server.c 
     prometheus_client.c 

@@ -208,7 +208,8 @@
                 "ethernet.h": "c",
                 "sections.h": "c",
                 "nvs.h": "c",
-                "common.h": "c"
+                "common.h": "c",
+                "parser.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",
