@@ -7,7 +7,7 @@ This project is far from being finished, it's also a mess but it's a start.
 I have a bit more than 1 year of professionnal and personnal experience with Zephyr RTOS. 
 And this project can also be seen of a demonstration of an IoT application handling several IoT protocols under Zephyr RTOS.
 
-Currently using **ZephyrRTOS v3.0.0** with following supported boards:
+Currently using **ZephyrRTOS v3.2.0** with following supported boards:
 - `nucleo_f429zi`
 - `qemu_x86`
 
@@ -31,6 +31,7 @@ to a local server (REST, prometheus ..) for monitoring and/or control
 
 Documentation is available in the `docs` folder for following topics:
 
+- [Bluetooth (HCI host/controller)](./docs/bluetooth.md)
 - [HTTP server (REST, Prometheus, file server, webserver)](./docs/http-server.md)
   - [Swagger API for the REST server](./docs/swagger-local-api.yaml)
 - [Credentials (AWS IoT, HTTPS server, etc.)](./docs/credentials.md)
@@ -38,7 +39,6 @@ Documentation is available in the `docs` folder for following topics:
 - [User IO (LEDs, buttons, etc.)](./docs/userio.md)
 - [Cloud AWS](./docs/cloud-aws.md)
 - [Devices & Events model](./docs/devices.md)
-
 
 - Enabling/disabling features
   - CAN configuration (CANIOT)

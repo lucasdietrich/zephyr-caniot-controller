@@ -14,7 +14,7 @@ This architecture is well documented in the description of the
 
 ## PoC
 
-In order to validate this architecture, following PoC was done:
+In order to validate this architecture, following PoC was carried out:
 - Sample `bluetooth/observer` as HCI host with `nucleo_f429zi` board
 - Sample `bluetooth/hci_spi` as HCI controller with `nrf52840dk_nrf52840` board
 
