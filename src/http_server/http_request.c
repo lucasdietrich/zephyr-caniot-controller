@@ -614,7 +614,7 @@ int http_req_route_arg_get_number(http_request_t *req,
 		value);
 }
 
-bool http_request_parse(http_request_t *req,
+static bool http_request_parse(http_request_t *req,
 			const char *data,
 			size_t received)
 {

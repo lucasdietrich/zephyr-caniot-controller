@@ -95,9 +95,8 @@ dis:
 
 http_routes_generate:
 	python3 ./modules/embedc-utils/scripts/genroutes.py \
-		src/http_server/routes_g.c \
+		src/http_server/routes.txt \
 		--output=src/http_server/routes_g.c \
-		--descr-begin="=== ROUTES DESCRIPTION BEGIN ===" \
-		--descr-end="=== ROUTES DESCRIPTION END ===" \
+		--descr-whole \
 		--def-begin="=== ROUTES DEFINITION BEGIN  === */" \
 		--def-end="/* === ROUTES DEFINITION END === */"

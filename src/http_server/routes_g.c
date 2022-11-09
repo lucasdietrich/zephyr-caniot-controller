@@ -25,52 +25,6 @@
 #define BINARY 		ROUTE_ATTR_BINARY
 
 /*
-=== ROUTES DESCRIPTION BEGIN ===
-
-GET / -> web_server_index_html | HTML
-GET /index.html -> web_server_index_html | HTML
-GET /fetch -> web_server_files_html | HTML
-GET /info -> rest_info
-GET /credentials/flash -> rest_flash_credentials_list (CONFIG_CREDS_FLASH)
-GET /metrics -> prometheus_metrics | TEXT
-GET /metrics_controller -> prometheus_metrics_controller | TEXT
-GET /metrics_demo -> prometheus_metrics_demo | TEXT
-GET /devices/ -> rest_devices_list
-POST /devices/ -> rest_devices_list
-GET /room/:u -> rest_room_devices_list
-GET /devices/xiaomi -> rest_xiaomi_records
-GET /devices/caniot -> rest_caniot_records
-GET /ha/stats -> rest_ha_stats
-POST /files -> http_file_upload, http_file_upload | MULTIPART
-GET /files -> http_file_download | MULTIPART
-GET /files/lua -> rest_fs_list_lua_scripts
-DELETE /files/lua -> rest_fs_remove_lua_script
-POST /lua/execute -> rest_lua_run_script
-GET /demo/json -> rest_demo_json
-POST /dfu -> http_dfu_image_upload, http_dfu_image_upload_response (CONFIG_DFU) | MULTIPART
-GET /dfu -> http_dfu_status (CONFIG_DFU)
-GET /devices/garage -> rest_devices_garage_get (CONFIG_CANIOT_CONTROLLER)
-POST /devices/garage -> rest_devices_garage_post (CONFIG_CANIOT_CONTROLLER)
-POST /devices/caniot/:u/endpoint/blc0/command -> rest_devices_caniot_blc0_command (CONFIG_CANIOT_CONTROLLER)
-POST /devices/caniot/:u/endpoint/blc1/command -> rest_devices_caniot_blc1_command (CONFIG_CANIOT_CONTROLLER)
-POST /devices/caniot/:u/endpoint/blc/command -> rest_devices_caniot_blc_command (CONFIG_CANIOT_CONTROLLER)
-GET /devices/caniot/:u/endpoint/:u/telemetry -> rest_devices_caniot_telemetry (CONFIG_CANIOT_CONTROLLER)
-POST /devices/caniot/:u/endpoint/:u/command -> rest_devices_caniot_command (CONFIG_CANIOT_CONTROLLER)
-GET /devices/caniot/:u/attribute/:x -> rest_devices_caniot_attr_read_write (CONFIG_CANIOT_CONTROLLER)
-PUT /devices/caniot/:u/attribute/:x -> rest_devices_caniot_attr_read_write (CONFIG_CANIOT_CONTROLLER)
-POST /if/can/:x -> rest_if_can (CONFIG_CAN_INTERFACE)
-POST /test/messaging -> http_test_messaging (CONFIG_HTTP_TEST_SERVER)
-POST /test/streaming -> http_test_streaming, http_test_streaming (CONFIG_HTTP_TEST_SERVER) | REST
-GET /test/route_args/:u/:u/:u -> http_test_route_args (CONFIG_HTTP_TEST_SERVER)
-POST /test/big_payload -> http_test_big_payload (CONFIG_HTTP_TEST_SERVER) | BINARY
-GET /test/headers -> http_test_headers (CONFIG_HTTP_TEST_SERVER)
-GET /test/payload -> http_test_payload (CONFIG_HTTP_TEST_SERVER)
-GET /test/:s/mystr -> http_test_payload (CONFIG_HTTP_TEST_SERVER)
-
-=== ROUTES DESCRIPTION END ===
-*/
-
-/*
 Following code is automatically generated 
 === ROUTES DEFINITION BEGIN  === */
 #if defined(CONFIG_HTTP_TEST_SERVER)
@@ -134,8 +88,24 @@ static const struct route_descr root_lua[] = {
 	LEAF("execute", POST, rest_lua_run_script, NULL, 0u),
 };
 
+static const struct route_descr root_files_zs_zs[] = {
+	LEAF("", POST | ARG_STR, http_file_upload, http_file_upload, MULTIPART),
+	LEAF(":s", POST | ARG_STR, http_file_upload, http_file_upload, MULTIPART),
+	LEAF("", GET, http_file_download, NULL, MULTIPART),
+	LEAF(":s", GET | ARG_STR, http_file_download, NULL, MULTIPART),
+};
+
+static const struct route_descr root_files_zs[] = {
+	LEAF("", POST | ARG_STR, http_file_upload, http_file_upload, MULTIPART),
+	SECTION(":s", ARG_STR, root_files_zs_zs, 
+		ARRAY_SIZE(root_files_zs_zs), MULTIPART),
+	LEAF("", GET, http_file_download, NULL, MULTIPART),
+};
+
 static const struct route_descr root_files[] = {
 	LEAF("", POST, http_file_upload, http_file_upload, MULTIPART),
+	SECTION(":s", ARG_STR, root_files_zs, 
+		ARRAY_SIZE(root_files_zs), MULTIPART),
 	LEAF("", GET, http_file_download, NULL, MULTIPART),
 	LEAF("lua", GET, rest_fs_list_lua_scripts, NULL, 0u),
 	LEAF("lua", DELETE, rest_fs_remove_lua_script, NULL, 0u),
@@ -252,7 +222,7 @@ static const struct route_descr root[] = {
 	SECTION("ha", 0u, root_ha, 
 		ARRAY_SIZE(root_ha), 0u),
 	SECTION("files", 0u, root_files, 
-		ARRAY_SIZE(root_files), 0u),
+		ARRAY_SIZE(root_files), MULTIPART),
 	SECTION("lua", 0u, root_lua, 
 		ARRAY_SIZE(root_lua), 0u),
 	SECTION("demo", 0u, root_demo, 

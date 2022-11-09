@@ -292,14 +292,39 @@ static inline bool http_request_is_message(http_request_t *req)
 	return req->handling_mode == HTTP_REQUEST_MESSAGE;
 }
 
+/**
+ * @brief Retrieve argument at index "idx" from the request route
+ * 
+ * If rel_index is a negative value, the index is relative to the end of the route.
+ * 
+ * @param req HTTP request
+ * @param rel_index Relative index of the argument to retrieve
+ * @param value Pointer to the value to be stored
+ * @return int 0 if success, -1 if error
+ */
 int http_req_route_arg_get_number(http_request_t *req,
-				int32_t rel_index,
-				uint32_t *value);
+				  int32_t rel_index,
+				  uint32_t *value);
 
+/**
+ * @brief Parse the received buffer as a HTTP request
+ * 
+ * @param req Current HTTP request
+ * @param data Received data
+ * @param len Length of the received data
+ * @return true On success
+ * @return false On error
+ */
 bool http_request_parse(http_request_t *req,
 			const char *data,
 			size_t len);
 
+/**
+ * @brief Mark the request as discarded
+ * 
+ * @param req 
+ * @param reason Discard reason
+ */
 void http_request_discard(http_request_t *req,
 			  http_request_discard_reason_t reason);
 
@@ -308,11 +333,6 @@ static inline bool http_stream_begins(http_request_t *req)
 	return http_request_is_stream(req) && 
 		(req->complete == 0U) && (req->calls_count == 0);
 }
-
-// static inline bool http_request_is_first_call(http_request_t *req)
-// {
-// 	return (req->complete == 1u) && (req->calls_count == 0u);
-// }
 
 static inline bool http_request_has_chunk_data(http_request_t *req)
 {
