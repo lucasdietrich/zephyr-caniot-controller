@@ -94,7 +94,7 @@ void http_request_init(http_request_t *req)
 		.content_type = HTTP_CONTENT_TYPE_NONE,
 		.handling_mode = HTTP_REQUEST_MESSAGE,
 		.parser_settings = &parser_settings_messaging,
-		.route_parse_result_len = CONFIG_ROUTE_MAX_DEPTH,
+		.route_parse_results_len = CONFIG_ROUTE_MAX_DEPTH,
 	};
 
 	sys_dlist_init(&req->headers);
@@ -414,25 +414,33 @@ static int on_headers_complete(struct http_parser *parser)
 		req, req->url, http_request_is_stream(req),
 		hdr_allocated, CONFIG_HTTP_REQUEST_HEADERS_BUFFER_SIZE);
 
+	/* For debug */
+	if (req->_url_copy != NULL) {
+		strncpy(req->_url_copy, req->url, HTTP_URL_MAX_LEN);
+	}
+
 	/* Resolve route as we enough information */
 	const struct route_descr *route = 
 		route_resolve(req->method,
 			      req->url,
-			      req->route_parse_result,
-			      &req->route_parse_result_len,
+			      req->route_parse_results,
+			      &req->route_parse_results_len,
 			      &req->query_string);
+	
+	/* Set route depth */
+	req->route_depth = req->route_parse_results[req->route_parse_results_len - 1u].depth;
 			      
 	/* TODO add explicit logs to know which route has not been found */
 	if (route == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_UNKNOWN);
 		LOG_WRN("(%p) Route not found %s %s", req,
-			http_method_str(req->method), req->url);
+			http_method_str(req->method), req->_url_copy);
 	} else if (route->resp_handler == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_NO_HANDLER);
-		LOG_ERR("(%p) Route has no handler %s", req, req->url);
+		LOG_ERR("(%p) Route has no handler %s", req, req->_url_copy);
 	} else if (http_request_is_stream(req) && !route_supports_streaming(route)) {
 		mark_discarded(req, HTTP_REQUEST_STREAMING_UNSUPPORTED);
-		LOG_ERR("(%p) Route doesn't support streaming %s", req, req->url);
+		LOG_ERR("(%p) Route doesn't support streaming %s", req, req->_url_copy);
 	}
 
 	if (http_request_is_stream(req) == true) {
@@ -446,7 +454,7 @@ static int on_headers_complete(struct http_parser *parser)
 	req->_test_ctx.stream = http_request_is_stream(req);
 #endif /* CONFIG_HTTP_TEST */
 
-	req->route_leaf = route;
+	req->route = route;
 	req->headers_complete = 1U;
 
 	return 0;
@@ -469,7 +477,7 @@ static int on_body_streaming(struct http_parser *parser,
 #endif /* CONFIG_HTTP_TEST */
 
 	/* route is necessarily valid at this point */
-	int ret = route_get_req_handler(req->route_leaf)(req, NULL);
+	int ret = route_get_req_handler(req->route)(req, NULL);
 	if (ret < 0) {
 		mark_discarded(req, HTTP_REQUEST_PROCESSING_ERROR);
 		LOG_ERR("(%p) Stream processing error %d", req, ret);
@@ -587,24 +595,23 @@ static int on_chunk_complete(struct http_parser *parser)
 	return 0;
 }
 
-
-int http_request_route_arg_get(http_request_t *req,
-			       uint32_t index,
-			       uint32_t *arg)
+int http_req_route_arg_get_number(http_request_t *req,
+				int32_t rel_index,
+				uint32_t *value)
 {
 	__ASSERT_NO_MSG(req != NULL);
-	__ASSERT_NO_MSG(req->route_leaf != NULL);
-	__ASSERT_NO_MSG(arg != NULL);
+	__ASSERT_NO_MSG(req->route != NULL);
+	__ASSERT_NO_MSG(value != NULL);
 
-	int ret = -EINVAL;
-	
-	// TODO
-	// if (index < req->route_leaf->path_args_count) {
-	// 	*arg = req->route_args[index];
-	// 	ret = 0;
-	// }
+	if (rel_index < 0) {
+		rel_index = req->route_depth + rel_index;
+	}
 
-	return ret;
+	return route_results_get_number(
+		req->route_parse_results,
+		req->route_parse_results_len,
+		(uint32_t)rel_index,
+		value);
 }
 
 bool http_request_parse(http_request_t *req,

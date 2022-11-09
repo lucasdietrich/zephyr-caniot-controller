@@ -100,4 +100,9 @@ uint32_t http_method_to_route_flag(enum http_method method);
 
 enum http_method http_route_flag_to_method(uint32_t flags);
 
+static inline enum http_method http_route_get_method(const struct route_descr *route)
+{
+	return http_route_flag_to_method(route->flags);
+}
+
 #endif /* _HTTP_SERVER_ROUTES_H_ */

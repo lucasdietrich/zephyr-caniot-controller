@@ -60,8 +60,8 @@ GET /devices/caniot/:u/attribute/:x -> rest_devices_caniot_attr_read_write (CONF
 PUT /devices/caniot/:u/attribute/:x -> rest_devices_caniot_attr_read_write (CONFIG_CANIOT_CONTROLLER)
 POST /if/can/:x -> rest_if_can (CONFIG_CAN_INTERFACE)
 POST /test/messaging -> http_test_messaging (CONFIG_HTTP_TEST_SERVER)
-POST /test/streaming -> http_test_streaming (CONFIG_HTTP_TEST_SERVER) | MULTIPART
-POST /test/route_args/:u/:u/:u -> http_test_route_args (CONFIG_HTTP_TEST_SERVER)
+POST /test/streaming -> http_test_streaming, http_test_streaming (CONFIG_HTTP_TEST_SERVER) | REST
+GET /test/route_args/:u/:u/:u -> http_test_route_args (CONFIG_HTTP_TEST_SERVER)
 POST /test/big_payload -> http_test_big_payload (CONFIG_HTTP_TEST_SERVER) | BINARY
 GET /test/headers -> http_test_headers (CONFIG_HTTP_TEST_SERVER)
 GET /test/payload -> http_test_payload (CONFIG_HTTP_TEST_SERVER)
@@ -81,7 +81,7 @@ static const struct route_descr root_test_zs[] = {
 
 #if defined(CONFIG_HTTP_TEST_SERVER)
 static const struct route_descr root_test_route_args_zu_zu[] = {
-	LEAF(":u", POST | ARG_UINT, http_test_route_args, NULL, 0u),
+	LEAF(":u", GET | ARG_UINT, http_test_route_args, NULL, 0u),
 };
 #endif
 
@@ -102,7 +102,7 @@ static const struct route_descr root_test_route_args[] = {
 #if defined(CONFIG_HTTP_TEST_SERVER)
 static const struct route_descr root_test[] = {
 	LEAF("messaging", POST, http_test_messaging, NULL, 0u),
-	LEAF("streaming", POST, http_test_streaming, NULL, MULTIPART),
+	LEAF("streaming", POST, http_test_streaming, http_test_streaming, REST),
 	SECTION("route_args", 0u, root_test_route_args, 
 		ARRAY_SIZE(root_test_route_args), 0u),
 	LEAF("big_payload", POST, http_test_big_payload, NULL, BINARY),

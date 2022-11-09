@@ -27,6 +27,8 @@ extern int rest_encode_response_json(http_response_t *resp, const void *val,
 				     const struct json_obj_descr *descr,
 				     size_t descr_len);
 
+#define HTTP_ROUTE_ARGS_MAX_COUNT CONFIG_ROUTE_MAX_DEPTH
+
 struct json_test_result
 {
 	uint32_t ok;
@@ -51,7 +53,7 @@ int http_test_messaging(struct http_request *req,
 			struct http_response *resp)
 {
 	bool req_ok = true;
-	req_ok &= req->method == req->route->method;
+	req_ok &= req->method == http_route_get_method(req->route);
 	req_ok &= req->handling_mode == HTTP_REQUEST_MESSAGE;
 	req_ok &= req->payload.len == req->payload_len;
 
@@ -63,7 +65,7 @@ int http_test_messaging(struct http_request *req,
 	};
 
 	for (uint32_t i = 0; i < HTTP_ROUTE_ARGS_MAX_COUNT; i++) {
-		if (http_request_route_arg_get(req, i, &tr.route_args[i]) == 0) {
+		if (http_req_route_arg_get_number(req, i, &tr.route_args[i]) == 0) {
 			tr.route_args_count++;
 		} else {
 			break;
@@ -98,8 +100,10 @@ int http_test_streaming(struct http_request *req,
 	static uint32_t uptime_ms;
 	static bool req_ok = true;
 
+	http_route_get_method(req->route);
+
 	/* Always check */
-	req_ok &= req->method == req->route->method;
+	req_ok &= req->method == http_req_get_method(req);
 	req_ok &= req->handling_mode == HTTP_REQUEST_STREAM;
 
 	if (req->complete == 0) {
@@ -135,7 +139,7 @@ int http_test_streaming(struct http_request *req,
 		};
 
 		for (uint32_t i = 0; i < HTTP_ROUTE_ARGS_MAX_COUNT; i++) {
-			if (http_request_route_arg_get(req, i, &tr.route_args[i]) == 0) {
+			if (http_req_route_arg_get_number(req, i, &tr.route_args[i]) == 0) {
 				tr.route_args_count++;
 			} else {
 				break;
@@ -152,8 +156,11 @@ int http_test_streaming(struct http_request *req,
 int http_test_route_args(struct http_request *req,
 			 struct http_response *resp)
 {
-	LOG_INF("arg1=%u, arg2=%u arg3=%u",
-		req->route_args[0], req->route_args[1], req->route_args[2]);
+	uint32_t a = 0, b = 0, c = 0;
+	http_req_route_arg_get_number(req, -3, &a);
+	http_req_route_arg_get_number(req, -2, &b);
+	http_req_route_arg_get_number(req, -1, &c);
+	LOG_INF("args = %u, %u, %u", a, b, c);
 
 	/* Parse the query string */
 	struct query_arg qal[10u];

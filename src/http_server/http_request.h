@@ -163,6 +163,9 @@ struct http_request
 	/* parsed url */
 	char url[HTTP_URL_MAX_LEN];
 
+	/* Internal buffer, containing the original url */
+	char *_url_copy;
+
 	/* URL len */
 	size_t url_len;
 
@@ -170,13 +173,16 @@ struct http_request
 	char *query_string;
 
 	/* route for the current request */
-	const struct route_descr *route_leaf;
+	const struct route_descr *route;
 
 	/* Route parse result array */
-	struct route_parse_result route_parse_result[CONFIG_ROUTE_MAX_DEPTH];
+	struct route_parse_result route_parse_results[CONFIG_ROUTE_MAX_DEPTH];
+
+	/* Current route depth */
+	uint32_t route_depth;
 
 	/* Number of parts in the route */
-	size_t route_parse_result_len;
+	size_t route_parse_results_len;
 
 	/**
 	 * @brief Number of times the request route handler has been called
@@ -286,9 +292,9 @@ static inline bool http_request_is_message(http_request_t *req)
 	return req->handling_mode == HTTP_REQUEST_MESSAGE;
 }
 
-int http_request_route_arg_get(http_request_t *req,
-			       uint32_t index,
-			       uint32_t *arg);
+int http_req_route_arg_get_number(http_request_t *req,
+				int32_t rel_index,
+				uint32_t *value);
 
 bool http_request_parse(http_request_t *req,
 			const char *data,
@@ -332,5 +338,11 @@ const char *http_header_get_value(http_request_t *req,
  */
 bool http_discard_reason_to_status_code(http_request_discard_reason_t reason,
 					uint16_t *status_code);
+
+static inline enum http_method
+http_req_get_method(http_request_t *req)
+{
+	return http_route_get_method(req->route);
+}
 
 #endif

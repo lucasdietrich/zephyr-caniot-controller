@@ -67,7 +67,7 @@ LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_WRN);
 
 #define FIELD_SET(ret, n) (((ret) & (1 << (n))) != 0)
 
-#define route_arg_get http_request_route_arg_get
+#define route_arg_get http_req_route_arg_get_number
 
 int rest_encode_response_json(http_response_t *resp, const void *val,
 			      const struct json_obj_descr *descr,
