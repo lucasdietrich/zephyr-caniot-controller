@@ -10,7 +10,7 @@ With this design, the bluetooth application is embedded with the main applicatio
 
 This architecture is well documented in the description of the 
 **Dual-chip configuration** in the
-[Zephyr Bluetooth Stack Architecture documentation](https://docs.zephyrproject.org/3.0.0/guides/bluetooth/bluetooth-arch.html)
+[Zephyr Bluetooth Stack Architecture documentation](https://docs.zephyrproject.org/latest/connectivity/bluetooth/bluetooth-arch.html)
 
 ## PoC
 
