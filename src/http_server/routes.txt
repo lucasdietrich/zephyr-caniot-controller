@@ -3,7 +3,7 @@ GET /index.html -> web_server_index_html | HTML
 GET /fetch -> web_server_files_html | HTML
 GET /info -> rest_info
 GET /credentials/flash -> rest_flash_credentials_list (CONFIG_CREDS_FLASH)
-GET /metrics -> prometheus_metrics | TEXT
+GET /metrics -> prometheus_metrics (CONFIG_HA) | TEXT
 GET /metrics_controller -> prometheus_metrics_controller | TEXT
 GET /metrics_demo -> prometheus_metrics_demo | TEXT
 GET /devices/ -> rest_devices_list

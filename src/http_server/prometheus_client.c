@@ -413,52 +413,6 @@ struct prom_metric_descr
 	}
 
 
-
-const char *prom_myd_medium_to_str(ha_dev_medium_type_t medium)
-{
-	switch (medium) {
-	case HA_DEV_MEDIUM_BLE:
-		return "BLE";
-	case HA_DEV_MEDIUM_CAN:
-		return "CAN";
-	default:
-		return "";
-	}
-}
-
-const char *prom_myd_device_type_to_str(ha_dev_type_t device_type)
-{
-	switch (device_type) {
-	case HA_DEV_TYPE_CANIOT:
-		return "CANIOT";
-	case HA_DEV_TYPE_XIAOMI_MIJIA:
-		return "LYWSD03MMC";
-	case HA_DEV_TYPE_NUCLEO_F429ZI:
-		return "NUCLEO_F429ZI";
-	default:
-		return "";
-	}
-}
-
-const char *prom_myd_sensor_type_to_str(ha_dev_sensor_type_t sensor_type)
-{
-	switch (sensor_type) {
-	case HA_DEV_SENSOR_TYPE_EMBEDDED:
-		return "EMBEDDED";
-	case HA_DEV_SENSOR_TYPE_EXTERNAL1:
-		return "EXTERNAL";
-	case HA_DEV_SENSOR_TYPE_EXTERNAL2:
-		return "EXTERNAL2";
-	case HA_DEV_SENSOR_TYPE_EXTERNAL3:
-		return "EXTERNAL3";
-	default:
-		return "";
-	}
-}
-
-
-
-
 struct prom_demo_struct {
 	uint32_t a;
 	float b;
@@ -521,6 +475,50 @@ int prometheus_metrics_demo(http_request_t *req,
 	resp->status_code = 200;
 
 	return 0;
+}
+
+#if defined(CONFIG_HA)
+
+const char *prom_myd_medium_to_str(ha_dev_medium_type_t medium)
+{
+	switch (medium) {
+	case HA_DEV_MEDIUM_BLE:
+		return "BLE";
+	case HA_DEV_MEDIUM_CAN:
+		return "CAN";
+	default:
+		return "";
+	}
+}
+
+const char *prom_myd_device_type_to_str(ha_dev_type_t device_type)
+{
+	switch (device_type) {
+	case HA_DEV_TYPE_CANIOT:
+		return "CANIOT";
+	case HA_DEV_TYPE_XIAOMI_MIJIA:
+		return "LYWSD03MMC";
+	case HA_DEV_TYPE_NUCLEO_F429ZI:
+		return "NUCLEO_F429ZI";
+	default:
+		return "";
+	}
+}
+
+const char *prom_myd_sensor_type_to_str(ha_dev_sensor_type_t sensor_type)
+{
+	switch (sensor_type) {
+	case HA_DEV_SENSOR_TYPE_EMBEDDED:
+		return "EMBEDDED";
+	case HA_DEV_SENSOR_TYPE_EXTERNAL1:
+		return "EXTERNAL";
+	case HA_DEV_SENSOR_TYPE_EXTERNAL2:
+		return "EXTERNAL2";
+	case HA_DEV_SENSOR_TYPE_EXTERNAL3:
+		return "EXTERNAL3";
+	default:
+		return "";
+	}
 }
 
 union measurements_tags_values
@@ -748,6 +746,8 @@ int prometheus_metrics(http_request_t *req,
 
 	return 0;
 }
+
+#endif
 
 int prometheus_metrics_controller(http_request_t *req,
 				  http_response_t *resp)

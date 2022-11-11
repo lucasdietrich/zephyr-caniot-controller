@@ -11,9 +11,6 @@
 
 #include <zephyr/drivers/can.h>
 
-#include <caniot/caniot.h>
-#include <caniot/device.h>
-
 typedef enum
 {
 	CAN_BUS_1,

@@ -9,8 +9,11 @@
 
 #include <stdint.h>
 
-#include <caniot/caniot.h>
 #include <zephyr/drivers/can.h>
+
+#if defined(CONFIG_CANIOT_LIB)
+#include <caniot/caniot.h>
+#endif 
 
 #include "ha.h"
 

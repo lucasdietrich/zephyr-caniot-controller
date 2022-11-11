@@ -5,7 +5,9 @@
 
 #include <stdint.h>
 
+#if defined(CONFIG_CANIOT_LIB)
 #include <caniot/datatype.h>
+#endif
 
 typedef enum {
 	HA_ASSIGN_UNASSIGNED = 0u,
@@ -92,13 +94,14 @@ struct ha_data_analog {
 	uint32_t value; /* 1e-6 V */
 };
 
-struct ha_heater_mode {
-	caniot_heating_status_t mode: 8u;
-};
-
 struct ha_shutter_position {
 	uint8_t position; /* % */
 	uint8_t moving; /* 0: stopped, 1: moving */
+};
+
+#if defined(CONFIG_CANIOT_LIB)
+struct ha_heater_mode {
+	caniot_heating_status_t mode: 8u;
 };
 
 struct ha_data_xps {
@@ -112,6 +115,7 @@ struct ha_data_ts {
 struct ha_data_ss {
 	caniot_onestate_cmd_t cmd : 1u;
 };
+#endif
 
 struct ha_data_descr
 {

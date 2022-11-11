@@ -6,7 +6,7 @@
 
 #include "utils.h"
 
-
+#if defined(CONFIG_CANIOT_LIB)
 int zcan_to_caniot(const struct can_frame *zcan,
 		   struct caniot_frame *caniot)
 {
@@ -22,7 +22,6 @@ int zcan_to_caniot(const struct can_frame *zcan,
 	return 0U;
 }
 
-// static
 int caniot_to_zcan(struct can_frame *zcan,
 		   const struct caniot_frame *caniot)
 {
@@ -38,6 +37,7 @@ int caniot_to_zcan(struct can_frame *zcan,
 
 	return 0U;
 }
+#endif
 
 static int string_get_index_in_list(const char *str, const char *const *list)
 {

@@ -1,5 +1,12 @@
 # TODO
 
+## Immediate
+- Remove dependencies on CANIOT_LIB, CANIOT_CONTROLLER, HA, so that the code
+can be compiled without them.
+- Add general diagnostic messages
+
+## Long term
+
 - Cannot uses 2 sockets chrome with keepalive
 - Use [docs/ram_report.txt](./docs/ram_report.txt) to optimize memory usage
   - DNS buffers

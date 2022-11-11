@@ -10,8 +10,11 @@
 #include <zephyr/kernel.h>
 
 #include <zephyr/bluetooth/addr.h>
+
+#if defined(CONFIG_CANIOT_LIB)
 #include <caniot/caniot.h>
 #include <caniot/datatype.h>
+#endif
 
 #include "data.h"
 
@@ -32,6 +35,13 @@
 #	define HA_EV_SUBS_MAX_COUNT 8u
 #	define HA_EV_MAX_COUNT 32u
 #endif
+
+
+#if !defined(CONFIG_CANIOT_LIB)
+#	undef HA_CANIOT_MAX_DEVICES
+#	define HA_CANIOT_MAX_DEVICES 0U
+#endif
+
 
 
 
@@ -70,7 +80,9 @@ typedef struct
 
 typedef union {
 	bt_addr_le_t ble;
+#if defined(CONFIG_CANIOT_LIB)
 	caniot_did_t caniot;
+#endif
 	can_addr_t can;
 } ha_dev_mac_addr_t;
 
@@ -108,36 +120,5 @@ typedef struct ha_dev_payload
 		.len = _len, \
 		.y = _y, \
 	}
-
-/* Var for variant */
-
-// typedef enum {
-// 	HA_VAR_TEMPERATURE,
-// 	HA_VAR_HUMIDITY,
-// } ha_var_gen_t;
-
-// typedef enum {
-// 	HA_VAR_BATTERY,
-// 	HA_VAR_RSSI,
-// } ha_var_medium_t;
-
-// typedef enum {
-// 	HA_VAR_CANIOT_XIAOMI,
-// 	HA_VAR_CANIOT_BLC,
-// 	HA_VAR_CANIOT_ATTR,
-// } ha_var_device_type_t;
-
-// typedef enum {
-// 	HA_VAR_GARAGE_DOORS_CTRL,
-// 	HA_VAR_HEATER,
-// } ha_var_device_t;
-
-// typedef struct ha_var
-// {
-// 	ha_var_gen_t global: 8u;
-// 	ha_var_medium_t medium: 8u;
-// 	ha_var_device_type_t device_type: 8u;
-// 	ha_var_device_t device: 8u;
-// } ha_var_t;
 
 #endif /* _HA_H_ */

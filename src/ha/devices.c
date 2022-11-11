@@ -9,19 +9,12 @@
 #include <stdio.h>
 #include <malloc.h>
 
-#include <caniot/datatype.h>
-
 #include <zephyr/drivers/can.h>
 
 #include "devices.h"
 #include "net_time.h"
 #include "config.h"
 #include "system.h"
-
-#include "devices/caniot.h"
-#include "devices/f429zi.h"
-#include "devices/garage.h"
-#include "devices/xiaomi.h"
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_INF);

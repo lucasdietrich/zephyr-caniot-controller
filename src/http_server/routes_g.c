@@ -212,7 +212,9 @@ static const struct route_descr root[] = {
 	SECTION("credentials", 0u, root_credentials, 
 		ARRAY_SIZE(root_credentials), 0u),
 #endif
+#if defined(CONFIG_HA)
 	LEAF("metrics", GET, prometheus_metrics, NULL, TEXT),
+#endif
 	LEAF("metrics_controller", GET, prometheus_metrics_controller, NULL, TEXT),
 	LEAF("metrics_demo", GET, prometheus_metrics_demo, NULL, TEXT),
 	SECTION("room", 0u, root_room, 

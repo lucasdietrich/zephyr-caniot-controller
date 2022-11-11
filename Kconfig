@@ -47,6 +47,13 @@ config CREDENTIALS_MANAGER
         help
                 Enable credentials manager features (certificates/key manager)
 
+# TODO: dependencies
+config HA
+        bool "Enable Home Automation module"
+        default y
+        help
+                Enable Home Automation module features
+
 config CLOUD
         bool "Enable cloud"
         default y

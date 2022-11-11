@@ -209,7 +209,8 @@
                 "sections.h": "c",
                 "nvs.h": "c",
                 "common.h": "c",
-                "parser.h": "c"
+                "parser.h": "c",
+                "xiaomi.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",
