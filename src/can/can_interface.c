@@ -19,6 +19,11 @@ int if_can_init(void)
 		k_sleep(K_SECONDS(1));
 	}
 
+	int ret = can_start(can_dev);
+	if (ret) {
+		LOG_ERR("CAN: Failed to start ret=%d", ret);
+	}
+
 	return 0;
 }
 
