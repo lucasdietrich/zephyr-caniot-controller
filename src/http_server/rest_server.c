@@ -537,7 +537,7 @@ static bool caniot_device_cb(ha_dev_t *dev,
 	return true;
 }
 
-int rest_caniot_records(http_request_t *req,
+__deprecated int rest_caniot_records(http_request_t *req,
 			http_response_t *resp)
 {
 	struct json_caniot_telemetry_array arr;
