@@ -2293,7 +2293,7 @@ Root                                                                            
 │           │   │   ├── room_devices_cb                                                            16   0.00%
 │           │   │   └── xiaomi_device_cb                                                          244   0.05%
 │           │   ├── routes.c                                                                     1040   0.21%
-│           │   │   ├── http_route_iterate                                                         44   0.01%
+│           │   │   ├── http_routes_iterate                                                         44   0.01%
 │           │   │   ├── http_route_resp_default_content_type                                        4   0.00%
 │           │   │   ├── log_const_routes                                                            8   0.00%
 │           │   │   ├── route_is_valid                                                             12   0.00%

@@ -5,13 +5,15 @@ This project is an attempt to create a home automation controller for CAN/BLE de
 It serves my personnal needs but I tried to make it somehow generic with reusable components.
 This project is far from being finished, it's also a mess but it's a start.
 I have a bit more than 1 year of professionnal and personnal experience with Zephyr RTOS. 
-And this project can also be seen of a demonstration of an IoT application handling several IoT protocols under Zephyr RTOS.
+And this project can also be seen of a demonstration of an IoT application handling several IoT protocols using Zephyr RTOS.
 
-Currently using **ZephyrRTOS v3.2.0** with following supported boards:
+Comments, questions, suggestions and contributions are welcome.
+
+Currently supporting **ZephyrRTOS v3.2.0** with following targets:
 - `nucleo_f429zi`
 - `qemu_x86`
 
-But I also aim to build a custom board dedicated to this project.
+I also aim to build a custom board dedicated to this project.
 
 ## Synoptic
 

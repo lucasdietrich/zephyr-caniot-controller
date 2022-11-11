@@ -16,6 +16,8 @@
 #include "http_utils.h"
 #include "routes.h"
 
+#include <embedc/parser.h>
+
 struct http_connection;
 typedef struct http_connection http_connection_t;
 
@@ -160,12 +162,27 @@ struct http_request
 
 	/* parsed url */
 	char url[HTTP_URL_MAX_LEN];
+
+	/* Internal buffer, containing the original url */
+	char *_url_copy;
+
+	/* URL len */
 	size_t url_len;
 
-	/* route for the current request */
-	const http_route_t *route;
+	/* Pointer to the start of the query string arguments  */
+	char *query_string;
 
-	http_route_args_t route_args;
+	/* route for the current request */
+	const struct route_descr *route;
+
+	/* Route parse result array */
+	struct route_parse_result route_parse_results[CONFIG_ROUTE_MAX_DEPTH];
+
+	/* Current route depth */
+	uint32_t route_depth;
+
+	/* Number of parts in the route */
+	size_t route_parse_results_len;
 
 	/**
 	 * @brief Number of times the request route handler has been called
@@ -275,14 +292,39 @@ static inline bool http_request_is_message(http_request_t *req)
 	return req->handling_mode == HTTP_REQUEST_MESSAGE;
 }
 
-int http_request_route_arg_get(http_request_t *req,
-			       uint32_t index,
-			       uint32_t *arg);
+/**
+ * @brief Retrieve argument at index "idx" from the request route
+ * 
+ * If rel_index is a negative value, the index is relative to the end of the route.
+ * 
+ * @param req HTTP request
+ * @param rel_index Relative index of the argument to retrieve
+ * @param value Pointer to the value to be stored
+ * @return int 0 if success, -1 if error
+ */
+int http_req_route_arg_get_number(http_request_t *req,
+				  int32_t rel_index,
+				  uint32_t *value);
 
+/**
+ * @brief Parse the received buffer as a HTTP request
+ * 
+ * @param req Current HTTP request
+ * @param data Received data
+ * @param len Length of the received data
+ * @return true On success
+ * @return false On error
+ */
 bool http_request_parse(http_request_t *req,
 			const char *data,
 			size_t len);
 
+/**
+ * @brief Mark the request as discarded
+ * 
+ * @param req 
+ * @param reason Discard reason
+ */
 void http_request_discard(http_request_t *req,
 			  http_request_discard_reason_t reason);
 
@@ -291,11 +333,6 @@ static inline bool http_stream_begins(http_request_t *req)
 	return http_request_is_stream(req) && 
 		(req->complete == 0U) && (req->calls_count == 0);
 }
-
-// static inline bool http_request_is_first_call(http_request_t *req)
-// {
-// 	return (req->complete == 1u) && (req->calls_count == 0u);
-// }
 
 static inline bool http_request_has_chunk_data(http_request_t *req)
 {
@@ -322,17 +359,10 @@ const char *http_header_get_value(http_request_t *req,
 bool http_discard_reason_to_status_code(http_request_discard_reason_t reason,
 					uint16_t *status_code);
 
-/**
- * @brief If route is configured with HTTP_ROUTE_MATCH_LEASE_NOARGS
- * This function can be used to extract the rest of the URL
- * 
- * e.g. With route /files/
- * 	And given URL /files//RAM:/file.txt 
- * 	Returned string will be /RAM:/file.txt
- * 
- * @param req 
- * @return const char* 
- */
-const char *http_route_extract_subpath(http_request_t *req);
+static inline enum http_method
+http_req_get_method(http_request_t *req)
+{
+	return http_route_get_method(req->route);
+}
 
 #endif

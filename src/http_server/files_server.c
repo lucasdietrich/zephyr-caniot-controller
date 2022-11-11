@@ -216,7 +216,7 @@ int http_file_download(struct http_request *req,
 
 	if (http_response_is_first_call(resp)) {
 		/* Check and extract filepath */
-		const char *subpath = http_route_extract_subpath(req);
+		const char *subpath = ""; // TODO
 		if (subpath == NULL || strlen(subpath) == 0) {
 			http_response_set_status_code(resp, HTTP_STATUS_BAD_REQUEST);
 			return 0;

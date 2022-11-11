@@ -27,20 +27,27 @@ LOG_MODULE_REGISTER(web_server, LOG_LEVEL_INF);
 #define HTML_LI(content) "<li>" content "</li>"
 
 
-
-static bool index_route_iterate_cb(const struct http_route *route, void *arg)
+static bool index_route_iterate_cb(const struct route_descr *descr,
+				   const struct route_descr *parents[],
+				   size_t depth,
+				   void *user_data)
 {
-	buffer_t *const buf = arg;
+	buffer_t *const buf = user_data;
 
-	if (route->path_args_count == 0u) {
+	char url[256] = {0};
+
+	if ((descr->flags & ROUTE_IS_LEAF_MASK) == ROUTE_IS_LEAF) {
+		int written = route_build_url(url, sizeof(url), parents, depth);
+		if (written >= 0) {
+			snprintf(url + written, sizeof(url), "%s", descr->part.str);
+		}
+
 		buffer_snprintf(buf, "<li>%s : <a href=\"%s\">%s</a></li>",
-				http_method_str(route->method),
-				route->route,
-				route->route);
+				http_method_str(http_route_flag_to_method(descr->flags)),
+				url, url);
 	} else {
-		buffer_snprintf(buf, "<li>%s : %s</li>",
-				http_method_str(route->method),
-				route->route);
+		// buffer_snprintf(buf, "<b>%s</b><br/>", descr->part.str);
+
 	}
 
 	return true;
@@ -53,7 +60,7 @@ int web_server_index_html(http_request_t *req,
 			     "stm32f429zi index.html" HTML_TITLE_TO_BODY);
 
 	buffer_append_string(&resp->buffer, "<fieldset><legend>URL list</legend><ul>");
-	http_route_iterate(index_route_iterate_cb, &resp->buffer);
+	http_routes_iterate(index_route_iterate_cb, &resp->buffer);
 	buffer_append_string(&resp->buffer, "</ul></fieldset>" HTML_BODY_TO_END);
 
 	return 0;
@@ -96,7 +103,7 @@ int web_server_files_html(http_request_t *req,
 {
 	int ret;
 
-	const char *fspath = http_route_extract_subpath(req);
+	const char *fspath = ""; // TODO
 	if (fspath == NULL || strlen(fspath) == 0) {
 		fspath = FS_ROOT;
 	}

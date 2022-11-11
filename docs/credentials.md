@@ -70,7 +70,7 @@ with `source ../.venv/bin/activate`.
 For hardcoded credentials:
 - You'll first need to configure [creds/creds.json](../creds/creds.json).
 - Then run the script from the project root: `python3 scripts/creds/hardcoded_creds_xxd.py`
-- The file [src/creds/hardcoded_creds_data.c](../src/creds/hardcoded_creds_data.c) will be generated.
+- The file [src/creds/hardcoded_creds_g.c](../src/creds/hardcoded_creds_g.c) will be generated.
 
 
 ### FLASH-stored credentials

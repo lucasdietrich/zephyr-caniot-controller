@@ -646,7 +646,8 @@ static bool handle_response(http_connection_t *conn)
 #endif /* CONFIG_HTTP_TEST */
 
 		/* process request, prepare response */
-		ret = req->route->resp_handler(req, resp);
+
+		ret = route_get_resp_handler(req->route)(req, resp);
 		if (ret < 0) {
 			http_request_discard(conn->req, HTTP_REQUEST_PROCESSING_ERROR);
 			LOG_ERR("(%d) Request processing failed = %d", conn->sock, ret);
@@ -725,6 +726,10 @@ static bool process_request(http_connection_t *conn)
 	conn->req = &req;
 	conn->resp = &resp;
 
+	/* Set where to copy URL */
+	char url_copy[HTTP_URL_MAX_LEN];
+	req._url_copy = url_copy;
+
 	if (handle_request(conn) == false) {
 		goto close;
 	}
@@ -741,8 +746,9 @@ static bool process_request(http_connection_t *conn)
 		goto close;
 	}
 
+	/* TODO encoding complete URL */
 	LOG_INF("(%d) Req %s [%u B] -> Status %d [%u B] "
-		"(keep-alive=%d)", conn->sock, req.url, req.payload_len, resp.status_code,
+		"(keep-alive=%d)", conn->sock, url_copy, req.payload_len, resp.status_code,
 		resp.payload_sent, conn->keep_alive.enabled);
 
 	/* Update last activity time */

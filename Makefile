@@ -93,5 +93,10 @@ flash_upgrade: flash_slot1
 dis:
 	./scripts/dis.sh
 
-make http_routes_update:
-	python3 ./modules/embedc-utils/zephyr/genroutes.py
+http_routes_generate:
+	python3 ./modules/embedc-utils/scripts/genroutes.py \
+		src/http_server/routes.txt \
+		--output=src/http_server/routes_g.c \
+		--descr-whole \
+		--def-begin="=== ROUTES DEFINITION BEGIN  === */" \
+		--def-end="/* === ROUTES DEFINITION END === */"
