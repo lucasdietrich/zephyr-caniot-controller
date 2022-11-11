@@ -47,7 +47,6 @@
 
 #define HA_DEV_API_SELECT_ENDPOINT_0_CB NULL
 
-
 typedef enum
 {
 	HA_DEV_FILTER_MEDIUM = BIT(0), /* filter by medium */
@@ -65,6 +64,34 @@ typedef enum
 	HA_DEV_FILTER_TO_COUNT = BIT(8), 
 } ha_dev_filter_flags_t;
 
+typedef enum 
+{
+	HA_DEV_ENDPOINT_NONE, /* Mean either: UNDEFINED endpoint or ANY endpoint */
+	HA_DEV_ENDPOINT_XIAOMI_MIJIA,
+	HA_DEV_ENDPOINT_NUCLEO_F429ZI,
+
+	/* CANIOT Board Level Control */
+	HA_DEV_ENDPOINT_CANIOT_BLC0,
+	HA_DEV_ENDPOINT_CANIOT_BLC1,
+	HA_DEV_ENDPOINT_CANIOT_BLC2,
+	HA_DEV_ENDPOINT_CANIOT_BLC3,
+	HA_DEV_ENDPOINT_CANIOT_BLC4,
+	HA_DEV_ENDPOINT_CANIOT_BLC5,
+	HA_DEV_ENDPOINT_CANIOT_BLC6,
+	HA_DEV_ENDPOINT_CANIOT_BLC7,
+
+	/* CANIOT specific application endpoints */
+	HA_DEV_ENDPOINT_CANIOT_HEATING,
+} ha_endpoint_id_t;
+
+typedef enum
+{
+	HA_EV_TYPE_DATA = 0u,
+	// HA_EV_TYPE_CONTROL = 1,
+	HA_EV_TYPE_COMMAND = 2u,
+	HA_EV_TYPE_ERROR = 3u,
+} ha_ev_type_t;
+
 /* TODO Incompatible masks */
 
 typedef struct
@@ -79,7 +106,7 @@ typedef struct
 	uint32_t from_index: 8u;
 	uint32_t to_index: 8u;
 	uint32_t to_count: 4u;
-	uint32_t endpoint: 3u;
+	ha_endpoint_id_t endpoint_id;
 } ha_dev_filter_t;
 
 typedef struct
@@ -199,26 +226,6 @@ struct ha_event_stats
 	uint8_t notified; /* Number of times the event has been notified */
 	uint32_t alive_ms; /* Time the event has been alive (ms) */
 };
-
-typedef enum 
-{
-	HA_DEV_ENDPOINT_NONE,
-	HA_DEV_ENDPOINT_XIAOMI_MIJIA,
-	HA_DEV_ENDPOINT_NUCLEO_F429ZI,
-
-	/* CANIOT Board Level Control */
-	HA_DEV_ENDPOINT_CANIOT_BLC0,
-	HA_DEV_ENDPOINT_CANIOT_BLC1,
-	HA_DEV_ENDPOINT_CANIOT_BLC2,
-	HA_DEV_ENDPOINT_CANIOT_BLC3,
-	HA_DEV_ENDPOINT_CANIOT_BLC4,
-	HA_DEV_ENDPOINT_CANIOT_BLC5,
-	HA_DEV_ENDPOINT_CANIOT_BLC6,
-	HA_DEV_ENDPOINT_CANIOT_BLC7,
-
-	/* CANIOT specific application endpoints */
-	HA_DEV_ENDPOINT_CANIOT_HEATING,
-} ha_endpoint_id_t;
 
 #define HA_ENDPOINT_INDEX(_idx) (_idx)
 
@@ -354,14 +361,6 @@ struct ha_device {
 
 typedef struct ha_device ha_dev_t;
 
-typedef enum
-{
-	HA_EV_TYPE_DATA = 0u,
-	// HA_EV_TYPE_CONTROL = 1,
-	HA_EV_TYPE_COMMAND = 2u,
-	HA_EV_TYPE_ERROR = 3u,
-} ha_ev_type_t;
-
 typedef struct ha_event {
 
 	/******************/
@@ -409,9 +408,9 @@ int ha_dev_register_data(const ha_dev_addr_t *addr,
 
 struct ha_device_endpoint *ha_dev_get_endpoint(ha_dev_t *dev, uint32_t ep);
 
-struct ha_device_endpoint *ha_dev_get_endpoint_by_id(ha_dev_t *dev, ha_endpoint_id_t eid);
+struct ha_device_endpoint *ha_dev_endpoint_get_by_id(ha_dev_t *dev, ha_endpoint_id_t eid);
 
-int ha_dev_get_endpoint_idx_by_id(ha_dev_t *dev, ha_endpoint_id_t eid);
+int ha_dev_endpoint_get_index_by_id(ha_dev_t *dev, ha_endpoint_id_t eid);
 
 ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, uint32_t ep);
 

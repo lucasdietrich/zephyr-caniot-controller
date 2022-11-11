@@ -33,7 +33,6 @@ struct ha_ds_caniot_blc1
 {
 	struct ha_data_temperature temperatures[HA_CANIOT_MAX_TEMPERATURES];
 	struct ha_data_digital dio;
-	struct ha_data_digital pdio;
 };
 
 struct ha_cmd_caniot_blc1
@@ -91,6 +90,9 @@ struct ha_cmd_caniot_heating_control
 /* feed a board level telemetry dataset from a received CAN BLT/BCT buffer */
 void ha_dev_caniot_blc_cls0_to_blt(struct ha_ds_caniot_blc0 *blt,
 				   const struct caniot_blc0_telemetry *can_buf);
+
+void ha_dev_caniot_blc_cls1_to_blt(struct ha_ds_caniot_blc1 *blt,
+				   const struct caniot_blc1_telemetry *can_buf);
 
 int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 				     caniot_did_t did,

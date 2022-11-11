@@ -42,6 +42,9 @@ struct {
 	.count = 0U
 };
 
+#define __DEV_CONTEXT_LOCK() k_mutex_lock(&devices.mutex, K_FOREVER)
+#define __DEV_CONTEXT_UNLOCK() k_mutex_unlock(&devices.mutex)
+
 static struct ha_stats stats = 
 {
 	.mem_ev_remaining = HA_EV_MAX_COUNT,
@@ -307,7 +310,8 @@ static const struct ha_device_api *ha_device_get_default_api(ha_dev_type_t type)
 ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 {
 	ha_dev_t *dev = NULL;
-	k_mutex_lock(&devices.mutex, K_FOREVER);
+
+	__DEV_CONTEXT_LOCK();
 
 	if (devices.count >= ARRAY_SIZE(devices.list)) {
 		stats.dev_dropped++;
@@ -383,10 +387,15 @@ ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 	}
 
 exit:
-	k_mutex_unlock(&devices.mutex);
+	__DEV_CONTEXT_UNLOCK();
+
 	return dev;
 }
 
+/* TODO add an argument to have filtering context
+ * e.g. what endpoint event has made the match condition valid
+ * 	goal is to lock only this endpoint event
+ */
 static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 {
 	if (dev == NULL) {
@@ -417,15 +426,27 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 		}
 	}
 
+	struct ha_device_endpoint *ep = NULL;
 	struct ha_event *ev = NULL;
 
 	if (filter->flags & HA_DEV_FILTER_DATA_EXIST) {
-		if (filter->endpoint < dev->endpoints_count) {
-			ev = dev->endpoints[filter->endpoint].last_data_event;
-			if (!ev || !ev->data) {
-				return false;
+		if (filter->endpoint_id == HA_DEV_ENDPOINT_NONE) {
+			/* Find first valid event through endpoints */
+			for (int i = 0; i < dev->endpoints_count; i++) {
+				ep = &dev->endpoints[i];
+				if (ep->last_data_event != NULL) {
+					break;
+				}
 			}
+		} else {
+			/* Find searched endpoint */
+			ep = ha_dev_endpoint_get_by_id(dev, filter->endpoint_id);
 		}
+
+		if (!ep || !ep->last_data_event) 
+			return false;
+
+		ev = ep->last_data_event;
 	}
 
 	if (filter->flags & HA_DEV_FILTER_DATA_TIMESTAMP) {
@@ -511,16 +532,25 @@ ssize_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 		return -ENOENT;
 	}
 
+	__DEV_CONTEXT_LOCK(); /* TODO, evaluate if good idea */
+
 	while (dev < last) {
 		if (ha_dev_match_filter(dev, filter) == true) {
 			/*
 			 * Reference endpoints devices event in case the 
 			 * callback wants to keep a reference to it/them.
 			 */
+			/* TODO only lock necessary events and not all */
 			const uint32_t locked_mask = dev_ep_lock_ev_mask(
 				dev, options->ep_lock_last_ev_mask);
 
+			__DEV_CONTEXT_UNLOCK(); /* TODO, evaluate if good idea */
+
+			/* Mutex should not be locked in application callback context
+			 * as it could last a lot of time */
 			bool zcontinue = callback(dev, user_data);
+
+			__DEV_CONTEXT_LOCK(); /* TODO, evaluate if good idea */
 
 			dev_ep_unlock_ev_mask(dev, locked_mask);
 
@@ -534,6 +564,8 @@ ssize_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 		/* Fetch next device */
 		dev++;
 	}
+
+	__DEV_CONTEXT_UNLOCK(); /* TODO, evaluate if good idea */
 
 	return count;
 }
@@ -725,7 +757,7 @@ struct ha_device_endpoint *ha_dev_get_endpoint(ha_dev_t *dev, uint32_t ep)
 	return &dev->endpoints[ep];
 }
 
-struct ha_device_endpoint *ha_dev_get_endpoint_by_id(ha_dev_t *dev, ha_endpoint_id_t eid)
+struct ha_device_endpoint *ha_dev_endpoint_get_by_id(ha_dev_t *dev, ha_endpoint_id_t eid)
 {
 	if (!dev) {
 		return NULL;
@@ -740,7 +772,7 @@ struct ha_device_endpoint *ha_dev_get_endpoint_by_id(ha_dev_t *dev, ha_endpoint_
 	return NULL;
 }
 
-int ha_dev_get_endpoint_idx_by_id(ha_dev_t *dev, ha_endpoint_id_t eid)
+int ha_dev_endpoint_get_index_by_id(ha_dev_t *dev, ha_endpoint_id_t eid)
 {
 	if (!dev) {
 		return -EINVAL;

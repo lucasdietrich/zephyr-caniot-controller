@@ -504,6 +504,12 @@ const struct json_obj_descr json_caniot_telemetry_array_descr[] = {
 static bool caniot_device_cb(ha_dev_t *dev,
 			     void *user_data)
 {
+	if (CANIOT_DID_CLS(dev->addr.mac.addr.caniot) != CANIOT_DEVICE_CLASS0) {
+		LOG_WRN("(TODO) Skipping CANIOT non-class0 device (did=%x)",
+			dev->addr.mac.addr.caniot);
+		return true;
+	}
+
 	struct json_caniot_telemetry_array *const arr =
 		(struct json_caniot_telemetry_array *)user_data;
 
@@ -517,6 +523,8 @@ static bool caniot_device_cb(ha_dev_t *dev,
 	rec->temperatures_count = 0U;
 	rec->dio = dt->dio.value;
 	rec->pdio = dt->pdio.value;
+
+	/* TODO USE ha_data_get() to get the temperatures */
 
 	/* encode temperatures */
 	for (size_t i = 0; i < HA_CANIOT_MAX_TEMPERATURES; i++) {
@@ -560,6 +568,7 @@ __deprecated int rest_caniot_records(http_request_t *req,
 			HA_DEV_FILTER_FROM_INDEX |
 			HA_DEV_FILTER_TO_INDEX,
 		.device_type = HA_DEV_TYPE_CANIOT,
+		.endpoint_id = HA_DEV_ENDPOINT_NONE,
 		.from_index =
 			REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n,
 		.to_index =

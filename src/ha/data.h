@@ -76,7 +76,6 @@ struct ha_data_rssi {
 struct ha_data_digital {
 	uint32_t value; /* 1 bit per pin */
 	uint32_t mask; /* 1 if active*/
-	uint32_t direction; /* 1 if output */
 };
 
 struct ha_data_digital_in {
