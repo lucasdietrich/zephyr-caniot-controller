@@ -61,6 +61,12 @@ typedef enum {
 	 */
 	 HTTP_REQUEST_PROCESSING_ERROR,
 
+	/**
+	 * @brief Trying to request a protected resource without authentication
+	 * Note: status code 403
+	 */
+	 HTTP_REQUEST_UNSECURE_ACCESS,
+
 } http_request_discard_reason_t;
 
 #define HTTP_HEADER_FROM_HANDLE(hp) CONTAINER_OF(hp, struct http_header, handle)
@@ -302,9 +308,21 @@ static inline bool http_request_is_message(http_request_t *req)
  * @param value Pointer to the value to be stored
  * @return int 0 if success, -1 if error
  */
-int http_req_route_arg_get_number(http_request_t *req,
+int http_req_route_arg_get_number_by_index(http_request_t *req,
 				  int32_t rel_index,
 				  uint32_t *value);
+
+/**
+ * @brief Retrieve argument with given name from the request route
+ * 
+ * @param req HTTP request
+ * @param name Argument name
+ * @param value Pointer to the value to be stored
+ * @return int int 0 if success, -1 if error
+ */
+int http_req_route_arg_get(http_request_t *req,
+			   const char *name,
+			   uint32_t *value);
 
 /**
  * @brief Parse the received buffer as a HTTP request

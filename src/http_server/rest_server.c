@@ -67,7 +67,9 @@ LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_WRN);
 
 #define FIELD_SET(ret, n) (((ret) & (1 << (n))) != 0)
 
-#define route_arg_get http_req_route_arg_get_number
+#define route_arg_get_by_index http_req_route_arg_get_number_by_index
+#define route_arg_get http_req_route_arg_get
+
 
 int rest_encode_response_json(http_response_t *resp, const void *val,
 			      const struct json_obj_descr *descr,
@@ -818,7 +820,7 @@ static bool room_devices_cb(ha_dev_t *dev,
 {
 	buffer_t *const buf = (buffer_t *)user_data;
 
-	buffer_snprintf(buf, "%p", dev);
+	buffer_snprintf(buf, "%p<br/>", dev);
 
 	return true;
 }
@@ -1024,8 +1026,8 @@ int rest_devices_caniot_telemetry(http_request_t *req,
 {
 	/* get ids */
 	uint32_t did = 0, ep = 0;
-	route_arg_get(req, 0U, &did);
-	route_arg_get(req, 1U, &ep);
+	route_arg_get(req, "did", &did);
+	route_arg_get(req, "ep", &ep);
 
 	/* build CANIOT query */
 	struct caniot_frame q;
@@ -1094,7 +1096,7 @@ int rest_devices_caniot_blc0_command(http_request_t *req,
 
 	/* parse did */
 	uint32_t did = 0;
-	route_arg_get(req, 0U, &did);
+	route_arg_get(req, "did", &did);
 
 	/* build CANIOT query */
 	struct caniot_frame q;
@@ -1127,7 +1129,7 @@ int rest_devices_caniot_blc1_command(http_request_t *req,
 	/* parse did */
 	int ret = 0;
 	uint32_t did = 0;
-	route_arg_get(req, 0U, &did);
+	route_arg_get(req, "did", &did);
 
 	resp->status_code = HTTP_STATUS_BAD_REQUEST;
 
@@ -1203,8 +1205,8 @@ int rest_devices_caniot_command(http_request_t *req,
 
 	/* parse did, ep */
 	uint32_t did = 0, ep = 0;
-	route_arg_get(req, 0U, &did);
-	route_arg_get(req, 1U, &ep);
+	route_arg_get(req, "did", &did);
+	route_arg_get(req, "ep", &ep);
 
 	if (!caniot_deviceid_valid(did) || !caniot_endpoint_valid(ep)) {
 		http_response_set_status_code(resp, HTTP_STATUS_BAD_REQUEST);
@@ -1283,8 +1285,8 @@ int rest_devices_caniot_attr_read_write(http_request_t *req,
 	size_t descr_size = ARRAY_SIZE(json_caniot_attr_nok_descr);
 
 	/* Parse request*/
-	route_arg_get(req, 0U, &did);
-	route_arg_get(req, 1U, &key);
+	route_arg_get(req, "did", &did);
+	route_arg_get(req, "key", &key);
 
 	/* default status code */
 	resp->status_code = 400U;
@@ -1407,7 +1409,7 @@ int rest_if_can(http_request_t *req,
 	int ret = 0;
 
 	uint32_t arbitration_id = 0u;
-	route_arg_get(req, 0U, &arbitration_id);
+	route_arg_get(req, "id", &arbitration_id);
 
 	struct can_frame frame = { 0 };
 

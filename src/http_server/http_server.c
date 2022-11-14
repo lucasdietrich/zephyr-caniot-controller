@@ -263,7 +263,7 @@ static void remove_pollfd_by_index(uint_fast8_t index)
 	show_pfd();
 }
 
-static int srv_accept(int serv_sock)
+static int srv_accept(int serv_sock, bool secure)
 {
 	int ret, sock;
 	struct sockaddr_in addr;
@@ -311,6 +311,9 @@ static int srv_accept(int serv_sock)
 		/* initialize keep-alive context */
 		conn->keep_alive.timeout = KEEP_ALIVE_DEFAULT_TIMEOUT_MS;
 		conn->keep_alive.last_activity = k_uptime_get_32();
+
+		/* Mark connection as secure if secure socket */
+		conn->secure = secure;
 	}
 
 	show_pfd();
@@ -346,13 +349,13 @@ static void http_srv_thread(void *_a, void *_b, void *_c)
 		if (ret >= 0) {
 #if defined(CONFIG_HTTP_SERVER_NONSECURE)
 			if (fds.srv.revents & POLLIN) {
-				ret = srv_accept(fds.srv.fd);
+				ret = srv_accept(fds.srv.fd, false);
 			}
 #endif /* CONFIG_HTTP_SERVER_NONSECURE */
 
 #if defined(CONFIG_HTTP_SERVER_SECURE)
 			if (fds.sec.revents & POLLIN) {
-				ret = srv_accept(fds.sec.fd);
+				ret = srv_accept(fds.sec.fd, true);
 			}
 #endif /* CONFIG_HTTP_SERVER_SECURE */
 

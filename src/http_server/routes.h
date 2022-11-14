@@ -21,6 +21,8 @@
 #define ROUTE_ATTR_MULTIPART_FORM_DATA		(0x4u << 0u)
 #define ROUTE_ATTR_BINARY			(0x5u << 0u)
 
+#define ROUTE_ATTR_SECURE			(0x8u << 0u)
+
 #define ROUTE_ATTR_MASK				(0xFu << 0u)
 
 struct http_request;

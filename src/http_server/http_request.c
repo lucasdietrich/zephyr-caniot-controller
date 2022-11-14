@@ -121,6 +121,8 @@ static const char *discard_reason_to_str(http_request_discard_reason_t reason)
 		return "Payload too large";
 	case HTTP_REQUEST_PROCESSING_ERROR:
 		return "Processing error";
+	case HTTP_REQUEST_UNSECURE_ACCESS:
+		return "Unsecure access";
 	default:
 		return "<unknown discard reason>";
 	}
@@ -443,6 +445,8 @@ static int on_headers_complete(struct http_parser *parser)
 		LOG_ERR("(%p) Route doesn't support streaming %s", req, req->_url_copy);
 	}
 
+	/* Check for secure */
+
 	if (http_request_is_stream(req) == true) {
 		req->parser_settings = &parser_settings_streaming;
 	}
@@ -477,6 +481,8 @@ static int on_body_streaming(struct http_parser *parser,
 #endif /* CONFIG_HTTP_TEST */
 
 	/* route is necessarily valid at this point */
+
+	/* TODO, check for secure before executing the handler */
 	int ret = route_get_req_handler(req->route)(req, NULL);
 	if (ret < 0) {
 		mark_discarded(req, HTTP_REQUEST_PROCESSING_ERROR);
@@ -595,9 +601,9 @@ static int on_chunk_complete(struct http_parser *parser)
 	return 0;
 }
 
-int http_req_route_arg_get_number(http_request_t *req,
-				int32_t rel_index,
-				uint32_t *value)
+int http_req_route_arg_get_number_by_index(http_request_t *req,
+					   int32_t rel_index,
+					   uint32_t *value)
 {
 	__ASSERT_NO_MSG(req != NULL);
 	__ASSERT_NO_MSG(req->route != NULL);
@@ -607,11 +613,27 @@ int http_req_route_arg_get_number(http_request_t *req,
 		rel_index = req->route_depth + rel_index;
 	}
 
-	return route_results_get_number(
+	return route_results_get_number_by_index(
 		req->route_parse_results,
 		req->route_parse_results_len,
 		(uint32_t)rel_index,
 		value);
+}
+
+int http_req_route_arg_get(http_request_t *req,
+			   const char *name,
+			   uint32_t *value)
+{
+	__ASSERT_NO_MSG(req != NULL);
+	__ASSERT_NO_MSG(req->route != NULL);
+	__ASSERT_NO_MSG(value != NULL);
+
+	return route_results_get(
+		req->route_parse_results,
+		req->route_parse_results_len,
+		name,
+		ROUTE_ARG_UINT | ROUTE_ARG_HEX,
+		(void **)value);
 }
 
 bool http_request_parse(http_request_t *req,
@@ -689,6 +711,9 @@ bool http_discard_reason_to_status_code(http_request_discard_reason_t reason,
 		break;
 	case HTTP_REQUEST_PAYLOAD_TOO_LARGE:
 		*status_code = HTTP_STATUS_REQUEST_ENTITY_TOO_LARGE;
+		break;
+	case HTTP_REQUEST_UNSECURE_ACCESS:
+		*status_code = HTTP_STATUS_FORBIDDEN;
 		break;
 	case HTTP_REQUEST_PROCESSING_ERROR:
 	default:

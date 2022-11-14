@@ -23,6 +23,7 @@
 #define FORM 		ROUTE_ATTR_FORM
 #define MULTIPART 	ROUTE_ATTR_MULTIPART_FORM_DATA
 #define BINARY 		ROUTE_ATTR_BINARY
+#define SEC 		ROUTE_ATTR_SECURE
 
 /*
 Following code is automatically generated 
@@ -69,7 +70,7 @@ static const struct route_descr root_test[] = {
 
 #if defined(CONFIG_CAN_INTERFACE)
 static const struct route_descr root_if_can[] = {
-	LEAF(":x", POST | ARG_HEX, rest_if_can, NULL, 0u),
+	LEAF("id:x", POST | ARG_HEX, rest_if_can, NULL, 0u),
 };
 #endif
 
@@ -116,64 +117,64 @@ static const struct route_descr root_ha[] = {
 };
 
 #if defined(CONFIG_CANIOT_CONTROLLER)
-static const struct route_descr root_devices_caniot_zu_attribute[] = {
-	LEAF(":x", GET | ARG_HEX, rest_devices_caniot_attr_read_write, NULL, 0u),
-	LEAF(":x", PUT | ARG_HEX, rest_devices_caniot_attr_read_write, NULL, 0u),
+static const struct route_descr root_devices_caniot_didzu_attribute[] = {
+	LEAF("key:x", GET | ARG_HEX, rest_devices_caniot_attr_read_write, NULL, 0u),
+	LEAF("key:x", PUT | ARG_HEX, rest_devices_caniot_attr_read_write, NULL, 0u),
 };
 #endif
 
 #if defined(CONFIG_CANIOT_CONTROLLER)
-static const struct route_descr root_devices_caniot_zu_endpoint_zu[] = {
+static const struct route_descr root_devices_caniot_didzu_endpoint_epzu[] = {
 	LEAF("telemetry", GET, rest_devices_caniot_telemetry, NULL, 0u),
 	LEAF("command", POST, rest_devices_caniot_command, NULL, 0u),
 };
 #endif
 
 #if defined(CONFIG_CANIOT_CONTROLLER)
-static const struct route_descr root_devices_caniot_zu_endpoint_blc[] = {
+static const struct route_descr root_devices_caniot_didzu_endpoint_blc[] = {
 	LEAF("command", POST, rest_devices_caniot_blc_command, NULL, 0u),
 };
 #endif
 
 #if defined(CONFIG_CANIOT_CONTROLLER)
-static const struct route_descr root_devices_caniot_zu_endpoint_blc1[] = {
+static const struct route_descr root_devices_caniot_didzu_endpoint_blc1[] = {
 	LEAF("command", POST, rest_devices_caniot_blc1_command, NULL, 0u),
 };
 #endif
 
 #if defined(CONFIG_CANIOT_CONTROLLER)
-static const struct route_descr root_devices_caniot_zu_endpoint_blc0[] = {
+static const struct route_descr root_devices_caniot_didzu_endpoint_blc0[] = {
 	LEAF("command", POST, rest_devices_caniot_blc0_command, NULL, 0u),
 };
 #endif
 
 #if defined(CONFIG_CANIOT_CONTROLLER)
-static const struct route_descr root_devices_caniot_zu_endpoint[] = {
-	SECTION("blc0", 0u, root_devices_caniot_zu_endpoint_blc0, 
-		ARRAY_SIZE(root_devices_caniot_zu_endpoint_blc0), 0u),
-	SECTION("blc1", 0u, root_devices_caniot_zu_endpoint_blc1, 
-		ARRAY_SIZE(root_devices_caniot_zu_endpoint_blc1), 0u),
-	SECTION("blc", 0u, root_devices_caniot_zu_endpoint_blc, 
-		ARRAY_SIZE(root_devices_caniot_zu_endpoint_blc), 0u),
-	SECTION(":u", ARG_UINT, root_devices_caniot_zu_endpoint_zu, 
-		ARRAY_SIZE(root_devices_caniot_zu_endpoint_zu), 0u),
+static const struct route_descr root_devices_caniot_didzu_endpoint[] = {
+	SECTION("blc0", 0u, root_devices_caniot_didzu_endpoint_blc0, 
+		ARRAY_SIZE(root_devices_caniot_didzu_endpoint_blc0), 0u),
+	SECTION("blc1", 0u, root_devices_caniot_didzu_endpoint_blc1, 
+		ARRAY_SIZE(root_devices_caniot_didzu_endpoint_blc1), 0u),
+	SECTION("blc", 0u, root_devices_caniot_didzu_endpoint_blc, 
+		ARRAY_SIZE(root_devices_caniot_didzu_endpoint_blc), 0u),
+	SECTION("ep:u", ARG_UINT, root_devices_caniot_didzu_endpoint_epzu, 
+		ARRAY_SIZE(root_devices_caniot_didzu_endpoint_epzu), 0u),
 };
 #endif
 
 #if defined(CONFIG_CANIOT_CONTROLLER)
-static const struct route_descr root_devices_caniot_zu[] = {
-	SECTION("endpoint", 0u, root_devices_caniot_zu_endpoint, 
-		ARRAY_SIZE(root_devices_caniot_zu_endpoint), 0u),
-	SECTION("attribute", 0u, root_devices_caniot_zu_attribute, 
-		ARRAY_SIZE(root_devices_caniot_zu_attribute), 0u),
+static const struct route_descr root_devices_caniot_didzu[] = {
+	SECTION("endpoint", 0u, root_devices_caniot_didzu_endpoint, 
+		ARRAY_SIZE(root_devices_caniot_didzu_endpoint), 0u),
+	SECTION("attribute", 0u, root_devices_caniot_didzu_attribute, 
+		ARRAY_SIZE(root_devices_caniot_didzu_attribute), 0u),
 };
 #endif
 
 #if defined(CONFIG_CANIOT_CONTROLLER)
 static const struct route_descr root_devices_caniot[] = {
 	LEAF("", GET, rest_caniot_records, NULL, 0u),
-	SECTION(":u", ARG_UINT, root_devices_caniot_zu, 
-		ARRAY_SIZE(root_devices_caniot_zu), 0u),
+	SECTION("did:u", ARG_UINT, root_devices_caniot_didzu, 
+		ARRAY_SIZE(root_devices_caniot_didzu), 0u),
 };
 #endif
 
@@ -199,7 +200,7 @@ static const struct route_descr root_room[] = {
 
 #if defined(CONFIG_CREDS_FLASH)
 static const struct route_descr root_credentials[] = {
-	LEAF("flash", GET, rest_flash_credentials_list, NULL, 0u),
+	LEAF("flash", GET, rest_flash_credentials_list, NULL, SEC),
 };
 #endif
 
@@ -210,7 +211,7 @@ static const struct route_descr root[] = {
 	LEAF("info", GET, rest_info, NULL, 0u),
 #if defined(CONFIG_CREDS_FLASH)
 	SECTION("credentials", 0u, root_credentials, 
-		ARRAY_SIZE(root_credentials), 0u),
+		ARRAY_SIZE(root_credentials), SEC),
 #endif
 #if defined(CONFIG_HA)
 	LEAF("metrics", GET, prometheus_metrics, NULL, TEXT),

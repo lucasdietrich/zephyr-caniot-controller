@@ -58,6 +58,10 @@ struct http_connection
         http_request_t *req;
         http_response_t *resp;
 
+	/* Is the connection secure ? */
+	bool secure;
+	/* TODO add secure context: client certificate common name, ... */
+
 	/* STATS */
 	size_t requests_count;
 	size_t rx_bytes;
