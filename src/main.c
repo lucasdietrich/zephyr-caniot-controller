@@ -133,7 +133,9 @@ void main(void)
 	lua_fs_populate();
 #endif
 
+#if defined(CONFIUG_LUA)
 	lua_orch_init();
+#endif
 
 #ifndef CONFIG_QEMU_TARGET
 	leds_init();

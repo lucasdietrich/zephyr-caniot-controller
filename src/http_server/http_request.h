@@ -313,7 +313,7 @@ int http_req_route_arg_get_number_by_index(http_request_t *req,
 				  uint32_t *value);
 
 /**
- * @brief Retrieve argument with given name from the request route
+ * @brief Retrieve number argument with given name from the request route
  * 
  * @param req HTTP request
  * @param name Argument name
@@ -323,6 +323,18 @@ int http_req_route_arg_get_number_by_index(http_request_t *req,
 int http_req_route_arg_get(http_request_t *req,
 			   const char *name,
 			   uint32_t *value);
+
+/**
+ * @brief Retrieve string argument with given name from the request route
+ * 
+ * @param req HTTP request
+ * @param name Argument name
+ * @param value Pointer to the value to be stored
+ * @return int int 0 if success, -1 if error
+ */
+int http_req_route_arg_get_string(http_request_t *req,
+				  const char *name,
+				  char **value);
 
 /**
  * @brief Parse the received buffer as a HTTP request
@@ -346,6 +358,11 @@ bool http_request_parse(http_request_t *req,
 void http_request_discard(http_request_t *req,
 			  http_request_discard_reason_t reason);
 
+static inline bool http_request_begins(http_request_t *req)
+{
+	return req->calls_count == 0;
+}
+
 static inline bool http_stream_begins(http_request_t *req)
 {	
 	return http_request_is_stream(req) && 
@@ -361,6 +378,8 @@ static inline bool http_request_complete(http_request_t *req)
 {
 	return req->complete == 1u;
 }
+
+void http_request_buffer_get(http_request_t *req, buffer_t *buf);
 
 const char *http_header_get_value(http_request_t *req,
 				  const char *hdr_name);

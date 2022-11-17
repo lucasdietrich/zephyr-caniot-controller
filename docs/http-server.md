@@ -22,7 +22,7 @@ See [src/http_server/Kconfig](../src/http_server/Kconfig) :
 | `HTTP_REQUEST_HEADERS_BUFFER_SIZE` | Size of the buffer used to store HTTP request custom headers |
 | `HTTP_TEST`                        | Enable HTTP test tool                                        |
 | `HTTP_TEST_SERVER`                 | Enable HTTP test server tool , with test resources           |
-| `FILE_UPLOAD_MOUNT_POINT`          | Mount point for file upload to FILE server                   |
+| `FILES_SERVER_MOUNT_POINT`          | Mount point for file upload to FILE server                   |
 
 ## Provision HTTPS certificates
 

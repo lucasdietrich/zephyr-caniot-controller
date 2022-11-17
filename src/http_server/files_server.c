@@ -16,40 +16,165 @@
 #include "http_utils.h"
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(files_server, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(files_server, LOG_LEVEL_DBG);
 
-typedef enum {
-	FILE_UPLOAD_OK = 0,
-	FILE_UPLOAD_MISSING_FILEPATH_HEADER,
-	// FILE_UPLOAD_DIR_CREATION_FAILED,
-	// FILE_UPLOAD_FILE_OPEN_FAILED,
-	// FILE_UPLOAD_FILE_TRUNCATE_FAILED,
-	// FILE_UPLOAD_FILE_WRITE_FAILED,
-	// FILE_UPLOAD_FILE_CLOSE_FAILED,
-	
-	// FILE_UPLOAD_FATAL,
-} file_upload_err_t;
+#define FILES_SERVER_MOUNT_POINT 	CONFIG_FILES_SERVER_MOUNT_POINT
+#define FILES_SERVER_MOUNT_POINT_SIZE 	(sizeof(FILES_SERVER_MOUNT_POINT) - 1u)
 
-struct file_upload_context
-{
-	const char *basename;
-	const char *dirname;
-	char filepath[40];
-	struct fs_file_t file;
+#define FILES_SERVER_CREATE_DIR_IF_NOT_EXISTS 	0u
 
-	file_upload_err_t error;
+#define FILE_FILEPATH_MAX_LEN 128u
+
+#if defined(CONFIG_FILE_ACCESS_HISTORY)
+
+struct file_access_history {
+    char *path;
+    uint32_t count;
+
+    uint32_t read: 1u;
+    uint32_t write: 1u;
 };
 
-/* TODO, dynamically allocate the context */
-static struct file_upload_context *sync_file_upload_context(struct http_request *req)
-{
-	static struct file_upload_context upload;
+static struct file_access_history history[CONFIG_FILE_ACCESS_HISTORY_SIZE];
+static uint32_t history_count = 0u;
 
-	if (req->user_data == NULL) {
-		req->user_data = &upload;
+#endif /* CONFIG_FILE_ACCESS_HISTORY */
+
+// TODO
+// static int get_arg_path(http_request_t *req, size_t nargs, ...)
+
+static const char *route_path_arg_names[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10" };
+
+static int get_arg_path_parts(http_request_t *req, char *parts[], size_t size)
+{
+	__ASSERT_NO_MSG(req != NULL);
+	__ASSERT_NO_MSG(parts != NULL);
+	__ASSERT_NO_MSG(size != 0u);
+
+	size = MIN(size, ARRAY_SIZE(route_path_arg_names));
+	size = MIN(size, req->route_parse_results_len);
+
+	uint32_t i;
+	for (i = 0; i < size; i++) {
+		if (http_req_route_arg_get_string(req, route_path_arg_names[i], &parts[i]) != 0) {
+			break;
+		}
 	}
 
-	return (struct file_upload_context *)req->user_data;
+	return (int)i;
+}
+
+static int req_filepath_get(struct http_request *req,
+			    char filepath[],
+			    size_t size)
+{
+	char *pp[3u];
+
+	/* Parse filepath in URL */
+	int count = get_arg_path_parts(req, pp, ARRAY_SIZE(pp));
+
+	/* Reconstruct filepath */
+	char *p = filepath;
+
+	*p = '\0';
+
+	for (int i = 0; i < count; i++) {
+		const uint32_t pp_len = strlen(pp[i]);
+		const int remaining = size - (p - filepath);
+		if (pp_len >= remaining - 1) {
+			LOG_ERR("Given filepath too long");
+			return -ENOMEM;
+		}
+
+		*p++ = '/';
+		strncpy(p, pp[i], pp_len);
+		p += pp_len;
+	}
+
+	*p = '\0';
+
+	return 0;
+}
+
+/**
+ * @brief Open file corresponding to the requested filepath.
+ * 
+ * Note: If size argument is not NULL, the file size is retrieved and returned.
+ * 
+ * @param file 
+ * @param size 
+ * @param filepath 
+ * @return int 
+ */
+static int open_r_file(struct fs_file_t *file, size_t *size, char *filepath)
+{
+	int ret;
+
+	fs_file_t_init(file);
+
+	/* Get file size */
+	if (size != NULL) {
+		/* Get file stats */
+		struct fs_dirent dirent;
+		ret = fs_stat(filepath, &dirent);
+		if (ret == 0) {
+			if (dirent.type != FS_DIR_ENTRY_FILE) {
+				ret = -ENOENT;
+				goto exit;
+			}
+
+			*size = dirent.size;
+		} else {
+			LOG_ERR("Failed to get file stats ret=%d", ret);
+			goto exit;
+		}
+
+	}
+
+	/* Open file */
+	ret = fs_open(file, filepath, FS_O_READ);
+	if (ret != 0) {
+		LOG_ERR("Failed to open file ret=%d", ret);
+		goto exit;
+	}
+
+exit:
+
+	return ret;
+}
+
+static int open_w_file(struct fs_file_t *file, char *filepath)
+{
+	int ret;
+
+#if FILES_SERVER_CREATE_DIR_IF_NOT_EXISTS
+	/* TODO, create intermediate directories */
+#endif
+
+	/* Prepare the file in the filesystem */
+	fs_file_t_init(file);
+
+	ret = fs_open(file,
+		      filepath,
+		      FS_O_CREATE | FS_O_WRITE);
+	if (ret != 0) {
+		LOG_ERR("fs_open failed: %d", ret);
+		goto ret;
+	}
+
+	/* Truncate file in case it already exists */
+	ret = fs_truncate(file, 0U);
+	if (ret != 0) {
+		LOG_ERR("fs_truncate failed: %d", ret);
+		goto exit;
+	}
+
+exit:
+	if (ret != 0) {
+		fs_close(file);
+	}
+ret:
+	return ret;
 }
 
 /* Non-standard but convenient way to upload a file
@@ -64,146 +189,93 @@ static struct file_upload_context *sync_file_upload_context(struct http_request 
  * TODO : In the case the file cannot be added to the FS, 
  *  the status code of the http response should be 400 with a payload
  *  indicating the reason.
+ * 
+ * TODO: Make this function compatible with non-stream requests
  */
 int http_file_upload(struct http_request *req,
 		     struct http_response *resp)
 {
-	int rc = 0;
-	bool close_file = true;
-	struct file_upload_context *u = sync_file_upload_context(req);
+	static struct fs_file_t file;
 
-	if (http_stream_begins(req)) {
-		u->error = FILE_UPLOAD_OK;
+	int ret = 0;
 
-		/* Get being uploaded file name */
-		const char *reqpath = http_header_get_value(req, "App-Upload-Filepath");
-		if (reqpath == NULL) {
+	/**
+	 * @brief First call to the handler
+	 */
+	if (http_request_begins(req))
+	{
+		char filepath[FILE_FILEPATH_MAX_LEN] = FILES_SERVER_MOUNT_POINT;
+		ret = req_filepath_get(
+			req,
+			&filepath[FILES_SERVER_MOUNT_POINT_SIZE],
+			sizeof(filepath) - FILES_SERVER_MOUNT_POINT_SIZE);
+		if (ret != 0) {
 			http_request_discard(req, HTTP_REQUEST_BAD);
-			u->error = FILE_UPLOAD_MISSING_FILEPATH_HEADER;
-			rc = 0;
-			goto exit;
-		}
-		
-		u->basename = basename((char *) reqpath);
-		u->dirname = dirname((char *) reqpath);
-
-		if ((u->basename == NULL) || (u->basename[0] == '\0')) {
-			/* TODO generate an available filename */
-			u->basename = "UPLOAD.TXT";
-		}
-
-		/* Create file path */
-		if (u->dirname[0] == '.') {
-			snprintf(u->filepath, sizeof(u->filepath),
-				 CONFIG_LUA_FS_SCRIPTS_DIR "/%s", u->basename);
-		} else {
-			char dirpath[40];
-			snprintf(dirpath, sizeof(dirpath),
-				 CONFIG_FILE_UPLOAD_MOUNT_POINT "/%s", 
-				 u->dirname);
-
-			/* Create directory if it doesn't exists */
-			struct fs_dirent dir;
-			if (fs_stat(dirpath, &dir) == -ENOENT) {
-				rc = fs_mkdir(dirpath);
-				if (rc != 0) {
-					// u->error = FILE_UPLOAD_DIR_CREATION_FAILED;
-					LOG_ERR("Failed to create directory %s", dirpath);
-					goto exit;
-				}
-			}
-
-			snprintf(u->filepath, sizeof(u->filepath),
-				 CONFIG_FILE_UPLOAD_MOUNT_POINT "/%s/%s", 
-				 u->dirname, u->basename);
-		}
-
-		LOG_INF("Filepath: %s", u->filepath);
-
-		/* Prepare the file in the filesystem */
-		fs_file_t_init(&u->file);
-		rc = fs_open(&u->file,
-			     u->filepath,
-			     FS_O_CREATE | FS_O_WRITE);
-		if (rc != 0) {
-			// u->error = FILE_UPLOAD_FILE_OPEN_FAILED;
-			LOG_ERR("fs_open failed: %d", rc);
+			http_response_set_status_code(resp,
+						      HTTP_STATUS_BAD_REQUEST);
 			goto exit;
 		}
 
-		/* Truncate file in case it already exists */
-		rc = fs_truncate(&u->file, 0U);
-		if (rc != 0) {
-			// u->error = FILE_UPLOAD_FILE_TRUNCATE_FAILED;
-			LOG_ERR("fs_truncate failed: %d", rc);
+		LOG_INF("Start upload to %s", filepath);
+
+		ret = open_w_file(&file, filepath);
+		if (ret == -ENOENT) {
+			http_request_discard(req, HTTP_REQUEST_BAD);
+			ret = 0;
+			goto exit;
+		} else if (ret != 0) {
+			http_request_discard(req, HTTP_REQUEST_BAD);
+			ret = 0;
 			goto exit;
 		}
+
+		/* Reference context */
+		req->user_data = &file;
 	}
 
 	/* Prepare data to be written */
-	char *data = NULL;
-	size_t data_len = 0;
-
-	/* No more data when request is complete */
-	if (http_request_has_chunk_data(req)) {
-		data = req->chunk.loc;
-		data_len = req->chunk.len;
-		close_file = false;
-	} else if (http_request_is_message(req)) {
-		/* In case we support message-based uploads,
-		 * we can use the payload */
-		data = req->payload.loc;
-		data_len = req->payload.len;
-	}
-
-	if (data != NULL) {
-		LOG_DBG("write loc=%p [%u] file=%p", data, data_len, &u->file);
-		ssize_t written = fs_write(&u->file, data, data_len);
-		if (written != data_len) {
-			// u->error = FILE_UPLOAD_FILE_WRITE_FAILED;
-			rc = written;
+	buffer_t buf;
+	http_request_buffer_get(req, &buf);
+	
+	if (buf.data != NULL) {
+		LOG_DBG("write loc=%p [%u] file=%p", buf.data, buf.filling, &file);
+		ssize_t written = fs_write(&file, buf.data, buf.filling);
+		if (written != buf.filling) {
+			ret = written;
 			LOG_ERR("Failed to write file %d != %u",
-				written, data_len);
+				written, buf.filling);
+			http_request_discard(req, HTTP_REQUEST_BAD);
 			goto exit;
 		}
 	}
 
-	if (close_file) {
-		rc = fs_close(&u->file);
-		if (rc) {
+	bool complete = http_request_complete(req);
+	if (complete) {
+		/* Close file */
+		ret = fs_close(&file);
+		if (ret) {
 			// u->error = FILE_UPLOAD_FILE_CLOSE_FAILED;
-			LOG_ERR("Failed to close file = %d", rc);
+			LOG_ERR("Failed to close file = %d", ret);
 			goto ret;
 		}
 
-		LOG_INF("File %s upload succeeded [size = %u]",
-			u->filepath, req->payload_len);
+		LOG_INF("Upload of %u B succeeded", req->payload_len);
 		
 		if (Z_LOG_CONST_LEVEL_CHECK(LOG_LEVEL_DBG)) {
-			app_fs_stats(CONFIG_FILE_UPLOAD_MOUNT_POINT);
+			app_fs_stats(CONFIG_FILES_SERVER_MOUNT_POINT);
 		}
-	}
 
-	if (http_request_complete(req)) {
-		/* Encode message */
-		if (u->error == FILE_UPLOAD_OK) {
-			buffer_append_string(&resp->buffer, "Upload succeeded");
-		} else if (u->error == FILE_UPLOAD_MISSING_FILEPATH_HEADER) {
-			buffer_append_string(&resp->buffer, 
-					     "Upload failed: FILE_UPLOAD_MISSING_FILEPATH_HEADER");
-		} else {
-			buffer_append_string(&resp->buffer, "Unknown error");
-		}
-		resp->content_length = resp->buffer.filling;
+		/* TPDP Encode response payload */
 	}
 
 exit:
-	if (rc != 0) {
-		fs_close(&u->file);
+	/* In case of fatal error, properly close file */
+	if (ret != 0) {
+		fs_close(&file);
 	}
 
 ret:
-	return rc;
+	return ret;
 }
 
 /* TODO a file descriptor is not closed somewhere bellow, which causes 
@@ -211,79 +283,75 @@ ret:
 int http_file_download(struct http_request *req,
 		       struct http_response *resp)
 {
-	int ret;
+	int ret = 0;
 	static struct fs_file_t file;
 
+	/* Init */
 	if (http_response_is_first_call(resp)) {
-		/* Check and extract filepath */
-		const char *subpath = ""; // TODO
-		if (subpath == NULL || strlen(subpath) == 0) {
-			http_response_set_status_code(resp, HTTP_STATUS_BAD_REQUEST);
-			return 0;
+		size_t filesize;
+		char filepath[FILE_FILEPATH_MAX_LEN] = FILES_SERVER_MOUNT_POINT;
+		ret = req_filepath_get(
+			req,
+			&filepath[FILES_SERVER_MOUNT_POINT_SIZE],
+			sizeof(filepath) - FILES_SERVER_MOUNT_POINT_SIZE);
+		if (ret != 0) {
+			http_response_set_status_code(resp,
+						      HTTP_STATUS_BAD_REQUEST);
+			ret = 0;
+			goto exit;
 		}
 
-		/* Normalize filepath */
-		char filepath[128u];
-		if (app_fs_filepath_normalize(subpath, filepath, sizeof(filepath)) < 0) {
-			http_response_set_status_code(resp, HTTP_STATUS_BAD_REQUEST);
-			return 0;
-		}
-
-		/* Get file stats */
-		struct fs_dirent dirent;
-		ret = fs_stat(filepath, &dirent);
+		ret = open_r_file(&file, &filesize, filepath);
 		if (ret == -ENOENT) {
 			http_response_set_status_code(resp,
 						      HTTP_STATUS_NOT_FOUND);
-			return 0;
+			ret = 0;
+			goto exit;
 		} else if (ret != 0) {
 			http_response_set_status_code(resp,
 						      HTTP_STATUS_INTERNAL_SERVER_ERROR);
-			return 0;
-		} else if (dirent.type == FS_DIR_ENTRY_DIR) {
-			http_response_set_status_code(resp,
-						      HTTP_STATUS_BAD_REQUEST);
-			return 0;
+			ret = 0;
+			goto exit;
 		}
 
-		LOG_INF("File=%s size=%u", filepath, dirent.size);
-		http_response_set_content_length(resp, dirent.size);
+		http_response_set_content_length(resp, filesize);
 
-		fs_file_t_init(&file);
-		ret = fs_open(&file, filepath, FS_O_READ);
-		if (ret != 0) {
-			http_response_set_status_code(
-				resp, HTTP_STATUS_INTERNAL_SERVER_ERROR);
-			return 0;
-		}
+		LOG_INF("Download %s [size=%u]", filepath, filesize);
 
 		/* Reference context */
 		req->user_data = &file;
 	}
 
+	/* Read & close */
 	if (req->user_data != NULL) {
 		ret = fs_read(&file, resp->buffer.data, resp->buffer.size);
 		if (ret < 0) {
 			fs_close(&file);
 			http_response_set_status_code(
 				resp, HTTP_STATUS_INTERNAL_SERVER_ERROR);
-			return 0;
-		} else if (ret == 0) {
-			/* EOF */
-			fs_close(&file);
-			req->user_data = NULL;
-			return 0;
+			ret = 0;
+			goto exit;
 		}
 
 		resp->buffer.filling = ret;
 
-		/* If more that are excepted */
+		/* If more data are expected */
 		if (ret == resp->buffer.size) {
-			http_response_more_data(resp);
+			http_response_mark_not_complete(resp);
 		} else {
 			fs_close(&file);
+			req->user_data = NULL;
 		}
+
+		ret = 0;
 	}
 
+exit:
+	return ret;
+}
+
+int http_file_stats(struct http_request *req,
+		    struct http_response *resp)
+{
 	return 0;
 }

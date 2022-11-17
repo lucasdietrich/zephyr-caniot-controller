@@ -457,7 +457,6 @@ static inline ssize_t ha_dev_xiaomi_iterate_data(ha_dev_iterate_cb_t callback,
 	return ha_dev_iterate(callback, &filter, NULL, user_data);
 }
 
-
 static inline ssize_t ha_dev_caniot_iterate_data(ha_dev_iterate_cb_t callback,
 						void *user_data)
 {

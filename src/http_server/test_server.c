@@ -227,7 +227,7 @@ int http_test_payload(struct http_request *req,
 
 	if (++it < n) {
 		// buffer_snprintf(&resp->buffer, "Hello, world! %u", it);
-		http_response_more_data(resp);
+		http_response_mark_not_complete(resp);
 	}
 
 	memset(resp->buffer.data, 'A', s);

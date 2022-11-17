@@ -31,60 +31,59 @@
 			"svdFile": "./STM32F429.svd"
 		},
 		{
-            "name": "(gdb) qemu_x86",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/zephyr/zephyr.elf",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-
-            // Find a way to not wait for ninja debugser to finish
-            // "preLaunchTask": "Ninja debugserver",
-            "environment": [],
-            "externalConsole": true,
-            "MIMode": "gdb",
-            "miDebuggerPath": "/usr/bin/gdb",
-            "miDebuggerServerAddress": "localhost:1234",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
-        },
-        {
-            "name": "EXPERIMENTAL (gdb) QEMU ARM",
-            "cwd": "${workspaceRoot}",
-            "executable": "./build/zephyr/zephyr.elf",
-            "request": "launch",
-            "type": "cortex-debug",
-            "servertype": "external",
-            "gdbTarget": "localhost:1234",
-            "runToEntryPoint": "main",
-        },
-        {
-            "name": "LEGACY (gdb) QEMU ARM",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/zephyr/zephyr.elf",
-            "args": [],
-            "stopAtEntry": true,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "miDebuggerPath": "/usr/bin/arm-none-eabi-gdb",
-            "miDebuggerServerAddress": "localhost:1234",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
-        },
+			"name": "(gdb) qemu_x86",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/zephyr/zephyr.elf",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}",
+			// Find a way to not wait for ninja debugser to finish
+			// "preLaunchTask": "Ninja debugserver",
+			"environment": [],
+			"externalConsole": true,
+			"MIMode": "gdb",
+			"miDebuggerPath": "/usr/bin/gdb",
+			"miDebuggerServerAddress": "localhost:1234",
+			"setupCommands": [
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				}
+			]
+		},
+		{
+			"name": "EXPERIMENTAL (gdb) QEMU ARM",
+			"cwd": "${workspaceRoot}",
+			"executable": "./build/zephyr/zephyr.elf",
+			"request": "launch",
+			"type": "cortex-debug",
+			"servertype": "external",
+			"gdbTarget": "localhost:1234",
+			"runToEntryPoint": "main",
+		},
+		{
+			"name": "LEGACY (gdb) QEMU ARM",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/zephyr/zephyr.elf",
+			"args": [],
+			"stopAtEntry": true,
+			"cwd": "${workspaceFolder}",
+			"environment": [],
+			"externalConsole": false,
+			"MIMode": "gdb",
+			"miDebuggerPath": "/usr/bin/arm-none-eabi-gdb",
+			"miDebuggerServerAddress": "localhost:1234",
+			"setupCommands": [
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				}
+			]
+		},
 		{
 			"name": "DEPRECATED cppdbg OpenOCD (west debugserver)",
 			"type": "cppdbg",
@@ -119,26 +118,26 @@
 			"cwd": "${workspaceFolder}",
 		},
 		{
-            "name": "BACKUP (gdb) Agnostic",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/zephyr/zephyr.elf",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": true,
-            "MIMode": "gdb",
-            "miDebuggerPath": "/usr/bin/gdb",
-            "miDebuggerServerAddress": "localhost:3333",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
-        },
+			"name": "BACKUP (gdb) Agnostic",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/zephyr/zephyr.elf",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}",
+			"environment": [],
+			"externalConsole": true,
+			"MIMode": "gdb",
+			"miDebuggerPath": "/usr/bin/gdb",
+			"miDebuggerServerAddress": "localhost:3333",
+			"setupCommands": [
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				}
+			]
+		},
 		{
 			"name": "BACKUP cortex-debug STutil",
 			"type": "cortex-debug",
@@ -150,6 +149,21 @@
 			"servertype": "stutil",
 			"interface": "swd",
 			"runToEntryPoint": "main",
-		}
+		},
+		{
+			"name": "Python: modules/embedc-utils/scripts/genroutes.py",
+			"type": "python",
+			"request": "launch",
+			"program": "modules/embedc-utils/scripts/genroutes.py",
+			"args": [
+				"src/http_server/routes.txt",
+				"--output=src/http_server/routes_g.c",
+				"--descr-whole",
+				"--def-begin=\"=== ROUTES DEFINITION BEGIN  === */\"",
+				"--def-end=\"/* === ROUTES DEFINITION END === */\""
+			],
+			"console": "integratedTerminal",
+			"justMyCode": false
+		},
 	]
 }

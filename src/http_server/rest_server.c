@@ -58,7 +58,7 @@
 #include "net_time.h"
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_WRN);
+LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_INF);
 
 #define REST_CANIOT_QUERY_MAX_TIMEOUT_MS		(5000U)
 
@@ -1435,6 +1435,8 @@ exit:
 
 #define REST_FS_FILES_LIST_MAX_COUNT 32U
 
+#if defined(CONFIG_LUA)
+
 struct json_fs_file_entry
 {
 	char *name;
@@ -1548,6 +1550,8 @@ int rest_lua_run_script(http_request_t *req,
 exit:
 	return ret;
 }
+
+#endif /* CONFIG_LUA */
 
 #if defined(CONFIG_CREDS_FLASH)
 

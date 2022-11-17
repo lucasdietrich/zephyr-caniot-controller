@@ -260,9 +260,6 @@ exit:
 	return rc;
 }
 
-
-
-
 int app_fs_iterate_dir_files(const char *path,
 			     app_fs_iterate_fs_cb_t callback,
 			     void *user_data)

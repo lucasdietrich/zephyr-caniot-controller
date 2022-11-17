@@ -53,9 +53,23 @@ config HTTP_TEST_SERVER
         help
                 Enable test server and corresponding resources and routes
 
-config FILE_UPLOAD_MOUNT_POINT
+config FILES_SERVER_MOUNT_POINT
         string "Default mount point for file upload"
         default "/RAM:" if QEMU_TARGET
         default "/SD:" if BOARD_NUCLEO_F429ZI
         help
                 Default mount point for file upload (HTTP file server)
+
+config FILE_ACCESS_HISTORY
+        bool "Enable file access history"
+        default n
+        help
+                Enable file access history
+
+config FILE_ACCESS_HISTORY_SIZE
+        int "Maximum number of file access history entries"
+        depends on FILE_ACCESS_HISTORY
+        default 10
+        range 1 20
+        help
+                Maximum number of file access history entries

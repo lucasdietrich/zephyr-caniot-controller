@@ -88,10 +88,12 @@ void http_response_set_status_code(http_response_t *resp,
 void http_response_set_content_length(http_response_t *resp,
 				      ssize_t content_length);
 
-static inline void http_response_more_data(http_response_t *resp)
+static inline void http_response_mark_not_complete(http_response_t *resp)
 {
 	resp->complete = 0u;
 }
+
+#define http_response_more_data http_response_mark_not_complete
 
 void http_response_enable_chunk_encoding(http_response_t *resp);
 

@@ -738,7 +738,7 @@ int prometheus_metrics(http_request_t *req,
 	
 	/* Check wether there are more metrics to encode */
 	if (count != -ENOENT) {
-		http_response_more_data(resp);
+		http_response_mark_not_complete(resp);
 		next_index += CONFIG_PROMETHEUS_METRICS_PER_FLUSH;
 	}
 

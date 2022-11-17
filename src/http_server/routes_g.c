@@ -85,31 +85,37 @@ static const struct route_descr root_demo[] = {
 	LEAF("json", GET, rest_demo_json, NULL, 0u),
 };
 
+#if defined(CONFIG_LUA)
 static const struct route_descr root_lua[] = {
 	LEAF("execute", POST, rest_lua_run_script, NULL, 0u),
 };
+#endif
 
-static const struct route_descr root_files_zs_zs[] = {
-	LEAF("", POST | ARG_STR, http_file_upload, http_file_upload, MULTIPART),
-	LEAF(":s", POST | ARG_STR, http_file_upload, http_file_upload, MULTIPART),
-	LEAF("", GET, http_file_download, NULL, MULTIPART),
-	LEAF(":s", GET | ARG_STR, http_file_download, NULL, MULTIPART),
+static const struct route_descr root_files_1zs_2zs[] = {
+	LEAF("", POST, http_file_upload, http_file_upload, MULTIPART),
+	LEAF("3:s", POST | ARG_STR, http_file_upload, http_file_upload, MULTIPART),
+	LEAF("", GET, http_file_download, NULL, BINARY),
+	LEAF("3:s", GET | ARG_STR, http_file_download, NULL, BINARY),
 };
 
-static const struct route_descr root_files_zs[] = {
-	LEAF("", POST | ARG_STR, http_file_upload, http_file_upload, MULTIPART),
-	SECTION(":s", ARG_STR, root_files_zs_zs, 
-		ARRAY_SIZE(root_files_zs_zs), MULTIPART),
-	LEAF("", GET, http_file_download, NULL, MULTIPART),
+static const struct route_descr root_files_1zs[] = {
+	LEAF("", POST, http_file_upload, http_file_upload, MULTIPART),
+	SECTION("2:s", ARG_STR, root_files_1zs_2zs, 
+		ARRAY_SIZE(root_files_1zs_2zs), MULTIPART),
+	LEAF("", GET, http_file_download, NULL, BINARY),
 };
 
 static const struct route_descr root_files[] = {
 	LEAF("", POST, http_file_upload, http_file_upload, MULTIPART),
-	SECTION(":s", ARG_STR, root_files_zs, 
-		ARRAY_SIZE(root_files_zs), MULTIPART),
-	LEAF("", GET, http_file_download, NULL, MULTIPART),
+	SECTION("1:s", ARG_STR, root_files_1zs, 
+		ARRAY_SIZE(root_files_1zs), MULTIPART),
+	LEAF("", GET, http_file_download, NULL, BINARY),
+#if defined(CONFIG_LUA)
 	LEAF("lua", GET, rest_fs_list_lua_scripts, NULL, 0u),
+#endif
+#if defined(CONFIG_LUA)
 	LEAF("lua", DELETE, rest_fs_remove_lua_script, NULL, 0u),
+#endif
 };
 
 static const struct route_descr root_ha[] = {
@@ -226,8 +232,10 @@ static const struct route_descr root[] = {
 		ARRAY_SIZE(root_ha), 0u),
 	SECTION("files", 0u, root_files, 
 		ARRAY_SIZE(root_files), MULTIPART),
+#if defined(CONFIG_LUA)
 	SECTION("lua", 0u, root_lua, 
 		ARRAY_SIZE(root_lua), 0u),
+#endif
 	SECTION("demo", 0u, root_demo, 
 		ARRAY_SIZE(root_demo), 0u),
 #if defined(CONFIG_DFU)

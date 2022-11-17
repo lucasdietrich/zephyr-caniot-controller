@@ -14,17 +14,17 @@ GET /devices/caniot -> rest_caniot_records
 GET /ha/stats -> rest_ha_stats
 
 POST /files -> http_file_upload, http_file_upload | MULTIPART
-POST /files/:s -> http_file_upload, http_file_upload | MULTIPART
-POST /files/:s/:s -> http_file_upload, http_file_upload | MULTIPART
-POST /files/:s/:s/:s -> http_file_upload, http_file_upload | MULTIPART
-GET /files -> http_file_download | MULTIPART
-GET /files/:s -> http_file_download | MULTIPART
-GET /files/:s/:s -> http_file_download | MULTIPART
-GET /files/:s/:s/:s -> http_file_download | MULTIPART
+POST /files/1:s -> http_file_upload, http_file_upload | MULTIPART
+POST /files/1:s/2:s -> http_file_upload, http_file_upload | MULTIPART
+POST /files/1:s/2:s/3:s -> http_file_upload, http_file_upload | MULTIPART
+GET /files -> http_file_download | BINARY
+GET /files/1:s -> http_file_download | BINARY
+GET /files/1:s/2:s -> http_file_download | BINARY
+GET /files/1:s/2:s/3:s -> http_file_download | BINARY
 
-GET /files/lua -> rest_fs_list_lua_scripts
-DELETE /files/lua -> rest_fs_remove_lua_script
-POST /lua/execute -> rest_lua_run_script
+GET /files/lua -> rest_fs_list_lua_scripts (CONFIG_LUA)
+DELETE /files/lua -> rest_fs_remove_lua_script (CONFIG_LUA)
+POST /lua/execute -> rest_lua_run_script (CONFIG_LUA)
 GET /demo/json -> rest_demo_json
 POST /dfu -> http_dfu_image_upload, http_dfu_image_upload_response (CONFIG_DFU) | MULTIPART
 GET /dfu -> http_dfu_status (CONFIG_DFU)
