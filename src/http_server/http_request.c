@@ -20,7 +20,7 @@
 
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(http_req, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(http_req, LOG_LEVEL_INF);
 
 /* parsing */
 
@@ -31,33 +31,16 @@ static int on_header_field(struct http_parser *parser, const char *at, size_t le
 static int on_header_value(struct http_parser *parser, const char *at, size_t length);
 static int on_headers_complete(struct http_parser *parser);
 static int on_message_begin(struct http_parser *parser);
-static int on_body_messaging(struct http_parser *parser, const char *at, size_t length);
-static int on_body_streaming(struct http_parser *parser, const char *at, size_t length);
-static int on_body_discarding(struct http_parser *parser, const char *at, size_t length);
+static int on_body(struct http_parser *parser, const char *at, size_t length);
 static int on_message_complete(struct http_parser *parser);
 static int on_url(struct http_parser *parser, const char *at, size_t length);
-// static int on_status(struct http_parser *parser, const char *at, size_t length);
 static int on_chunk_header(struct http_parser *parser);
 static int on_chunk_complete(struct http_parser *parser);
 
 
 
 /*_____________________________________________________________________________________*/
-const struct http_parser_settings parser_settings_messaging = {
-	.on_status = NULL, /* no status for requests */
-	.on_header_field = on_header_field,
-	.on_url = on_url,
-	.on_header_value = on_header_value,
-	.on_headers_complete = on_headers_complete,
-	.on_message_begin = on_message_begin,
-	.on_message_complete = on_message_complete,
-	.on_body = on_body_messaging,
-
-	.on_chunk_header = NULL,
-	.on_chunk_complete = NULL
-};
-
-const struct http_parser_settings parser_settings_streaming = {
+const struct http_parser_settings parser_settings = {
 	.on_status = NULL, /* no status for requests */
 	.on_url = on_url,
 	.on_header_field = on_header_field,
@@ -65,24 +48,10 @@ const struct http_parser_settings parser_settings_streaming = {
 	.on_headers_complete = on_headers_complete,
 	.on_message_begin = on_message_begin,
 	.on_message_complete = on_message_complete,
-	.on_body = on_body_streaming,
+	.on_body = on_body,
 
 	.on_chunk_header = on_chunk_header,
 	.on_chunk_complete = on_chunk_complete
-};
-
-const struct http_parser_settings parser_settings_discarding = {
-	.on_status = NULL, /* no status for requests */
-	.on_url = on_url,
-	.on_header_field = on_header_field,
-	.on_header_value = on_header_value,
-	.on_headers_complete = on_headers_complete,
-	.on_message_begin = on_message_begin,
-	.on_message_complete = on_message_complete,
-	.on_body = on_body_discarding,
-
-	.on_chunk_header = NULL,
-	.on_chunk_complete = NULL
 };
 
 /*_____________________________________________________________________________________*/
@@ -92,8 +61,6 @@ void http_request_init(http_request_t *req)
 	/* Rest of the request is initialize to 0 */
 	*req = (http_request_t) {
 		.content_type = HTTP_CONTENT_TYPE_NONE,
-		.handling_mode = HTTP_REQUEST_MESSAGE,
-		.parser_settings = &parser_settings_messaging,
 		.route_parse_results_len = CONFIG_ROUTE_MAX_DEPTH,
 
 		.url_len = 0u,
@@ -133,9 +100,8 @@ static const char *discard_reason_to_str(http_request_discard_reason_t reason)
 static void mark_discarded(http_request_t *req,
 			   http_request_discard_reason_t reason)
 {
-	req->handling_mode = HTTP_REQUEST_DISCARD;
+	req->discarded = 1u;
 	req->discard_reason = reason;
-	req->parser_settings = &parser_settings_discarding;
 }
 
 /*_____________________________________________________________________________________*/
@@ -243,7 +209,7 @@ static int header_transfer_encoding_handler(http_request_t *req,
 
 	if ((strncicmp(value, CHUNKED_TRANSFERT_STR, strlen(CHUNKED_TRANSFERT_STR)) == 0)) {
 		LOG_INF("(%p) Header Transfer Encoding (= chunked) found !", req);
-		req->handling_mode = HTTP_REQUEST_STREAM;
+		req->chunked_encoding = 1;
 	}
 
 	return 0;
@@ -265,20 +231,6 @@ static int header_content_type_handler(http_request_t *req,
 			     strlen(CONTENT_TYPE_MULTIPART_FORM_DATA_STR) == 0)) {
 		LOG_INF("(%p) Content-Type " CONTENT_TYPE_MULTIPART_FORM_DATA_STR, req);
 		req->content_type = HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA;
-	}
-
-	return 0;
-}
-
-static int header_content_length_handler(http_request_t *req,
-					 const struct header *hdr,
-					 const char *value,
-					 size_t length)
-{
-	uint32_t content_length;
-	if (sscanf(value, "%u", &content_length) == 1) {
-		LOG_INF("(%p) Content-length : %u B", req, content_length);
-		req->parsed_content_length = content_length;
 	}
 
 	return 0;
@@ -348,7 +300,6 @@ static const struct header headers[] = {
 	HEADER("Timeout-ms", header_timeout_handler),
 	HEADER("Transfer-Encoding", header_transfer_encoding_handler),
 	HEADER("Content-Type", header_content_type_handler),
-	HEADER("Content-Length", header_content_length_handler),
 
 	HEADER("Authorization", header_keep),
 	HEADER("App-Upload-Checksum", header_keep),
@@ -406,11 +357,11 @@ static int on_headers_complete(struct http_parser *parser)
 {
 	http_request_t *const req = REQUEST_FROM_PARSER(parser);
 
-	LOG_DBG("(%p) content-length : %u / %llu parser content-length, flags = %x",
-		req, req->parsed_content_length, parser->content_length, (uint32_t)parser->flags);
+	const enum http_method method = parser->method;
+	const size_t content_length = parser->content_length;
 
-	LOG_INF("(%p) Headers complete url=%s stream=%u [hdr buf %u/%u]",
-		req, req->url, http_request_is_stream(req),
+	LOG_INF("(%p) Headers complete %s %s content len=%u [hdr buf %u/%u]",
+		req, http_method_str(req->method), req->url, content_length,
 		hdr_allocated, CONFIG_HTTP_REQUEST_HEADERS_BUFFER_SIZE);
 
 	/* For debug */
@@ -418,39 +369,33 @@ static int on_headers_complete(struct http_parser *parser)
 		strncpy(req->_url_copy, req->url, HTTP_URL_MAX_LEN);
 	}
 
-	/* Set method */
-	req->method = parser->method;
-
-	/* Resolve route as we enough information */
+	/* Resolve route as we have enough information */
 	const struct route_descr *route = 
-		route_resolve(req->method,
+		route_resolve(method,
 			      req->url,
 			      req->route_parse_results,
 			      &req->route_parse_results_len,
 			      &req->query_string);
-	
-	/* Set route depth */
+
+	req->method = method;
+	req->parsed_content_length = content_length;
+	req->route = route;
+	req->headers_complete = 1U;
+	req->streaming = route_supports_streaming(route);
 	req->route_depth = req->route_parse_results[req->route_parse_results_len - 1u].depth;
-			      
-	/* TODO add explicit logs to know which route has not been found */
+
+	/* Checks */
 	if (route == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_UNKNOWN);
 		LOG_WRN("(%p) Route not found %s %s", req,
 			http_method_str(req->method), req->_url_copy);
 	} else if (route->resp_handler == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_NO_HANDLER);
-		LOG_ERR("(%p) Route has no handler %s", req, req->_url_copy);
-	} else if (http_request_is_stream(req) && !route_supports_streaming(route)) {
-		mark_discarded(req, HTTP_REQUEST_STREAMING_UNSUPPORTED);
-		LOG_ERR("(%p) Route doesn't support streaming %s", req, req->_url_copy);
+		LOG_ERR("(%p) Route has no handler %s %s", req, 
+			http_method_str(req->method), req->_url_copy);
 	}
 
 	/* Check for secure */
-
-	if (http_request_is_stream(req) == true) {
-		req->parser_settings = &parser_settings_streaming;
-	}
-
 #if defined(CONFIG_HTTP_TEST)
 	/* Here we decide if we want to test the
 	 * request as a stream or a message
@@ -458,85 +403,49 @@ static int on_headers_complete(struct http_parser *parser)
 	req->_test_ctx.stream = http_request_is_stream(req);
 #endif /* CONFIG_HTTP_TEST */
 
-	req->route = route;
-	req->headers_complete = 1U;
-
 	return 0;
 }
 
-static int on_body_streaming(struct http_parser *parser,
-			     const char *at,
-			     size_t length)
+static int on_body(struct http_parser *parser,
+		   const char *at,
+		   size_t length)
 {
 	/* can be called several times */
 	http_request_t *req = REQUEST_FROM_PARSER(parser);
 
-	/* set chunk location */
-	req->chunk.loc = (char *)at;
-	req->chunk.len = length;
+	// LOG_HEXDUMP_DBG(at, length, "(%p) Body");
+
 	req->payload_len += length;
 
-#if defined(CONFIG_HTTP_TEST)
-	http_test_run(&req->_test_ctx, req, NULL, HTTP_TEST_HANDLER_REQ);
-#endif /* CONFIG_HTTP_TEST */
+	if (!req->discarded) {
+		if (req->streaming) {
+			req->payload.loc = (char *)at;
+			req->payload.len = length;
 
-	/* route is necessarily valid at this point */
+			if (req->payload.len >= req->flush_len) {
+				/* We pause the parser, so that we
+				* can call the streaming handler */
+				http_parser_pause(parser, 1);
+			}
+		} else {
+			if (req->payload.loc == NULL) {
+				req->payload.loc = (char *)at;
+				req->payload.len = length;
+			} else {
+				req->payload.len += length;
+			}
+		}
 
-	/* TODO, check for secure before executing the handler */
-	int ret = route_get_req_handler(req->route)(req, NULL);
-	if (ret < 0) {
-		mark_discarded(req, HTTP_REQUEST_PROCESSING_ERROR);
-		LOG_ERR("(%p) Stream processing error %d", req, ret);
+		if (req->chunked_encoding) {
+			/* set chunk location */
+			req->chunk.loc = (char *)at;
+			req->chunk.len = length;
+		}
 	}
 
-	req->chunk._offset += length;
-
-	req->calls_count++;
+	// req->calls_count++;
 
 	LOG_DBG("(%p) on_body at=%p len=%u", req, at, length);
-
-	return 0;
-}
-
-static int on_body_messaging(struct http_parser *parser,
-			     const char *at,
-			     size_t length)
-{
-	/* can be called several times */
-	http_request_t *req = REQUEST_FROM_PARSER(parser);
-
-	LOG_INF("(%p) at=%p len=%u (payload loc=%p len=%u)",
-		req, at, length, req->payload.loc, req->payload.len);
-
-	if (req->payload.loc == NULL) {
-		/* If not a stream request and this is the first call of the callbaclk,
-		 * we must mark the beginning of the request body (and initialize the length)
-		 */
-		req->payload.loc = (char *)at;
-		req->payload.len = length;
-
-	} else {
-		__ASSERT_NO_MSG(req->payload.loc + req->payload.len == (char *)at);
-
-		req->payload.len += length;
-	}
-
-	req->payload_len += length;
-
-	return 0;
-}
-
-static int on_body_discarding(struct http_parser *parser,
-			      const char *at,
-			      size_t length)
-{
-	ARG_UNUSED(at);
-
-	http_request_t *req = REQUEST_FROM_PARSER(parser);
-
-	req->payload_len += length;
-
-	LOG_DBG("(%p) on_body DISCARDING %u bytes", req, length);
 
 	return 0;
 }
@@ -560,9 +469,6 @@ static int on_message_complete(struct http_parser *parser)
 	 */
 	http_parser_pause(parser, 1);
 
-	LOG_INF("(%p) on_message_complete, message received len=%u",
-		req, req->payload_len);
-
 	return 0;
 }
 
@@ -572,7 +478,11 @@ static int on_chunk_header(struct http_parser *parser)
 
 	__ASSERT_NO_MSG(http_request_is_stream(req) == true);
 
-	LOG_DBG("(%p) on_chunk_header chunk=%u", req, req->chunk.id);
+	if (!req->chunked_encoding) {
+		mark_discarded(req, HTTP_REQUEST_BAD);
+	} else {
+		LOG_DBG("(%p) on_chunk_header chunk=%u", req, req->chunk.id);
+	}
 
 	return 0;
 }
@@ -581,28 +491,22 @@ static int on_chunk_complete(struct http_parser *parser)
 {
 	http_request_t *const req = REQUEST_FROM_PARSER(parser);
 
-	if (http_request_is_stream(req) == true) {
-		/* increment chunk id */
-		req->chunk.id++;
+	/* increment chunk id */
+	req->chunk.id++;
 
-		/* Reset chunk buffer infos, this could be done in on_chunk_header(),
-		 * but when "on_chunk_complete" is called, chunk buffer addr should be NULL.
-		 * This is to avoid confusion from the application thinking
-		 * that there are actually available in a chunk on last call.
-		 */
-		req->chunk._offset = 0U;
-		req->chunk.len = 0U;
-		req->chunk.loc = NULL;
+	/* Reset chunk buffer infos, this could be done in on_chunk_header(),
+	 * but when "on_chunk_complete" is called, chunk buffer addr should be NULL.
+	 * This is to avoid confusion from the application thinking
+	 * that there are actually available in a chunk on last call.
+	 */
+	req->chunk._offset = 0U;
+	req->chunk.len = 0U;
+	req->chunk.loc = NULL;
 
-		LOG_DBG("(%p) on_chunk_complete chunk=%u len=%u",
-			req, req->chunk.id, req->chunk.len);
+	LOG_DBG("(%p) on_chunk_complete chunk=%u len=%u",
+		req, req->chunk.id, req->chunk.len);
 
-		return 0;
-	} else {
-		/* TODO find a better way to handle this case */
-		LOG_WRN("Request discarded");
-		return -1;
-	}
+	return 0;
 }
 
 int http_req_route_arg_get_number_by_index(http_request_t *req,
@@ -624,64 +528,62 @@ int http_req_route_arg_get_number_by_index(http_request_t *req,
 		value);
 }
 
-int http_req_route_arg_get(http_request_t *req,
-			   const char *name,
-			   uint32_t *value)
-{
-	__ASSERT_NO_MSG(req != NULL);
-	__ASSERT_NO_MSG(req->route != NULL);
-	__ASSERT_NO_MSG(value != NULL);
-
-	return route_results_get(
-		req->route_parse_results,
-		req->route_parse_results_len,
-		name,
-		ROUTE_ARG_UINT | ROUTE_ARG_HEX,
-		(void **)value);
-}
-
-int http_req_route_arg_get_string(http_request_t *req,
-				  const char *name,
-				  char **value)
-{
-	__ASSERT_NO_MSG(req != NULL);
-	__ASSERT_NO_MSG(req->route != NULL);
-	__ASSERT_NO_MSG(value != NULL);
-
-	return route_results_get(
-		req->route_parse_results,
-		req->route_parse_results_len,
-		name,
-		ROUTE_ARG_STR,
-		(void **)value);
-}
-
 bool http_request_parse(http_request_t *req,
-			const char *data,
-			size_t received)
+			char *buf,
+			size_t len,
+			bool *ack)
 {
-	size_t parsed = http_parser_execute(&req->parser,
-					    req->parser_settings,
-					    data, 
-					    received);
-	
-	LOG_DBG("parsed = %u, received = %u", parsed, received);
-	if (parsed == received) {
-		if (HTTP_PARSER_ERRNO(&req->parser) == HPE_PAUSED) {
-			http_parser_pause(&req->parser, 0);
-		} else {
-			__ASSERT(HTTP_PARSER_ERRNO(&req->parser) == HPE_OK,
-				 "HTTP parser error");
+	size_t parsed;
+
+	__ASSERT_NO_MSG(req != NULL);
+	__ASSERT_NO_MSG(buf != NULL);
+	__ASSERT_NO_MSG(ack != NULL);
+
+	// LOG_HEXDUMP_DBG(buf, len, "(%p) Body");
+
+	size_t toack = len;
+
+	do {
+		LOG_DBG("buf=%p len=%u", buf, len);
+
+		parsed = http_parser_execute(&req->parser,
+					     &parser_settings,
+					     buf,
+					     len);
+		if (parsed < 0) {
+			LOG_ERR("(%p) http_parser_execute error %d", req, parsed);
+			return false;
 		}
-	} else if (HTTP_PARSER_ERRNO(&req->parser) == HPE_PAUSED) {
-		LOG_ERR("(%p) More (unexpected) data to parse, parsed=%u / to parse=%d",
-			req, parsed, received);
-		return false;
-	} else {
-		LOG_ERR("(%p) Parser error = %d",
-			req, HTTP_PARSER_ERRNO(&req->parser));
-		return false;
-	}
+
+		buf += parsed;
+		len -= parsed;
+
+		if (HTTP_PARSER_ERRNO(&req->parser) == HPE_PAUSED) {
+
+			/* Unpause the parser */
+			req->parser.http_errno = HPE_OK;
+
+			if (req->complete == 0u) {
+				__ASSERT_NO_MSG(req->streaming == 1u);
+
+				route_get_req_handler(req->route)(req, NULL);
+
+				req->calls_count++;
+
+				toack -= parsed;
+			} else {
+				/* We are done with this request
+				 * check that we have parsed all the data
+				 */
+				if (len != 0u) {
+					LOG_ERR("(%p) Request malformed, more data to parse rem=%u", req, len);
+				}
+			}
+		}
+
+	} while (len);
+
+	*ack = req->discarded || (toack == 0u);
 
 	return true;
 }
@@ -716,20 +618,12 @@ void http_request_buffer_get(http_request_t *req, buffer_t *buf)
 	__ASSERT_NO_MSG(req != NULL);
 	__ASSERT_NO_MSG(buf != NULL);
 
-	if (http_request_has_chunk_data(req)) {
-		buf->data = req->chunk.loc;
-		buf->filling = req->chunk.len;
-		buf->size = req->chunk.len;
-	} else if (http_request_is_message(req)) {
-		buf->data = req->payload.loc;
-		buf->filling = req->payload.len;
-		buf->size = req->payload.len;
-	} else {
-		buf->data = NULL;
-		buf->filling = 0;
-		buf->size = 0;
-	}
+	buf->data = req->payload.loc;
+	buf->filling = req->payload.len;
+	buf->size = 0u;
 }
+
+
 
 bool http_discard_reason_to_status_code(http_request_discard_reason_t reason,
 					uint16_t *status_code)
@@ -764,4 +658,36 @@ bool http_discard_reason_to_status_code(http_request_discard_reason_t reason,
 	}
 
 	return true;
+}
+
+int http_req_route_arg_get(http_request_t *req,
+			   const char *name,
+			   uint32_t *value)
+{
+	__ASSERT_NO_MSG(req != NULL);
+	__ASSERT_NO_MSG(req->route != NULL);
+	__ASSERT_NO_MSG(value != NULL);
+
+	return route_results_get(
+		req->route_parse_results,
+		req->route_parse_results_len,
+		name,
+		ROUTE_ARG_UINT | ROUTE_ARG_HEX,
+		(void **)value);
+}
+
+int http_req_route_arg_get_string(http_request_t *req,
+				  const char *name,
+				  char **value)
+{
+	__ASSERT_NO_MSG(req != NULL);
+	__ASSERT_NO_MSG(req->route != NULL);
+	__ASSERT_NO_MSG(value != NULL);
+
+	return route_results_get(
+		req->route_parse_results,
+		req->route_parse_results_len,
+		name,
+		ROUTE_ARG_STR,
+		(void **)value);
 }

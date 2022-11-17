@@ -155,6 +155,8 @@ const char *http_content_type_to_str(http_content_type_t content_type)
 
 /*____________________________________________________________________________*/
 
+#if defined(CONFIG_HTTP_TEST)
+
 void http_test_init_context(struct http_test_context *ctx)
 {
 	*ctx = (struct http_test_context){ 0 };
@@ -560,3 +562,5 @@ const char *http_test_result_to_str(http_test_result_t result)
 		return "UNKNOWN";
 	}
 }
+
+#endif /* CONFIG_HTTP_TEST */

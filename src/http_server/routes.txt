@@ -38,6 +38,8 @@ POST /devices/caniot/did:u/endpoint/ep:u/command -> rest_devices_caniot_command 
 GET /devices/caniot/did:u/attribute/key:x -> rest_devices_caniot_attr_read_write (CONFIG_CANIOT_CONTROLLER)
 PUT /devices/caniot/did:u/attribute/key:x -> rest_devices_caniot_attr_read_write (CONFIG_CANIOT_CONTROLLER)
 POST /if/can/id:x -> rest_if_can (CONFIG_CAN_INTERFACE)
+
+POST /test/any -> http_test_any, http_test_any (CONFIG_HTTP_TEST_SERVER)
 POST /test/messaging -> http_test_messaging (CONFIG_HTTP_TEST_SERVER)
 POST /test/streaming -> http_test_streaming, http_test_streaming (CONFIG_HTTP_TEST_SERVER) | REST
 GET /test/route_args/:u/:u/:u -> http_test_route_args (CONFIG_HTTP_TEST_SERVER)

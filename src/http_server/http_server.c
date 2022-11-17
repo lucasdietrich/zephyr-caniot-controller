@@ -100,8 +100,6 @@ static union
 static int servers_count = 0;
 static int clients_count = 0;
 
-extern const struct http_parser_settings parser_settings;
-
 /* debug functions */
 static void show_pfd(void)
 {
@@ -487,20 +485,23 @@ static void request_cleanup(http_request_t *req)
 static bool handle_request(http_connection_t *conn)
 {
 	ssize_t rc;
-
-	/* Buffer is shared between request and response */
 	cursor_buffer_t cbuf;
-	cursor_buffer_init(&cbuf, buffer, sizeof(buffer));
 
 	http_request_t *const req = conn->req;
 
-	while (req->complete == 0U) {
-		__ASSERT_NO_MSG(cursor_buffer_full(&cbuf) == false);
+	cursor_buffer_init(&cbuf, buffer, sizeof(buffer));
 
-		rc = zsock_recv(conn->sock, cbuf.cursor, 
-					cursor_buffer_remaining(&cbuf), 0);
-		LOG_DBG("zsock_recv(%d, %p, %d, 0) = %d", conn->sock, 
-			cbuf.cursor, cursor_buffer_remaining(&cbuf), rc);
+	while (req->complete == 0U) {
+		size_t remaining = cursor_buffer_remaining(&cbuf);
+		if (remaining == 0u) {
+			http_request_discard(req, HTTP_REQUEST_PAYLOAD_TOO_LARGE);
+			cursor_buffer_reset(&cbuf);
+			remaining = cursor_buffer_remaining(&cbuf);
+		}
+
+		rc = zsock_recv(conn->sock, cbuf.cursor, remaining, 0);
+		LOG_DBG("zsock_recv(%d, %p, %d, 0) = %d", conn->sock,
+			cbuf.cursor, remaining, rc);
 		if (rc < 0) {
 			if (rc == -EAGAIN) {
 				LOG_WRN("-EAGAIN = %d", -EAGAIN);
@@ -514,30 +515,18 @@ static bool handle_request(http_connection_t *conn)
 			LOG_INF("(%d) Connection closed by peer", conn->sock);
 			goto close;
 		} else {
-			if (http_request_parse(req, cbuf.cursor, rc) == false) {
+			bool ack = false;
+			if (http_request_parse(req,
+					       cbuf.cursor,
+					       rc,
+					       &ack) == false) {
 				goto close;
 			}
 
-			/* Prepare buffer for next receiving.
-			*
-			* Only shift the position in the buffer if we are
-			* handling a "message" request
-			*
-			* (if stream) reset buffer as the stream route
-			* handler has already consumed the data, so no need to
-			* update it */
-			if (http_request_is_message(req)) {
-				cursor_buffer_shift(&cbuf, rc);
-
-				if (cursor_buffer_full(&cbuf) == true) {
-					http_request_discard(req, HTTP_REQUEST_PAYLOAD_TOO_LARGE);
-					LOG_WRN("(%d) Recv buffer full, discarding ...",
-						conn->sock);
-				}
-			}
-
-			if (http_request_is_discarded(req) == true) {
+			if (ack) {
 				cursor_buffer_reset(&cbuf);
+			} else {
+				cursor_buffer_shift(&cbuf, rc);
 			}
 		}
 	}
@@ -640,7 +629,9 @@ static bool handle_response(http_connection_t *conn)
 		/* Prepare the buffer for route handler call */
 		buffer_reset(&resp->buffer);
 
-		/* Mark as response by default */
+		/* Mark as complete by default, can be deasserted by the application,
+		 * to send more data.
+		 */
 		resp->complete = 1u;
 
 #if defined(CONFIG_HTTP_TEST)
@@ -671,10 +662,6 @@ static bool handle_response(http_connection_t *conn)
 						conn->sock, resp->content_length);
 				}
 			} else {
-				// if (resp->complete != 1u || resp->content_length != 0) {
-				// 	LOG_WRN("(%d) No payload expected !", conn->sock);
-				// }
-
 				resp->content_length = 0;
 				resp->complete = 1u;
 				resp->buffer.filling = 0u;

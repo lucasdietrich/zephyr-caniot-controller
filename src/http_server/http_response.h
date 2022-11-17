@@ -46,7 +46,7 @@ typedef struct http_response
 	uint8_t complete: 1u;
 
 	/**
-	 * @brief Flag to indicate whether the should be sent as chunks
+	 * @brief Flag to indicate whether the response should be sent as chunks
 	 * 
 	 * Note: In this case the content_length field is ignored.
 	 * Note: This flag must be set before the the first part of the payload

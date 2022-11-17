@@ -102,33 +102,14 @@ struct http_request
 	 */
 	uint8_t complete : 1;
 
-	enum {
-		/**
-		 * @brief Normal handling method, processed as a single message
-		 *
-		 * Route handler is called once in this case
-		 */
-		HTTP_REQUEST_MESSAGE,
+	/* Tells whether the request can be streamed (depends on the route) */
+	uint8_t streaming: 1u;
 
-		/**
-		 * @brief Is the request sended using "chunk" encoding, if yes we should
-		 * handle the request as a stream.
-		 *
-		 * Note: determined in headers
-		 */
-		 HTTP_REQUEST_STREAM,
+	/* Tells whether the request is currently discarded */
+	uint8_t discarded: 1u;
 
-		 /**
-		  * @brief Tells if the rest of the request should be discarded
-		  *
-		  * Reasons could be:
-		  * - The request is too large
-		  * - Error in parsing the request
-		  *
-		  * Note: Determined when headers are parsed.
-		  */
-		  HTTP_REQUEST_DISCARD,
-	} handling_mode : 2;
+	/* Tells whether the request is being sent with chunked encoding */
+	uint8_t chunked_encoding: 1u;
 
 	/**
 	 * @brief Reason why the request is discarded
@@ -203,46 +184,48 @@ struct http_request
 	 */
 	size_t calls_count;
 
-	union {
-		/* Chunk if "stream" is set */
-		struct {
-			/**
-			 * @brief Current chunk of data being parsed
-			 */
-			uint16_t id;
 
-			/**
-			 * @brief Current chunk data buffer location
-			 */
-			char *loc;
+	/* Chunk if "stream" is set */
+	struct {
+		/**
+		 * @brief Current chunk of data being parsed
+		 */
+		uint16_t id;
 
-			/**
-			 * @brief Number of bytes in the data buffer
-			 */
-			uint16_t len;
+		/**
+		 * @brief Current chunk data buffer location
+		 */
+		char *loc;
 
-			/**
-			 * @brief Offset of the data being parsed within the HTTP chunk
-			 */
-			uint16_t _offset;
-		} chunk;
+		/**
+		 * @brief Number of bytes in the data buffer
+		 */
+		uint16_t len;
 
-		/* Complete message payload if "stream" is not set */
-		struct {
-			/**
-			 * @brief Current payload data buffer location
+		/**
+		 * @brief Offset of the data being parsed within the HTTP chunk
+		 */
+		uint16_t _offset;
+	} chunk;
+
+	/* Complete message payload if "stream" is not set */
+	struct {
+		/**
+		 * @brief Current payload data buffer location
+		 *
 			 * 
-			 * Note: Can be null if no payload is present.
-			 *  In this case payload_len and payload.len are 0.
-			 */
-			char *loc;
+		 *
+		 * Note: Can be null if no payload is present.
+		 *  In this case payload_len and payload.len are 0.
+		 */
+		char *loc;
 
-			/**
-			 * @brief Number of bytes in the data buffer
-			 */
-			uint32_t len;
-		} payload;
-	};
+		/**
+		 * @brief Number of bytes in the data buffer
+		 */
+		uint32_t len;
+	} payload;
+
 
 	/* Buffer for handling the request data */
 	// buffer_t _buffer;
@@ -256,17 +239,18 @@ struct http_request
 	size_t payload_len;
 
 	/**
+	 * @brief Tells at what buffer fill level the handler should be called
+	 * 
+	 * If 0 and route supports streaming, handler is called immediately.
+	 */
+	size_t flush_len;
+
+	/**
 	 * @brief One parser per connection
 	 * - In order to process connections asynchronously
 	 * - And a parser can parse several requests in a row
 	 */
 	struct http_parser parser;
-
-	/**
-	 * @brief Parser settings, which is reseted after each request
-	 * (e.g. Message, stream, discard)
-	 */
-	const struct http_parser_settings *parser_settings;
 
 #if defined(CONFIG_HTTP_TEST)
 	struct http_test_context _test_ctx;
@@ -285,17 +269,12 @@ void http_request_init(http_request_t *req);
 
 static inline bool http_request_is_discarded(const http_request_t *req)
 {
-	return req->handling_mode == HTTP_REQUEST_DISCARD;
+	return req->discarded;
 }
 
 static inline bool http_request_is_stream(http_request_t *req)
 {
-	return req->handling_mode == HTTP_REQUEST_STREAM;
-}
-
-static inline bool http_request_is_message(http_request_t *req)
-{
-	return req->handling_mode == HTTP_REQUEST_MESSAGE;
+	return req->streaming;
 }
 
 /**
@@ -342,12 +321,14 @@ int http_req_route_arg_get_string(http_request_t *req,
  * @param req Current HTTP request
  * @param data Received data
  * @param len Length of the received data
+ * @param ack Tells whether the buffer can be freed or not
  * @return true On success
  * @return false On error
  */
 bool http_request_parse(http_request_t *req,
-			const char *data,
-			size_t len);
+			char *buf,
+			size_t len,
+			bool *ack);
 
 /**
  * @brief Mark the request as discarded

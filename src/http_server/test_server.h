@@ -32,6 +32,9 @@
 #include "http_response.h"
 #include "routes.h"
 
+int http_test_any(struct http_request *req,
+		  struct http_response *resp);
+		  
 int http_test_messaging(struct http_request *req,
 			struct http_response *resp);
 

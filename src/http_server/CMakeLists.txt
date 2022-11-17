@@ -10,6 +10,7 @@ SET(app_sources
     http_conn.c 
     http_request.c 
     http_response.c 
+    http_headers.c
     routes.c 
     routes_g.c
     rest_server.c 

@@ -29,6 +29,19 @@ extern int rest_encode_response_json(http_response_t *resp, const void *val,
 
 #define HTTP_ROUTE_ARGS_MAX_COUNT CONFIG_ROUTE_MAX_DEPTH
 
+int http_test_any(struct http_request *req,
+		  struct http_response *resp)
+{
+	LOG_INF("[Q %u] streaming=%u complete=%u discarded=%u chunked=%u", req->calls_count,
+		req->streaming, req->complete, req->discarded, req->chunked_encoding);
+
+	if (resp != NULL) {
+		LOG_INF("[R %u] complete=%u", resp->calls_count, resp->complete);
+	}
+
+	return 0;
+}
+
 struct json_test_result
 {
 	uint32_t ok;
@@ -54,7 +67,7 @@ int http_test_messaging(struct http_request *req,
 {
 	bool req_ok = true;
 	req_ok &= req->method == http_route_get_method(req->route);
-	req_ok &= req->handling_mode == HTTP_REQUEST_MESSAGE;
+	// req_ok &= req->handling_mode == HTTP_REQUEST_MESSAGE;
 	req_ok &= req->payload.len == req->payload_len;
 
 	struct json_test_result tr = {
@@ -104,7 +117,7 @@ int http_test_streaming(struct http_request *req,
 
 	/* Always check */
 	req_ok &= req->method == http_req_get_method(req);
-	req_ok &= req->handling_mode == HTTP_REQUEST_STREAM;
+	// req_ok &= req->handling_mode == HTTP_REQUEST_STREAM;
 
 	if (req->complete == 0) {
 		/* We are receiving a chunk */
@@ -190,8 +203,6 @@ int http_test_route_args(struct http_request *req,
 int http_test_big_payload(struct http_request *req,
 			  struct http_response *resp)
 {
-	LOG_INF("handling_mode=%u", req->handling_mode);
-
 	return 0;
 }
 

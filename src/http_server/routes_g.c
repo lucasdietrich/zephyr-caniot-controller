@@ -56,6 +56,7 @@ static const struct route_descr root_test_route_args[] = {
 
 #if defined(CONFIG_HTTP_TEST_SERVER)
 static const struct route_descr root_test[] = {
+	LEAF("any", POST, http_test_any, http_test_any, 0u),
 	LEAF("messaging", POST, http_test_messaging, NULL, 0u),
 	LEAF("streaming", POST, http_test_streaming, http_test_streaming, REST),
 	SECTION("route_args", 0u, root_test_route_args, 

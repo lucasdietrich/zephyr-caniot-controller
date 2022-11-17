@@ -39,7 +39,7 @@ const struct route_descr *route_resolve(enum http_method method,
 
 bool route_supports_streaming(const struct route_descr *route)
 {
-	return route->req_handler != NULL;
+	return (route != NULL) && (route->req_handler != NULL);
 }
 
 bool route_is_valid(const struct route_descr *route)
@@ -84,13 +84,13 @@ uint32_t http_method_to_route_flag(enum http_method method)
 {
 	switch (method) {
 	case HTTP_POST:
-		return POST;
+		return ROUTE_POST;
 	case HTTP_GET:
-		return GET;
+		return ROUTE_GET;
 	case HTTP_PUT:
-		return PUT;
+		return ROUTE_PUT;
 	case HTTP_DELETE:
-		return DELETE;
+		return ROUTE_DELETE;
 	default:
 		return 0;
 	}
