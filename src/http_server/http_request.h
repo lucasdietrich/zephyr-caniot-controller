@@ -119,12 +119,6 @@ struct http_request
 	http_request_discard_reason_t discard_reason : 3;
 
 	/**
-	 * @brief Parsed content length, TODO should be compared against "len"
-	 * when the request was totally received
-	 */
-	uint16_t parsed_content_length;
-
-	/**
 	 * @brief Request method (GET, POST, PUT, DELETE)
 	 */
 	enum http_method method;
@@ -253,6 +247,9 @@ struct http_request
 	struct http_parser parser;
 
 #if defined(CONFIG_HTTP_TEST)
+	/**
+	 * @brief Test context for CONFIG_HTTP_TEST
+	 */
 	struct http_test_context _test_ctx;
 #endif /* CONFIG_HTTP_TEST */
 
@@ -352,7 +349,12 @@ static inline bool http_stream_begins(http_request_t *req)
 
 static inline bool http_request_has_chunk_data(http_request_t *req)
 {
-	return http_request_is_stream(req) && !req->complete;
+	return http_request_is_stream(req) && !req->complete && req->chunked_encoding;
+}
+
+static inline bool http_request_has_chunked_encoding(http_request_t *req)
+{
+	return req->chunked_encoding;
 }
 
 static inline bool http_request_complete(http_request_t *req)

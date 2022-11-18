@@ -20,7 +20,7 @@
 
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(http_req, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(http_req, LOG_LEVEL_WRN);
 
 /* parsing */
 
@@ -358,10 +358,11 @@ static int on_headers_complete(struct http_parser *parser)
 	http_request_t *const req = REQUEST_FROM_PARSER(parser);
 
 	const enum http_method method = parser->method;
-	const size_t content_length = parser->content_length;
+	const bool content_length_present = parser->flags & F_CONTENTLENGTH;
+	const int content_length = content_length_present ? parser->content_length : -1;
 
-	LOG_INF("(%p) Headers complete %s %s content len=%u [hdr buf %u/%u]",
-		req, http_method_str(req->method), req->url, content_length,
+	LOG_INF("(%p) Headers complete %s %s content len=%d [hdr buf %u/%u]",
+		req, http_method_str(method), req->url, content_length,
 		hdr_allocated, CONFIG_HTTP_REQUEST_HEADERS_BUFFER_SIZE);
 
 	/* For debug */
@@ -378,7 +379,6 @@ static int on_headers_complete(struct http_parser *parser)
 			      &req->query_string);
 
 	req->method = method;
-	req->parsed_content_length = content_length;
 	req->route = route;
 	req->headers_complete = 1U;
 	req->streaming = route_supports_streaming(route);
@@ -437,6 +437,9 @@ static int on_body(struct http_parser *parser,
 		}
 
 		if (req->chunked_encoding) {
+			/* Increase chunk offset using previous part size */
+			req->chunk._offset += req->chunk.len;
+
 			/* set chunk location */
 			req->chunk.loc = (char *)at;
 			req->chunk.len = length;
@@ -565,6 +568,11 @@ bool http_request_parse(http_request_t *req,
 
 			if (req->complete == 0u) {
 				__ASSERT_NO_MSG(req->streaming == 1u);
+
+#if defined(CONFIG_HTTP_TEST)
+		/* Should always be called when the handler is called */
+				http_test_run(&req->_test_ctx, req, NULL, HTTP_TEST_HANDLER_REQ);
+#endif /* CONFIG_HTTP_TEST */
 
 				route_get_req_handler(req->route)(req, NULL);
 

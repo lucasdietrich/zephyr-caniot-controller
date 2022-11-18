@@ -93,23 +93,23 @@ static const struct route_descr root_lua[] = {
 #endif
 
 static const struct route_descr root_files_1zs_2zs[] = {
-	LEAF("", POST, http_file_upload, http_file_upload, MULTIPART),
-	LEAF("3:s", POST | ARG_STR, http_file_upload, http_file_upload, MULTIPART),
+	LEAF("", POST, http_file_upload, http_file_upload, REST),
+	LEAF("3:s", POST | ARG_STR, http_file_upload, http_file_upload, REST),
 	LEAF("", GET, http_file_download, NULL, BINARY),
 	LEAF("3:s", GET | ARG_STR, http_file_download, NULL, BINARY),
 };
 
 static const struct route_descr root_files_1zs[] = {
-	LEAF("", POST, http_file_upload, http_file_upload, MULTIPART),
+	LEAF("", POST, http_file_upload, http_file_upload, REST),
 	SECTION("2:s", ARG_STR, root_files_1zs_2zs, 
-		ARRAY_SIZE(root_files_1zs_2zs), MULTIPART),
+		ARRAY_SIZE(root_files_1zs_2zs), REST),
 	LEAF("", GET, http_file_download, NULL, BINARY),
 };
 
 static const struct route_descr root_files[] = {
-	LEAF("", POST, http_file_upload, http_file_upload, MULTIPART),
+	LEAF("", POST, http_file_upload, http_file_upload, REST),
 	SECTION("1:s", ARG_STR, root_files_1zs, 
-		ARRAY_SIZE(root_files_1zs), MULTIPART),
+		ARRAY_SIZE(root_files_1zs), REST),
 	LEAF("", GET, http_file_download, NULL, BINARY),
 #if defined(CONFIG_LUA)
 	LEAF("lua", GET, rest_fs_list_lua_scripts, NULL, 0u),
@@ -232,7 +232,7 @@ static const struct route_descr root[] = {
 	SECTION("ha", 0u, root_ha, 
 		ARRAY_SIZE(root_ha), 0u),
 	SECTION("files", 0u, root_files, 
-		ARRAY_SIZE(root_files), MULTIPART),
+		ARRAY_SIZE(root_files), REST),
 #if defined(CONFIG_LUA)
 	SECTION("lua", 0u, root_lua, 
 		ARRAY_SIZE(root_lua), 0u),

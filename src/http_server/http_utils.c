@@ -227,37 +227,70 @@ static http_test_result_t test_req_handler(struct http_test_context *ctx,
 		}
 	}
 
-	if (req->chunk.loc == NULL) {
-		result = HTTP_TEST_RESULT_CHUNK_LOC_EXPECTED;
+	/* For chunked encoding */
+	if (req->chunked_encoding) {
+		if (req->chunk.loc == NULL) {
+			result = HTTP_TEST_RESULT_CHUNK_LOC_EXPECTED;
+			goto exit;
+		}
+
+		if (req->chunk.len == 0U) {
+			result = HTTP_TEST_RESULT_CHUNK_LEN_EXPECTED;
+			goto exit;
+		}
+
+		if (req->chunk.id > ctx->last_chunk_id + 1U) {
+			/* monotonic is sufficient
+			* Several calls can be made on the same chunk,
+			* but chunks cannot be skipped.
+			*/
+			result = HTTP_TEST_RESULT_CHUNK_ID_DISCONTINUITY;
+			goto exit;
+		}
+
+		if (req->chunk.id == ctx->last_chunk_id + 1U) {
+			ctx->chunk_received_bytes = 0U;
+		}
+		if (ctx->chunk_received_bytes != req->chunk._offset) {
+			result = HTTP_TEST_RESULT_CHUNK_OFFSET_INVALID;
+			goto exit;
+		}
+
+		ctx->chunk_received_bytes += req->chunk.len;
+
+		/* Increment received bytes */
+		ctx->received_bytes += req->chunk.len;
+	} else { /* Non chunked encoding */
+
+		if (req->chunk.loc != NULL) {
+			result = HTTP_TEST_RESULT_CHUNK_LOC_UNEXPECTED;
+			goto exit;
+		}
+
+		if (req->chunk.len != 0U) {
+			result = HTTP_TEST_RESULT_CHUNK_LEN_UNEXPECTED;
+			goto exit;
+		}
+
+		if (req->chunk.id != 0U) {
+			result = HTTP_TEST_RESULT_CHUNK_ID_UNEXPECTED;
+			goto exit;
+		}
+
+		/* Increment received bytes */
+		ctx->received_bytes += req->payload.len;
+	}
+
+	/* Payload infos should always be set */
+	if (req->payload.loc == NULL) {
+		result = HTTP_TEST_RESULT_PAYLOAD_LOC_EXPECTED;
 		goto exit;
 	}
 
-	if (req->chunk.len == 0U) {
-		result = HTTP_TEST_RESULT_CHUNK_LEN_EXPECTED;
+	if (req->payload_len != ctx->received_bytes) {
+		result = HTTP_TEST_RESULT_PAYLOAD_LEN_INVALID;
 		goto exit;
 	}
-
-	if (req->chunk.id > ctx->last_chunk_id + 1U) {
-		/* monotonic is sufficient
-		 * Several calls can be made on the same chunk,
-		 * but chunks cannot be skipped.
-		 */
-		result = HTTP_TEST_RESULT_CHUNK_ID_DISCONTINUITY;
-		goto exit;
-	}
-
-	if (req->chunk.id == ctx->last_chunk_id + 1U) {
-		ctx->chunk_received_bytes = 0U;
-	}
-
-	if (ctx->chunk_received_bytes != req->chunk._offset) {
-		result = HTTP_TEST_RESULT_CHUNK_OFFSET_INVALID;
-		goto exit;
-	}
-	ctx->chunk_received_bytes += req->chunk.len;
-
-	/* Increment received bytes */
-	ctx->received_bytes += req->chunk.len;
 
 	/* Calculate checksum */
 	ctx->checksum = checksum_add(ctx->checksum,
@@ -298,38 +331,38 @@ static http_test_result_t test_resp_handler(struct http_test_context *ctx,
 		goto exit;
 	}
 
-	if (http_request_is_message(req)) {
-		if (req->payload.len != req->payload_len) {
-			result = HTTP_TEST_RESULT_REQ_PAYLOAD_LEN_INVALID;
-			goto exit;
-		}
-
+	if (http_request_is_stream(req)) {
 		if ((req->payload.len != 0) && (req->payload.loc == NULL)) {
 			result = HTTP_TEST_RESULT_REQ_PAYLOAD_EXPECTED;
 			goto exit;
 		}
-
-		if (resp->buffer.data == NULL) {
-			result = HTTP_TEST_RESULT_RESP_BUFFER_EXPECTED;;
-			goto exit;
-		}
 	} else {
-		if (req->chunk.loc != NULL) {
-			result = HTTP_TEST_RESULT_CHUNK_LOC_UNEXPECTED;
-			goto exit;
-		}
-
-		if (req->chunk.len != 0) {
-			result = HTTP_TEST_RESULT_CHUNK_LEN_UNEXPECTED;
-			goto exit;
-		}
-
-		if (req->payload_len != ctx->received_bytes) {
+		if (req->payload.len != req->payload_len) {
 			result = HTTP_TEST_RESULT_PAYLOAD_LEN_INVALID;
 			goto exit;
 		}
 
-		ctx->delta_ms = k_uptime_delta32(&ctx->uptime_ms);
+		// ctx->delta_ms = k_uptime_delta32(&ctx->uptime_ms);
+	}
+
+	if (req->payload_len != ctx->received_bytes) {
+		result = HTTP_TEST_RESULT_PAYLOAD_LEN_INVALID;
+		goto exit;
+	}
+
+	if (req->chunk.loc != NULL) {
+		result = HTTP_TEST_RESULT_CHUNK_LOC_UNEXPECTED;
+		goto exit;
+	}
+
+	if (req->chunk.len != 0) {
+		result = HTTP_TEST_RESULT_CHUNK_LEN_UNEXPECTED;
+		goto exit;
+	}
+
+	if (resp->buffer.data == NULL) {
+		result = HTTP_TEST_RESULT_RESP_BUFFER_EXPECTED;;
+		goto exit;
 	}
 
 	if (resp->buffer.data == NULL) {
@@ -426,7 +459,7 @@ http_test_result_t http_test_run(struct http_test_context *ctx,
 	}
 
 	/* If request is a stream, proper handling method should be selected */
-	if (!ctx->stream && !http_request_is_message(req)) {
+	if (!ctx->stream && http_request_is_stream(req)) {
 		result = HTTP_TEST_RESULT_MESSAGE_EXPECTED;
 		goto exit;
 	}
@@ -522,8 +555,6 @@ const char *http_test_result_to_str(http_test_result_t result)
 		return "REQ_PAYLOAD_EXPECTED";
 	case HTTP_TEST_RESULT_MESSAGE_MODE_SINGLE_CALL_EXPECTED:
 		return "MESSAGE_MODE_SINGLE_CALL_EXPECTED";
-	case HTTP_TEST_RESULT_REQ_PAYLOAD_LEN_INVALID:
-		return "REQ_PAYLOAD_LEN_INVALID";
 	case HTTP_TEST_RESULT_USER_DATA_IS_NOT_NULL:
 		return "USER_DATA_IS_NOT_NULL";
 	case HTTP_TEST_RESULT_USER_DATA_IS_NOT_VALID:
@@ -558,6 +589,10 @@ const char *http_test_result_to_str(http_test_result_t result)
 		return "HTTP_TEST_RESULT_RESP_DEFAULT_NO_STREAM_BY_DEFAULT";
 	case HTTP_TEST_RESULT_RESP_CALLS_COUNT_DISCONTINUITY:
 		return "HTTP_TEST_RESULT_RESP_CALLS_COUNT_DISCONTINUITY";
+	case HTTP_TEST_RESULT_PAYLOAD_LOC_EXPECTED:
+		return "HTTP_TEST_RESULT_PAYLOAD_LOC_EXPECTED";
+	case HTTP_TEST_RESULT_CHUNK_ID_UNEXPECTED:
+		return "HTTP_TEST_RESULT_CHUNK_ID_UNEXPECTED";
 	default:
 		return "UNKNOWN";
 	}

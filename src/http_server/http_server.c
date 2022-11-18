@@ -280,12 +280,12 @@ static int srv_accept(int serv_sock, bool secure)
 	char ipv4_str[NET_IPV4_ADDR_LEN];
 	ipv4_to_str(&addr.sin_addr, ipv4_str, sizeof(ipv4_str));
 
-	LOG_DBG("(%d) Accepted connection, allocating connection context, cli sock = %d",
+	LOG_DBG("(%d) Accepted connection, allocating connection context, cli sock = (%d)",
 		serv_sock, sock);
 
 	conn = http_conn_alloc();
 	if (conn == NULL) {
-		LOG_WRN("(%d) Connection refused from %s:%d, cli sock = %d", serv_sock,
+		LOG_WRN("(%d) Connection refused from %s:%d, cli sock = (%d)", serv_sock,
 			ipv4_str, htons(addr.sin_port), sock);
 
 		zsock_close(sock);
@@ -293,7 +293,7 @@ static int srv_accept(int serv_sock, bool secure)
 		ret = -1;
 		goto exit;
 	} else {
-		LOG_INF("(%d) Connection accepted from %s:%d, cli sock = %d", serv_sock,
+		LOG_INF("(%d) Connection accepted from %s:%d, cli sock = (%d)", serv_sock,
 			ipv4_str, htons(addr.sin_port), sock);
 
 		__ASSERT_NO_MSG(clients_count < CONFIG_HTTP_MAX_CONNECTIONS);
@@ -728,17 +728,17 @@ static bool process_request(http_connection_t *conn)
 	 * based on the request. Before sending headers.
 	 */
 	conn->keep_alive.enabled = req.keep_alive;
-
-	const bool success = http_request_is_discarded(&req) ?
-		handle_error_response(conn) :
-		handle_response(conn);
-	if (!success) {
-		goto close;
+	
+	bool success;
+	if (http_request_is_discarded(&req)) {
+		success = handle_error_response(conn);
+	} else {
+		success = handle_response(conn);
 	}
 
-	/* TODO encoding complete URL */
-	LOG_INF("(%d) Req %s [%u B] -> Status %d [%u B] "
-		"(keep-alive=%d)", conn->sock, url_copy, req.payload_len, resp.status_code,
+	LOG_INF("(%d) Req %s %s [%u B] -> Status %d [%u B] "
+		"(keep-alive=%d)", conn->sock, http_method_str(req.method),
+		url_copy, req.payload_len, resp.status_code,
 		resp.payload_sent, conn->keep_alive.enabled);
 
 	/* Update last activity time */

@@ -16,7 +16,7 @@
 #include "http_utils.h"
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(files_server, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(files_server, LOG_LEVEL_WRN);
 
 #define FILES_SERVER_MOUNT_POINT 	CONFIG_FILES_SERVER_MOUNT_POINT
 #define FILES_SERVER_MOUNT_POINT_SIZE 	(sizeof(FILES_SERVER_MOUNT_POINT) - 1u)
