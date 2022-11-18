@@ -99,28 +99,9 @@ int http_encode_header_connection(buffer_t *buf, bool keep_alive)
 
 int http_encode_header_content_type(buffer_t *buf, http_content_type_t type)
 {
-	char *content_type_str;
-
-	switch (type) {
-	case HTTP_CONTENT_TYPE_TEXT_HTML:
-		content_type_str = "text/html";
-		break;
-	case HTTP_CONTENT_TYPE_APPLICATION_JSON:
-		content_type_str = "application/json";
-		break;
-	case HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA:
-		content_type_str = "multipart/form-data";
-		break;
-	case HTTP_CONTENT_TYPE_APPLICATION_OCTET_STREAM:
-		content_type_str = "application/octet-stream";
-		break;
-	case HTTP_CONTENT_TYPE_TEXT_PLAIN:
-	default:
-		content_type_str = "text/plain";
-		break;
-	}
-
-	return buffer_snprintf(buf, "Content-Type: %s\r\n", content_type_str);
+	return buffer_snprintf(buf,
+			       "Content-Type: %s\r\n",
+			       http_content_type_to_str(type));
 }
 
 int http_encode_endline(buffer_t *buf)
@@ -136,21 +117,21 @@ bool http_code_has_payload(uint16_t status_code)
 
 const char *http_content_type_to_str(http_content_type_t content_type)
 {
-	switch (content_type) {
-	case HTTP_CONTENT_TYPE_NONE:
-		return "{notset}";
-	case HTTP_CONTENT_TYPE_TEXT_HTML:
-		return "text/html";
-	case HTTP_CONTENT_TYPE_APPLICATION_JSON:
-		return "application/json";
-	case HTTP_CONTENT_TYPE_APPLICATION_OCTET_STREAM:
-		return "application/octet-stream";
-	case HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA:
-		return "multipart/form-data";
-	case HTTP_CONTENT_TYPE_TEXT_PLAIN:
-	default:
-		return "text/plain";
+	const char *strs[] = {
+		[HTTP_CONTENT_TYPE_TEXT_PLAIN] = "text/plain",
+		[HTTP_CONTENT_TYPE_TEXT_HTML] = "text/html",
+		[HTTP_CONTENT_TYPE_TEXT_CSS] = "text/css",
+		[HTTP_CONTENT_TYPE_TEXT_JAVASCRIPT] = "text/javascript",
+		[HTTP_CONTENT_TYPE_APPLICATION_JSON] = "application/json",
+		[HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA] = "multipart/form-data",
+		[HTTP_CONTENT_TYPE_APPLICATION_OCTET_STREAM] = "application/octet-stream",
+	};
+
+	if (content_type >= ARRAY_SIZE(strs)) {
+		content_type = HTTP_CONTENT_TYPE_TEXT_PLAIN;
 	}
+
+	return strs[content_type];
 }
 
 /*____________________________________________________________________________*/

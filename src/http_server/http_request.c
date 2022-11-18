@@ -60,7 +60,7 @@ void http_request_init(http_request_t *req)
 {
 	/* Rest of the request is initialize to 0 */
 	*req = (http_request_t) {
-		.content_type = HTTP_CONTENT_TYPE_NONE,
+		.content_type = HTTP_CONTENT_TYPE_TEXT_PLAIN,
 		.route_parse_results_len = CONFIG_ROUTE_MAX_DEPTH,
 
 		.url_len = 0u,
@@ -304,6 +304,7 @@ static const struct header headers[] = {
 	HEADER("Authorization", header_keep),
 	HEADER("App-Upload-Checksum", header_keep),
 	HEADER("App-Script-Filename", header_keep),
+	HEADER("App-sha1", header_keep),
 
 #if defined(CONFIG_HTTP_TEST_SERVER)
 	HEADER("App-Test-Header1", header_keep),

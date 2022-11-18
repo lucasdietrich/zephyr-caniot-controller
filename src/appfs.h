@@ -82,4 +82,13 @@ int app_fs_stats(const char *abs_path);
  */
 int app_fs_lsdir(const char *path);
 
+/**
+ * @brief Create a directory and all its parents if they don't exist
+ * 
+ * @param path 
+ * @param is_filepath Tells whether the path contains the filename or not
+ * @return int Negative value on error, 0 on success
+ */
+int app_fs_mkdir_intermediate(const char *path, bool is_filepath);
+
 #endif /* _APP_FS_H_ */

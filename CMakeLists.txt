@@ -65,7 +65,6 @@ target_sources(app PRIVATE ${embedded_lua_scripts})
 
 zephyr_linker_sources(SECTIONS iterables.ld)
 
-
 # ======= SOURCE FILES =======
 add_subdirectory(src)
 
@@ -74,3 +73,6 @@ zephyr_include_directories(${APPLICATION_SOURCE_DIR}/src/mbedtls_config)
 
 target_include_directories(app PRIVATE src)
 target_include_directories(app PRIVATE modules)
+
+# ======= LINK MBEDTLS WITH APPLICATION =======
+zephyr_library_link_libraries_ifdef(CONFIG_MBEDTLS mbedTLS)

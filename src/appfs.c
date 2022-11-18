@@ -324,3 +324,78 @@ int app_fs_filepath_normalize(const char *path, char *out_path, size_t out_size)
 
 	return len;
 }
+
+int app_fs_mkdir_intermediate(const char *path, bool is_filepath)
+{
+	int ret = 0;
+
+	char dirpath[128u] = "";
+	char *d = dirpath;
+
+	const char *p = path;
+	const char *s;
+
+	uint32_t depth = 0u;
+
+	do {
+		s = strchr(p, '/');
+		if (s == p) {
+			p++;
+			*d++ = '/';
+		} else {
+			/* If no more slash found, go to the end*/
+			if (s == NULL) {
+				if (is_filepath) {
+					break;
+				}
+
+				size_t to_end = strlen(p);
+				if (to_end == 0) {
+					break;
+				}
+				s = p + to_end;
+			}
+
+			/* Copy directory name*/
+			strncpy(d, p, s - p);
+			d[s - p] = '/';
+			d[s - p + 1] = '\0';
+
+			/* Update cursors */
+			d += s - p + 1;
+			p = s;
+
+			/* Assume first level directory exists (e.g. RAM:/ SD:/)*/
+			if (depth++ == 0u) {
+				continue;
+			}
+
+			/* Create intermediate directory */
+			struct fs_dirent ent;
+			ret = fs_stat(dirpath, &ent);
+			if (ret == -ENOENT) {
+				ret = fs_mkdir(dirpath);
+				if (ret == -EEXIST) {
+					LOG_ERR("Directory %s already exists", dirpath);
+					goto exit;
+				} else if (ret < 0) {
+					LOG_ERR("mkdir %s failed, err=%d", dirpath, ret);
+					goto exit;
+				}
+			} else if (ret < 0) {
+				LOG_ERR("opendir %s failed, err=%d", dirpath, ret);
+				goto exit;
+			} else if (ent.type == FS_DIR_ENTRY_FILE) {
+				LOG_ERR("File %s already exists", dirpath);
+				ret = -EEXIST;
+				goto exit;
+			}
+		}
+
+		/* Reset current error */
+		ret = 0;
+	} while (s != NULL);
+
+exit:
+	return ret;
+}

@@ -17,10 +17,12 @@ POST /files -> http_file_upload, http_file_upload | REST
 POST /files/1:s -> http_file_upload, http_file_upload | REST
 POST /files/1:s/2:s -> http_file_upload, http_file_upload | REST
 POST /files/1:s/2:s/3:s -> http_file_upload, http_file_upload | REST
+POST /files/1:s/2:s/3:s/4:s -> http_file_upload, http_file_upload | REST
 GET /files -> http_file_download | BINARY
 GET /files/1:s -> http_file_download | BINARY
 GET /files/1:s/2:s -> http_file_download | BINARY
 GET /files/1:s/2:s/3:s -> http_file_download | BINARY
+GET /files/1:s/2:s/3:s/4:s -> http_file_download | BINARY
 
 GET /files/lua -> rest_fs_list_lua_scripts (CONFIG_LUA)
 DELETE /files/lua -> rest_fs_remove_lua_script (CONFIG_LUA)

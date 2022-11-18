@@ -21,7 +21,9 @@ LOG_MODULE_REGISTER(files_server, LOG_LEVEL_WRN);
 #define FILES_SERVER_MOUNT_POINT 	CONFIG_FILES_SERVER_MOUNT_POINT
 #define FILES_SERVER_MOUNT_POINT_SIZE 	(sizeof(FILES_SERVER_MOUNT_POINT) - 1u)
 
-#define FILES_SERVER_CREATE_DIR_IF_NOT_EXISTS 	0u
+#define FILES_SERVER_CREATE_DIR_IF_NOT_EXISTS 	1u
+
+#define FILES_SERVER_FILEPATH_MAX_DEPTH 	4u
 
 #define FILE_FILEPATH_MAX_LEN 128u
 
@@ -45,7 +47,7 @@ static uint32_t history_count = 0u;
 
 static const char *route_path_arg_names[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10" };
 
-static int get_arg_path_parts(http_request_t *req, char *parts[], size_t size)
+static int req_get_arg_path_parts(http_request_t *req, char *parts[], size_t size)
 {
 	__ASSERT_NO_MSG(req != NULL);
 	__ASSERT_NO_MSG(parts != NULL);
@@ -56,30 +58,36 @@ static int get_arg_path_parts(http_request_t *req, char *parts[], size_t size)
 
 	uint32_t i;
 	for (i = 0; i < size; i++) {
-		if (http_req_route_arg_get_string(req, route_path_arg_names[i], &parts[i]) != 0) {
+		int ret = http_req_route_arg_get_string(req,
+							route_path_arg_names[i],
+							&parts[i]);
+		if (ret == -ENOENT) {
 			break;
+		} else if (ret < 0) {
+			return ret;
 		}
 	}
 
 	return (int)i;
 }
 
-static int req_filepath_get(struct http_request *req,
-			    char filepath[],
-			    size_t size)
+static int filepath_build(char *path_parts[],
+			  size_t path_parts_size,
+			  char filepath[],
+			  size_t size)
 {
-	char *pp[3u];
-
-	/* Parse filepath in URL */
-	int count = get_arg_path_parts(req, pp, ARRAY_SIZE(pp));
+	if (size <= FILES_SERVER_MOUNT_POINT_SIZE) {
+		return -ENOMEM;
+	}
+	
+	strcpy(filepath, FILES_SERVER_MOUNT_POINT);
+	size -= FILES_SERVER_MOUNT_POINT_SIZE;
 
 	/* Reconstruct filepath */
-	char *p = filepath;
+	char *p = &filepath[FILES_SERVER_MOUNT_POINT_SIZE];
 
-	*p = '\0';
-
-	for (int i = 0; i < count; i++) {
-		const uint32_t pp_len = strlen(pp[i]);
+	for (int i = 0; i < path_parts_size; i++) {
+		const uint32_t pp_len = strlen(path_parts[i]);
 		const int remaining = size - (p - filepath);
 		if (pp_len >= remaining - 1) {
 			LOG_ERR("Given filepath too long");
@@ -87,7 +95,7 @@ static int req_filepath_get(struct http_request *req,
 		}
 
 		*p++ = '/';
-		strncpy(p, pp[i], pp_len);
+		strncpy(p, path_parts[i], pp_len);
 		p += pp_len;
 	}
 
@@ -147,10 +155,6 @@ static int open_w_file(struct fs_file_t *file, char *filepath)
 {
 	int ret;
 
-#if FILES_SERVER_CREATE_DIR_IF_NOT_EXISTS
-	/* TODO, create intermediate directories */
-#endif
-
 	/* Prepare the file in the filesystem */
 	fs_file_t_init(file);
 
@@ -204,19 +208,30 @@ int http_file_upload(struct http_request *req,
 	 */
 	if (http_request_begins(req))
 	{
-		char filepath[FILE_FILEPATH_MAX_LEN] = FILES_SERVER_MOUNT_POINT;
-		ret = req_filepath_get(
-			req,
-			&filepath[FILES_SERVER_MOUNT_POINT_SIZE],
-			sizeof(filepath) - FILES_SERVER_MOUNT_POINT_SIZE);
-		if (ret != 0) {
+		char *pp[FILES_SERVER_FILEPATH_MAX_DEPTH];
+		char filepath[FILE_FILEPATH_MAX_LEN];
+
+		/* Parse filepath in URL */
+		int ret = req_get_arg_path_parts(req, pp, FILES_SERVER_FILEPATH_MAX_DEPTH);
+		if (ret < 0) {
 			http_request_discard(req, HTTP_REQUEST_BAD);
-			http_response_set_status_code(resp,
-						      HTTP_STATUS_BAD_REQUEST);
 			goto exit;
 		}
 
-		LOG_INF("Start upload to %s", filepath);
+		ret = filepath_build(pp, ret, filepath, sizeof(filepath));
+		if (ret < 0) {
+			http_request_discard(req, HTTP_REQUEST_BAD);
+			goto exit;
+		}
+
+#if FILES_SERVER_CREATE_DIR_IF_NOT_EXISTS
+		ret = app_fs_mkdir_intermediate(filepath, true);
+		if (ret < 0) {
+			LOG_ERR("Failed to create intermediate directories: %s", filepath);
+			http_request_discard(req, HTTP_REQUEST_PROCESSING_ERROR);
+			goto exit;
+		}
+#endif /* FILES_SERVER_CREATE_DIR_IF_NOT_EXISTS */
 
 		ret = open_w_file(&file, filepath);
 		if (ret == -ENOENT) {
@@ -228,9 +243,11 @@ int http_file_upload(struct http_request *req,
 			ret = 0;
 			goto exit;
 		}
-
+		
 		/* Reference context */
 		req->user_data = &file;
+
+		LOG_INF("Start upload to %s", filepath);
 	}
 
 	/* Prepare data to be written */
@@ -289,11 +306,18 @@ int http_file_download(struct http_request *req,
 	/* Init */
 	if (http_response_is_first_call(resp)) {
 		size_t filesize;
-		char filepath[FILE_FILEPATH_MAX_LEN] = FILES_SERVER_MOUNT_POINT;
-		ret = req_filepath_get(
-			req,
-			&filepath[FILES_SERVER_MOUNT_POINT_SIZE],
-			sizeof(filepath) - FILES_SERVER_MOUNT_POINT_SIZE);
+
+		char *pp[FILES_SERVER_FILEPATH_MAX_DEPTH];
+		char filepath[FILE_FILEPATH_MAX_LEN];
+
+		/* Parse filepath in URL */
+		int ret = req_get_arg_path_parts(req, pp, FILES_SERVER_FILEPATH_MAX_DEPTH);
+		if (ret < 0) {
+			http_request_discard(req, HTTP_REQUEST_BAD);
+			goto exit;
+		}
+
+		ret = filepath_build(pp, ret, filepath, sizeof(filepath));
 		if (ret != 0) {
 			http_response_set_status_code(resp,
 						      HTTP_STATUS_BAD_REQUEST);
