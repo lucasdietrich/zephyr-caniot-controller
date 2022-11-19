@@ -7,7 +7,7 @@
 SET(app_sources 
     http_server.c 
     http_utils.c 
-    http_conn.c 
+    http_session.c 
     http_request.c 
     http_response.c 
     http_headers.c

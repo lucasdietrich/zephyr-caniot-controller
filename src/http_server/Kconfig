@@ -20,12 +20,12 @@ config HTTP_SERVER_VERIFY_CLIENT
         depends on HTTP_SERVER_SECURE
         default n
 
-config HTTP_MAX_CONNECTIONS
-        int "Maximum number of HTTP connections"
+config HTTP_MAX_SESSIONS
+        int "Maximum number of HTTP sessions"
         default 5
         range 0 8
         help
-                Maximum number of HTTP connections supported by the HTTP server
+                Maximum number of HTTP sessions supported by the HTTP server
 
 config HTTP_REQUEST_HEADERS_BUFFER_SIZE
         int "HTTP buffer size dedicated for request headers values"

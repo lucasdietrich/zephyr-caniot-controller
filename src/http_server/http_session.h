@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef _HTTP_CONN_H_
-#define _HTTP_CONN_H_
+#ifndef _http_session_H_
+#define _http_session_H_
 
 #include <stdint.h>
 #include <stddef.h>
@@ -22,9 +22,9 @@
 #include "http_request.h"
 #include "http_response.h"
 
-struct http_connection;
+struct http_session;
 
-struct http_connection
+struct http_session
 {
         /* INTERNAL */
         struct sockaddr addr;
@@ -58,7 +58,7 @@ struct http_connection
         http_request_t *req;
         http_response_t *resp;
 
-	/* Is the connection secure ? */
+	/* Is the session secure ? */
 	bool secure;
 	/* TODO add secure context: client certificate common name, ... */
 
@@ -68,22 +68,22 @@ struct http_connection
 	size_t tx_bytes;
 };
 
-typedef struct http_connection http_connection_t;
+typedef struct http_session http_session_t;
 
-void http_conn_init(void);
+void http_session_init(void);
 
-http_connection_t *http_conn_alloc(void);
+http_session_t *http_session_alloc(void);
 
-http_connection_t *http_conn_get_by_sock(int sock_fd);
+http_session_t *http_session_get_by_sock(int sock_fd);
 
-void http_conn_free(http_connection_t *conn);
+void http_session_free(http_session_t *sess);
 
-bool http_conn_is_closed(http_connection_t *conn);
+bool http_session_is_closed(http_session_t *sess);
 
 
-bool http_conn_is_outdated(http_connection_t *conn);
+bool http_session_is_outdated(http_session_t *sess);
 
-// Function to get the next time we need to process an outdated connection
-int http_conn_time_to_next_outdated(void);
+// Function to get the next time we need to process an outdated session
+int http_session_time_to_next_outdated(void);
 
 #endif

@@ -18,8 +18,8 @@
 
 #include <embedc/parser.h>
 
-struct http_connection;
-typedef struct http_connection http_connection_t;
+struct http_session;
+typedef struct http_session http_session_t;
 
 #define HTTP_URL_MAX_LEN 128u
 

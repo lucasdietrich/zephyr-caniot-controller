@@ -18,7 +18,7 @@ See [src/http_server/Kconfig](../src/http_server/Kconfig) :
 | `HTTP_SERVER_NONSECURE`            | Enable HTTP Server non-secure port (HTTP 80)                 |
 | `HTTP_SERVER_SECURE`               | Enable HTTP Server secure port (HTTPS 443)                   |
 | `HTTP_SERVER_VERIFY_CLIENT`        | Enable client certificate verification                       |
-| `HTTP_MAX_CONNECTIONS`             | Maximum number of simultaneous connections                   |
+| `HTTP_MAX_SESSIONS`             | Maximum number of simultaneous sessions                   |
 | `HTTP_REQUEST_HEADERS_BUFFER_SIZE` | Size of the buffer used to store HTTP request custom headers |
 | `HTTP_TEST`                        | Enable HTTP test tool                                        |
 | `HTTP_TEST_SERVER`                 | Enable HTTP test server tool , with test resources           |
