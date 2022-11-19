@@ -362,8 +362,6 @@ static inline bool http_request_complete(http_request_t *req)
 	return req->complete == 1u;
 }
 
-void http_request_buffer_get(http_request_t *req, buffer_t *buf);
-
 const char *http_header_get_value(http_request_t *req,
 				  const char *hdr_name);
 

@@ -562,6 +562,8 @@ bool http_request_parse(http_request_t *req,
 		buf += parsed;
 		len -= parsed;
 
+
+		/* Parser is paused when payload should be parsed */
 		if (HTTP_PARSER_ERRNO(&req->parser) == HPE_PAUSED) {
 
 			/* Unpause the parser */
@@ -577,6 +579,10 @@ bool http_request_parse(http_request_t *req,
 
 				route_get_req_handler(req->route)(req, NULL);
 
+				/* Reset payload buffer */
+				req->payload.loc = NULL;
+				req->payload.len = 0u;
+
 				req->calls_count++;
 
 				toack -= parsed;
@@ -585,7 +591,8 @@ bool http_request_parse(http_request_t *req,
 				 * check that we have parsed all the data
 				 */
 				if (len != 0u) {
-					LOG_ERR("(%p) Request malformed, more data to parse rem=%u", req, len);
+					LOG_ERR("(%p) Request malformed, more "
+						"data to parse rem=%u", req, len);
 				}
 			}
 		}
@@ -621,18 +628,6 @@ const char *http_header_get_value(http_request_t *req,
 
 	return value;
 }
-
-void http_request_buffer_get(http_request_t *req, buffer_t *buf)
-{
-	__ASSERT_NO_MSG(req != NULL);
-	__ASSERT_NO_MSG(buf != NULL);
-
-	buf->data = req->payload.loc;
-	buf->filling = req->payload.len;
-	buf->size = 0u;
-}
-
-
 
 bool http_discard_reason_to_status_code(http_request_discard_reason_t reason,
 					uint16_t *status_code)

@@ -313,8 +313,8 @@ static http_test_result_t test_resp_handler(struct http_test_context *ctx,
 	}
 
 	if (http_request_is_stream(req)) {
-		if ((req->payload.len != 0) && (req->payload.loc == NULL)) {
-			result = HTTP_TEST_RESULT_REQ_PAYLOAD_EXPECTED;
+		if ((req->payload.len != 0) || (req->payload.loc != NULL)) {
+			result = HTTP_TEST_RESULT_PAYLOAD_UNEXPECTED;
 			goto exit;
 		}
 	} else {
@@ -574,6 +574,8 @@ const char *http_test_result_to_str(http_test_result_t result)
 		return "HTTP_TEST_RESULT_PAYLOAD_LOC_EXPECTED";
 	case HTTP_TEST_RESULT_CHUNK_ID_UNEXPECTED:
 		return "HTTP_TEST_RESULT_CHUNK_ID_UNEXPECTED";
+	case HTTP_TEST_RESULT_PAYLOAD_UNEXPECTED:
+		return "HTTP_TEST_RESULT_PAYLOAD_UNEXPECTED";
 	default:
 		return "UNKNOWN";
 	}

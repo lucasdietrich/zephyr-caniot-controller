@@ -16,7 +16,7 @@
 #include "http_utils.h"
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(files_server, LOG_LEVEL_WRN);
+LOG_MODULE_REGISTER(files_server, LOG_LEVEL_INF);
 
 #define FILES_SERVER_MOUNT_POINT 	CONFIG_FILES_SERVER_MOUNT_POINT
 #define FILES_SERVER_MOUNT_POINT_SIZE 	(sizeof(FILES_SERVER_MOUNT_POINT) - 1u)
@@ -251,16 +251,16 @@ int http_file_upload(struct http_request *req,
 	}
 
 	/* Prepare data to be written */
-	buffer_t buf;
-	http_request_buffer_get(req, &buf);
-	
-	if (buf.data != NULL) {
-		LOG_DBG("write loc=%p [%u] file=%p", buf.data, buf.filling, &file);
-		ssize_t written = fs_write(&file, buf.data, buf.filling);
-		if (written != buf.filling) {
+
+	if (req->payload.loc != NULL) {
+		LOG_HEXDUMP_INF(req->payload.loc, req->payload.len, "Payload");
+
+		LOG_DBG("write loc=%p [%u] file=%p", req->payload.loc, req->payload.len, &file);
+		ssize_t written = fs_write(&file, req->payload.loc, req->payload.len);
+		if (written != req->payload.len) {
 			ret = written;
 			LOG_ERR("Failed to write file %d != %u",
-				written, buf.filling);
+				written, req->payload.len);
 			http_request_discard(req, HTTP_REQUEST_BAD);
 			goto exit;
 		}
