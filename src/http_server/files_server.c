@@ -132,11 +132,13 @@ static int open_r_file(struct fs_file_t *file, size_t *size, char *filepath)
 			}
 
 			*size = dirent.size;
+		} else if (ret == -ENOENT) {
+			/* Forward error */
+			goto exit;
 		} else {
 			LOG_ERR("Failed to get file stats ret=%d", ret);
 			goto exit;
 		}
-
 	}
 
 	/* Open file */

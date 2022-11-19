@@ -15,3 +15,6 @@
 [submodule "modules/embedc-utils"]
 	path = modules/embedc-utils
 	url = git@github.com:lucasdietrich/embedc-utils.git
+[submodule "fs/web"]
+	path = fs/web
+	url = git@github.com:lucasdietrich/caniot-controller-webapp.git

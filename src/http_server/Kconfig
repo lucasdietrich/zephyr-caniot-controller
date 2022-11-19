@@ -22,8 +22,8 @@ config HTTP_SERVER_VERIFY_CLIENT
 
 config HTTP_MAX_CONNECTIONS
         int "Maximum number of HTTP connections"
-        default 3
-        range 0 5
+        default 5
+        range 0 8
         help
                 Maximum number of HTTP connections supported by the HTTP server
 

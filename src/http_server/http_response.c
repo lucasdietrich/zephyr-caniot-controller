@@ -73,6 +73,7 @@ void http_response_set_content_length(http_response_t *resp,
 
 	if (set_header_check(resp, "Content-Length") == true) {
 		resp->content_length = content_length;
+
 		resp->stream = 0u; /* Disable chunked encoding */
 	}
 }
@@ -81,6 +82,7 @@ void http_response_enable_chunk_encoding(http_response_t *resp)
 {
 	if (set_header_check(resp, "Chunk-Encoding") == true) {
 		resp->stream = 1u;
+		
 		resp->content_length = -1; /* Disable content length */
 	}
 }

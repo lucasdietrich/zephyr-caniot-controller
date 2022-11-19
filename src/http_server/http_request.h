@@ -102,7 +102,10 @@ struct http_request
 	 */
 	uint8_t complete : 1;
 
-	/* Tells whether the request can be streamed (depends on the route) */
+	/* Tells whether the request can be streamed (depends on the route)
+	 * This flag is set in "on_headers_complete" callback
+	 * and is never changed afterwards
+	 */
 	uint8_t streaming: 1u;
 
 	/* Tells whether the request is currently discarded */
