@@ -69,6 +69,13 @@ int strncicmp(char const *a, char const *b, size_t len)
         return 0;
 }
 
+void str_tolower(char *str)
+{
+	for (int i = 0; str[i]; i++) {
+		str[i] = tolower(str[i]);
+	}
+}
+
 int get_repr_can_frame(struct can_frame *frame, char *buf, size_t len)
 {
 	return snprintf(buf, len, "can id: 0x%x, len: %d, data: %02x %02x %02x %02x %02x %02x"

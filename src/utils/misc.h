@@ -83,6 +83,9 @@ int strcicmp(char const *a, char const *b);
 
 int strncicmp(char const *a, char const *b, size_t len);
 
+/* Convert string to lowercase */
+void str_tolower(char *str);
+
 int get_repr_can_frame(struct can_frame *frame, char *buf, size_t len);
 
 #endif /* _UTILS_H_ */

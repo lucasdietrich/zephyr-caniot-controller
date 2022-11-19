@@ -209,6 +209,7 @@ int http_file_upload(struct http_request *req,
 	if (http_request_begins(req))
 	{
 		char *pp[FILES_SERVER_FILEPATH_MAX_DEPTH];
+		size_t pp_count;
 		char filepath[FILE_FILEPATH_MAX_LEN];
 
 		/* Parse filepath in URL */
@@ -218,7 +219,9 @@ int http_file_upload(struct http_request *req,
 			goto exit;
 		}
 
-		ret = filepath_build(pp, ret, filepath, sizeof(filepath));
+		pp_count = (size_t) ret;
+
+		ret = filepath_build(pp, pp_count, filepath, sizeof(filepath));
 		if (ret < 0) {
 			http_request_discard(req, HTTP_REQUEST_BAD);
 			goto exit;
@@ -253,8 +256,6 @@ int http_file_upload(struct http_request *req,
 	/* Prepare data to be written */
 
 	if (req->payload.loc != NULL) {
-		LOG_HEXDUMP_INF(req->payload.loc, req->payload.len, "Payload");
-
 		LOG_DBG("write loc=%p [%u] file=%p", req->payload.loc, req->payload.len, &file);
 		ssize_t written = fs_write(&file, req->payload.loc, req->payload.len);
 		if (written != req->payload.len) {
@@ -338,9 +339,21 @@ int http_file_download(struct http_request *req,
 			goto exit;
 		}
 
+		/* Set body size */
 		http_response_set_content_length(resp, filesize);
 
-		LOG_INF("Download %s [size=%u]", filepath, filesize);
+		/* Set content type
+		 * TODO make it configurable
+		 */
+		const char *extension = http_filepath_get_extension(filepath);
+		const http_content_type_t content_type = 
+			http_get_content_type_from_extension(extension);
+		http_response_set_content_type(resp, content_type);
+
+		/* TODO Add cache headers so that big scripts/css are not downloaded each time */
+
+		LOG_INF("Download %s [size=%u] content-len=%u", 
+			filepath, filesize, content_type);
 
 		/* Reference context */
 		req->user_data = &file;

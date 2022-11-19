@@ -18,6 +18,7 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(http_utils, LOG_LEVEL_WRN);
 
+#define HTTP_UTILS_MAX_EXTENSION_LEN 8u
 
 struct code_str
 {
@@ -132,6 +133,64 @@ const char *http_content_type_to_str(http_content_type_t content_type)
 	}
 
 	return strs[content_type];
+}
+
+const char *http_filepath_get_extension(const char *filepath)
+{
+	const char *ext = filepath;
+	const char *p = filepath;
+
+	while (*p != '\0') {
+		if (*p == '.') {
+			ext = p + 1;
+		}
+		p++;
+	}
+
+	return ext;
+}
+
+/**
+ * @brief Get the mime type for the given file extension
+ * 
+ * Extension is case insensitive.
+ * 
+ * @param filepath 
+ * @return const char* 
+ */
+http_content_type_t http_get_content_type_from_extension(const char *extension)
+{
+	http_content_type_t content_type = HTTP_CONTENT_TYPE_TEXT_PLAIN;
+
+	if (extension != NULL) {
+		char extension_lower[HTTP_UTILS_MAX_EXTENSION_LEN + 1];
+		strncpy(extension_lower, extension, HTTP_UTILS_MAX_EXTENSION_LEN);
+		str_tolower(extension_lower);
+
+		if (strcmp(extension_lower, "html") == 0) {
+			content_type = HTTP_CONTENT_TYPE_TEXT_HTML;
+		} else if (strcmp(extension_lower, "css") == 0) {
+			content_type = HTTP_CONTENT_TYPE_TEXT_CSS;
+		} else if (strcmp(extension_lower, "js") == 0) {
+			content_type = HTTP_CONTENT_TYPE_TEXT_JAVASCRIPT;
+		} else if (strcmp(extension_lower, "xml") == 0) {
+			content_type = HTTP_CONTENT_TYPE_TEXT_XML;
+		} else if (strcmp(extension_lower, "json") == 0) {
+			content_type = HTTP_CONTENT_TYPE_APPLICATION_JSON;
+		} else if (strcmp(extension_lower, "gif") == 0) {
+			content_type = HTTP_CONTENT_TYPE_APPLICATION_GIF;
+		} else if (strcmp(extension_lower, "jpeg") == 0) {
+			content_type = HTTP_CONTENT_TYPE_APPLICATION_JPEG;
+		} else if (strcmp(extension_lower, "jpg") == 0) {
+			content_type = HTTP_CONTENT_TYPE_APPLICATION_JPEG;
+		} else if (strcmp(extension_lower, "png") == 0) {
+			content_type = HTTP_CONTENT_TYPE_APPLICATION_PNG;
+		} else if (strcmp(extension_lower, "tiff") == 0) {
+			content_type = HTTP_CONTENT_TYPE_APPLICATION_TIFF;
+		}
+	}
+
+	return content_type;
 }
 
 /*____________________________________________________________________________*/

@@ -14,14 +14,21 @@
 
 #include "utils/buffers.h"
 
+/* https://www.geeksforgeeks.org/http-headers-content-type/ */
 typedef enum {
 	HTTP_CONTENT_TYPE_TEXT_PLAIN,
 	HTTP_CONTENT_TYPE_TEXT_HTML,
 	HTTP_CONTENT_TYPE_TEXT_CSS,
 	HTTP_CONTENT_TYPE_TEXT_JAVASCRIPT,
+	HTTP_CONTENT_TYPE_TEXT_XML,
 	HTTP_CONTENT_TYPE_APPLICATION_JSON,
 	HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA,
 	HTTP_CONTENT_TYPE_APPLICATION_OCTET_STREAM,
+	HTTP_CONTENT_TYPE_APPLICATION_XML,
+	HTTP_CONTENT_TYPE_APPLICATION_GIF,
+	HTTP_CONTENT_TYPE_APPLICATION_JPEG,
+	HTTP_CONTENT_TYPE_APPLICATION_PNG,
+	HTTP_CONTENT_TYPE_APPLICATION_TIFF,
 } http_content_type_t;
 
 typedef enum {
@@ -215,5 +222,32 @@ http_test_result_t http_test_run(struct http_test_context *ctx,
 				 enum http_test_handler cur_handler);
 
 const char *http_test_result_to_str(http_test_result_t result);
+
+/**
+ * @brief Get extension of a file
+ * 
+ * Assumptions:
+ * - Extension is the part after the last dot.
+ * - Extension is necessarily at the end of the string.
+ * - Extension is not case sensitive.
+ * 
+ * web/index.0.html -> html
+ * index.html -> html
+ * readme -> NULL
+ * 
+ * @param filepath 
+ * @return const char* 
+ */
+const char *http_filepath_get_extension(const char *filepath);
+
+/**
+ * @brief Get the mime type for the given file extension
+ * 
+ * Extension is case insensitive.
+ * 
+ * @param filepath 
+ * @return const char* 
+ */
+http_content_type_t http_get_content_type_from_extension(const char *extension);
 
 #endif
