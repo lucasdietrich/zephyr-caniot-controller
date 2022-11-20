@@ -62,7 +62,7 @@ struct http_session
 	bool secure;
 	/* TODO add secure context: client certificate common name, ... */
 
-	/* STATS */
+	/* STATS TODO */
 	size_t requests_count;
 	size_t rx_bytes;
 	size_t tx_bytes;
