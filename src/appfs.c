@@ -112,8 +112,6 @@ exit:
 #endif 
 
 
-
-
 struct fs_mount_t *appfs_mp[] = {
 #if defined(CONFIG_DISK_DRIVER_RAM)
 	&mp_ram,
