@@ -17,6 +17,8 @@
 #include <zephyr/net/net_config.h>
 #include <zephyr/net/tls_credentials.h>
 
+#include <fcntl.h>
+
 #include <zephyr/net/http_parser.h>
 
 #include "app_sections.h"
@@ -132,6 +134,13 @@ static int setup_socket(struct pollfd *pfd, bool secure)
 	if (sock < 0) {
 		ret = sock;
 		LOG_ERR("Failed to create socket = %d", ret);
+		goto exit;
+	}
+
+	ret = zsock_fcntl(sock, F_SETFL, O_NONBLOCK);
+	if (ret < 0) {
+		LOG_ERR("(%d) Failed to set socket non-blocking = %d",
+			sock, ret);
 		goto exit;
 	}
 
@@ -277,6 +286,13 @@ static int srv_accept(int serv_sock, bool secure)
 		goto exit;
 	}
 
+	ret = zsock_fcntl(sock, F_SETFL, O_NONBLOCK);
+	if (ret < 0) {
+		LOG_ERR("(%d) Failed to set socket non-blocking = %d",
+			sock, ret);
+		goto exit;
+	}
+
 	char ipv4_str[NET_IPV4_ADDR_LEN];
 	ipv4_to_str(&addr.sin_addr, ipv4_str, sizeof(ipv4_str));
 
@@ -341,9 +357,12 @@ static void http_srv_thread(void *_a, void *_b, void *_c)
 		show_pfd();
 
 		timeout = http_session_time_to_next_outdated();
-		LOG_DBG("zsock_poll timeout: %d ms", timeout);
 
+		LOG_DBG("zsock_poll(%p, %u, %u)", fds.array, 
+			clients_count + servers_count, timeout);
 		ret = zsock_poll(fds.array, clients_count + servers_count, timeout);
+		LOG_DBG("zsock_poll(%p, %u, %u) ret=%d", fds.array, 
+			clients_count + servers_count, timeout, ret);
 		if (ret >= 0) {
 #if defined(CONFIG_HTTP_SERVER_NONSECURE)
 			if (fds.srv.revents & POLLIN) {
@@ -498,7 +517,9 @@ static bool handle_request(http_session_t *sess)
 			cursor_buffer_reset(&cbuf);
 			remaining = cursor_buffer_remaining(&cbuf);
 		}
-
+		
+		LOG_DBG("zsock_recv(%d, %p, %d, 0) ENTER", sess->sock,
+			cbuf.cursor, remaining);
 		rc = zsock_recv(sess->sock, cbuf.cursor, remaining, 0);
 		LOG_DBG("zsock_recv(%d, %p, %d, 0) = %d", sess->sock,
 			cbuf.cursor, remaining, rc);

@@ -86,16 +86,36 @@
             },
             "options": {
                 "statusbar": {
+                    "hide": true
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "qemu ARM",
+            "detail": "make build_qemu (build for QEMU ARM)",
+            "type": "shell",
+            "command": "source ${venvPath}/bin/activate && make build_qemu",
+            "args": [
+
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "options": {
+                "statusbar": {
                     "hide": false
                 }
             },
             "problemMatcher": []
         },
         {
-            "label": "Build QEMU",
-            "detail": "make build_qemu",
+            "label": "qemu x86",
+            "detail": "make build_qemu_x86 (build for QEMU ARM)",
             "type": "shell",
-            "command": "source ${venvPath}/bin/activate && make build_qemu",
+            "command": "source ${venvPath}/bin/activate && make build_qemu_x86",
             "args": [
 
             ],

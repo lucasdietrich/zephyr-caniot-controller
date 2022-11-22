@@ -23,6 +23,6 @@ struct settings_system
 
 };
 
-int settings_init(void);
+int app_stg_init(void);
 
 #endif

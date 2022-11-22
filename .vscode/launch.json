@@ -14,7 +14,7 @@
 				"interface/stlink.cfg",
 				"target/stm32f4x.cfg"
 			],
-			"svdFile": "./STM32F429.svd"
+			"svdFile": "./res/STM32F429.svd"
 		},
 		{
 			"name": "Attach cortex-debug nucleo_429zi",
@@ -28,8 +28,19 @@
 				"interface/stlink.cfg",
 				"target/stm32f4x.cfg"
 			],
-			"svdFile": "./STM32F429.svd"
+			"svdFile": "./res/STM32F429.svd"
 		},
+        {
+            "name": "(gdb) mps2_an385",
+            "cwd": "${workspaceRoot}",
+            "executable": "build/zephyr/zephyr.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "external",
+            "gdbTarget": "localhost:1234",
+            "runToEntryPoint": "", /* main */
+            "svdFile": "./res/CMSDK_CM3.svd"
+        },
 		{
 			"name": "(gdb) qemu_x86",
 			"type": "cppdbg",
@@ -52,16 +63,6 @@
 					"ignoreFailures": true
 				}
 			]
-		},
-		{
-			"name": "EXPERIMENTAL (gdb) QEMU ARM",
-			"cwd": "${workspaceRoot}",
-			"executable": "./build/zephyr/zephyr.elf",
-			"request": "launch",
-			"type": "cortex-debug",
-			"servertype": "external",
-			"gdbTarget": "localhost:1234",
-			"runToEntryPoint": "main",
 		},
 		{
 			"name": "LEGACY (gdb) QEMU ARM",

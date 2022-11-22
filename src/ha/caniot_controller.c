@@ -314,7 +314,7 @@ static void thread(void *_a, void *_b, void *_c)
 
 	while (1) {
 		const uint32_t timeout_ms = caniot_controller_next_timeout(&ctrl);
-		LOG_DBG("k_poll(., ., %u)", timeout_ms);
+		LOG_DBG("k_poll(., %u, %u)", KPOLL_CAN_EVENTS_COUNT, timeout_ms);
 		ret = k_poll((struct k_poll_event *) &events, 
 			     KPOLL_CAN_EVENTS_COUNT, K_MSEC(timeout_ms));
 		if (ret == 0) {
@@ -347,7 +347,7 @@ static void thread(void *_a, void *_b, void *_c)
 
 			/* we need to process the response before sending a query,
 			 * otherwise the query could timeout immediately because
-			 * the timeout queue was not shifted before
+			 * the timeout queue was not shifted in time
 			 */
 			const uint32_t delta = k_uptime_delta32(&reftime);
 			caniot_controller_process_single(&ctrl, delta, resp);

@@ -14,7 +14,7 @@
 #include "settings.h"
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(settings, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(app_stg, LOG_LEVEL_INF);
 
 #define NVS_PARTITION		storage_partition
 #define NVS_PARTITION_DEVICE	FIXED_PARTITION_DEVICE(NVS_PARTITION)
@@ -33,7 +33,7 @@ static struct nvs_fs fs;
 static struct flash_pages_info info;
 static struct flash_sector fs_sectors[NVS_MAX_SECTORS_COUNT];
 
-int settings_init(void)
+int app_stg_init(void)
 {
 	int rc;
 

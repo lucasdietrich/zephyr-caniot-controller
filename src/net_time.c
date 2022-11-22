@@ -65,11 +65,13 @@ static void sntp_handler(struct k_work *work)
 	} else {
 		ctx->failures++;
 
-		/* Reschedule the work */
-		net_time_sync();
-
 		/* todo retry later */
 		LOG_ERR("sntp_simple() failed with error = %d", ret);
+
+		// k_sleep(K_SECONDS(100));
+
+		/* Reschedule the work */
+		net_time_sync();
 	}
 
 	k_mutex_unlock(&ctx->mutex);

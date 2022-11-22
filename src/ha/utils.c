@@ -5,6 +5,7 @@
  */
 
 #include "utils.h"
+#include "utils/misc.h"
 
 #if defined(CONFIG_CANIOT_LIB)
 int zcan_to_caniot(const struct can_frame *zcan,
@@ -45,7 +46,7 @@ static int string_get_index_in_list(const char *str, const char *const *list)
 
 	if (str != NULL) {
 		for (size_t i = 0; list[i] != NULL; i++) {
-			if (strcmp(str, list[i]) == 0) {
+			if (strcicmp(str, list[i]) == 0) {
 				ret = i;
 				break;
 			}

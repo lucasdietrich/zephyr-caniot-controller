@@ -127,7 +127,10 @@ void main(void)
 #endif /* CONFIG_CAN_INTERFACE */
 	
 	app_fs_init();
-	settings_init();
+
+#if defined(CONFIG_SETTINGS)
+	app_stg_init();
+#endif
 
 	creds_manager_init();
 
@@ -164,6 +167,14 @@ void main(void)
 	for (;;) {
 
 		/* 1 second tasks */
+
+#if defined(CONFIG_APP_PRINTF_1SEC_COUNTER)
+		/* If you are running your code in QEMU enable this printf
+		 * so that you can adjust CONFIG_QEMU_ICOUNT_SHIFT value
+		 */
+		printf("Counter: %u\n", counter);
+#endif /* CONFIG_APP_PRINTF_1SEC_COUNTER */
+
 
 		/* 10 second tasks */
 		if (counter % 10 == 0) {

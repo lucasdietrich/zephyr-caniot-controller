@@ -27,6 +27,7 @@ can be compiled without them.
 - Find a way to redirect stdout and stderr to a file or to logging system
   - Check `zephyr/lib/libc/newlib/libc-hooks.c`
 - `CONFIG_NEWLIB_LIBC_MIN_REQUIRED_HEAP_SIZE` seems to have no effect
+- Look at zephyr Settings Subsystem and this sample: samples/subsys/settings/src/main.c
 
 ## Add license header to files:
 

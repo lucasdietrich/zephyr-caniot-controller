@@ -46,6 +46,8 @@
 
 #include <caniot/caniot.h>
 #include <caniot/datatype.h>
+#include <caniot/classes/class0.h>
+#include <caniot/classes/class1.h>
 
 #include <embedc/parser.h>
 
@@ -1133,7 +1135,7 @@ int rest_devices_caniot_blc1_command(http_request_t *req,
 
 	resp->status_code = HTTP_STATUS_BAD_REQUEST;
 
-	if (caniot_deviceid_valid(did)) {
+	if (caniot_deviceid_valid(did) == false) {
 		goto exit;
 	}
 
@@ -1149,8 +1151,26 @@ int rest_devices_caniot_blc1_command(http_request_t *req,
 
 	resp->status_code = HTTP_STATUS_OK;
 
+	/* Build class1 BLC command */
+	struct caniot_blc1_command cmd;
+	caniot_cmd_blc1_init(&cmd);
+	for (uint32_t i = 0; i < post.count; i++) {
+		caniot_complex_digital_cmd_t xps = ha_parse_xps_command(post.xps[i]);
+		LOG_INF("BLC1 XPS[%u] = %s (%u)", i, post.xps[i], xps);
+		caniot_cmd_blc1_set_xps(&cmd, i, xps);
+	}
+
+	/* Convert to CANIOT command */
+	struct caniot_frame q;
+	caniot_build_query_command(&q, CANIOT_ENDPOINT_BOARD_CONTROL, (uint8_t *)&cmd, sizeof(cmd));
+
+	LOG_HEXDUMP_INF((uint8_t *)&cmd, sizeof(cmd), "BLC1 command: ");
+
+	/* execute and build appropriate response */
+	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
+	ret = caniot_q_ct_to_json_resp(&q, did, &timeout, resp);
+
 	LOG_INF("POST /devices/caniot/%u/endpoints/blc/command -> %d", did, ret);
-	LOG_INF("Array size: %u", post.count);
 
 exit:
 	return ret;

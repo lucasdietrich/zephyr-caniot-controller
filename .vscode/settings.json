@@ -240,7 +240,7 @@
                         "editorBracketPairGuide.activeBackground6": "#19f9d8",
                 }
         },
-        "devicetree.defaultBoard": "nucleo_f429zi",
+        "devicetree.defaultBoard": "nucleo_f429zi", /* nucleo_f429zi / mps2_an385 Default board to use for devicetree */
         "editor.rulers": [80],
         "python.defaultInterpreterPath": "../.venv/bin/python",
 }

@@ -35,6 +35,9 @@ build_nucleo_f429zi_shell:
 	west build --board=nucleo_f429zi -- -DOVERLAY_CONFIG="overlays/f429zi_shell.conf" -G"$(GENERATOR)"
 
 build_qemu:
+	west build --board=mps2_an385 -- -G"$(GENERATOR)"
+
+build_qemu_x86:
 	west build --board=qemu_x86 -- -G"$(GENERATOR)"
 
 flash:

@@ -2,7 +2,7 @@
 
 Following table describe filesystems available for the application:
 
-| Filesystem | Description                 | nucleo_f429zi | qemu_x86 |
+| Filesystem | Description                 | nucleo_f429zi | qemu |
 | ---------- | --------------------------- | ------------- | -------- |
 | SD:        | SDMMC FAT32 - Persistent    | yes           | no       |
 | RAM:       | RAM memory FAT32 - Volatile | (yes)         | yes      |
