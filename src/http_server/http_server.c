@@ -137,12 +137,12 @@ static int setup_socket(struct pollfd *pfd, bool secure)
 		goto exit;
 	}
 
-	ret = zsock_fcntl(sock, F_SETFL, O_NONBLOCK);
-	if (ret < 0) {
-		LOG_ERR("(%d) Failed to set socket non-blocking = %d",
-			sock, ret);
-		goto exit;
-	}
+	// ret = zsock_fcntl(sock, F_SETFL, O_NONBLOCK);
+	// if (ret < 0) {
+	// 	LOG_ERR("(%d) Failed to set socket non-blocking = %d",
+	// 		sock, ret);
+	// 	goto exit;
+	// }
 
 	/* set secure tag */
 	if (secure) {
@@ -286,12 +286,12 @@ static int srv_accept(int serv_sock, bool secure)
 		goto exit;
 	}
 
-	ret = zsock_fcntl(sock, F_SETFL, O_NONBLOCK);
-	if (ret < 0) {
-		LOG_ERR("(%d) Failed to set socket non-blocking = %d",
-			sock, ret);
-		goto exit;
-	}
+	// ret = zsock_fcntl(sock, F_SETFL, O_NONBLOCK);
+	// if (ret < 0) {
+	// 	LOG_ERR("(%d) Failed to set socket non-blocking = %d",
+	// 		sock, ret);
+	// 	goto exit;
+	// }
 
 	char ipv4_str[NET_IPV4_ADDR_LEN];
 	ipv4_to_str(&addr.sin_addr, ipv4_str, sizeof(ipv4_str));
