@@ -377,6 +377,8 @@ static http_test_result_t test_resp_handler(struct http_test_context *ctx,
 			goto exit;
 		}
 	} else {
+		ctx->received_bytes += req->payload.len;
+
 		if (req->payload.len != req->payload_len) {
 			result = HTTP_TEST_RESULT_PAYLOAD_LEN_INVALID;
 			goto exit;

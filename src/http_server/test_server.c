@@ -109,15 +109,7 @@ int http_test_streaming(struct http_request *req,
 {
 	static uint32_t checksum = 0U;
 	static uint32_t received_bytes = 0U;
-	static uint32_t last_chunk_id = -1;
 	static uint32_t uptime_ms;
-	static bool req_ok = true;
-
-	http_route_get_method(req->route);
-
-	/* Always check */
-	req_ok &= req->method == http_req_get_method(req);
-	// req_ok &= req->handling_mode == HTTP_REQUEST_STREAM;
 
 	if (req->complete == 0) {
 		/* We are receiving a chunk */
@@ -127,24 +119,14 @@ int http_test_streaming(struct http_request *req,
 		if (req->calls_count == 0) {
 			checksum = 0;
 			received_bytes = 0;
-			last_chunk_id = -1;
-			req_ok = true;
 			uptime_ms = k_uptime_get_32();
 		}
 
-		checksum = test_checksum(checksum, req->chunk.loc, req->chunk.len);
+		checksum = test_checksum(checksum, req->payload.loc, req->payload.len);
 		received_bytes += req->chunk.len;
-
-		req_ok &= received_bytes == req->payload_len;
-
-		/* check that there are not gaps in the chunks */
-		if (req->chunk.id > last_chunk_id + 1) {
-			req_ok = false;
-		}
-		last_chunk_id = req->chunk.id;
 	} else {
 		struct json_test_result tr = {
-			.ok = (uint32_t)req_ok,
+			.ok = (uint32_t)1u,
 			.payload_len = req->payload_len,
 			.payload_checksum = checksum,
 			.route_args_count = 0U,

@@ -224,7 +224,7 @@ configure and run the script [scripts/forward_webserver_ports.sh](./scripts/forw
 ## `mps2_an385` target
 
 `mps2_an385` supports both `slip` and real `lan9220` hardware.
-- If using `lan9220` hardware, run the script "sudo ../net-tools/net-setup.sh" (`sudo`) to start the interface.
+- If using `lan9220` hardware, run the script `sudo ../net-tools/net-setup.sh` (`sudo`) to start the interface.
 - If using `slip` interface, as for `qemu_x86`, run `./scripts/prepareqemunet.sh`
 
 Then run your application with `west build -t run`
