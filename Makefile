@@ -23,19 +23,35 @@ tmp:
 # Activate python env variable before building: "source ../.venv/bin/activate "
 # add option "--cmake-only" to not build immediately
 build:
-	west build --board=nucleo_f429zi -- -G"$(GENERATOR)"
+	west build --board=nucleo_f429zi -- \
+		-G"$(GENERATOR)"
 
 build_nucleo_f429zi_ramfatfs:
-	west build --board=nucleo_f429zi -- -DOVERLAY_CONFIG="overlays/f429zi_ram_fatfs.conf" -G"$(GENERATOR)"
+	west build --board=nucleo_f429zi -- \
+		-DOVERLAY_CONFIG="overlays/nucleo_f429zi_ram_fatfs.conf" \
+		-G"$(GENERATOR)"
 
 build_nucleo_f429zi_ramfatfs_shell:
-	west build --board=nucleo_f429zi -- -DOVERLAY_CONFIG="overlays/f429zi_ram_fatfs.conf overlays/f429zi_shell.conf" -G"$(GENERATOR)"
+	west build --board=nucleo_f429zi -- \
+	-DOVERLAY_CONFIG="overlays/nucleo_f429zi_ram_fatfs.conf overlays/nucleo_f429zi_shell.conf" \
+	-G"$(GENERATOR)"
 
 build_nucleo_f429zi_shell:
-	west build --board=nucleo_f429zi -- -DOVERLAY_CONFIG="overlays/f429zi_shell.conf" -G"$(GENERATOR)"
+	west build --board=nucleo_f429zi -- \
+	-DOVERLAY_CONFIG="overlays/nucleo_f429zi_shell.conf" -G"$(GENERATOR)"
 
-build_qemu:
-	west build --board=mps2_an385 -- -G"$(GENERATOR)"
+build_qemu_arm_slip:
+	west build --board=mps2_an385 -- \
+	-DOVERLAY_CONFIG="overlays/mps2_an385_slip.conf" \
+	-DDTC_OVERLAY_FILE="overlays/mps2_an385_slip.overlay" \
+	-G"$(GENERATOR)"
+
+# Doesn't work yet (TODO)
+build_qemu_arm_lan9220:
+	west build --board=mps2_an385 -- \
+	-DOVERLAY_CONFIG="overlays/mps2_an385_lan9220.conf" \
+	-DDTC_OVERLAY_FILE="overlays/mps2_an385_lan9220.overlay" \
+	-G"$(GENERATOR)"
 
 build_qemu_x86:
 	west build --board=qemu_x86 -- -G"$(GENERATOR)"

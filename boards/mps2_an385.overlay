@@ -1,3 +1,6 @@
+&eth0 {
+	status = "disabled";
+};
 
 /* For later use */
 /*

@@ -93,9 +93,9 @@
         },
         {
             "label": "qemu ARM",
-            "detail": "make build_qemu (build for QEMU ARM)",
+            "detail": "make build_qemu_arm_slip (build for QEMU ARM)",
             "type": "shell",
-            "command": "source ${venvPath}/bin/activate && make build_qemu",
+            "command": "source ${venvPath}/bin/activate && make build_qemu_arm_slip",
             "args": [
 
             ],

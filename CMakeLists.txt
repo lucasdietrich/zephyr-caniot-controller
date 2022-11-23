@@ -21,7 +21,7 @@ endif()
 #  set(CONF_FILE "prj.conf")
 # set(OVERLAY_CONFIG "boards/nucleo_f429zi.conf boards/f429zi_spi_disk.conf ${OVERLAY_CONFIG}")
 if (BOARD STREQUAL "nucleo_f429zi")
-    set(OVERLAY_CONFIG "overlays/f429zi_spi_disk.conf overlays/mcuboot.conf ${OVERLAY_CONFIG}")
+    set(OVERLAY_CONFIG "overlays/nucleo_f429zi_spi_disk.conf overlays/nucleo_f429zi_mcuboot.conf ${OVERLAY_CONFIG}")
 endif()
 
 # Debug.conf

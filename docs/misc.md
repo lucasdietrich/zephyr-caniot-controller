@@ -1,35 +1,6 @@
-# TODO
+# Misc
 
-## Immediate
-- Remove dependencies on CANIOT_LIB, CANIOT_CONTROLLER, HA, so that the code
-can be compiled without them.
-- Add general diagnostic messages
-
-## Long term
-
-- Cannot uses 2 sockets chrome with keepalive
-- Use [docs/ram_report.txt](./docs/ram_report.txt) to optimize memory usage
-  - DNS buffers
-- Bit of C++ ?
-- HTTP:
-  - Improve HTTP request handling by the application
-    - Introduce event type with types : { stream_first, stream_end, payload, response_first, response_end } or flags ?
-  - Make requests processing completely assynchronous (with concurrent requests)
-    - Using workqueue to process requests ?
-  - Allow to stream response -> helps to decrease http buffer size
-- Draft LUA scripts orchestrator
-- REST: list files in filesystem
-- HTTP: allow to download files from the filesystem
-- Allow to store few scripts in the SoC ROM
-- Test keepalive feature
-- Allow authentication using "username:password" and x509 certificates
-- Find a way to be able to print numbers from LUA with CONFIG_NEWLIB_LIBC_NANO enabled (for ARM)
-- Find a way to redirect stdout and stderr to a file or to logging system
-  - Check `zephyr/lib/libc/newlib/libc-hooks.c`
-- `CONFIG_NEWLIB_LIBC_MIN_REQUIRED_HEAP_SIZE` seems to have no effect
-- Look at zephyr Settings Subsystem and this sample: samples/subsys/settings/src/main.c
-
-## Add license header to files:
+## License
 
 For c, cpp, h, hpp files:
 ```

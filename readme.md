@@ -118,7 +118,7 @@ If you want to enable a feature, you need to add the corresponding overlay file
 to the `OVERLAY_CONFIG` cmake variable, as follows, for further details please refer 
 to [this Makefile](./Makefile).
 
-    west build -b nucleo_f429zi -- -DOVERLAY_CONFIG="overlays/f429zi_shell.conf"
+    west build -b nucleo_f429zi -- -DOVERLAY_CONFIG="overlays/nucleo_f429zi_shell.conf"
 
 You may want to enable a specific feature, to do so, set `-DOVERLAY_CONFIG` 
 
@@ -175,7 +175,7 @@ In case of error, please refer to the troubleshooting section below.
 
 With west simply flash with `west flash`
 
-### Run in QEMU with Networking (TAP)
+### QEMU Networking
 
 If you want to run the application on QEMU with networking, more configuration is required.
 - Clone `git clone zephyrproject-rtos/net-tools` in your zephyr workspace (`zedpyr-caniot-workspace`).
@@ -223,12 +223,11 @@ configure and run the script [scripts/forward_webserver_ports.sh](./scripts/forw
 
 ## `mps2_an385` target
 
-`mps2_an385` use `LAN9220` driver.
-
-You will need to run script "sudo ../net-tools/net-setup.sh" (`sudo`) to start the interface.
+`mps2_an385` supports both `slip` and real `lan9220` hardware.
+- If using `lan9220` hardware, run the script "sudo ../net-tools/net-setup.sh" (`sudo`) to start the interface.
+- If using `slip` interface, as for `qemu_x86`, run `./scripts/prepareqemunet.sh`
 
 Then run your application with `west build -t run`
-
     west build -t run
 
 
@@ -291,15 +290,15 @@ SLIP TAP networking:
 
     ssh lucas@fedora sudo tcpdump -U -s0 'not port 22' -i tap0 -w - | "C:\Program Files\Wireshark\Wireshark.exe" -k -i -
 
-Interface `zeth`
+Interface `zeth` (with `lan9220` for example):
 
     ssh lucas@fedora sudo tcpdump -U -s0 'not port 22' -i zeth -w - | "C:\Program Files\Wireshark\Wireshark.exe" -k -i -
 
-- If you are on a Linux host, with your QEMU instance running on a Linux guest, use the following command:
+If you are on a Linux host, with your QEMU instance running on a Linux guest, use the following command (`zeth` instead of `tap0` if not using slip):
 
     ssh lucas@fedora sudo tcpdump -U -s0 'not port 22' -i tap0 -w - | wireshark -k -i -
 
-- If your wireshark and QEMU are on the same machine:
+If your wireshark and QEMU are on the same machine (`zeth` instead of `tap0` if not using slip):
 
     sudo tcpdump -U -s0 'not port 22' -i tap0 -w - | wireshark -k -i -
 
@@ -399,8 +398,35 @@ somecalc1.lua
 
 ## TODO
 
+### Immediate
+- Remove dependencies on CANIOT_LIB, CANIOT_CONTROLLER, HA, so that the code
+can be compiled without them.
+- Add general diagnostic messages
+- Look at zephyr Settings Subsystem and this sample: samples/subsys/settings/src/main.c
+- **Fix use of lan9220 ethernet driver with mps2_an385**
+
+### Long term
+
 - Move several buffers to CCM to keep space in SRAM for Newlib heap (for LUA)
-- Allow to embed LUA script when building for `nucleo_f429zi`
+- ~~Allow to embed LUA script when building for `nucleo_f429zi`~~
+- Cannot uses 2 sockets chrome with keepalive
+- Use [docs/ram_report.txt](./docs/ram_report.txt) to optimize memory usage
+  - DNS buffers
+- Bit of C++ ?
+- HTTP:
+  - Make requests processing completely assynchronous (with concurrent requests)
+    - Using workqueue to process requests ?
+  - Allow to stream response -> helps to decrease http buffer size
+- ~~Draft LUA scripts orchestrator~~
+- REST: list files in filesystem
+- HTTP: allow to download files from the filesystem
+- Allow to store few scripts in the SoC ROM
+- Test keepalive feature
+- Allow authentication using "username:password" and x509 certificates
+- Find a way to be able to print numbers from LUA with CONFIG_NEWLIB_LIBC_NANO enabled (for ARM)
+- Find a way to redirect stdout and stderr to a file or to logging system
+  - Check `zephyr/lib/libc/newlib/libc-hooks.c`
+- `CONFIG_NEWLIB_LIBC_MIN_REQUIRED_HEAP_SIZE` seems to have no effect
 
 ## Troubleshooting
 - TODO
