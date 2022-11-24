@@ -304,54 +304,70 @@ If your wireshark and QEMU are on the same machine (`zeth` instead of `tap0` if 
 
 ## Features
 
-- developped, in progress, incoming
+Progress if not percentage :
+- `P` for planned
+- `E` for evaluated (soon to be implemented)
+- `T` for testing
+- `D` for done
+- `A` for abandoned
 
-- HTTP
-  - Concurrent connections (up to 3)
-  - Keep-alive support
-  - HTTP/HTTPS (TLS 1.2)
-  - Chunked encoding for requests (stream)
-  - **TODO** Chunked encoding for responses (stream)
-  - REST server base
-  - WEB server base
-  - **TODO** Multipart parser
-  - Prometheus metrics client
-  - **TODO** File download
-  - WebServer
-- BLE controller
-  - Interface: IPC with nrf52840dk
-  - Data collector
-- CAN controller
-  - Interface
-  - CANIOT controller
-- LUA
-  - **TODO** orchestrator
-  - **TODO** OS module
-  - **TODO** Application programming interface (API)
-- Cloud
-  - **TODO** AWS IoT 
-    - Request/response
-    - Device update
-    - Device sync with Device Shadow
-- Filesystem
-  - **PoC** Settings (NVS)
-  - RAM FAT FS
-  - **PoC** SD FAT FS
-  - **TODO** SD FAT FS formatting
-- **PoC** HA abstraction layer 
-- UDP discovery server
-- Userio
-  - **PoC** LEDS
-  - **PoC** Button
-- Stats
-  - **TODO** HEAP usage (newlibc)
-  - MbedTLS memory usage
-  - Stacks usage
-- Sensors:
-  - I2C Temperature sensor
+Priority: grade from 1 to 10.
 
-Other ideas:
-- Thread/Matter
+| Module           | Feature                                 | Progress | Priority | Issues |
+| ---------------- | --------------------------------------- | -------- | -------- | ------ |
+| HTTP Server      |                                         |          |          |        |
+|                  | Concurrent connections                  | D        |          |        |
+|                  | Keep-alive support                      | D        |          |        |
+|                  | Static files                            | 15%      |          |        |
+|                  | HTTPS                                   | D        |          |        |
+|                  | HTTPS Client Authentication             | 0%       |          |        |
+|                  | Chunked encoding (request)              | D        |          |        |
+|                  | Chunked encoding (response)             | D        |          |        |
+|                  | Webserver                               | 0%       | 5        |        |
+|                  | REST server                             | D        |          |        |
+|                  | Prometheus metrics client               | D        |          |        |
+|                  | File download                           | 50%      |          |        |
+|                  | Multipart parser (for files)            | 0%       | 5        |        |
+| BLE              |                                         |          |          |        |
+|                  | HCI Interface                           | E        |          |        |
+|                  | GATT Server (phone application)         | P        | 10       |        |
+|                  | GATT Client                             | P        |          |        |
+|                  | Xiaomi data collector                   | E        |          |        |
+| CAN              |                                         |          |          |        |
+|                  | CAN Interface                           | D        |          |        |
+|                  | CANIOT (class0)                         | T        |          |        |
+|                  | CANIOT (class1)                         | 25%      | 10       |        |
+|                  | CANIOT (telemetry)                      | T        | 10       |        |
+|                  | CANIOT (command)                        | 0%       | 10       |        |
+| LUA              |                                         | A        |          |        |
+|                  | Lua interpreter                         | DA       |          |        |
+|                  | Lua orchestrator                        | 10% A    |          |        |
+|                  | OS Module for LUA                       | 0% A     |          |        |
+|                  | Devices module for LUA                  | 0% A     |          |        |
+|                  | REST API                                | 25% A    |          |        |
+| HA               |                                         | P        |          |        |
+| CLOUD            |                                         |          |          |        |
+|                  | AWS IoT (publish)                       | T        |          |        |
+|                  | AWS IoT (remote control)                | 0% P     |          |        |
+|                  | AWS Iot (remote config - device shadow) | 0%       |          |        |
+| FS               |                                         |          |          |
+|                  | SD SPI FAT32                            | D        |          |        |
+|                  | SD MCC FAT32                            | 0% P     |          |        |
+|                  | SD card FAT32 formatting                | 0% P     |          |        |
+|                  | NVS FLASH                               | D        |          |        |
+| Discovery server |                                         |          |          |        |
+|                  | UDP Discovery server                    | 80% P    |          |        |
+| User IO          |                                         |          |          |        |
+|                  | LEDs                                    | E        |          |        |
+|                  | Buttons                                 | E        |          |        |
+| Stats            |                                         |          |          |        |
+|                  | Heap memory usage                       | P        |          |        |
+|                  | Mbedtls memory usage                    | P        |          |        |
+|                  | HA stats                                | P        |          |        |
+|                  | CAN stats                               | P        |          |        |
+|                  | NET stats                               | P        |          |        |
+|                  | BLE stats                               | P        |          |        |
+| Thread/matter    |                                         | P        |          |        |
 
 
 ## Footprint
@@ -433,6 +449,8 @@ ASSERTION FAIL [atomic_get(&ev->ref_count) == (atomic_val_t)0] @ WEST_TOPDIR/zep
 - Find a way to redirect stdout and stderr to a file or to logging system
   - Check `zephyr/lib/libc/newlib/libc-hooks.c`
 - `CONFIG_NEWLIB_LIBC_MIN_REQUIRED_HEAP_SIZE` seems to have no effect
+- Create a totally agnostic API for devices, allowing to add many kind of MAC 
+addr abstraction layers.
 
 ## Troubleshooting
 - TODO

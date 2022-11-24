@@ -14,5 +14,8 @@ A device should at least have (one of):
 - `ha`: Home Automation
 - `dev`: Device
 - `ev`: Event
+- `ep`: Endpoint
 - `ds`: Dataset
-- ``
+- `dt`: Datatype
+- `subs`: Subscription
+
