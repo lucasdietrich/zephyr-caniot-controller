@@ -16,7 +16,6 @@
 #include "lua/utils.h"
 #include "lua/orchestrator.h"
 #include "utils/freelist.h"
-#include "settings/settings.h"
 
 #if defined(CONFIG_DFU)
 #include "dfu/dfu.h"
@@ -127,10 +126,6 @@ void main(void)
 #endif /* CONFIG_CAN_INTERFACE */
 	
 	app_fs_init();
-
-#if defined(CONFIG_SETTINGS)
-	app_stg_init();
-#endif
 
 	creds_manager_init();
 

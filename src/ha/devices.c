@@ -982,6 +982,7 @@ static int event_notify_single(struct ha_ev_subs *sub,
 			ret = 1;
 		} else {
 			/* Unref on error */
+
 			ha_ev_unref(event);
 
 			LOG_ERR("k_fifo_alloc_put() error %d", ret);

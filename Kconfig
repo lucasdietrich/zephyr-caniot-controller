@@ -91,14 +91,7 @@ config CANIOT_CONTROLLER
         depends on CANIOT_LIB
         help
                 Enable CANIOT controller redirection for CAN messages
-
-config APP_SETTINGS
-        bool "Enable persistent settings"
-        default y
-        depends on FLASH_PAGE_LAYOUT
-        help
-                Enable settings features (persistent storage)
-
+                
 # artificaly enable HAL_CRC drivers from STM32CUBE
 # read : https://github.com/zephyrproject-rtos/zephyr/issues/37543
 config MY_STM32_HAL

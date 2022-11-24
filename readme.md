@@ -404,6 +404,12 @@ can be compiled without them.
 - Add general diagnostic messages
 - Look at zephyr Settings Subsystem and this sample: samples/subsys/settings/src/main.c
 - **Fix use of lan9220 ethernet driver with mps2_an385**
+- Investigate crash for emulated devices in QEMU:
+```
+ASSERTION FAIL [atomic_get(&ev->ref_count) == (atomic_val_t)0] @ WEST_TOPDIR/zephyr-caniot-controller/src/ha/devices.c:867
+[00:07:59.400,000] <err> ha_dev: k_fifo_alloc_put() error -12
+[00:07:59.400,000] <err> ha_dev: Failed to notify event 0x20093868 to 0x20093988, err=-12
+```
 
 ### Long term
 

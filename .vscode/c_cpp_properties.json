@@ -31,7 +31,7 @@
             "cppStandard": "c++17"
         },
         {
-            "name": "PlatformIO",
+            "name": "PlatformIO (deprecated)",
             "includePath": [
                 "${workspaceFolder}/build",
                 "${zephyrDirectory}/include",
