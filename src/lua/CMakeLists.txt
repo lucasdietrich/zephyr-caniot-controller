@@ -11,4 +11,4 @@ zephyr_include_directories(${APPLICATION_SOURCE_DIR}/modules)
 
 target_sources(app PRIVATE "orchestrator.c" "libc_stubs.c" "modules.c")
 
-target_sources_ifdef(CONFIG_LUA_FS_DEFAULT_SCRIPTS app PRIVATE "emblua.c")
+target_sources_ifdef(CONFIG_APP_LUA_FS_DEFAULT_SCRIPTS app PRIVATE "emblua.c")

@@ -19,12 +19,12 @@
 #include "utils/misc.h"
 
 /* find a better way to do this */
-#ifndef CONFIG_DISCOVERY_SERVER_LOG_LEVEL
-#define CONFIG_DISCOVERY_SERVER_LOG_LEVEL 0
-#endif /* CONFIG_DISCOVERY_SERVER_LOG_LEVEL */
+#ifndef CONFIG_APP_DISCOVERY_SERVER_LOG_LEVEL
+#define CONFIG_APP_DISCOVERY_SERVER_LOG_LEVEL 0
+#endif /* CONFIG_APP_DISCOVERY_SERVER_LOG_LEVEL */
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(discovery, CONFIG_DISCOVERY_SERVER_LOG_LEVEL);
+LOG_MODULE_REGISTER(discovery, CONFIG_APP_DISCOVERY_SERVER_LOG_LEVEL);
 
 #define DISCOVERY_PORT          5000
 #define SEARCH_STRING           "Search caniot-controller"

@@ -344,7 +344,7 @@ struct ha_device {
 	/* Device API */
 	const struct ha_device_api *api;
 
-#if defined(CONFIG_HA_DEVICE_STATS)
+#if defined(CONFIG_APP_HA_DEVICE_STATS)
 	/* Device statistics */
 	struct ha_dev_stats stats;
 #endif
@@ -390,7 +390,7 @@ typedef struct ha_event {
 	/* Event payload */
 	void *data;
 
-#if defined(CONFIG_HA_STATS)
+#if defined(CONFIG_APP_HA_STATS)
 	uint16_t data_size;
 #endif
 

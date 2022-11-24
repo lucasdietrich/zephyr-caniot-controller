@@ -6,7 +6,7 @@
 
 mainmenu "credentials"
 
-config CREDS_HARDCODED
+config APP_CREDS_HARDCODED
 	bool "Credentials should be hardcoded"
 	default y
 	help
@@ -14,16 +14,16 @@ config CREDS_HARDCODED
                 Reserved for development.
 
 
-choice CREDS_MANAGEMENT
+choice APP_CREDS_MANAGEMENT
 	prompt "Choose how certificates should be managed"
-	default CREDS_NONE
+	default APP_CREDS_NONE
 
-config CREDS_NONE
+config APP_CREDS_NONE
 	bool "No dynamic certificates management"
 	help
 		No dynamic certificates management.
 
-config CREDS_FLASH
+config APP_CREDS_FLASH
 	bool "Credentials should be stored in flash"
     depends on FLASH
 	depends on FLASH_HAS_DRIVER_ENABLED
@@ -31,7 +31,7 @@ config CREDS_FLASH
 	help
 		Enable FLASH support for credentials
 
-config CREDS_FS
+config APP_CREDS_FS
 	bool "Credentials should be stored in a filesystem"
     depends on FILE_SYSTEM
 	help

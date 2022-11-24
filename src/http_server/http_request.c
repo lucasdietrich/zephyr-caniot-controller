@@ -61,7 +61,7 @@ void http_request_init(http_request_t *req)
 	/* Rest of the request is initialize to 0 */
 	*req = (http_request_t) {
 		.content_type = HTTP_CONTENT_TYPE_TEXT_PLAIN,
-		.route_parse_results_len = CONFIG_ROUTE_MAX_DEPTH,
+		.route_parse_results_len = CONFIG_APP_ROUTE_MAX_DEPTH,
 
 		.url_len = 0u,
 	};
@@ -70,7 +70,7 @@ void http_request_init(http_request_t *req)
 
 	http_parser_init(&req->parser, HTTP_REQUEST);
 
-#if defined(CONFIG_HTTP_TEST)
+#if defined(CONFIG_APP_HTTP_TEST)
 	http_test_init_context(&req->_test_ctx);
 #endif
 }
@@ -236,7 +236,7 @@ static int header_content_type_handler(http_request_t *req,
 	return 0;
 }
 
-static char hdrbuf[CONFIG_HTTP_REQUEST_HEADERS_BUFFER_SIZE];
+static char hdrbuf[CONFIG_APP_HTTP_REQUEST_HEADERS_BUFFER_SIZE];
 static size_t hdr_allocated = 0U;
 
 static struct http_header *alloc_header_buffer(size_t value_size)
@@ -306,11 +306,11 @@ static const struct header headers[] = {
 	HEADER("App-Script-Filename", header_keep),
 	HEADER("App-sha1", header_keep),
 
-#if defined(CONFIG_HTTP_TEST_SERVER)
+#if defined(CONFIG_APP_HTTP_TEST_SERVER)
 	HEADER("App-Test-Header1", header_keep),
 	HEADER("App-Test-Header2", header_keep),
 	HEADER("App-Test-Header3", header_keep),
-#endif /* CONFIG_HTTP_TEST_SERVER */
+#endif /* CONFIG_APP_HTTP_TEST_SERVER */
 };
 
 /* TODO check that the implementation leads only to a single call to the
@@ -364,7 +364,7 @@ static int on_headers_complete(struct http_parser *parser)
 
 	LOG_INF("(%p) Headers complete %s %s content len=%d [hdr buf %u/%u]",
 		req, http_method_str(method), req->url, content_length,
-		hdr_allocated, CONFIG_HTTP_REQUEST_HEADERS_BUFFER_SIZE);
+		hdr_allocated, CONFIG_APP_HTTP_REQUEST_HEADERS_BUFFER_SIZE);
 
 	/* For debug */
 	if (req->_url_copy != NULL) {
@@ -397,12 +397,12 @@ static int on_headers_complete(struct http_parser *parser)
 	}
 
 	/* Check for secure */
-#if defined(CONFIG_HTTP_TEST)
+#if defined(CONFIG_APP_HTTP_TEST)
 	/* Here we decide if we want to test the
 	 * request as a stream or a message
 	 */
 	req->_test_ctx.stream = http_request_is_stream(req);
-#endif /* CONFIG_HTTP_TEST */
+#endif /* CONFIG_APP_HTTP_TEST */
 
 	return 0;
 }
@@ -572,10 +572,10 @@ bool http_request_parse(http_request_t *req,
 			if (req->complete == 0u) {
 				__ASSERT_NO_MSG(req->streaming == 1u);
 
-#if defined(CONFIG_HTTP_TEST)
+#if defined(CONFIG_APP_HTTP_TEST)
 		/* Should always be called when the handler is called */
 				http_test_run(&req->_test_ctx, req, NULL, HTTP_TEST_HANDLER_REQ);
-#endif /* CONFIG_HTTP_TEST */
+#endif /* CONFIG_APP_HTTP_TEST */
 
 				route_get_req_handler(req->route)(req, NULL);
 

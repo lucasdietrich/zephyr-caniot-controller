@@ -20,5 +20,5 @@ SET(app_sources
 )
 
 target_sources(app PRIVATE ${app_sources})
-target_sources_ifdef(CONFIG_HTTP_TEST_SERVER app PRIVATE test_server.c)
-target_sources_ifdef(CONFIG_DFU app PRIVATE dfu_server.c)
+target_sources_ifdef(CONFIG_APP_HTTP_TEST_SERVER app PRIVATE test_server.c)
+target_sources_ifdef(CONFIG_APP_DFU app PRIVATE dfu_server.c)

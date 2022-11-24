@@ -160,7 +160,7 @@ struct http_request
 	const struct route_descr *route;
 
 	/* Route parse result array */
-	struct route_parse_result route_parse_results[CONFIG_ROUTE_MAX_DEPTH];
+	struct route_parse_result route_parse_results[CONFIG_APP_ROUTE_MAX_DEPTH];
 
 	/* Current route depth */
 	uint32_t route_depth;
@@ -249,12 +249,12 @@ struct http_request
 	 */
 	struct http_parser parser;
 
-#if defined(CONFIG_HTTP_TEST)
+#if defined(CONFIG_APP_HTTP_TEST)
 	/**
-	 * @brief Test context for CONFIG_HTTP_TEST
+	 * @brief Test context for CONFIG_APP_HTTP_TEST
 	 */
 	struct http_test_context _test_ctx;
-#endif /* CONFIG_HTTP_TEST */
+#endif /* CONFIG_APP_HTTP_TEST */
 
 	/**
 	 * @brief User data, which can be used by the application

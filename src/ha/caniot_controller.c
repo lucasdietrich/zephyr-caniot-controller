@@ -29,7 +29,7 @@ LOG_MODULE_REGISTER(caniot, LOG_LEVEL_WRN);
 #define HA_CIOT_QUERY_TIMEOUT_TOLERANCE_MS 1u
 
 
-#if defined(CONFIG_CAN_INTERFACE)
+#if defined(CONFIG_APP_CAN_INTERFACE)
 CAN_MSGQ_DEFINE(can_rxq, 4U);
 #endif
 
@@ -37,7 +37,7 @@ CAN_MSGQ_DEFINE(can_rxq, 4U);
 static ha_ciot_ctrl_did_cb_t did_callbacks[CANIOT_DID_MAX_VALUE];
 
 // CONFIG CAN_INTERFACE
-// CONFIG_HA_EMULATED_DEVICES
+// CONFIG_APP_HA_EMULATED_DEVICES
 
 static void thread(void *_a, void *_b, void *_c);
 
@@ -51,14 +51,14 @@ static int z_can_send(const struct caniot_frame *frame,
 
 	__ASSERT(frame != NULL, "frame is NULL");
 
-#if defined(CONFIG_CAN_INTERFACE)
+#if defined(CONFIG_APP_CAN_INTERFACE)
 	struct can_frame zframe;
 	caniot_to_zcan(&zframe, frame);
 	ret = if_can_send(CAN_BUS_CANIOT, &zframe);
 	if (ret) goto exit;
 #endif
 
-#if defined(CONFIG_HA_EMULATED_DEVICES)
+#if defined(CONFIG_APP_HA_EMULATED_DEVICES)
 	ret = emu_caniot_send((struct caniot_frame *)frame);
 	if (ret) goto exit;
 #endif
@@ -256,10 +256,10 @@ bool event_cb(const caniot_controller_event_t *ev,
 typedef struct
 {
 	struct k_poll_event query;
-#if defined(CONFIG_CAN_INTERFACE)
+#if defined(CONFIG_APP_CAN_INTERFACE)
 	struct k_poll_event can;
 #endif
-#if defined(CONFIG_HA_EMULATED_DEVICES)
+#if defined(CONFIG_APP_HA_EMULATED_DEVICES)
 	struct k_poll_event can_emu;
 #endif
 } kpoll_can_events_t;
@@ -275,7 +275,7 @@ static void thread(void *_a, void *_b, void *_c)
 	int ret;
 	static struct caniot_frame frame;
 	
-#if defined(CONFIG_CAN_INTERFACE)
+#if defined(CONFIG_APP_CAN_INTERFACE)
 	static struct can_frame zframe;
 
 	struct can_filter filter = {
@@ -296,13 +296,13 @@ static void thread(void *_a, void *_b, void *_c)
 			K_POLL_TYPE_FIFO_DATA_AVAILABLE,
 			K_POLL_MODE_NOTIFY_ONLY,
 			&fifo_queries, 0),
-#if defined(CONFIG_CAN_INTERFACE)
+#if defined(CONFIG_APP_CAN_INTERFACE)
 		.can = K_POLL_EVENT_STATIC_INITIALIZER(
 			K_POLL_TYPE_MSGQ_DATA_AVAILABLE,
 			K_POLL_MODE_NOTIFY_ONLY,
 			&can_rxq, 0),
 #endif
-#if defined(CONFIG_HA_EMULATED_DEVICES)
+#if defined(CONFIG_APP_HA_EMULATED_DEVICES)
 		.can_emu = K_POLL_EVENT_STATIC_INITIALIZER(
 			K_POLL_TYPE_MSGQ_DATA_AVAILABLE,
 			K_POLL_MODE_NOTIFY_ONLY,
@@ -320,7 +320,7 @@ static void thread(void *_a, void *_b, void *_c)
 		if (ret == 0) {
 			struct caniot_frame *resp = NULL;
 
-#if defined(CONFIG_CAN_INTERFACE)
+#if defined(CONFIG_APP_CAN_INTERFACE)
 			/* events */
 			if (!resp && (events.can.state == K_POLL_STATE_MSGQ_DATA_AVAILABLE)) {
 				ret = k_msgq_get(&can_rxq, &zframe, K_NO_WAIT);
@@ -333,7 +333,7 @@ static void thread(void *_a, void *_b, void *_c)
 			}
 #endif
 
-#if defined(CONFIG_HA_EMULATED_DEVICES)
+#if defined(CONFIG_APP_HA_EMULATED_DEVICES)
 			/* "!resp" is to be sure to process a single frame at a time */
 			if (!resp && (events.can_emu.state == K_POLL_STATE_MSGQ_DATA_AVAILABLE)) {
 				ret = k_msgq_get(&emu_caniot_rxq, &frame, K_NO_WAIT);

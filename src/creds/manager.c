@@ -20,12 +20,12 @@ int creds_manager_init(void)
 {
 	int ret = -ENOTSUP;
 
-#if defined(CONFIG_CREDS_HARDCODED)
+#if defined(CONFIG_APP_CREDS_HARDCODED)
 	ret = harcoded_creds_init();
 	CHECK_OR_EXIT(ret == 0);
 #endif
 
-#if defined(CONFIG_CREDS_FLASH)
+#if defined(CONFIG_APP_CREDS_FLASH)
 	ret = flash_creds_init();
 	CHECK_OR_EXIT(ret == 0);
 
@@ -37,7 +37,7 @@ int creds_manager_init(void)
 	}
 #endif
 
-#if defined(CONFIG_CREDS_FS)
+#if defined(CONFIG_APP_CREDS_FS)
 	ret = fs_creds_init();
 	CHECK_OR_EXIT(ret == 0);
 #endif
@@ -53,21 +53,21 @@ int cred_get(cred_id_t id, struct cred *c)
 {
 	int ret = -ENOENT;
 
-#if defined(CONFIG_CREDS_HARDCODED)
+#if defined(CONFIG_APP_CREDS_HARDCODED)
 	ret = harcoded_cred_get(id, c);
 	if (ret == 0) {
 		goto exit;
 	}
 #endif 
 
-#if defined(CONFIG_CREDS_FLASH)
+#if defined(CONFIG_APP_CREDS_FLASH)
 	ret = flash_cred_get(id, c);
 	if (ret == 0) {
 		goto exit;
 	}
 #endif
 
-#if defined(CONFIG_CREDS_FS)
+#if defined(CONFIG_APP_CREDS_FS)
 	ret = fs_cred_get(id, c);
 	if (ret == 0) {
 		goto exit;
@@ -86,21 +86,21 @@ int cred_copy_to(cred_id_t id, char *buf, size_t *size)
 {
 	int ret = -ENOENT;
 
-#if defined(CONFIG_CREDS_HARDCODED)
+#if defined(CONFIG_APP_CREDS_HARDCODED)
 	ret = harcoded_cred_copy_to(id, buf, size);
 	if (ret >= 0 || ret == -ENOMEM) {
 		goto exit;
 	}
 #endif 
 
-#if defined(CONFIG_CREDS_FLASH)
+#if defined(CONFIG_APP_CREDS_FLASH)
 	ret = flash_cred_copy_to(id, buf, size);
 	if (ret >= 0 || ret == -ENOMEM) {
 		goto exit;
 	}
 #endif
 
-#if defined(CONFIG_CREDS_FS)
+#if defined(CONFIG_APP_CREDS_FS)
 	ret = fs_cred_copy_to(id, buf, size);
 	if (ret >= 0 || ret == -ENOMEM) {
 		goto exit;

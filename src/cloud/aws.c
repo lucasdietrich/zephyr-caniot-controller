@@ -110,8 +110,8 @@ struct cloud_platform aws_platform =
 	.name = "AWS",
 
 	.config = {
-		.clientid = CONFIG_AWS_THING_NAME,
-		.endpoint = CONFIG_AWS_ENDPOINT,
+		.clientid = CONFIG_APP_AWS_THING_NAME,
+		.endpoint = CONFIG_APP_AWS_ENDPOINT,
 		.port = AWS_ENDPOINT_PORT,
 		.sec_tag_list = sec_tls_tags,
 		.sec_tag_count = ARRAY_SIZE(sec_tls_tags),

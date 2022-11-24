@@ -8,11 +8,11 @@ from copy import copy, deepcopy
 
 
 def parse_config_file(prjconf: str, config: Dict = None) -> Dict:
-    rec_cfg_opt = re.compile(r'^CONFIG_(?P<option>[A-Z0-9_]+)=(?P<value>.*)$')
-    rec_cfg_val_int = re.compile(r'^(?P<int>-?[0-9]+)\s*$')
-    rec_cfg_val_hex = re.compile(r'^(?P<hex>-?0x[0-9a-fA-F]+)\s*$')
-    rec_cfg_val_yn = re.compile(r'^(?P<bool>y|n)\s*$')
-    rec_cfg_val_str = re.compile(r'^"(?P<str>.*)"\s*$')
+    rec_cfg_opt = re.compile(r'^CONFIG_(?P<option>[A-Z0-9_]+)=(?P<value>.*)\s*(#.*)?$')
+    rec_cfg_val_int = re.compile(r'^(?P<int>-?[0-9]+)\s*(#.*)?$')
+    rec_cfg_val_hex = re.compile(r'^(?P<hex>-?0x[0-9a-fA-F]+)\s*(#.*)?$')
+    rec_cfg_val_yn = re.compile(r'^(?P<bool>y|n)\s*(#.*)?$')
+    rec_cfg_val_str = re.compile(r'^"(?P<str>.*)"\s*(#.*)?$')
 
     if config is None:
         config = {}
@@ -65,9 +65,9 @@ def gather_configurations(configurations: Dict) -> OrderedDict:
                 configs[option] = []
             configs[option].append((board, value))
 
-    return configs
+    return dict(sorted(configs.items()))
 
-def gathered_configurations_remove_identical(gconfig: OrderedDict) -> OrderedDict:
+def gconfig_remove_identical(gconfig: OrderedDict) -> OrderedDict:
     out = OrderedDict()
 
     for option, values in gconfig.items():
@@ -80,9 +80,9 @@ def gathered_configurations_remove_identical(gconfig: OrderedDict) -> OrderedDic
         elif len(values) == 1:
             out[option] = deepcopy(values)
 
-    return out
+    return dict(sorted(out.items()))
 
-def gathered_configurations_list_boards(gconfig: OrderedDict) -> List[str]:
+def gconfig_list_boards(gconfig: OrderedDict) -> List[str]:
     boards = set()
 
     for option, values in gconfig.items():
@@ -91,11 +91,20 @@ def gathered_configurations_list_boards(gconfig: OrderedDict) -> List[str]:
 
     return list(boards)
 
-def gathered_configurations_export_to_csv(gconfig: OrderedDict, filename: str, boards_names_order: List = None) -> None:
+def gconfig_filter_app_opt(gconfig: OrderedDict) -> OrderedDict:
+    out = OrderedDict()
+
+    for option, values in gconfig.items():
+        if option.startswith("APP_"):
+            out[option] = deepcopy(values)
+
+    return dict(sorted(out.items()))
+
+def gconfig_export_to_csv(gconfig: OrderedDict, filename: str, boards_names_order: List = None) -> None:
     if boards_names_order is None:
         boards_names_order = []
 
-    boards_names = gathered_configurations_list_boards(gconfig)
+    boards_names = gconfig_list_boards(gconfig)
     boards_names = sorted(
         boards_names,
         key=lambda x: boards_names_order.index(x)
@@ -146,17 +155,29 @@ if __name__ == "__main__":
 
     configurations = {}
 
+    boards_names_order = [
+        "nucleo_f429zi",
+        "mps2_an385",
+        "qemu_x86",
+    ]
+
     for board, conf_files in boards.items():
         configurations[board] = parse_config_files(conf_files)
 
-    gconfigurations = gather_configurations(configurations)
-    gconfigurations = gathered_configurations_remove_identical(gconfigurations)
-    gathered_configurations_export_to_csv(
-        gconfigurations,
-        "./tmp/configurations.csv", [
-            "nucleo_f429zi",
-            "mps2_an385",
-            "qemu_x86",
-        ])
+    gconf_all = gather_configurations(configurations)
 
-    pprint(gconfigurations)
+    gconf_diff = gconfig_remove_identical(gconf_all)
+    gconfig_export_to_csv(
+        gconf_diff,
+        "./tmp/configurations.csv", 
+        boards_names_order)
+    print("Saved DIFF configurations to ./tmp/configurations.csv")
+
+    gconf_app = gconfig_filter_app_opt(gconf_all)
+    gconfig_export_to_csv(
+        gconf_app,
+        "./tmp/configurations_app.csv",
+        boards_names_order)
+    print("Saved APP configurations to ./tmp/configurations_app.csv")
+
+    # pprint(gconfigurations)

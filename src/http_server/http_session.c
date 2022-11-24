@@ -11,7 +11,7 @@
 
 /* sessions sessions */
 
-static http_session_t sessions[CONFIG_HTTP_MAX_SESSIONS];
+static http_session_t sessions[CONFIG_APP_HTTP_MAX_SESSIONS];
 
 static sys_dlist_t sessions_list = SYS_DLIST_STATIC_INIT(&sessions_list);
 static sys_slist_t sessions_free_list = SYS_SLIST_STATIC_INIT(&sessions_free_list);
@@ -21,7 +21,7 @@ void http_session_init(void)
 	/* Initialize the free list of blocks 
 	 * I think there is no zephyr structure that allows to do this.
 	 */
-	for (uint32_t i = 0; i < CONFIG_HTTP_MAX_SESSIONS; i++) {
+	for (uint32_t i = 0; i < CONFIG_APP_HTTP_MAX_SESSIONS; i++) {
 		sys_slist_append(&sessions_free_list, &sessions[i]._alloc_handle);
 	}
 }

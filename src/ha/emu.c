@@ -13,7 +13,7 @@
 #include "system.h"
 #include "ble/xiaomi_record.h"
 
-#if defined(CONFIG_CANIOT_CONTROLLER)
+#if defined(CONFIG_APP_CANIOT_CONTROLLER)
 #include "caniot_controller.h"
 #endif
 

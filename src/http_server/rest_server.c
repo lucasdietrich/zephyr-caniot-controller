@@ -234,7 +234,7 @@ static const struct json_obj_descr net_stats_descr[] = {
 	JSON_OBJ_DESCR_OBJECT(struct net_stats, udp, net_stats_udp_descr),
 };
 
-#if defined(CONFIG_SYSTEM_MONITORING)
+#if defined(CONFIG_APP_SYSTEM_MONITORING)
 struct json_info_mbedtls_stats
 {
 	uint32_t cur_used;
@@ -249,7 +249,7 @@ static const struct json_obj_descr info_mbedtls_stats_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_info_mbedtls_stats, max_used, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_info_mbedtls_stats, max_blocks, JSON_TOK_NUMBER),
 };
-#endif /* CONFIG_SYSTEM_MONITORING */
+#endif /* CONFIG_APP_SYSTEM_MONITORING */
 
 #if defined(CONFIG_UART_IPC_STATS)
 
@@ -283,7 +283,7 @@ struct json_info
 	struct json_info_iface interface;
 	struct net_stats net_stats;
 
-#if defined(CONFIG_SYSTEM_MONITORING)
+#if defined(CONFIG_APP_SYSTEM_MONITORING)
 	struct json_info_mbedtls_stats mbedtls_stats;
 #endif
 
@@ -298,7 +298,7 @@ static const struct json_obj_descr info_descr[] = {
 	JSON_OBJ_DESCR_OBJECT(struct json_info, status, info_controller_status_descr),
 	JSON_OBJ_DESCR_OBJECT(struct json_info, interface, json_info_iface_descr),
 	JSON_OBJ_DESCR_OBJECT(struct json_info, net_stats, net_stats_descr),
-#if defined(CONFIG_SYSTEM_MONITORING)
+#if defined(CONFIG_APP_SYSTEM_MONITORING)
 	JSON_OBJ_DESCR_OBJECT(struct json_info, mbedtls_stats, info_mbedtls_stats_descr),
 #endif
 #if defined(CONFIG_UART_IPC_STATS)
@@ -366,7 +366,7 @@ int rest_info(http_request_t *req,
 	data.status.valid_system_time = status.valid_system_time;
 
 	/* mbedtls stats */
-#if defined(CONFIG_SYSTEM_MONITORING)
+#if defined(CONFIG_APP_SYSTEM_MONITORING)
 	mbedtls_memory_buffer_alloc_cur_get(&data.mbedtls_stats.cur_used,
 					    &data.mbedtls_stats.cur_blocks);
 	mbedtls_memory_buffer_alloc_max_get(&data.mbedtls_stats.max_used,
@@ -872,7 +872,7 @@ int rest_test_caniot_query_telemetry(http_request_t *req,
 }
 
 
-#if defined(CONFIG_CANIOT_CONTROLLER)
+#if defined(CONFIG_APP_CANIOT_CONTROLLER)
 
 int rest_devices_garage_get(http_request_t *req,
 			    http_response_t *resp)
@@ -1419,9 +1419,9 @@ exit:
 	return ret;
 }
 
-#endif /* CONFIG_CANIOT_CONTROLLER */
+#endif /* CONFIG_APP_CANIOT_CONTROLLER */
 
-#if defined(CONFIG_CAN_INTERFACE)
+#if defined(CONFIG_APP_CAN_INTERFACE)
 
 int rest_if_can(http_request_t *req,
 		http_response_t *resp)
@@ -1451,7 +1451,7 @@ exit:
 	return ret;
 }
 
-#endif /* CONFIG_CAN_INTERFACE */
+#endif /* CONFIG_APP_CAN_INTERFACE */
 
 #define REST_FS_FILES_LIST_MAX_COUNT 32U
 
@@ -1509,7 +1509,7 @@ int rest_fs_list_lua_scripts(http_request_t *req,
 	struct json_fs_file_entries_list data;
 	data.nb_entries = 0;
 
-	app_fs_iterate_dir_files(CONFIG_LUA_FS_SCRIPTS_DIR,
+	app_fs_iterate_dir_files(CONFIG_APP_LUA_FS_SCRIPTS_DIR,
 				 fs_list_lua_scripts_detailled_cb,
 				 (void *)&data);
 
@@ -1550,7 +1550,7 @@ int rest_lua_run_script(http_request_t *req,
 		goto exit;
 	}
 	char path[128u];
-	snprintf(path, sizeof(path), "%s/%s", CONFIG_LUA_FS_SCRIPTS_DIR, reqpath);
+	snprintf(path, sizeof(path), "%s/%s", CONFIG_APP_LUA_FS_SCRIPTS_DIR, reqpath);
 
 	int lua_ret;
 	ret = lua_orch_run_script(path, &lua_ret);
@@ -1573,7 +1573,7 @@ exit:
 
 #endif /* CONFIG_LUA */
 
-#if defined(CONFIG_CREDS_FLASH)
+#if defined(CONFIG_APP_CREDS_FLASH)
 
 struct json_flash_cred_entry {
 	uint32_t slot;

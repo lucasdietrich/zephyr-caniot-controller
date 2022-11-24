@@ -195,7 +195,7 @@ http_content_type_t http_get_content_type_from_extension(const char *extension)
 
 /*____________________________________________________________________________*/
 
-#if defined(CONFIG_HTTP_TEST)
+#if defined(CONFIG_APP_HTTP_TEST)
 
 void http_test_init_context(struct http_test_context *ctx)
 {
@@ -642,4 +642,4 @@ const char *http_test_result_to_str(http_test_result_t result)
 	}
 }
 
-#endif /* CONFIG_HTTP_TEST */
+#endif /* CONFIG_APP_HTTP_TEST */

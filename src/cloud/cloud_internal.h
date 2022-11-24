@@ -11,9 +11,9 @@
 
 #include <zephyr/net/tls_credentials.h>
 
-#define CONFIG_CLOUD_ENDPOINT_MAX_LEN 64u
-#define CONFIG_CLOUD_CLIENT_ID_MAX_LEN 32u
-#define CONFIG_CLOUD_TOPIC_MAX_LEN 128u
+#define CONFIG_APP_CLOUD_ENDPOINT_MAX_LEN 64u
+#define CONFIG_APP_CLOUD_CLIENT_ID_MAX_LEN 32u
+#define CONFIG_APP_CLOUD_TOPIC_MAX_LEN 128u
 
 struct cloud_platform_config
 {

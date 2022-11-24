@@ -44,9 +44,9 @@ LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF); /* INF */
 
 #define HTTPS_SERVER_SEC_TAG   1
 
-#if defined(CONFIG_HTTP_SERVER_SECURE) && defined(CONFIG_HTTP_SERVER_NONSECURE)
+#if defined(CONFIG_APP_HTTP_SERVER_SECURE) && defined(CONFIG_APP_HTTP_SERVER_NONSECURE)
 #       define SERVER_FD_COUNT        2
-#elif defined(CONFIG_HTTP_SERVER_SECURE) || defined(CONFIG_HTTP_SERVER_NONSECURE)
+#elif defined(CONFIG_APP_HTTP_SERVER_SECURE) || defined(CONFIG_APP_HTTP_SERVER_NONSECURE)
 #       define SERVER_FD_COUNT        1u
 #else
 #       error "No server socket configured"
@@ -87,15 +87,15 @@ __buf_noinit_section char buffer_internal[0x800u]; /* For encoding response head
  */
 static union
 {
-	struct pollfd array[CONFIG_HTTP_MAX_SESSIONS + SERVER_FD_COUNT];
+	struct pollfd array[CONFIG_APP_HTTP_MAX_SESSIONS + SERVER_FD_COUNT];
 	struct {
-#if defined(CONFIG_HTTP_SERVER_NONSECURE)
+#if defined(CONFIG_APP_HTTP_SERVER_NONSECURE)
 		struct pollfd srv;      /* unsecure server socket */
 #endif
-#if defined(CONFIG_HTTP_SERVER_SECURE)
+#if defined(CONFIG_APP_HTTP_SERVER_SECURE)
 		struct pollfd sec;      /* secure server socket */
 #endif
-		struct pollfd cli[CONFIG_HTTP_MAX_SESSIONS];
+		struct pollfd cli[CONFIG_APP_HTTP_MAX_SESSIONS];
 	};
 } fds;
 
@@ -154,7 +154,7 @@ static int setup_socket(struct pollfd *pfd, bool secure)
 			goto exit;
 		}
 
-#if defined(CONFIG_HTTP_SERVER_VERIFY_CLIENT)
+#if defined(CONFIG_APP_HTTP_SERVER_VERIFY_CLIENT)
 		int verify = TLS_PEER_VERIFY_REQUIRED;
 		ret = zsock_setsockopt(sock, SOL_TLS, TLS_PEER_VERIFY,
 				       &verify, sizeof(int));
@@ -195,14 +195,14 @@ int setup_sockets(void)
 	int ret;
 
 	/* setup non-secure HTTP socket (port 80) */
-#if defined(CONFIG_HTTP_SERVER_NONSECURE)
+#if defined(CONFIG_APP_HTTP_SERVER_NONSECURE)
 	ret = setup_socket(&fds.srv, false);
 	if (ret < 0) {
 		goto exit;
 	}
-#endif /* CONFIG_HTTP_SERVER_NONSECURE */
+#endif /* CONFIG_APP_HTTP_SERVER_NONSECURE */
 
-#if defined(CONFIG_HTTP_SERVER_SECURE)
+#if defined(CONFIG_APP_HTTP_SERVER_SECURE)
 	/* setup secure HTTPS socket (port 443) */
 	struct cred cert, key;
 	ret = cred_get(CRED_HTTPS_SERVER_CERTIFICATE, &cert);
@@ -210,7 +210,7 @@ int setup_sockets(void)
 	ret = cred_get(CRED_HTTPS_SERVER_PRIVATE_KEY, &key);
 	CHECK_OR_EXIT(ret == 0);
 
-#if defined(CONFIG_HTTP_SERVER_VERIFY_CLIENT)
+#if defined(CONFIG_APP_HTTP_SERVER_VERIFY_CLIENT)
 	struct cred ca;
 	ret = cred_get(CRED_HTTPS_SERVER_CLIENT_CA_DER, &ca);
 	CHECK_OR_EXIT(ret == 0);
@@ -228,7 +228,7 @@ int setup_sockets(void)
 		TLS_CREDENTIAL_PRIVATE_KEY,
 		key.data, key.len);
 
-#if defined(CONFIG_HTTP_SERVER_VERIFY_CLIENT)
+#if defined(CONFIG_APP_HTTP_SERVER_VERIFY_CLIENT)
 	tls_credential_add(
 		HTTPS_SERVER_SEC_TAG,
 		TLS_CREDENTIAL_CA_CERTIFICATE,
@@ -312,7 +312,7 @@ static int srv_accept(int serv_sock, bool secure)
 		LOG_INF("(%d) Connection accepted from %s:%d, cli sock = (%d)", serv_sock,
 			ipv4_str, htons(addr.sin_port), sock);
 
-		__ASSERT_NO_MSG(clients_count < CONFIG_HTTP_MAX_SESSIONS);
+		__ASSERT_NO_MSG(clients_count < CONFIG_APP_HTTP_MAX_SESSIONS);
 
 		struct pollfd *pfd = &fds.cli[clients_count++];
 
@@ -364,17 +364,17 @@ static void http_srv_thread(void *_a, void *_b, void *_c)
 		LOG_DBG("zsock_poll(%p, %u, %u) ret=%d", fds.array, 
 			clients_count + servers_count, timeout, ret);
 		if (ret >= 0) {
-#if defined(CONFIG_HTTP_SERVER_NONSECURE)
+#if defined(CONFIG_APP_HTTP_SERVER_NONSECURE)
 			if (fds.srv.revents & POLLIN) {
 				ret = srv_accept(fds.srv.fd, false);
 			}
-#endif /* CONFIG_HTTP_SERVER_NONSECURE */
+#endif /* CONFIG_APP_HTTP_SERVER_NONSECURE */
 
-#if defined(CONFIG_HTTP_SERVER_SECURE)
+#if defined(CONFIG_APP_HTTP_SERVER_SECURE)
 			if (fds.sec.revents & POLLIN) {
 				ret = srv_accept(fds.sec.fd, true);
 			}
-#endif /* CONFIG_HTTP_SERVER_SECURE */
+#endif /* CONFIG_APP_HTTP_SERVER_SECURE */
 
 			/* We iterate over the session and check if there are any data,
 			 * or if the session has timeout.
@@ -414,13 +414,13 @@ static void http_srv_thread(void *_a, void *_b, void *_c)
 		}
 	}
 
-#if defined(CONFIG_HTTP_SERVER_NONSECURE)
+#if defined(CONFIG_APP_HTTP_SERVER_NONSECURE)
 	zsock_close(fds.srv.fd);
-#endif /* CONFIG_HTTP_SERVER_NONSECURE */
+#endif /* CONFIG_APP_HTTP_SERVER_NONSECURE */
 
-#if defined(CONFIG_HTTP_SERVER_SECURE)
+#if defined(CONFIG_APP_HTTP_SERVER_SECURE)
 	zsock_close(fds.sec.fd);
-#endif /* CONFIG_HTTP_SERVER_SECURE */
+#endif /* CONFIG_APP_HTTP_SERVER_SECURE */
 }
 
 static int sendall(int sock, char *buf, size_t len)
@@ -655,10 +655,10 @@ static bool handle_response(http_session_t *sess)
 		 */
 		resp->complete = 1u;
 
-#if defined(CONFIG_HTTP_TEST)
+#if defined(CONFIG_APP_HTTP_TEST)
 		/* Should always be called when the handler is called */
 		http_test_run(&req->_test_ctx, req, resp, HTTP_TEST_HANDLER_RESP);
-#endif /* CONFIG_HTTP_TEST */
+#endif /* CONFIG_APP_HTTP_TEST */
 
 		/* process request, prepare response */
 

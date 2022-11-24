@@ -95,7 +95,7 @@ int process_event(ha_ev_t *event)
 
 		
 
-		ret = mqttc_publish(CONFIG_AWS_THING_NAME "/data",
+		ret = mqttc_publish(CONFIG_APP_AWS_THING_NAME "/data",
 				    buf->buffer, strlen(buf->buffer),
 				    MQTT_QOS_1_AT_LEAST_ONCE);
 		if (ret < 0) {

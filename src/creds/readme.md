@@ -52,5 +52,5 @@ struct flash_cred_ctrl
 
 ## Hardcoded credentials
 
-If `CONFIG_CREDS_HARDCODED` is set, hardcoded credentials file can be generated
+If `CONFIG_APP_CREDS_HARDCODED` is set, hardcoded credentials file can be generated
 with the script [scripts/creds/hardcoded_creds_xxd.py](../../scripts/creds/hardcoded_creds_xxd.py).

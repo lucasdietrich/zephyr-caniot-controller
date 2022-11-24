@@ -41,7 +41,7 @@ project(caniot-controller)
 # This is terrible, try to move this to a dedicated CMakeLists.txt file
 # 
 set(embedded_lua_scripts "")
-if(DEFINED CONFIG_LUA_FS_DEFAULT_SCRIPTS)
+if(DEFINED CONFIG_APP_LUA_FS_DEFAULT_SCRIPTS)
     file(GLOB luascripts "${CMAKE_SOURCE_DIR}/scripts/lua/*.lua")
     file(GLOB officialscripts "${CMAKE_SOURCE_DIR}/modules/lua/testes/*.lua")
     list (APPEND luascripts ${officialscripts})

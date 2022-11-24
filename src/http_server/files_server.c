@@ -18,7 +18,7 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(files_server, LOG_LEVEL_WRN);
 
-#define FILES_SERVER_MOUNT_POINT 	CONFIG_FILES_SERVER_MOUNT_POINT
+#define FILES_SERVER_MOUNT_POINT 	CONFIG_APP_FILES_SERVER_MOUNT_POINT
 #define FILES_SERVER_MOUNT_POINT_SIZE 	(sizeof(FILES_SERVER_MOUNT_POINT) - 1u)
 
 #define FILES_SERVER_CREATE_DIR_IF_NOT_EXISTS 	1u
@@ -27,7 +27,7 @@ LOG_MODULE_REGISTER(files_server, LOG_LEVEL_WRN);
 
 #define FILE_FILEPATH_MAX_LEN 128u
 
-#if defined(CONFIG_FILE_ACCESS_HISTORY)
+#if defined(CONFIG_APP_FILE_ACCESS_HISTORY)
 
 struct file_access_history {
     char *path;
@@ -37,10 +37,10 @@ struct file_access_history {
     uint32_t write: 1u;
 };
 
-static struct file_access_history history[CONFIG_FILE_ACCESS_HISTORY_SIZE];
+static struct file_access_history history[CONFIG_APP_FILE_ACCESS_HISTORY_SIZE];
 static uint32_t history_count = 0u;
 
-#endif /* CONFIG_FILE_ACCESS_HISTORY */
+#endif /* CONFIG_APP_FILE_ACCESS_HISTORY */
 
 // TODO
 // static int get_arg_path(http_request_t *req, size_t nargs, ...)
@@ -282,7 +282,7 @@ int http_file_upload(struct http_request *req,
 		LOG_INF("Upload of %u B succeeded", req->payload_len);
 		
 		if (Z_LOG_CONST_LEVEL_CHECK(LOG_LEVEL_DBG)) {
-			app_fs_stats(CONFIG_FILES_SERVER_MOUNT_POINT);
+			app_fs_stats(CONFIG_APP_FILES_SERVER_MOUNT_POINT);
 		}
 
 		/* TPDP Encode response payload */

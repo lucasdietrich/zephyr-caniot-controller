@@ -6,16 +6,16 @@
 
 mainmenu "lua"
 
-if LUA
+if APP_LUA
 
-config LUA_FS_SCRIPTS_DIR
+config APP_LUA_FS_SCRIPTS_DIR
         string "Directory for Lua scripts"
         default "/RAM:/lua" if QEMU_TARGET
         default "/SD:/lua" if BOARD_NUCLEO_F429ZI
         help
                 Location of Lua scripts on the FS.
 
-config LUA_FS_DEFAULT_SCRIPTS
+config APP_LUA_FS_DEFAULT_SCRIPTS
         bool "Populate the filesystem with default Lua file"
         depends on QEMU_TARGET
         default n
@@ -23,9 +23,9 @@ config LUA_FS_DEFAULT_SCRIPTS
                 Populate the filesystem with embedded Lua files
                 for testing in QEMU
 
-config LUA_AUTORUN_SCRIPTS
+config APP_LUA_AUTORUN_SCRIPTS
         bool "Automatically run embedded Lua scripts"
-        depends on LUA_FS_DEFAULT_SCRIPTS
+        depends on APP_LUA_FS_DEFAULT_SCRIPTS
         default n
         help
                 Populate the filesystem with autorun Lua file 

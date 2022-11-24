@@ -14,13 +14,13 @@
 #	define __ccm_noinit_section __noinit
 #endif
 
-#ifdef CONFIG_MBEDTLS_CUSTOM_HEAP_CCM
+#ifdef CONFIG_APP_MBEDTLS_CUSTOM_HEAP_CCM
 #	define mbedtls_heap_section __ccm_noinit_section
 #else
 #	define mbedtls_heap_section __noinit
-#endif /* CONFIG_MBEDTLS_CUSTOM_HEAP_CCM */
+#endif /* CONFIG_APP_MBEDTLS_CUSTOM_HEAP_CCM */
 
-static unsigned char mbedtls_heap_section mbedtls_heap[CONFIG_MBEDTLS_CUSTOM_HEAP_SIZE];
+static unsigned char mbedtls_heap_section mbedtls_heap[CONFIG_APP_MBEDTLS_CUSTOM_HEAP_SIZE];
 
 void crypto_mbedtls_heap_init(void)
 {

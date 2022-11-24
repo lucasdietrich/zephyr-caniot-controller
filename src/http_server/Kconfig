@@ -6,69 +6,69 @@
 
 mainmenu "http-server"
 
-config HTTP_SERVER_NONSECURE
+config APP_HTTP_SERVER_NONSECURE
         bool "Enable non secure HTTP server"
         default y
 
-config HTTP_SERVER_SECURE
+config APP_HTTP_SERVER_SECURE
         bool "Enable secure HTTPS server"
-        depends on CREDENTIALS_MANAGER
+        depends on APP_CREDENTIALS_MANAGER
         default y
 
-config HTTP_SERVER_VERIFY_CLIENT
+config APP_HTTP_SERVER_VERIFY_CLIENT
         bool "Verify client certificate"
-        depends on HTTP_SERVER_SECURE
+        depends on APP_HTTP_SERVER_SECURE
         default n
 
-config HTTP_MAX_SESSIONS
+config APP_HTTP_MAX_SESSIONS
         int "Maximum number of HTTP sessions"
         default 5
         range 0 8
         help
                 Maximum number of HTTP sessions supported by the HTTP server
 
-config HTTP_REQUEST_HEADERS_BUFFER_SIZE
+config APP_HTTP_REQUEST_HEADERS_BUFFER_SIZE
         int "HTTP buffer size dedicated for request headers values"
         default 352
         range 0 2048
         help
                 Size of the buffer used to store HTTP request headers values
 
-config ROUTE_MAX_DEPTH
+config APP_ROUTE_MAX_DEPTH
         int "Maximum depth of the route tree"
         default 8
         range 1 10
         help
                 Maximum depth of the route tree
                 
-config HTTP_TEST
+config APP_HTTP_TEST
         bool "Enable HTTP test functions"
         default n
         help
                 Enable HTTP test for all request, responses
 
-config HTTP_TEST_SERVER
+config APP_HTTP_TEST_SERVER
         bool "Enable HTTP test server"
         default n
         help
                 Enable test server and corresponding resources and routes
 
-config FILES_SERVER_MOUNT_POINT
+config APP_FILES_SERVER_MOUNT_POINT
         string "Default mount point for file upload"
         default "/RAM:" if QEMU_TARGET
         default "/SD:" if BOARD_NUCLEO_F429ZI
         help
                 Default mount point for file upload (HTTP file server)
 
-config FILE_ACCESS_HISTORY
+config APP_FILE_ACCESS_HISTORY
         bool "Enable file access history"
         default n
         help
                 Enable file access history
 
-config FILE_ACCESS_HISTORY_SIZE
+config APP_FILE_ACCESS_HISTORY_SIZE
         int "Maximum number of file access history entries"
-        depends on FILE_ACCESS_HISTORY
+        depends on APP_FILE_ACCESS_HISTORY
         default 10
         range 1 20
         help

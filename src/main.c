@@ -17,7 +17,7 @@
 #include "lua/orchestrator.h"
 #include "utils/freelist.h"
 
-#if defined(CONFIG_DFU)
+#if defined(CONFIG_APP_DFU)
 #include "dfu/dfu.h"
 #endif
 
@@ -30,9 +30,9 @@
 
 #include "appfs.h"
 
-#if defined(CONFIG_CAN_INTERFACE)
+#if defined(CONFIG_APP_CAN_INTERFACE)
 #include "can/can_interface.h"
-#endif /* CONFIG_CAN_INTERFACE */
+#endif /* CONFIG_APP_CAN_INTERFACE */
 
 #ifndef CONFIG_QEMU_TARGET
 #include "ha/devices.h"
@@ -121,15 +121,15 @@ void main(void)
 	dfu_image_check();
 #endif 
 
-#if defined(CONFIG_CAN_INTERFACE)
+#if defined(CONFIG_APP_CAN_INTERFACE)
 	if_can_init();
-#endif /* CONFIG_CAN_INTERFACE */
+#endif /* CONFIG_APP_CAN_INTERFACE */
 	
 	app_fs_init();
 
 	creds_manager_init();
 
-#if defined(CONFIG_LUA_FS_DEFAULT_SCRIPTS)
+#if defined(CONFIG_APP_LUA_FS_DEFAULT_SCRIPTS)
 	lua_fs_populate();
 #endif
 
@@ -145,7 +145,7 @@ void main(void)
 	crypto_mbedtls_heap_init();
 	net_interface_init();
 
-#if defined(CONFIG_BLE_CONTROLLER)
+#if defined(CONFIG_APP_BLE_CONTROLLER)
 	ha_ble_controller_init();
 #endif /* CONFIG_QEMU_TARGET */
 
@@ -153,7 +153,7 @@ void main(void)
 	die_temp_dev_init();
 #endif /* TEMP_NODE */
 
-#if defined(CONFIG_LUA_AUTORUN_SCRIPTS)
+#if defined(CONFIG_APP_LUA_AUTORUN_SCRIPTS)
 	lua_utils_execute_fs_script2("/RAM:/lua/entry.lua");
 #endif
 

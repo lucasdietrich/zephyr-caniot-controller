@@ -27,7 +27,7 @@ extern int rest_encode_response_json(http_response_t *resp, const void *val,
 				     const struct json_obj_descr *descr,
 				     size_t descr_len);
 
-#define HTTP_ROUTE_ARGS_MAX_COUNT CONFIG_ROUTE_MAX_DEPTH
+#define HTTP_ROUTE_ARGS_MAX_COUNT CONFIG_APP_ROUTE_MAX_DEPTH
 
 int http_test_any(struct http_request *req,
 		  struct http_response *resp)

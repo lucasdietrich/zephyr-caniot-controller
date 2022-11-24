@@ -477,7 +477,7 @@ int prometheus_metrics_demo(http_request_t *req,
 	return 0;
 }
 
-#if defined(CONFIG_HA)
+#if defined(CONFIG_APP_HA)
 
 const char *prom_myd_medium_to_str(ha_dev_medium_type_t medium)
 {
