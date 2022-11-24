@@ -1,5 +1,5 @@
 ninja: Entering directory `build'
-[0/1] cd /home/lucas/zephyrproject/stm32f429zi-caniot-controller/build && /home/lucas/zephyrproject/.venv/bin/python3.8 /home/lucas/zephyrproject/zephyr/scripts/footprint/size_report -k /home/lucas/zephyrproject/stm32f429zi-caniot-controller/build/zephyr/zephyr.elf -z /home/lucas/zephyrproject/zephyr -o /home/lucas/zephyrproject/stm32f429zi-caniot-controller/build --workspace=/home/lucas/zephyrproject -d 99 rom
+[0/1] cd /home/lucas/zephyrproject/zephyr-caniot-controller/build && /home/lucas/zephyrproject/.venv/bin/python3.8 /home/lucas/zephyrproject/zephyr/scripts/footprint/size_report -k /home/lucas/zephyrproject/zephyr-caniot-controller/build/zephyr/zephyr.elf -z /home/lucas/zephyrproject/zephyr -o /home/lucas/zephyrproject/zephyr-caniot-controller/build --workspace=/home/lucas/zephyrproject -d 99 rom
 Path                                                                                             Size    %  
 ==============================================================================================================
 Root                                                                                           499912 100.00%
@@ -1239,7 +1239,7 @@ Root                                                                            
 │   │                               ├── LL_SetFlashLatency                                        300   0.06%
 │   │                               ├── UTILS_EnablePLLAndSwitchSystem                            148   0.03%
 │   │                               └── UTILS_PLL_IsBusy                                           40   0.01%
-│   └── stm32f429zi-caniot-controller                                                          114057  22.82%
+│   └── zephyr-caniot-controller                                                          114057  22.82%
 │       ├── modules                                                                             88935  17.79%
 │       │   ├── caniot-lib                                                                       1920   0.38%
 │       │   │   └── src                                                                          1920   0.38%

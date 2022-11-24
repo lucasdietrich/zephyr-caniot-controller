@@ -32,6 +32,6 @@ Using python script `python3 scripts/discover.py` to discover the controller:
 
 Expected output:
 ```
-[lucas@fedora stm32f429zi-caniot-controller]$ python3 scripts/discover.py
+[lucas@fedora zephyr-caniot-controller]$ python3 scripts/discover.py
 Address ('192.168.10.240', 5000) responded with 20 bytes : parse = 192.168.10.240
 ```

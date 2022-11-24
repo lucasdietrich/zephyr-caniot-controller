@@ -45,7 +45,7 @@ You can test your credentials are valid by using the following command:
 
 Expected result :
 ```
-[lucas@fedora stm32f429zi-caniot-controller]$   openssl s_client -connect 192.0.2.1:443 -cert creds/https_server/rsa2048/cert.pem -key creds/https_server/rsa2048/key.pem -CAfile creds/https_server/rsa2048/ca.cert.pem
+[lucas@fedora zephyr-caniot-controller]$   openssl s_client -connect 192.0.2.1:443 -cert creds/https_server/rsa2048/cert.pem -key creds/https_server/rsa2048/key.pem -CAfile creds/https_server/rsa2048/ca.cert.pem
 CONNECTED(00000003)
 Can't use SSL_get_servername
 depth=1 C = FR, ST = Alsace, L = Benfeld, O = Home, CN = caniot-ca

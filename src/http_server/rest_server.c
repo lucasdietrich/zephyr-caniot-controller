@@ -936,7 +936,7 @@ static const struct json_obj_descr json_caniot_query_telemetry_descr[] = {
 };
 
 /*
-[lucas@fedora stm32f429zi-caniot-controller]$ python3 scripts/api.py
+[lucas@fedora zephyr-caniot-controller]$ python3 scripts/api.py
 <Response [200]>
 200
 {'did': 32, 'dio': 240, 'duration': 2006, 'pdio': 0, 'temperatures': []}

@@ -86,7 +86,7 @@ Once you have created the workspace you should have the following file structure
 .
 ├── bootloader
 ├── modules
-├── stm32f429zi-caniot-controller
+├── zephyr-caniot-controller
 ├── tools
 └── zephyr
 ```
@@ -197,7 +197,7 @@ So open a terminal and launch the script (not as sudo):
 
 You should see the created `tap0` interface
 ```
-[lucas@fedora stm32f429zi-caniot-controller]$ ifconfig
+[lucas@fedora zephyr-caniot-controller]$ ifconfig
 tap0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
         inet 192.0.2.2  netmask 255.255.255.0  broadcast 0.0.0.0
         inet6 2001:db8::2  prefixlen 64  scopeid 0x0<global>

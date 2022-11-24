@@ -1,5 +1,5 @@
 ninja: Entering directory `build'
-[0/1] cd /home/lucas/zephyrproject/stm32f429zi-caniot-controller/build && /home/lucas/zephyrproject/.venv/bin/python3.8 /home/lucas/zephyrproject/zephyr/scripts/footprint/size_report -k /home/lucas/zephyrproject/stm32f429zi-caniot-controller/build/zephyr/zephyr.elf -z /home/lucas/zephyrproject/zephyr -o /home/lucas/zephyrproject/stm32f429zi-caniot-controller/build --workspace=/home/lucas/zephyrproject -d 99 ram
+[0/1] cd /home/lucas/zephyrproject/zephyr-caniot-controller/build && /home/lucas/zephyrproject/.venv/bin/python3.8 /home/lucas/zephyrproject/zephyr/scripts/footprint/size_report -k /home/lucas/zephyrproject/zephyr-caniot-controller/build/zephyr/zephyr.elf -z /home/lucas/zephyrproject/zephyr -o /home/lucas/zephyrproject/zephyr-caniot-controller/build --workspace=/home/lucas/zephyrproject -d 99 ram
 Path                                                                                             Size    %  
 ==============================================================================================================
 Root                                                                                           185753 100.00%
@@ -92,7 +92,7 @@ Root                                                                            
 │   │               ├── FatFs                                                                      32   0.02%
 │   │               ├── Fsid                                                                        2   0.00%
 │   │               └── LfnBuf                                                                    512   0.28%
-│   └── stm32f429zi-caniot-controller                                                           97880  52.69%
+│   └── zephyr-caniot-controller                                                           97880  52.69%
 │       ├── modules                                                                              1704   0.92%
 │       │   └── uart_ipc                                                                         1704   0.92%
 │       │       └── src                                                                          1704   0.92%
