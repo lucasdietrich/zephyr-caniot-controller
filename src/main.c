@@ -127,9 +127,7 @@ void main(void)
 	
 	app_fs_init();
 
-#if defined(CONFIG_APP_CREDENTIALS_MANAGER)
 	creds_manager_init();
-#endif
 
 #if defined(CONFIG_APP_LUA_FS_DEFAULT_SCRIPTS)
 	lua_fs_populate();
