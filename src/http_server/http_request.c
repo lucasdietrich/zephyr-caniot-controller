@@ -385,6 +385,8 @@ static int on_headers_complete(struct http_parser *parser)
 	req->streaming = route_supports_streaming(route);
 	req->route_depth = req->route_parse_results[req->route_parse_results_len - 1u].depth;
 
+	/* TODO Check whether secure params are compliant with the requested route */
+
 	/* Checks */
 	if (route == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_UNKNOWN);
@@ -532,28 +534,22 @@ int http_req_route_arg_get_number_by_index(http_request_t *req,
 		value);
 }
 
-bool http_request_parse(http_request_t *req,
-			char *buf,
-			size_t len,
-			bool *ack)
+bool http_request_parse_buf(http_request_t *req,
+			    char *buf,
+			    size_t len,
+			    bool *keep_buf)
 {
-	size_t parsed;
-
 	__ASSERT_NO_MSG(req != NULL);
 	__ASSERT_NO_MSG(buf != NULL);
-	__ASSERT_NO_MSG(ack != NULL);
+	__ASSERT_NO_MSG(keep_buf != NULL);
 
-	// LOG_HEXDUMP_DBG(buf, len, "(%p) Body");
-
+	/* Number of bytes to parse */
 	size_t toack = len;
 
 	do {
-		LOG_DBG("buf=%p len=%u", buf, len);
-
-		parsed = http_parser_execute(&req->parser,
-					     &parser_settings,
-					     buf,
-					     len);
+		size_t parsed = http_parser_execute(&req->parser,
+						    &parser_settings,
+						    buf, len);
 		if (parsed < 0) {
 			LOG_ERR("(%p) http_parser_execute error %d", req, parsed);
 			return false;
@@ -562,44 +558,49 @@ bool http_request_parse(http_request_t *req,
 		buf += parsed;
 		len -= parsed;
 
+		const bool paused = HTTP_PARSER_ERRNO(&req->parser) == HPE_PAUSED;
 
-		/* Parser is paused when payload should be parsed */
-		if (HTTP_PARSER_ERRNO(&req->parser) == HPE_PAUSED) {
+		if (paused && (req->complete == 0u)) {
+			__ASSERT_NO_MSG(req->streaming == 1u);
 
-			/* Unpause the parser */
-			req->parser.http_errno = HPE_OK;
-
-			if (req->complete == 0u) {
-				__ASSERT_NO_MSG(req->streaming == 1u);
+			req->parser.http_errno = HPE_OK; /* Unpause the parser */
 
 #if defined(CONFIG_APP_HTTP_TEST)
-		/* Should always be called when the handler is called */
-				http_test_run(&req->_test_ctx, req, NULL, HTTP_TEST_HANDLER_REQ);
+			/* Should always be called when the handler is called */
+			http_test_run(&req->_test_ctx, req, NULL, HTTP_TEST_HANDLER_REQ);
 #endif /* CONFIG_APP_HTTP_TEST */
 
-				route_get_req_handler(req->route)(req, NULL);
+			const http_handler_t handler = route_get_req_handler(req->route);
 
-				/* Reset payload buffer */
-				req->payload.loc = NULL;
-				req->payload.len = 0u;
-
-				req->calls_count++;
-
-				toack -= parsed;
-			} else {
-				/* We are done with this request
-				 * check that we have parsed all the data
-				 */
-				if (len != 0u) {
-					LOG_ERR("(%p) Request malformed, more "
-						"data to parse rem=%u", req, len);
-				}
+			int ret = handler(req, NULL);
+			if (ret < 0) {
+				LOG_ERR("(%p) handler error %d", req, ret);
+				return false;
 			}
+
+			/* Reset payload buffer */
+			req->payload.loc = NULL;
+			req->payload.len = 0u;
+
+			req->calls_count++;
+
+			toack -= parsed;
 		}
 
+		/* Make sure there are no more bytes to receive, when the request
+		 * is complete */
+		if (req->complete && len) {
+			if (len != 0u) {
+				LOG_ERR("(%p) Request malformed, more "
+					"data to parse rem=%u", req, len);
+			}
+		}
 	} while (len);
 
-	*ack = req->discarded || (toack == 0u);
+	/* If request is discarded or received data have been totally parsed, 
+	 * the content doesn't matter, so keep could be
+	 * reused */
+	*keep_buf = (req->discarded == 0u) && (toack != 0u);
 
 	return true;
 }

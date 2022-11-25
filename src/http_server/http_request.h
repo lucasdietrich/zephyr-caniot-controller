@@ -84,13 +84,13 @@ struct http_request
 	 * @brief Flag telling whether keep-alive is set in the request
 	 * Note: set in header "Connection"
 	 */
-	uint8_t keep_alive : 1;
+	uint8_t keep_alive : 1u;
 
 	/**
 	 * @brief Flag telling whether HTTP headers are complete
 	 * Note: set in "on_headers_complete" callback
 	 */
-	uint8_t headers_complete : 1;
+	uint8_t headers_complete : 1u;
 
 	/**
 	 * @brief Flag telling whether HTTP request is complete,
@@ -100,7 +100,7 @@ struct http_request
 	 * - No more parsing is done after this flag is set
 	 * - This flag can be used to determine if a stream is complete
 	 */
-	uint8_t complete : 1;
+	uint8_t complete : 1u;
 
 	/* Tells whether the request can be streamed (depends on the route)
 	 * This flag is set in "on_headers_complete" callback
@@ -114,12 +114,15 @@ struct http_request
 	/* Tells whether the request is being sent with chunked encoding */
 	uint8_t chunked_encoding: 1u;
 
+	/* Tells whether the request is in a secure context */
+	uint8_t secure;
+
 	/**
 	 * @brief Reason why the request is discarded
 	 * 
 	 * Valid in HTTP_REQUEST_DISCARD mode.
 	 */
-	http_request_discard_reason_t discard_reason : 3;
+	http_request_discard_reason_t discard_reason : 3u;
 
 	/**
 	 * @brief Request method (GET, POST, PUT, DELETE)
@@ -321,14 +324,14 @@ int http_req_route_arg_get_string(http_request_t *req,
  * @param req Current HTTP request
  * @param data Received data
  * @param len Length of the received data
- * @param ack Tells whether the buffer can be freed or not
+ * @param keep_buf Tells whether the buffer can be freed or not
  * @return true On success
  * @return false On error
  */
-bool http_request_parse(http_request_t *req,
-			char *buf,
-			size_t len,
-			bool *ack);
+bool http_request_parse_buf(http_request_t *req,
+			    char *buf,
+			    size_t len,
+			    bool *keep_buf);
 
 /**
  * @brief Mark the request as discarded
