@@ -34,7 +34,7 @@ to a local server (REST, prometheus ..) for monitoring and/or control
 
 Documentation is available in the `docs` folder for following topics:
 
-- [Bluetooth (HCI host/controller)](./docs/bluetooth.md)
+- [Bluetooth (HCI host/controller)](./docs/bluetooth-hci.md)
 - [HTTP server (REST, Prometheus, file server, webserver)](./docs/http-server.md)
   - [Swagger API for the REST server](./docs/swagger-local-api.yaml)
 - [Credentials (AWS IoT, HTTPS server, etc.)](./docs/credentials.md)

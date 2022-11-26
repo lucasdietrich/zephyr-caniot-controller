@@ -65,7 +65,13 @@ config APP_CAN_INTERFACE
         bool "CAN interface"
         default y
         help
-                The CAN interface to use for the CANIOT controller.
+                Enable CAN interface
+
+config APP_BLE_INTERFACE
+        bool "BLE interface"
+        default y
+        help
+                Enable BLE interface with coprocessor
 
 config APP_BLE_CONTROLLER
         bool "Enable BLE controller"

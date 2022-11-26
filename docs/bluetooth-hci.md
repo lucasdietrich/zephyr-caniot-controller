@@ -1,4 +1,4 @@
-# Bluetooth
+# Bluetooth HCI
 
 Controller have a nrf52840 chip dedicated to bluetooth. Formerly, the bluetooth
 application was hosted on the BLE SoC. A custom UART protocol was used between

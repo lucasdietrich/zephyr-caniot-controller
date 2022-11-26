@@ -16,12 +16,20 @@ if (NOT DEFINED BOARD)
     set(BOARD nucleo_f429zi)
 endif()
 
-# Following variables can be forced if required
-#  set(DTC_OVERLAY_FILE "boards/nucleo_f429zi.overlay")
-#  set(CONF_FILE "prj.conf")
-# set(OVERLAY_CONFIG "boards/nucleo_f429zi.conf boards/f429zi_spi_disk.conf ${OVERLAY_CONFIG}")
 if (BOARD STREQUAL "nucleo_f429zi")
+    # OVERLAY_CONFIG: Additional Kconfig configuration fragment files. 
+    # Multiple filenames can be separated with either spaces or semicolons. 
+    # This can be useful in order to leave CONF_FILE at its default value, 
+    # but “mix in” some additional configuration options.
     set(OVERLAY_CONFIG "overlays/nucleo_f429zi_spi_disk.conf overlays/nucleo_f429zi_mcuboot.conf ${OVERLAY_CONFIG}")
+    message(STATUS "OVERLAY_CONFIG: ${OVERLAY_CONFIG}")
+
+    # DTC_OVERLAY_FILE: One or more devicetree overlay files to use. 
+    # Multiple files can be separated with semicolons. 
+    # See Set devicetree overlays for examples and Introduction 
+    # to devicetree for information about devicetree and Zephyr
+    set(DTC_OVERLAY_FILE "${DTC_OVERLAY_FILE}")
+    message(STATUS "DTC_OVERLAY_FILE: ${DTC_OVERLAY_FILE}")
 endif()
 
 # Debug.conf
