@@ -1,0 +1,21 @@
+mainmenu "ble"
+
+config APP_XIAOMI_MAX_DEVICES
+	int "Maximum XIAOMI devices supported"
+	default 13
+	help
+		Maximum XIAOMI devices supported.
+
+config APP_ACTIVE_SCAN_DURATION
+	int "Active scan duration (in seconds)"
+	default 30
+	help
+		Active scan duration (in seconds)
+
+config APP_PASSIVE_SCAN_DURATION
+	int "Passive scan minimum required duration (in seconds)"
+	default 3570
+	help
+		Passive scan minimum required duration (in seconds)
+
+source "Kconfig.zephyr"

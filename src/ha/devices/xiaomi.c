@@ -4,7 +4,6 @@
 #include "xiaomi.h"
 
 #include "ha/devices.h"
-#include "ble/xiaomi_record.h"
 
 static void ble_record_to_xiaomi(struct ha_ds_xiaomi *xiaomi,
 				 const xiaomi_record_t *rec,
@@ -64,7 +63,7 @@ const struct ha_device_api ha_device_api_xiaomi = {
 	.select_endpoint = HA_DEV_API_SELECT_ENDPOINT_0_CB
 };
 
-int ha_dev_register_xiaomi_record(const xiaomi_record_t *record)
+int ha_dev_xiaomi_register_record(const xiaomi_record_t *record)
 {
 	const ha_dev_addr_t addr = {
 		.type = HA_DEV_TYPE_XIAOMI_MIJIA,
@@ -76,6 +75,18 @@ int ha_dev_register_xiaomi_record(const xiaomi_record_t *record)
 
 	return ha_dev_register_data(&addr, (void *)record,
 				    sizeof(xiaomi_record_t), record->time, NULL);
+}
+
+void ha_dev_xiaomi_record_init(xiaomi_record_t *record)
+{
+	record->measurements.battery_level = 0xFF;
+	record->measurements.battery_mv = 0xFFFF;
+	record->measurements.humidity = 0xFFFF;
+	record->measurements.temperature = 0xFFFF;
+	record->measurements.rssi = 0xFF;
+	record->time = 0u;
+
+	record->valid = false;
 }
 
 const struct ha_ds_xiaomi *ha_ev_get_xiaomi_data(const ha_ev_t *ev)

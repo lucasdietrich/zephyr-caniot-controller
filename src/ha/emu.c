@@ -11,7 +11,6 @@
 
 #include "net_time.h"
 #include "system.h"
-#include "ble/xiaomi_record.h"
 
 #if defined(CONFIG_APP_CANIOT_CONTROLLER)
 #include "caniot_controller.h"
@@ -132,21 +131,9 @@ void emu_ble_device(void *_a, void *_b, void *_c)
 		record.measurements.humidity = i % 1000;
 		record.measurements.temperature = i % 1000;
 		record.measurements.rssi = i % 100;
-
-		/* Get the device */
-
-		const ha_dev_addr_t addr = {
-			.type = HA_DEV_TYPE_XIAOMI_MIJIA,
-			.mac = {
-				.medium = HA_DEV_MEDIUM_BLE,
-				.addr.ble = record.addr,
-			}
-		};
-
-		ret = ha_dev_register_data(&addr, &record, sizeof(xiaomi_record_t), 0, NULL);
 		
-
 		/* Register the data to the device */
+		ret = ha_dev_xiaomi_register_record(&record);
 
 		/* Next emu measurement in */
 		const uint32_t next = get_rdm_delay_ms(EMU_BLE_RDM_MIN_MS,

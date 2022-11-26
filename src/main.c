@@ -8,7 +8,6 @@
 
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
-#include <zephyr/bluetooth/bluetooth.h>
 
 #include "net_interface.h"
 #include "net_time.h"
@@ -35,9 +34,12 @@
 #include "can/can_interface.h"
 #endif /* CONFIG_APP_CAN_INTERFACE */
 
+#if defined(CONFIG_APP_BLE_INTERFACE)
+#include "ble/ble.h"
+#endif /* CONFIG_APP_BLE_INTERFACE */
+
 #ifndef CONFIG_QEMU_TARGET
 #include "ha/devices.h"
-#include "ha/ble_controller.h"
 #endif /* CONFIG_QEMU_TARGET */
 
 #ifdef CONFIG_LUA
@@ -113,7 +115,6 @@ static void debug_mbedtls_memory(void)
 }
 
 extern int lua_fs_populate(void);
-extern int observer_start(void);
 
 void main(void)
 {
@@ -147,10 +148,6 @@ void main(void)
 	crypto_mbedtls_heap_init();
 	net_interface_init();
 
-#if defined(CONFIG_APP_BLE_CONTROLLER)
-	ha_ble_controller_init();
-#endif /* CONFIG_QEMU_TARGET */
-
 #ifdef TEMP_NODE
 	die_temp_dev_init();
 #endif /* TEMP_NODE */
@@ -159,15 +156,9 @@ void main(void)
 	lua_utils_execute_fs_script2("/RAM:/lua/entry.lua");
 #endif
 
-	k_sleep(K_SECONDS(5));
-
-	/* Initialize the Bluetooth Subsystem */
-	int ret = bt_enable(NULL);
-	if (ret) {
-		printk("Bluetooth init failed (err %d)\n", ret);
-	} else {
-		(void)observer_start();
-	}
+#if defined(CONFIG_APP_BLE_INTERFACE)
+	ble_init();
+#endif
 
 	uint32_t counter = 0;
 

@@ -32,6 +32,6 @@ def create_hardcoded_creds_file(creds: dict,
 
 if __name__ == "__main__":
     hardcoded_creds_file = "./src/creds/hardcoded_creds_g.c"
-    creds = parse_creds_json("./creds/creds-qemu.json")
+    creds = parse_creds_json("./creds/creds_qemu.json")
 
     create_hardcoded_creds_file(creds, hardcoded_creds_file)

@@ -24,7 +24,7 @@
 #include "emu.h"
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(caniot, LOG_LEVEL_WRN);
+LOG_MODULE_REGISTER(caniot, LOG_LEVEL_INF);
 
 #define HA_CIOT_QUERY_TIMEOUT_TOLERANCE_MS 1u
 

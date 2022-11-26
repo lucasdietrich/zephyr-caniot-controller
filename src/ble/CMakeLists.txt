@@ -4,5 +4,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-FILE(GLOB app_sources *.c*)
+SET(app_sources 
+    ble.c
+    observer.c
+)
+
 target_sources(app PRIVATE ${app_sources})
+
+# target_sources_ifdef(CONFIG_APP_HTTP_TEST_SERVER app PRIVATE oberver_legacy.c)

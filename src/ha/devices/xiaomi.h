@@ -11,7 +11,56 @@
 
 #include "../ha.h"
 #include "../devices.h"
-#include "../ble/xiaomi_record.h"
+
+/* size is 7B */
+typedef struct {
+	/**
+	 * @brief RSSI
+	 */
+	int8_t rssi;
+	/**
+	 * @brief Device measured temperature, base unit : 1e-2 °C
+	 */
+	int16_t temperature;
+
+	/**
+	 * @brief Device measured humidity, base unit : 1e-2 %
+	 */
+	uint16_t humidity; /* 1e-2 % */
+
+	/**
+	 * @brief Device measured battery voltage, base unit: 1 mV
+	 */
+	uint16_t battery_mv;
+
+	/**
+	 * @brief Device measured battery level, base unit:  %
+	 * Measurement is valid if battery_level > 0
+	 */
+	uint8_t battery_level;
+}  xiaomi_measurements_t;
+
+typedef struct {
+	/**
+	 * @brief Record device address
+	 */
+	bt_addr_le_t addr;
+
+	/**
+	 * @brief Time when the measurements were retrieved
+	 */
+	uint32_t time;
+
+	/**
+	 * @brief Measurements
+	 */
+	xiaomi_measurements_t measurements;
+
+	/**
+	 * @brief Tells whether record is valid
+	 */
+	uint32_t valid;
+} xiaomi_record_t;
 
 struct ha_ds_xiaomi
 {
@@ -57,7 +106,9 @@ struct ha_ds_xiaomi
 		)\
 	}
 
-int ha_dev_register_xiaomi_record(const xiaomi_record_t *record);
+void ha_dev_xiaomi_record_init(xiaomi_record_t *record);
+
+int ha_dev_xiaomi_register_record(const xiaomi_record_t *record);
 
 const struct ha_ds_xiaomi *ha_ev_get_xiaomi_data(const ha_ev_t *ev);
 

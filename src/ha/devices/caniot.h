@@ -9,7 +9,6 @@
 
 #include "../ha.h"
 #include "../devices.h"
-#include "../ble/xiaomi_record.h"
 
 #include "../data.h"
 
