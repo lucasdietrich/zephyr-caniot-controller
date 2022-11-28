@@ -92,11 +92,18 @@ static const struct route_descr root_lua[] = {
 };
 #endif
 
+static const struct route_descr root_files_1zs_2zs_3zs[] = {
+	LEAF("", POST, http_file_upload, http_file_upload, REST),
+	LEAF("4:s", POST | ARG_STR, http_file_upload, http_file_upload, REST),
+	LEAF("", GET, http_file_download, NULL, BINARY),
+	LEAF("4:s", GET | ARG_STR, http_file_download, NULL, BINARY),
+};
+
 static const struct route_descr root_files_1zs_2zs[] = {
 	LEAF("", POST, http_file_upload, http_file_upload, REST),
-	LEAF("3:s", POST | ARG_STR, http_file_upload, http_file_upload, REST),
+	SECTION("3:s", ARG_STR, root_files_1zs_2zs_3zs, 
+		ARRAY_SIZE(root_files_1zs_2zs_3zs), REST),
 	LEAF("", GET, http_file_download, NULL, BINARY),
-	LEAF("3:s", GET | ARG_STR, http_file_download, NULL, BINARY),
 };
 
 static const struct route_descr root_files_1zs[] = {
@@ -174,6 +181,8 @@ static const struct route_descr root_devices_caniot_didzu[] = {
 		ARRAY_SIZE(root_devices_caniot_didzu_endpoint), 0u),
 	SECTION("attribute", 0u, root_devices_caniot_didzu_attribute, 
 		ARRAY_SIZE(root_devices_caniot_didzu_attribute), 0u),
+	LEAF("reboot", POST, rest_devices_caniot_blc_action, NULL, 0u),
+	LEAF("factory_reset", POST, rest_devices_caniot_blc_action, NULL, 0u),
 };
 #endif
 

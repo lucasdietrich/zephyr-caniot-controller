@@ -30,6 +30,7 @@ POST /lua/execute -> rest_lua_run_script (CONFIG_LUA)
 GET /demo/json -> rest_demo_json
 POST /dfu -> http_dfu_image_upload, http_dfu_image_upload_response (CONFIG_APP_DFU) | MULTIPART
 GET /dfu -> http_dfu_status (CONFIG_APP_DFU)
+
 GET /devices/garage -> rest_devices_garage_get (CONFIG_APP_CANIOT_CONTROLLER)
 POST /devices/garage -> rest_devices_garage_post (CONFIG_APP_CANIOT_CONTROLLER)
 POST /devices/caniot/did:u/endpoint/blc0/command -> rest_devices_caniot_blc0_command (CONFIG_APP_CANIOT_CONTROLLER)
@@ -39,6 +40,9 @@ GET /devices/caniot/did:u/endpoint/ep:u/telemetry -> rest_devices_caniot_telemet
 POST /devices/caniot/did:u/endpoint/ep:u/command -> rest_devices_caniot_command (CONFIG_APP_CANIOT_CONTROLLER)
 GET /devices/caniot/did:u/attribute/key:x -> rest_devices_caniot_attr_read_write (CONFIG_APP_CANIOT_CONTROLLER)
 PUT /devices/caniot/did:u/attribute/key:x -> rest_devices_caniot_attr_read_write (CONFIG_APP_CANIOT_CONTROLLER)
+POST /devices/caniot/did:u/reboot -> rest_devices_caniot_blc_action (CONFIG_APP_CANIOT_CONTROLLER)
+POST /devices/caniot/did:u/factory_reset -> rest_devices_caniot_blc_action (CONFIG_APP_CANIOT_CONTROLLER)
+
 POST /if/can/id:x -> rest_if_can (CONFIG_APP_CAN_INTERFACE)
 
 POST /test/any -> http_test_any, http_test_any (CONFIG_APP_HTTP_TEST_SERVER)

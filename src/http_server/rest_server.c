@@ -1202,13 +1202,13 @@ int rest_devices_caniot_command(http_request_t *req,
 
 	/* build CANIOT query */
 	struct caniot_frame q;
-	caniot_build_query_command(&q, ep, can_buf, CAN_MAX_DLEN);
+	caniot_build_query_command(&q, ep, can_buf, dlc);
 
 	/* execute and build appropriate response */
 	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
 	ret = caniot_q_ct_to_json_resp(&q, did, &timeout, resp);
 
-	LOG_INF("GET /devices/caniot/%u/endpoints/%u/command -> %d [in %u ms]", did, ep, ret, timeout);
+	LOG_INF("POST /devices/caniot/%u/endpoints/%u/command -> %d [in %u ms]", did, ep, ret, timeout);
 
 exit:
 	return ret;
@@ -1375,6 +1375,47 @@ int rest_devices_caniot_attr_read_write(http_request_t *req,
 
 	ret = rest_encode_response_json(resp, &json, descr, descr_size);
 
+exit:
+	return ret;
+}
+
+int rest_devices_caniot_blc_action(http_request_t *req,
+				   http_response_t *resp)
+{
+	int ret = 0;
+	const struct route_descr *descr;
+	uint32_t did = 0;
+	struct caniot_blc_command cmd;
+	struct caniot_frame q;
+
+	/* Check did */
+	route_arg_get(req, "did", &did);
+	if (!caniot_deviceid_valid(did)) {
+		resp->status_code = 400U;
+		goto exit;
+	}
+
+	descr = req->route_parse_results[req->route_parse_results_len - 1u].descr;
+
+	caniot_blc_command_init(&cmd);
+
+	if (strcmp(descr->part.str, "reboot") == 0) {
+		caniot_blc_sys_req_reboot(&cmd.sys);
+	} else if (strcmp(descr->part.str, "factory_reset") == 0) {
+		caniot_blc_sys_req_factory_reset(&cmd.sys);
+	}
+
+	ret = caniot_build_query_command(&q, CANIOT_ENDPOINT_BOARD_CONTROL,
+					 (uint8_t *)&cmd, sizeof(cmd));
+	if (ret) {
+		goto exit;
+	}
+
+	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
+	ret = caniot_q_ct_to_json_resp(&q, did, &timeout, resp);
+
+	LOG_INF("POST /devices/caniot/%u/%s -> %d [in %u ms]",
+		did, descr->part.str, ret, timeout);
 exit:
 	return ret;
 }
