@@ -38,6 +38,8 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF); /* INF */
 
+/* O_NONBLOCK */
+#define SOCK_BLOCKING_OPT 0u
 
 #define HTTP_PORT       80
 #define HTTPS_PORT      443
@@ -137,12 +139,12 @@ static int setup_socket(struct pollfd *pfd, bool secure)
 		goto exit;
 	}
 
-	// ret = zsock_fcntl(sock, F_SETFL, O_NONBLOCK);
-	// if (ret < 0) {
-	// 	LOG_ERR("(%d) Failed to set socket non-blocking = %d",
-	// 		sock, ret);
-	// 	goto exit;
-	// }
+	ret = zsock_fcntl(sock, F_SETFL, SOCK_BLOCKING_OPT);
+	if (ret < 0) {
+		LOG_ERR("(%d) Failed to set socket non-blocking = %d",
+			sock, ret);
+		goto exit;
+	}
 
 	/* set secure tag */
 	if (secure) {
@@ -286,12 +288,12 @@ static int srv_accept(int serv_sock, bool secure)
 		goto exit;
 	}
 
-	// ret = zsock_fcntl(sock, F_SETFL, O_NONBLOCK);
-	// if (ret < 0) {
-	// 	LOG_ERR("(%d) Failed to set socket non-blocking = %d",
-	// 		sock, ret);
-	// 	goto exit;
-	// }
+	ret = zsock_fcntl(sock, F_SETFL, SOCK_BLOCKING_OPT);
+	if (ret < 0) {
+		LOG_ERR("(%d) Failed to set socket non-blocking = %d",
+			sock, ret);
+		goto exit;
+	}
 
 	char ipv4_str[NET_IPV4_ADDR_LEN];
 	ipv4_to_str(&addr.sin_addr, ipv4_str, sizeof(ipv4_str));
@@ -428,7 +430,7 @@ static int sendall(int sock, char *buf, size_t len)
 	int ret;
 	size_t sent = 0;
 
-	LOG_DBG("sendall(%d, %p, %u)", sock, buf, len);
+	LOG_DBG("sendall(%d, %p, %u)", sock, (void *)buf, len);
 
 	while (sent < len) {
 		ret = zsock_send(sock, &buf[sent], len - sent, 0U);
@@ -492,7 +494,7 @@ static bool handle_error_response(http_session_t *sess)
 	return send_headers(sess) > 0;
 }
 
-static void request_cleanup(http_request_t *req)
+static void request_chunk_buf_cleanup(http_request_t *req)
 {
 	if (http_request_is_stream(req)) {
 		req->chunk.id = 0;
@@ -501,58 +503,59 @@ static void request_cleanup(http_request_t *req)
 	}
 }
 
+static int sock_recv(int sock, char *buf, size_t len)
+{
+	LOG_DBG("zsock_recv(%d, %p, %d, 0) ENTER", sock, (void *)buf, len);
+	int rc = zsock_recv(sock, buf, len, 0);
+	LOG_DBG("zsock_recv(%d, %p, %d, 0) = %d", sock, (void *)buf, len, rc);
+
+	if (rc == -EAGAIN) {
+		/* TODO find a way to return to wait for data */
+		LOG_WRN("(%d) -EAGAIN = %d", sock, rc);
+	} else if (rc < 0) {
+		LOG_ERR("(%d) recv failed = %d", sock, rc);
+	} else if (rc == 0) {
+		LOG_INF("(%d) Connection closed by peer", sock);
+	}
+
+	return rc;
+}
+
 static bool handle_request(http_session_t *sess)
 {
 	ssize_t rc;
-	cursor_buffer_t cbuf;
-
 	http_request_t *const req = sess->req;
 
-	cursor_buffer_init(&cbuf, buffer, sizeof(buffer));
+	char *p = buffer;
+	ssize_t remaining = sizeof(buffer);
 
 	while (req->complete == 0U) {
-		size_t remaining = cursor_buffer_remaining(&cbuf);
-		if (remaining == 0u) {
+		if (remaining <= 0) {
 			http_request_discard(req, HTTP_REQUEST_PAYLOAD_TOO_LARGE);
-			cursor_buffer_reset(&cbuf);
-			remaining = cursor_buffer_remaining(&cbuf);
-		}
-		
-		LOG_DBG("zsock_recv(%d, %p, %d, 0) ENTER", sess->sock,
-			cbuf.cursor, remaining);
-		rc = zsock_recv(sess->sock, cbuf.cursor, remaining, 0);
-		LOG_DBG("zsock_recv(%d, %p, %d, 0) = %d", sess->sock,
-			cbuf.cursor, remaining, rc);
-		if (rc < 0) {
-			if (rc == -EAGAIN) {
-				LOG_WRN("-EAGAIN = %d", -EAGAIN);
-				/* TODO find a way to return to wait for data */
-				continue;
-			}
 
-			LOG_ERR("recv failed = %d", rc);
-			goto close;
-		} else if (rc == 0) {
-			LOG_INF("(%d) Connection closed by peer", sess->sock);
-			goto close;
-		} else {
-			bool ack = false;
-			if (http_request_parse(req,
-					       cbuf.cursor,
-					       rc,
-					       &ack) == false) {
+			/* Reset buffer */
+			p = buffer;
+			remaining = sizeof(buffer);
+		}
+
+		rc = sock_recv(sess->sock, p, remaining);
+		if (rc > 0) {
+			bool keep_buf = false;
+			if (http_request_parse_buf(req, p, rc, &keep_buf) == false) {
 				goto close;
 			}
 
-			if (ack) {
-				cursor_buffer_reset(&cbuf);
-			} else {
-				cursor_buffer_shift(&cbuf, rc);
+			/* If buffer should be keeped */
+			if (keep_buf) {
+				p += rc;
+				remaining -= rc;
 			}
+		} else if ((rc <= 0) && (rc != -EAGAIN)) {
+			goto close;
 		}
 	}
 
-	request_cleanup(req);
+	request_chunk_buf_cleanup(req);
 
 	return true;
 
@@ -736,6 +739,9 @@ static bool process_request(http_session_t *sess)
 
 	sess->req = &req;
 	sess->resp = &resp;
+
+	/* Forward secure flag to "request" structure (TODO ugly change this)*/
+	sess->req->secure = sess->secure;
 
 	/* Set where to copy URL */
 	char url_copy[HTTP_URL_MAX_LEN];
