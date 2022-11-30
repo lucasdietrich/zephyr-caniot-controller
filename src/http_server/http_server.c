@@ -21,6 +21,8 @@
 
 #include <zephyr/net/http_parser.h>
 
+#include "system.h"
+
 #include "app_sections.h"
 #include "http_response.h"
 #include "http_request.h"
@@ -198,6 +200,7 @@ int setup_sockets(void)
 #if defined(CONFIG_APP_HTTP_SERVER_NONSECURE)
 	ret = setup_socket(&fds.srv, false);
 	if (ret < 0) {
+		sysev_notify(SYSEV_IF_NET, SYSEV_IF_FATAL_ERROR, NULL);
 		goto exit;
 	}
 #endif /* CONFIG_APP_HTTP_SERVER_NONSECURE */
@@ -237,6 +240,7 @@ int setup_sockets(void)
 
 	ret = setup_socket(&fds.sec, true);
 	if (ret < 0) {
+		sysev_notify(SYSEV_IF_NET, SYSEV_IF_FATAL_ERROR, NULL);
 		goto exit;
 	}
 #endif
@@ -328,6 +332,8 @@ static int srv_accept(int serv_sock, bool secure)
 
 		/* Mark session as secure if secure socket */
 		sess->secure = secure;
+
+		sysev_notify(SYSEV_IF_NET, SYSEV_IF_RX_TX, NULL);
 	}
 
 	show_pfd();

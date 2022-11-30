@@ -9,6 +9,8 @@
 
 #include "ble.h"
 
+#include "system.h"
+
 #include <zephyr/bluetooth/bluetooth.h>
 
 #include <zephyr/logging/log.h>
@@ -16,14 +18,19 @@ LOG_MODULE_REGISTER(ble, LOG_LEVEL_INF);
 
 int ble_init(void)
 {
+	sysev_notify(SYSEV_IF_BLE, SYSEV_IF_PENDING, NULL);
+
 	/* Initialize the Bluetooth Subsystem */
 	int ret = bt_enable(NULL);
 	if (ret != 0) {
+		sysev_notify(SYSEV_IF_BLE, SYSEV_IF_FATAL_ERROR, NULL);
 		LOG_INF("Bluetooth init failed (ret %d)", ret);
 		return ret;
 	}
 
 	LOG_INF("Bluetooth initialized %d", 0);
+
+	sysev_notify(SYSEV_IF_BLE, SYSEV_IF_UP, NULL);
 
 	/* Start the BLE observer thread */
 	ble_observer_start();

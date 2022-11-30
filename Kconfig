@@ -145,4 +145,11 @@ config APP_PRINTF_1SEC_COUNTER
         help
                 Enable 1 second counter in printf
 
+config APP_USERIO
+        bool "Enable user IO"
+        default y
+        depends on !QEMU_TARGET
+        help
+                Enable user IO features (LEDs, buttons, etc.)
+
 source "Kconfig.zephyr"

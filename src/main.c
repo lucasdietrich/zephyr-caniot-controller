@@ -23,8 +23,7 @@
 
 #include "ha/devices/f429zi.h"
 
-#include "userio/leds.h"
-#include "userio/button.h"
+#include "userio/userio.h"
 
 #include "creds/manager.h"
 
@@ -140,9 +139,8 @@ void main(void)
 	lua_orch_init();
 #endif
 
-#ifndef CONFIG_QEMU_TARGET
-	leds_init();
-	button_init();
+#if defined(CONFIG_APP_USERIO)
+	userio_init();
 #endif
 
 	crypto_mbedtls_heap_init();

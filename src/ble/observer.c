@@ -17,6 +17,8 @@
 
 #include <ha/devices/xiaomi.h>
 
+#include "system.h"
+
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(ble_obv, LOG_LEVEL_INF);
 
@@ -137,6 +139,8 @@ static void device_found(const bt_addr_le_t *addr,
 				mac_str, (int)rssi, xc.measurements.battery_mv,
 				xc.measurements.temperature / 100, 
 				xc.measurements.humidity / 100);
+
+			sysev_notify(SYSEV_IF_BLE, SYSEV_IF_RX_TX, NULL);
 
 			ha_dev_xiaomi_register_record(&xc);
 		}

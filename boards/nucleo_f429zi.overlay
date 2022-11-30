@@ -1,16 +1,11 @@
 #include "dt-bindings/pinctrl/stm32-pinctrl-common.h"
 
-&can1 {
-        status = "okay";
-        pinctrl-names  = "default";
-        pinctrl-0 = <&can1_rx_pd0 &can1_tx_pd1>;
-        bus-speed = <500000>;
-
-        sample-point = <875>; /* recommended value */
-        sjw = <0x1>;
-};
-
 / {
+        chosen {
+                zephyr,console = &usart3;
+                zephyr,shell-uart = &usart3;
+                zephyr,code-partition = &slot0_partition;
+        };
         aliases {
                 led-net = &green_led_1;
                 led-thread = &red_led_1;
@@ -31,6 +26,39 @@
 			status = "okay"; // okay
 		};
 	};
+
+
+        stm-temp {
+                label = "DIE_TEMP";
+                compatible = "st,stm32-temp";
+                io-channels = < &adc1 18 >;
+                // ts-voltage-mv = < 3300 >;
+                avgslope = < 25 >;
+                v25 = < 760 >;
+                status = "okay";
+        };
+};
+
+&can1 {
+        status = "okay";
+        pinctrl-names  = "default";
+        pinctrl-0 = <&can1_rx_pd0 &can1_tx_pd1>;
+        bus-speed = <500000>;
+
+        sample-point = <875>; /* recommended value */
+        sjw = <0x1>;
+};
+
+&can2 {
+        status = "okay";
+        bus-speed = < 500000 >;
+        
+        pinctrl-names  = "default";
+        pinctrl-0 = <&can1_rx_pd0 &can1_tx_pd1>;
+        bus-speed = <500000>;
+
+        sample-point = <875>; /* recommended value */
+        sjw = <0x1>;
 };
 
 /* order matters */
@@ -134,6 +162,7 @@
  * 
  * - https://docs.zephyrproject.org/2.7.0/reference/devicetree/bindings/pwm/st,stm32-pwm.html
  */
+ 
 &timers3 {
         status = "okay";
         st,prescaler = <8399>; /* depreciated, should be moved 1 layer above (i.e. to timers3) */
@@ -151,6 +180,16 @@
                 pinctrl-names  = "default";
                 status = "okay";
                 pinctrl-0 = <&tim4_ch2_pb7>;
+        };
+};
+
+&timers8 {
+        status = "okay";
+        st,prescaler = <8399>; /* depreciated */
+        tim8pwm: pwm {
+                pinctrl-names  = "default";
+                status = "okay";
+                pinctrl-0 = <&tim8_ch2n_pb14>;
         };
 };
 
@@ -180,45 +219,14 @@
                         status = "okay";
                         pwms = <&tim4pwm 0x02 1000000 PWM_POLARITY_NORMAL>;
                 };
-                /*
-                red_pwm_led: led_pwm_2 {
-                        status = "okay";
-                        pwms = <&tim8pwm 0x02 1000000 PWM_POLARITY_NORMAL>;
-                };
-                */
-        };
-};
 
-/*
-Sample application : https://github.com/zephyrproject-rtos/zephyr/tree/main/samples/sensor/stm32_temp_sensor/boards
- */
-/ {
-        stm-temp {
-                label = "DIE_TEMP";
-                compatible = "st,stm32-temp";
-                io-channels = < &adc1 18 >;
-                // ts-voltage-mv = < 3300 >;
-                avgslope = < 25 >;
-                v25 = < 760 >;
-                status = "okay";
-        };
-};
-
-/* platformio doesn't show the correct FLASH usage 
- * when using overlay with custom partitions
- * 
- * Morever pio doesn't show CCM usage;
- */
-/ {
-        chosen {
-                zephyr,code-partition = &slot0_partition;
-        };
-};
-
-/ {
-        chosen {
-                zephyr,console = &usart3;
-                zephyr,shell-uart = &usart3;
+                /* complementary pwm channels not supported by st,stm32-pwm for now 
+                 * Read : https://github.com/zephyrproject-rtos/zephyr/issues/38629
+                 */
+                // red_pwm_led: led_pwm_2 {
+                //         status = "okay";
+                //         pwms = <&tim8pwm 0x02 1000000 PWM_POLARITY_NORMAL>;
+                // };
         };
 };
 
@@ -259,9 +267,3 @@ Sample application : https://github.com/zephyrproject-rtos/zephyr/tree/main/samp
 &gpiog {
         status = "okay";
 };
-
-/* Second can bus isn't supported yet */
-// &can2 {
-//         status = "okay";
-//         bus-speed = < 500000 >;
-// };

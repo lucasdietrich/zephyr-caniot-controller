@@ -15,6 +15,7 @@
 #include <zephyr/net/net_config.h>
 #include <zephyr/net/sntp.h>
 
+#include "system.h"
 #include "userio/leds.h"
 #include "net_time.h"
 
@@ -74,24 +75,20 @@ static void net_event_handler(struct net_mgmt_event_callback *cb,
         case NET_EVENT_IF_UP:
         {
                 LOG_DBG("NET_EVENT_IF_UP (%u)", mgmt_event);
-#ifndef CONFIG_QEMU_TARGET
-		leds_set_blinking(LED_NET, 200U * USEC_PER_MSEC);
-#endif
+		sysev_notify(SYSEV_IF_NET, SYSEV_IF_PENDING, NULL);
                 break;
         }
         case NET_EVENT_IF_DOWN:
         {
                 LOG_DBG("NET_EVENT_IF_DOWN (%u)", mgmt_event);
-#ifndef CONFIG_QEMU_TARGET
-		leds_set(LED_NET, LED_OFF);
-#endif
+		sysev_notify(SYSEV_IF_NET, SYSEV_IF_DOWN, NULL);
                 break;
         }
         case NET_EVENT_IPV4_ADDR_ADD:
         {
                 LOG_DBG("NET_EVENT_IPV4_ADDR_ADD (%u)", mgmt_event);
+		sysev_notify(SYSEV_IF_NET, SYSEV_IF_PENDING, NULL);
 #ifndef CONFIG_QEMU_TARGET
-                leds_set(LED_NET, LED_ON);
 		net_time_sync();
 #endif
                 show_ipv4();
@@ -105,8 +102,8 @@ static void net_event_handler(struct net_mgmt_event_callback *cb,
                 break;
         case NET_EVENT_IPV4_DHCP_BOUND:
                 LOG_DBG("NET_EVENT_IPV4_DHCP_BOUND (%u)", mgmt_event);
+		sysev_notify(SYSEV_IF_NET, SYSEV_IF_PENDING, NULL);
 #ifndef CONFIG_QEMU_TARGET
-                leds_set(LED_NET, LED_ON);
                 net_time_sync();
 #endif
                 break;

@@ -18,7 +18,7 @@ add_subdirectory_ifdef(CONFIG_APP_BLE_INTERFACE ble)
 add_subdirectory_ifdef(CONFIG_APP_CAN_INTERFACE can)
 add_subdirectory_ifdef(CONFIG_APP_HTTP_SERVER http_server)
 add_subdirectory_ifdef(CONFIG_LUA lua)
-add_subdirectory_ifndef(CONFIG_QEMU_TARGET userio)
+add_subdirectory_ifdef(CONFIG_APP_USERIO userio)
 add_subdirectory_ifndef(CONFIG_QEMU_TARGET drivers)
 add_subdirectory_ifdef(CONFIG_APP_DFU dfu)
 

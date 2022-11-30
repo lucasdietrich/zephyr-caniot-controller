@@ -18,16 +18,40 @@ static inline uint32_t sys_time_get(void)
 	return net_time_get();
 }
 
-typedef union {
-	atomic_t atomic;
-	atomic_val_t atomic_val;
-	struct
-	{
-		uint32_t has_ipv4_addr : 1;
-		uint32_t valid_system_time : 1;
-	};
-} controller_status_t;
+typedef enum {
+	SYSEV_IF_NET = 0u,
+	SYSEV_IF_CAN,
+	SYSEV_IF_BLE,
 
-extern controller_status_t controller_status;
+	_SYSEV_IF_COUNT
+} sysev_if_t;
+
+typedef enum {
+
+	SYSEV_IF_DOWN = 0u,
+	SYSEV_IF_UP,
+	SYSEV_IF_FATAL_ERROR,
+	SYSEV_IF_PENDING, /* transitionnal state */
+	SYSEV_IF_RX_TX,
+
+	_SYSEV_IF_EV_COUNT
+} sysev_if_ev_t;
+
+/**
+ * @brief Notify a system event
+ * 
+ * Note: Cannot be called from ISR context
+ * 
+ * @param sysev Interface
+ * @param if Event
+ * @param data Related event data
+ */
+void sysev_notify(sysev_if_t iface, sysev_if_ev_t ev, void *data);
+
+sysev_if_ev_t sysev_iface_get_state(sysev_if_t iface);
+
+const char *sysev_iface_to_str(sysev_if_t iface);
+
+const char *sysev_iface_ev_to_str(sysev_if_ev_t ev);
 
 #endif

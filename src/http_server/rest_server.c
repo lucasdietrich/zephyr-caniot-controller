@@ -134,20 +134,6 @@ int rest_index(http_request_t *req,
 	return 0;
 }
 
-
-struct json_info_controller_status
-{
-	bool has_ipv4_addr;
-	bool valid_system_time;
-};
-
-static const struct json_obj_descr info_controller_status_descr[] = {
-	JSON_OBJ_DESCR_PRIM(struct json_info_controller_status, has_ipv4_addr,
-			    JSON_TOK_TRUE),
-	JSON_OBJ_DESCR_PRIM(struct json_info_controller_status, valid_system_time,
-			    JSON_TOK_TRUE),
-};
-
 /* base on : net_if / struct net_if_ipv4 */
 struct json_info_iface
 {
@@ -251,7 +237,6 @@ struct json_info
 {
 	uint32_t uptime;
 	uint32_t timestamp;
-	struct json_info_controller_status status;
 	struct json_info_iface interface;
 	struct net_stats net_stats;
 
@@ -263,7 +248,6 @@ struct json_info
 static const struct json_obj_descr info_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_info, uptime, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_info, timestamp, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_OBJECT(struct json_info, status, info_controller_status_descr),
 	JSON_OBJ_DESCR_OBJECT(struct json_info, interface, json_info_iface_descr),
 	JSON_OBJ_DESCR_OBJECT(struct json_info, net_stats, net_stats_descr),
 #if defined(CONFIG_APP_SYSTEM_MONITORING)
@@ -315,11 +299,6 @@ int rest_info(http_request_t *req,
 	net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if_get_default(),
 		 &data.net_stats, sizeof(struct net_stats));
 
-	/* system status */
-	const controller_status_t status = {
-		.atomic_val = atomic_get(&controller_status.atomic)
-	};
-
 	data.uptime = k_uptime_get() / MSEC_PER_SEC;
 	data.timestamp = (uint32_t)ts.tv_sec;
 	data.interface.ethernet_mac = ethernet_mac_str;
@@ -327,8 +306,6 @@ int rest_info(http_request_t *req,
 	data.interface.mcast = mcast_str;
 	data.interface.gateway = gateway_str;
 	data.interface.netmask = netmask_str;
-	data.status.has_ipv4_addr = status.has_ipv4_addr;
-	data.status.valid_system_time = status.valid_system_time;
 
 	/* mbedtls stats */
 #if defined(CONFIG_APP_SYSTEM_MONITORING)

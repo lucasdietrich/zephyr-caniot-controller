@@ -23,6 +23,8 @@
 #include "ha/devices/caniot.h"
 #include "emu.h"
 
+#include "system.h"
+
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(caniot, LOG_LEVEL_INF);
 
@@ -328,6 +330,7 @@ static void thread(void *_a, void *_b, void *_c)
 					zcan_to_caniot(&zframe, &frame);
 					log_caniot_frame(&frame);
 					resp = &frame;
+					sysev_notify(SYSEV_IF_CAN, SYSEV_IF_RX_TX, NULL);
 				}
 				events.can.state = K_POLL_STATE_NOT_READY;
 			}
@@ -340,6 +343,7 @@ static void thread(void *_a, void *_b, void *_c)
 				if (ret == 0) {
 					log_caniot_frame(&frame);
 					resp = &frame;
+					sysev_notify(SYSEV_IF_CAN, SYSEV_IF_RX_TX, NULL);
 				}
 				events.can_emu.state = K_POLL_STATE_NOT_READY;
 			}

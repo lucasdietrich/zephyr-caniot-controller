@@ -9,6 +9,8 @@
 #include <zephyr/net/sntp.h>
 #include <zephyr/posix/time.h>
 
+#include "system.h"
+
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(net_time, LOG_LEVEL_INF);
 
@@ -57,6 +59,8 @@ static void sntp_handler(struct k_work *work)
 
 		ctx->count++;
 		ctx->last_sync = tspec.tv_sec;
+
+		sysev_notify(SYSEV_IF_NET, SYSEV_IF_UP, NULL);
 
 		ret = k_condvar_broadcast(&ctx->condvar);
 

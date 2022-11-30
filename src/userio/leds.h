@@ -35,7 +35,13 @@
 #define LEDS_FREQ_5Hz_PERIOD		5000U
 #define LEDS_FREQ_10Hz_PERIOD		10000U
 
-typedef enum { LED_GREEN = 0, LED_BLUE, LED_RED } led_t;
+typedef enum {
+	LED_GREEN = 0,
+	LED_BLUE,
+	LED_RED,
+
+	_LED_COUNT,
+} led_t;
 
 #define LED_NET LED_GREEN
 #define LED_THREAD LED_BLUE
@@ -43,16 +49,17 @@ typedef enum { LED_GREEN = 0, LED_BLUE, LED_RED } led_t;
 #define LED_CAN LED_RED
 
 typedef enum {
-	LED_OFF = 0,
-	LED_ON,
-	// LED_BLINKING_0_5Hz,
-	// LED_BLINKING_1Hz,
-	// LED_BLINKING_5Hz,
-	// LED_BLINKING_10Hz
+	LED_STATE_NONE = 0, // no change
+	LED_STATE_OFF,
+	LED_STATE_ON,
+	LED_STATE_BLINK_SLOW,
+	LED_STATE_BLINK_FAST,
+	LED_STATE_FLASH,
+	
+	_LED_STATE_COUNT,
 } led_state_t;
 
 int leds_init(void);
-
 
 int leds_set_blinking_phase(led_t led, uint32_t period_us, uint32_t phase_us);
 

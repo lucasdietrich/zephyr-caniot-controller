@@ -215,7 +215,10 @@
                 "__assert.h": "c",
                 "ctype.h": "c",
                 "bluetooth.h": "c",
-                "chrono": "c"
+                "chrono": "c",
+                "net_context.h": "c",
+                "sensor.h": "c",
+                "userio.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",
@@ -242,7 +245,10 @@
                         "editorBracketPairGuide.activeBackground6": "#19f9d8",
                 }
         },
-        "devicetree.defaultBoard": "nucleo_f429zi", /* nucleo_f429zi / mps2_an385 Default board to use for devicetree */
         "editor.rulers": [80],
         "python.defaultInterpreterPath": "../.venv/bin/python",
+        
+        "devicetree.defaultBoard": "nucleo_f429zi",
+        "devicetree.west": "/home/lucas/zephyrproject/.venv/bin",
+        "devicetree.boardRoot": "/home/lucas/zephyrproject/zephyr/boards",
 }
