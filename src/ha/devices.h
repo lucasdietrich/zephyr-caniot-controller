@@ -82,6 +82,7 @@ typedef enum
 
 	/* CANIOT specific application endpoints */
 	HA_DEV_ENDPOINT_CANIOT_HEATING,
+	HA_DEV_ENDPOINT_CANIOT_SHUTTERS,
 } ha_endpoint_id_t;
 
 typedef enum

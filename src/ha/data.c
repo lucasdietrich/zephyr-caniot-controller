@@ -28,20 +28,20 @@ size_t get_data_size(ha_data_type_t type)
 	}
 }
 
-void *ha_data_get(void *data,
+void *ha_data_get(void *data_structure,
 		  const struct ha_data_descr *descr,
 		  size_t data_descr_size,
 		  ha_data_type_t type,
 		  uint8_t index)
 {
-	if (!data || !descr || !data_descr_size)
+	if (!data_structure || !descr || !data_descr_size)
 		return NULL;
 
 	const struct ha_data_descr *d;
 
 	for (d = descr; d < descr + data_descr_size; d++) {
 		if ((d->type == type) && (index-- == 0)) {
-			return (uint8_t *)data + d->offset;
+			return (uint8_t *)data_structure + d->offset;
 			break;
 		}
 	}

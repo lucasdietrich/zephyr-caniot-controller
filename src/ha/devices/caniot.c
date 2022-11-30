@@ -5,10 +5,12 @@
 
 #include "caniot.h"
 
-#define GARAGE_DOOR_CONTROLLER_DEV CANIOT_DID(CANIOT_DEVICE_CLASS0, 0x1)
-#define ALARM_CONTROLLER_DID CANIOT_DID(CANIOT_DEVICE_CLASS0, 0x3)
-#define DEV_BOARD_DID CANIOT_DID(CANIOT_DEVICE_CLASS0, 0x4)
-#define HEATING_CONTROLLER_DID CANIOT_DID(CANIOT_DEVICE_CLASS1, 0x0)
+#define GARAGE_DOOR_CONTROLLER_DEV 	CANIOT_DID(CANIOT_DEVICE_CLASS0, 0x1u)
+#define ALARM_CONTROLLER_DID 		CANIOT_DID(CANIOT_DEVICE_CLASS0, 0x3u)
+#define DEV_BOARD_DID 			CANIOT_DID(CANIOT_DEVICE_CLASS0, 0x4u)
+
+#define HEATING_CONTROLLER_DID 		CANIOT_DID(CANIOT_DEVICE_CLASS1, 0x0u)
+#define SHUTTERS_CONTROLLER_DID 	CANIOT_DID(CANIOT_DEVICE_CLASS1, 0x2u)
 
 /* TODO remove one of the duplicates (see devices/caniot.c) */
 static int save_caniot_temperature(struct ha_data_temperature *temp_buf_array,
@@ -104,6 +106,30 @@ static int blc1_ingest(struct ha_event *ev,
 static int ep_heating_control_ingest(struct ha_event *ev,
 				     struct ha_dev_payload *pl)
 {
+	struct caniot_heating_control *can_buf =
+		(struct caniot_heating_control *)pl->buffer;
+	struct ha_ds_caniot_heating_control *ds = ev->data;
+
+	ds->heaters[0u].mode = can_buf->heater1_cmd;
+	ds->heaters[0u].mode = can_buf->heater2_cmd;
+	ds->heaters[0u].mode = can_buf->heater3_cmd;
+	ds->heaters[0u].mode = can_buf->heater4_cmd;
+
+	return 0;
+}
+
+static int ep_shutters_control_ingest(struct ha_event *ev,
+				      struct ha_dev_payload *pl)
+{
+	struct caniot_shutters_control *can_buf =
+		(struct caniot_shutters_control *)pl->buffer;
+	struct ha_ds_caniot_shutters_control *ds = ev->data;
+
+	ds->shutters[0u].position = can_buf->shutters_openness[0u];
+	ds->shutters[1u].position = can_buf->shutters_openness[1u];
+	ds->shutters[2u].position = can_buf->shutters_openness[2u];
+	ds->shutters[3u].position = can_buf->shutters_openness[3u];
+		
 	return 0;
 }
 
@@ -114,15 +140,14 @@ static int select_endpoint(const ha_dev_addr_t *addr,
 
 	caniot_id_t *const id = pl->y;
 
-	if (id->endpoint == CANIOT_ENDPOINT_BOARD_CONTROL) {
+	switch (id->endpoint) {
+	case CANIOT_ENDPOINT_BOARD_CONTROL:
 		return HA_ENDPOINT_INDEX(0);
-	} else if (id->endpoint == CANIOT_ENDPOINT_APP) {
+	case CANIOT_ENDPOINT_APP:
 		return HA_ENDPOINT_INDEX(1);
+	default:
+		return -ENOENT;
 	}
-
-	// ha_dev_endpoint_get_index_by_id()
-
-	return -ENOENT;
 }
 
 /* TODO reference endpoint instead of allocating two for EACH device */
@@ -184,14 +209,6 @@ static const struct ha_device_endpoint_api ep_blc1 = {
 };
 
 static const struct ha_data_descr ha_ds_caniot_ep_heating_control_descr[] = {
-	HA_DATA_DESCR(struct ha_ds_caniot_heating_control, temperatures[0u],
-		HA_DATA_TEMPERATURE, HA_ASSIGN_BOARD_TEMPERATURE),
-	HA_DATA_DESCR(struct ha_ds_caniot_heating_control, temperatures[1u],
-		HA_DATA_TEMPERATURE, HA_ASSIGN_EXTERNAL_TEMPERATURE_SENSOR),
-	HA_DATA_DESCR(struct ha_ds_caniot_heating_control, temperatures[2u],
-		HA_DATA_TEMPERATURE, HA_ASSIGN_EXTERNAL_TEMPERATURE_SENSOR),
-	HA_DATA_DESCR(struct ha_ds_caniot_heating_control, temperatures[3u],
-		HA_DATA_TEMPERATURE, HA_ASSIGN_EXTERNAL_TEMPERATURE_SENSOR),
 	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_caniot_heating_control, heaters[0u],
 		HA_DATA_HEATER_MODE),
 	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_caniot_heating_control, heaters[1u],
@@ -200,14 +217,6 @@ static const struct ha_data_descr ha_ds_caniot_ep_heating_control_descr[] = {
 		HA_DATA_HEATER_MODE),
 	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_caniot_heating_control, heaters[3u],
 		HA_DATA_HEATER_MODE),
-	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_caniot_heating_control, shutters[0u],
-		HA_DATA_SHUTTER_POSITION),
-	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_caniot_heating_control, shutters[1u],
-		HA_DATA_SHUTTER_POSITION),
-	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_caniot_heating_control, shutters[2u],
-		HA_DATA_SHUTTER_POSITION),
-	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_caniot_heating_control, shutters[3u],
-		HA_DATA_SHUTTER_POSITION),
 };
 
 static const struct ha_data_descr ha_cmd_caniot_ep_heating_control_descr[] = {
@@ -219,14 +228,6 @@ static const struct ha_data_descr ha_cmd_caniot_ep_heating_control_descr[] = {
 		HA_DATA_HEATER_MODE),
 	HA_DATA_DESCR_UNASSIGNED(struct ha_cmd_caniot_heating_control, heaters[3u],
 		HA_DATA_HEATER_MODE),
-	HA_DATA_DESCR_UNASSIGNED(struct ha_cmd_caniot_heating_control, shutters[0u],
-		HA_DATA_SHUTTER_POSITION),
-	HA_DATA_DESCR_UNASSIGNED(struct ha_cmd_caniot_heating_control, shutters[1u],
-		HA_DATA_SHUTTER_POSITION),
-	HA_DATA_DESCR_UNASSIGNED(struct ha_cmd_caniot_heating_control, shutters[2u],
-		HA_DATA_SHUTTER_POSITION),
-	HA_DATA_DESCR_UNASSIGNED(struct ha_cmd_caniot_heating_control, shutters[3u],
-		HA_DATA_SHUTTER_POSITION),
 };
 
 static const struct ha_device_endpoint_api ep_heating_control = {
@@ -241,23 +242,70 @@ static const struct ha_device_endpoint_api ep_heating_control = {
 	.command = NULL
 };
 
+static const struct ha_data_descr ha_ds_caniot_ep_shutters_control_descr[] = {
+	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_caniot_shutters_control, shutters[0u],
+		HA_DATA_SHUTTER_POSITION),
+	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_caniot_shutters_control, shutters[1u],
+		HA_DATA_SHUTTER_POSITION),
+	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_caniot_shutters_control, shutters[2u],
+		HA_DATA_SHUTTER_POSITION),
+	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_caniot_shutters_control, shutters[3u],
+		HA_DATA_SHUTTER_POSITION),
+};
+
+static const struct ha_data_descr ha_cmd_caniot_ep_shutters_control_descr[] = {
+	HA_DATA_DESCR_UNASSIGNED(struct ha_cmd_caniot_shutters_control, shutters[0u],
+		HA_DATA_SHUTTER_POSITION),
+	HA_DATA_DESCR_UNASSIGNED(struct ha_cmd_caniot_shutters_control, shutters[1u],
+		HA_DATA_SHUTTER_POSITION),
+	HA_DATA_DESCR_UNASSIGNED(struct ha_cmd_caniot_shutters_control, shutters[2u],
+		HA_DATA_SHUTTER_POSITION),
+	HA_DATA_DESCR_UNASSIGNED(struct ha_cmd_caniot_shutters_control, shutters[3u],
+		HA_DATA_SHUTTER_POSITION),
+};
+
+static const struct ha_device_endpoint_api ep_shutters_control = {
+	.eid = HA_DEV_ENDPOINT_CANIOT_SHUTTERS,
+	.data_size = sizeof(struct ha_ds_caniot_shutters_control),
+	.expected_payload_size = 8u,
+	.data_descr = ha_ds_caniot_ep_shutters_control_descr,
+	.data_descr_size = ARRAY_SIZE(ha_ds_caniot_ep_shutters_control_descr),
+	.cmd_descr = ha_cmd_caniot_ep_shutters_control_descr,
+	.cmd_descr_size = ARRAY_SIZE(ha_cmd_caniot_ep_shutters_control_descr),
+	.ingest = ep_shutters_control_ingest,
+	.command = NULL
+};
+
 static int init_endpoints(const ha_dev_addr_t *addr,
 			  struct ha_device_endpoint *endpoints,
 			  uint8_t *endpoints_count)
 {
-	if (CANIOT_DID_CLS(addr->mac.addr.caniot) == CANIOT_DEVICE_CLASS0) {
-		endpoints[0].api = &ep_blc0;
+	/* Get class endpoint */
+	switch (CANIOT_DID_CLS(addr->mac.addr.caniot)) {
+	case CANIOT_DEVICE_CLASS0:
+		endpoints[0u].api = &ep_blc0;
 		*endpoints_count = 1U;
-	} else if (CANIOT_DID_CLS(addr->mac.addr.caniot) == CANIOT_DEVICE_CLASS1) {
-		endpoints[0].api = &ep_blc1;
+		break;
+	case CANIOT_DEVICE_CLASS1:
+		endpoints[0u].api = &ep_blc1;
 		*endpoints_count = 1U;
-	} else {
+		break;
+	default:
 		return -ENOTSUP;
 	}
 
-	if (caniot_deviceid_equal(addr->mac.addr.caniot, HEATING_CONTROLLER_DID)) {
+	/* Get device application endpoint */
+	switch (addr->mac.addr.caniot) {
+	case HEATING_CONTROLLER_DID:
 		endpoints[1u].api = &ep_heating_control;
 		*endpoints_count = 2u;
+		break;
+	case SHUTTERS_CONTROLLER_DID:
+		endpoints[1u].api = &ep_shutters_control;
+		*endpoints_count = 2u;
+		break;
+	default:
+		break;
 	}
 
 	return 0;

@@ -1,7 +1,8 @@
 # GENERATOR=Unix Makefiles
 # GENERATOR=Ninja
 GENERATOR=Ninja
-
+SERIAL_PORT=/dev/ttyACM1
+BAUDRATE=115200
 PYOCD = pyocd
 
 ifeq ($(GENERATOR),Unix Makefiles)
@@ -61,6 +62,10 @@ flash:
 
 make: build
 	${GEN_CMD} -C build $(GEN_OPT)
+
+# Ctrl-T Q to quit
+monitor:
+	python3 -m serial.tools.miniterm --filter=direct ${SERIAL_PORT} ${BAUDRATE}
 
 reports: tmp
 	${GEN_CMD} -C build ram_report $(GEN_OPT) > docs/ram_report.txt

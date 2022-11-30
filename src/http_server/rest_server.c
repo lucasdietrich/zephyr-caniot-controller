@@ -906,40 +906,45 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 					     http_response_t *resp,
 					     uint32_t timeout)
 {
-	struct ha_ds_caniot_blc0 blt;
-	ha_dev_caniot_blc_cls0_to_blt(&blt, AS_BLC0_TELEMETRY(r->buf));
+	if (r->id.cls == CANIOT_DEVICE_CLASS0) {
+		struct ha_ds_caniot_blc0 blt;
+		ha_dev_caniot_blc_cls0_to_blt(&blt, AS_BLC0_TELEMETRY(r->buf));
 
-	struct json_caniot_telemetry json = {
-		.did = CANIOT_DID(r->id.cls, r->id.sid),
-		.base = {
-			.timestamp = net_time_get(),
-		},
-		.duration = timeout,
-		.dio = blt.dio.value,
-		.pdio = blt.dio.value,
-		.temperatures_count = 0U, /* TODO temperatures */
-	};
+		struct json_caniot_telemetry json = {
+			.did = CANIOT_DID(r->id.cls, r->id.sid),
+			.base = {
+				.timestamp = net_time_get(),
+			},
+			.duration = timeout,
+			.dio = blt.dio.value,
+			.pdio = blt.dio.value,
+			.temperatures_count = 0U, /* TODO temperatures */
+		};
 
-	char temp_repr[HA_CANIOT_MAX_TEMPERATURES][9U];
-	for (size_t i = 0; i < HA_CANIOT_MAX_TEMPERATURES; i++) {
-		if (blt.temperatures[i].type == HA_DEV_SENSOR_TYPE_NONE) {
-			continue;
+		char temp_repr[HA_CANIOT_MAX_TEMPERATURES][9U];
+		for (size_t i = 0; i < HA_CANIOT_MAX_TEMPERATURES; i++) {
+			if (blt.temperatures[i].type == HA_DEV_SENSOR_TYPE_NONE) {
+				continue;
+			}
+
+			const size_t j = json.temperatures_count++;
+
+			sprintf(temp_repr[j], "%.2f",
+				blt.temperatures[i].value / 100.0);
+
+			json.temperatures[j].repr = temp_repr[j];
+			json.temperatures[j].sens_type = blt.temperatures[i].type;
+			json.temperatures[j].value = blt.temperatures[i].value;
 		}
 
-		const size_t j = json.temperatures_count++;
+		resp->status_code = 200U;
 
-		sprintf(temp_repr[j], "%.2f",
-			blt.temperatures[i].value / 100.0);
-
-		json.temperatures[j].repr = temp_repr[j];
-		json.temperatures[j].sens_type = blt.temperatures[i].type;
-		json.temperatures[j].value = blt.temperatures[i].value;
+		return rest_encode_response_json(resp, &json, json_caniot_query_telemetry_descr,
+						 ARRAY_SIZE(json_caniot_query_telemetry_descr));
+	} else {
+		LOG_WRN("Unsupported CANIOT device class %u", r->id.cls);
+		return 0u;
 	}
-
-	resp->status_code = 200U;
-
-	return rest_encode_response_json(resp, &json, json_caniot_query_telemetry_descr,
-					 ARRAY_SIZE(json_caniot_query_telemetry_descr));
 }
 
 /* QUERY CANIOT COMMAND/TELEMETRY and BUILD JSON RESPONSE */
