@@ -827,10 +827,10 @@ static void sub_free(struct ha_ev_subs *sub)
 
 static void sub_init(struct ha_ev_subs *sub)
 {
-	k_fifo_init(&sub->evq);
-	sub->func = NULL;
-	sub->flags = 0u;
-	sub->on_queued = NULL;
+	k_fifo_init(&sub->_evq);
+	atomic_set(&sub->_ctrl, 0u);
+	sub->conf = NULL;
+	sys_dnode_init(&sub->_handle);
 }
 
 K_MEM_SLAB_DEFINE(ev_slab, sizeof(struct ha_event), HA_EV_MAX_COUNT, 4);
@@ -912,35 +912,37 @@ void ha_ev_unref(struct ha_event *event)
 static bool event_match_sub(struct ha_ev_subs *sub,
 			    struct ha_event *event)
 {
-	if (sub->flags & HA_EV_SUBS_DEVICE_TYPE) {
-		if (event->dev->addr.type != sub->device_type) {
+	const struct ha_ev_subs_conf *const conf = sub->conf;
+
+	if (conf->flags & HA_EV_SUBS_CONF_DEVICE_TYPE) {
+		if (event->dev->addr.type != conf->device_type) {
 			return false;
 		}
 	}
 
-	if (sub->flags & HA_EV_SUBS_DEVICE_ADDR) {
+	if (conf->flags & HA_EV_SUBS_CONF_DEVICE_ADDR) {
 		ha_dev_addr_t addr = {
-			.type = sub->device_type,
-			.mac = sub->device_mac
+			.type = conf->device_type,
+			.mac = conf->device_mac
 		};
 		if (addr_cmp(&addr, &event->dev->addr) != 0) {
 			return false;
 		}
 	}
 
-	if (sub->flags & HA_EV_SUBS_DEVICE_DATA) {
+	if (conf->flags & HA_EV_SUBS_CONF_DEVICE_DATA) {
 		if (event->type != HA_EV_TYPE_DATA) {
 			return false;
 		}
 	}
 
-	if (sub->flags & HA_EV_SUBS_DEVICE_COMMAND) {
+	if (conf->flags & HA_EV_SUBS_CONF_DEVICE_COMMAND) {
 		if (event->type != HA_EV_TYPE_COMMAND) {
 			return false;
 		}
 	}
 
-	if (sub->flags & HA_EV_SUBS_DEVICE_ERROR) {
+	if (conf->flags & HA_EV_SUBS_CONF_DEVICE_ERROR) {
 		if (event->type != HA_EV_TYPE_ERROR) {
 			return false;
 		}
@@ -971,13 +973,15 @@ static int event_notify_single(struct ha_ev_subs *sub,
 
 		/* TODO: Find a way to use a regular k_fifo_put() 
 		 * i.e. without k_malloc() */
-		ret = k_fifo_alloc_put(&sub->evq, event);
+		ret = k_fifo_alloc_put(&sub->_evq, event);
 		
 		if (ret == 0) {
+			const struct ha_ev_subs_conf *const conf = sub->conf;
+
 			/* call event function hook */
-			if (sub->flags & HA_EV_SUBS_FLAG_ON_QUEUED_HOOK) {
-				__ASSERT_NO_MSG(sub->on_queued != NULL);
-				sub->on_queued(sub, event);
+			if (conf->flags & HA_EV_SUBS_CONF_ON_QUEUED_HOOK) {
+				__ASSERT_NO_MSG(conf->on_queued != NULL);
+				conf->on_queued(sub, event);
 			}
 			ret = 1;
 		} else {
@@ -1032,25 +1036,24 @@ static bool subscription_conf_validate(const ha_ev_subs_conf_t *conf)
 		return false;
 	}
 
-	if (conf->flags & HA_EV_SUBS_DEVICE_ADDR) {
-		if ((conf->device_mac == NULL) ||
-		    (conf->device_type == HA_DEV_TYPE_NONE)) {
+	if (conf->flags & HA_EV_SUBS_CONF_DEVICE_ADDR) {
+		if (conf->device_type == HA_DEV_TYPE_NONE) {
 			return false;
 		}
 	}
 
-	if (conf->flags & HA_EV_SUBS_FUNCTION) {
+	if (conf->flags & HA_EV_SUBS_CONF_FUNCTION) {
 		if (conf->func == NULL) {
 			return false;
 		}
 	}
 
-	if (conf->flags & HA_EV_SUBS_FLAG_ON_QUEUED_HOOK) {
+	if (conf->flags & HA_EV_SUBS_CONF_ON_QUEUED_HOOK) {
 		if (conf->on_queued == NULL) {
 			return false;
 		}
 	} else if (conf->on_queued != NULL) {
-		LOG_WRN("on_queued hook set (%p) but HA_EV_SUBS_FLAG_ON_QUEUED_HOOK "
+		LOG_WRN("on_queued hook set (%p) but HA_EV_SUBS_CONF_ON_QUEUED_HOOK "
 			"flag is missing",
 			conf->on_queued);
 	}
@@ -1081,17 +1084,8 @@ int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
 
 	sub_init(psub);
 
-	/* Configure the sub structure with conf */
-	psub->flags = conf->flags;
-	psub->device_type = conf->device_type;
-	if (conf->flags & HA_EV_SUBS_DEVICE_ADDR) {
-		memcpy(&psub->device_mac, conf->device_mac, sizeof(ha_dev_mac_t));
-	}
-
-	/* Set on_queued hook */
-	if (conf->flags & HA_EV_SUBS_FLAG_ON_QUEUED_HOOK) {
-		psub->on_queued = conf->on_queued;
-	}
+	/* Reference configuration */
+	psub->conf = conf;
 	
 	/* prefer k_spin_lock() to mutex here */
 	k_mutex_lock(&sub_mutex, K_FOREVER);
@@ -1099,7 +1093,7 @@ int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
 	k_mutex_unlock(&sub_mutex);
 
 	/* Mark as subscribed */
-	atomic_set_bit(&psub->flags, HA_EV_SUBS_FLAG_SUBSCRIBED_BIT);
+	atomic_set_bit(&psub->_ctrl, HA_EV_SUBS_FLAG_SUBSCRIBED_BIT);
 
 	*sub = psub;
 
@@ -1119,20 +1113,20 @@ int ha_ev_unsubscribe(struct ha_ev_subs *sub)
 		return -EINVAL;
 	}
 
-	if (atomic_test_and_clear_bit(&sub->flags, HA_EV_SUBS_FLAG_SUBSCRIBED_BIT)) {
+	if (atomic_test_and_clear_bit(&sub->_ctrl, HA_EV_SUBS_FLAG_SUBSCRIBED_BIT)) {
 		/* prefer k_spin_lock() to mutex here */
 		k_mutex_lock(&sub_mutex, K_FOREVER);
 		sys_dlist_remove(&sub->_handle);
 		k_mutex_unlock(&sub_mutex);
 
-		if (k_fifo_is_empty(&sub->evq)) {
+		if (k_fifo_is_empty(&sub->_evq)) {
 			/* TODO how to cancel all threads waiting on this sub ? */
-			k_fifo_cancel_wait(&sub->evq);
+			k_fifo_cancel_wait(&sub->_evq);
 		} else {
 			/* Empty the fifo if not empty */
 			ha_ev_t *ev;
 			uint32_t count = 0u;
-			while ((ev = k_fifo_get(&sub->evq, K_NO_WAIT)) != NULL) {
+			while ((ev = k_fifo_get(&sub->_evq, K_NO_WAIT)) != NULL) {
 				ha_ev_unref(ev);
 				count++;
 			}
@@ -1151,8 +1145,8 @@ int ha_ev_unsubscribe(struct ha_ev_subs *sub)
 ha_ev_t *ha_ev_wait(struct ha_ev_subs *sub,
 		    k_timeout_t timeout)
 {
-	if ((sub != NULL) && HA_EV_SUBS_SUBSCRIBED(sub)) {
-		return (ha_ev_t *)k_fifo_get(&sub->evq, timeout);
+	if ((sub != NULL) && HA_EV_SUBS_CONF_SUBSCRIBED(sub)) {
+		return (ha_ev_t *)k_fifo_get(&sub->_evq, timeout);
 	}
 	return NULL;
 }

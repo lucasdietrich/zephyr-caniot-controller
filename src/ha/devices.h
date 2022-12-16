@@ -503,48 +503,46 @@ void ha_ev_unref(ha_ev_t *event);
 
 typedef bool (*event_subs_filter_func_t)(ha_ev_t *event);
 
-typedef struct ha_ev_subs
-{
-	sys_dnode_t _handle;
-
-	/* Queue of events to be notified to the waiter */
-	struct k_fifo evq;
-
-	/* On queued event hook */
-	void (*on_queued)(struct ha_ev_subs *sub, ha_ev_t *event);
-
-	/* Flag describing on which event should the waiter be notified */
-	atomic_t flags;
-
-	/* Depends on filter */
-	event_subs_filter_func_t func;
-	ha_dev_mac_t device_mac;
-	ha_dev_type_t device_type;
-
-} ha_ev_subs_t;
+struct ha_ev_subs_conf;
 
 /* Event subscription Control flags */
 #define HA_EV_SUBS_FLAG_SUBSCRIBED_BIT 	0u
 #define HA_EV_SUBS_FLAG_SUBSCRIBED 	BIT(HA_EV_SUBS_FLAG_SUBSCRIBED_BIT)
 
-#define HA_EV_SUBS_FLAG_ON_QUEUED_BIT 	1u
-#define HA_EV_SUBS_FLAG_ON_QUEUED_HOOK 	BIT(HA_EV_SUBS_FLAG_ON_QUEUED_BIT)
+typedef struct ha_ev_subs
+{
+	sys_dnode_t _handle;
+
+	/* Queue of events to be notified to the waiter */
+	struct k_fifo _evq;
+
+	/* Subscription Control flags */
+	atomic_t _ctrl;
+
+	/* Subscription Configuration */
+	const struct ha_ev_subs_conf *conf;
+} ha_ev_subs_t;
+
+
+/* Event subscription Config flags */
+#define HA_EV_SUBS_CONF_ON_QUEUED_HOOK_BIT 	1u
+#define HA_EV_SUBS_CONF_ON_QUEUED_HOOK 		BIT(HA_EV_SUBS_CONF_ON_QUEUED_HOOK_BIT)
 
 /* Event subscription filter flags */
-#define HA_EV_SUBS_DEVICE_TYPE 		BIT(2u)
-#define HA_EV_SUBS_DEVICE_ADDR 		BIT(3u)
-#define HA_EV_SUBS_DEVICE_DATA 		BIT(4u)
-#define HA_EV_SUBS_DEVICE_COMMAND 	BIT(5u)
-#define HA_EV_SUBS_DEVICE_ERROR 	BIT(6u)
-#define HA_EV_SUBS_FUNCTION 		BIT(7u)
+#define HA_EV_SUBS_CONF_DEVICE_TYPE 		BIT(2u)
+#define HA_EV_SUBS_CONF_DEVICE_ADDR 		BIT(3u)
+#define HA_EV_SUBS_CONF_DEVICE_DATA 		BIT(4u)
+#define HA_EV_SUBS_CONF_DEVICE_COMMAND 		BIT(5u)
+#define HA_EV_SUBS_CONF_DEVICE_ERROR 		BIT(6u)
+#define HA_EV_SUBS_CONF_FUNCTION 		BIT(7u)
 
 /* Notify subscriber only after a minimum interval (per device) */
-#define HA_EV_SUBS_INTERVAL_MS 		BIT(8u)
+#define HA_EV_SUBS_CONF_INTERVAL_MS 		BIT(8u)
 
 /* Notify subscriber only every n events (per device) */
-#define HA_EV_SUBS_ONE_OF_N 		BIT(9u)
+#define HA_EV_SUBS_CONF_ONE_OF_N 		BIT(9u)
 
-#define HA_EV_SUBS_SUBSCRIBED(_subs) (atomic_test_bit(&_subs->flags, HA_EV_SUBS_FLAG_SUBSCRIBED_BIT))
+#define HA_EV_SUBS_CONF_SUBSCRIBED(_subs) (atomic_test_bit(&_subs->_ctrl, HA_EV_SUBS_FLAG_SUBSCRIBED_BIT))
 
 typedef struct ha_ev_subs_conf
 {
@@ -552,7 +550,7 @@ typedef struct ha_ev_subs_conf
 
 	/* Depends on filter */
 	event_subs_filter_func_t func;
-	const ha_dev_mac_t *device_mac;
+	ha_dev_mac_t device_mac;
 	ha_dev_type_t device_type;
 	
 	/* Callback */
@@ -572,7 +570,7 @@ int ha_ev_notify_all(ha_ev_t *event);
  *  configuration. If subscription succeeds, the subscription handle is returned in
  *  the provided pointer "subs".
  * 
- * @param conf Subscription configuration
+ * @param conf Subscription configuration, must live until unsubscribed
  * @param sub Pointer to event subscription handle
  * @return int 0 on success, negative error code otherwise
  */
