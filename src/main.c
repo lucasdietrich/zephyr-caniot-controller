@@ -17,6 +17,8 @@
 #include "lua/orchestrator.h"
 #include "utils/freelist.h"
 
+#include <zephyr/sys/sys_heap.h>
+
 #if defined(CONFIG_APP_DFU)
 #include "dfu/dfu.h"
 #endif
@@ -183,7 +185,14 @@ void main(void)
 
 		/* 1min tasks */
 		if (counter % 60 == 0) {
-
+#if defined(CONFIG_SYS_HEAP_RUNTIME_STATS)
+			extern struct k_heap _system_heap;
+			struct sys_memory_stats stats;
+			sys_heap_runtime_stats_get(&_system_heap.heap, &stats);
+			LOG_INF("sys heap stats: alloc=%u free=%u max=%u",
+				stats.allocated_bytes, stats.free_bytes,
+				stats.max_allocated_bytes);
+#endif
 		}
 
 		/* 10min tasks but 5 seconds after startup*/

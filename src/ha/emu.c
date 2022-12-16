@@ -180,7 +180,10 @@ void emu_consumer(void *_a, void *_b, void *_c)
 			ha_ev_unref(event);
 		}
 		
-		k_sleep(K_MSEC(get_rdm_delay_ms_1() >> 2));
+		/* Remove this delay because it could lead to a huge memory
+		 * consumption if the thread doesn't consume events fast enough.
+		 */
+		// k_sleep(K_MSEC(get_rdm_delay_ms_1() >> 2));
 	}
 }
 
