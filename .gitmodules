@@ -1,9 +1,6 @@
 [submodule "modules/caniot-lib"]
 	path = modules/caniot-lib
 	url = https://github.com/lucasdietrich/caniot-lib.git
-[submodule "src/uart_ipc"]
-	path = modules/uart_ipc
-	url = https://github.com/lucasdietrich/zephyr-uart-dma-ipc.git
 [submodule "modules/lua"]
 	path = modules/lua
 	url = git@github.com:lucasdietrich/lua.git

@@ -37,7 +37,6 @@ endif()
 
 set(ZEPHYR_EXTRA_MODULES
     ${CMAKE_CURRENT_SOURCE_DIR}/modules/lua
-    ${CMAKE_CURRENT_SOURCE_DIR}/modules/uart_ipc
     ${CMAKE_CURRENT_SOURCE_DIR}/modules/caniot-lib
     ${CMAKE_CURRENT_SOURCE_DIR}/modules/embedc-utils
 )
