@@ -17,6 +17,8 @@
 
 #include <ha/devices/xiaomi.h>
 
+#include <system.h>
+
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(ble_obv, LOG_LEVEL_INF);
 
@@ -129,7 +131,7 @@ static void device_found(const bt_addr_le_t *addr,
 		if (xc.valid == true) {
 			bt_addr_le_copy(&xc.addr, addr);
 			xc.measurements.rssi = rssi;
-			xc.time = k_uptime_get() / MSEC_PER_SEC;
+			xc.time = sys_time_get();
 
 			char mac_str[BT_ADDR_STR_LEN];
 			bt_addr_to_str(&addr->a, mac_str, sizeof(mac_str));

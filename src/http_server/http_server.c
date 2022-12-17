@@ -360,11 +360,7 @@ static void http_srv_thread(void *_a, void *_b, void *_c)
 
 		timeout = http_session_time_to_next_outdated();
 
-		LOG_DBG("zsock_poll(%p, %u, %u)", fds.array, 
-			clients_count + servers_count, timeout);
 		ret = zsock_poll(fds.array, clients_count + servers_count, timeout);
-		LOG_DBG("zsock_poll(%p, %u, %u) ret=%d", fds.array, 
-			clients_count + servers_count, timeout, ret);
 		if (ret >= 0) {
 #if defined(CONFIG_APP_HTTP_SERVER_NONSECURE)
 			if (fds.srv.revents & POLLIN) {
@@ -409,7 +405,7 @@ static void http_srv_thread(void *_a, void *_b, void *_c)
 			}
 		} else {
 			LOG_ERR("unexpected poll(%p, %d, %d) return value = %d",
-				&fds, clients_count + servers_count, SYS_FOREVER_MS, ret);
+				&fds, clients_count + servers_count, SYS_FOREVER_MS, errno);
 
 			/* TODO remove, sleep 1 sec here */
 			k_sleep(K_MSEC(5000));
@@ -777,5 +773,3 @@ static bool process_request(http_session_t *sess)
 close:
 	return false;
 }
-
-
