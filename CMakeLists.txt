@@ -21,7 +21,10 @@ if (BOARD STREQUAL "nucleo_f429zi")
     # Multiple filenames can be separated with either spaces or semicolons. 
     # This can be useful in order to leave CONF_FILE at its default value, 
     # but “mix in” some additional configuration options.
-    set(OVERLAY_CONFIG "overlays/nucleo_f429zi_spi_disk.conf overlays/nucleo_f429zi_mcuboot.conf ${OVERLAY_CONFIG}")
+    set(OVERLAY_CONFIG "overlays/nucleo_f429zi_spi_disk.conf \
+        overlays/nucleo_f429zi_mcuboot.conf \
+        overlays/nucleo_f429zi_logging_fs.conf \
+        ${OVERLAY_CONFIG}")
     message(STATUS "OVERLAY_CONFIG: ${OVERLAY_CONFIG}")
 
     # DTC_OVERLAY_FILE: One or more devicetree overlay files to use. 
