@@ -739,6 +739,13 @@ int rest_devices_list(http_request_t *req,
 	);
 }
 
+int rest_device_get(http_request_t *req,
+		    http_response_t *resp)
+{
+	/* TODO */
+	return 0u;
+}
+
 static const struct json_obj_descr json_ha_stats_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct ha_stats, ev, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct ha_stats, dev_dropped, JSON_TOK_NUMBER),
