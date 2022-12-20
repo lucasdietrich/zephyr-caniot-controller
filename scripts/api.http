@@ -3,18 +3,18 @@ content-type: application/json
 
 ###
 
-GET http://{{host}}/info
+GET http://{{host}}/api/info
 
 ###
 
-GET http://{{host}}/devices
+GET http://{{host}}/api/devices
 
 ###
 
-GET http://{{host}}/devices/xiaomi
+GET http://{{host}}/api/devices/xiaomi
 
 ###
-GET http://{{host}}/devices/caniot
+GET http://{{host}}/api/devices/caniot
 
 ###
 
@@ -26,11 +26,11 @@ GET http://{{host}}/404
 
 ###
 
-GET http://{{host}}/devices/caniot/40/endpoint/3/telemetry
+GET http://{{host}}/api/devices/caniot/40/endpoint/3/telemetry
 
 ###
 
-POST http://{{host}}/devices/garage
+POST http://{{host}}/api/devices/garage
 
 {
     "left_door": "set",
@@ -39,27 +39,27 @@ POST http://{{host}}/devices/garage
 
 ###
 
-GET http://{{host}}/devices/caniot/32/endpoints/3/telemetry
+GET http://{{host}}/api/devices/caniot/32/endpoints/3/telemetry
 
 ###
 
-POST http://{{host}}/files
+POST http://{{host}}/api/files
 
 TEST
 
 ###
 
-GET http://{{host}}/files/lua
+GET http://{{host}}/api/files/lua
 
 ###
 
-GET http://{{host}}/test/payload
+GET http://{{host}}/api/test/payload
 
 MYPAYLOAD
 
 ###
 
-GET http://{{host}}/test/route_args/23/1/24?test=sdf&fdsf=826h&name=Lucas&&qsfd=86
+GET http://{{host}}/api/test/route_args/23/1/24?test=sdf&fdsf=826h&name=Lucas&&qsfd=86
 
 ###
 
@@ -68,4 +68,4 @@ GET http://{{host}}/metrics_controller
 
 ###
 
-GET http://{{host}}/credentials/flash
+GET http://{{host}}/api/credentials/flash
