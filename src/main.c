@@ -185,6 +185,14 @@ void main(void)
 
 		/* 1min tasks */
 		if (counter % 60 == 0) {
+
+		}
+
+		/* 10min tasks but 5 seconds after startup*/
+		if (counter % 600 == 5) {
+			net_time_show();
+			debug_mbedtls_memory();
+
 #if defined(CONFIG_SYS_HEAP_RUNTIME_STATS)
 			extern struct k_heap _system_heap;
 			struct sys_memory_stats stats;
@@ -193,12 +201,6 @@ void main(void)
 				stats.allocated_bytes, stats.free_bytes,
 				stats.max_allocated_bytes);
 #endif
-		}
-
-		/* 10min tasks but 5 seconds after startup*/
-		if (counter % 600 == 5) {
-			net_time_show();
-			debug_mbedtls_memory();
 		}
 
 		counter++;

@@ -36,7 +36,7 @@
 #include "creds/manager.h"
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF); /* INF */
+LOG_MODULE_REGISTER(http_server, LOG_LEVEL_WRN); /* INF */
 
 /* O_NONBLOCK */
 #define SOCK_BLOCKING_OPT 0u

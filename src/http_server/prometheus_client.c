@@ -630,16 +630,13 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
 
 	} else if (dev->addr.type == HA_DEV_TYPE_CANIOT) {
-		__ASSERT_NO_MSG(dev->endpoints[0].api->eid == HA_DEV_ENDPOINT_CANIOT_BLC0);
 		char caniot_addr_str[CANIOT_ADDR_LEN];
 
 		caniot_encode_deviceid(dev->addr.mac.addr.caniot,
 				       caniot_addr_str,
 				       sizeof(caniot_addr_str));
-
-		const struct ha_ds_caniot_blc0 *const dt = 
-			HA_DEV_EP0_GET_CAST_LAST_DATA(dev, const struct ha_ds_caniot_blc0);
-
+		
+		/* prepare temperature sensors metric tags */
 		union measurements_tags_values tags_values = {
 			.medium = prom_myd_medium_to_str(dev->addr.mac.medium),
 			.mac = caniot_addr_str, /* can device id */
@@ -650,6 +647,7 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 			.collector = "f429",
 		};
 
+		/* prepare temperature sensors metric value */
 		struct metric_value val = {
 			.tags_values = tags_values.list,
 			.tags_values_count = ARRAY_SIZE(tags_values.list),
@@ -658,17 +656,47 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 				.digits = 2,
 			}
 		};
-	
-		for (size_t i = 0U; i < ARRAY_SIZE(dt->temperatures); i++) {
-			ha_dev_sensor_type_t sensor_type =
-				dt->temperatures[i].type;
-			if (sensor_type != HA_DEV_SENSOR_TYPE_NONE) {
-				val.fvalue = dt->temperatures[i].value / 100.0;
-				tags_values.sensor = prom_myd_sensor_type_to_str(sensor_type);
-				encode_metric(buffer, &val, &mdef_device_temperature, false);
+
+		switch (dev->endpoints[0].api->eid) {
+		case HA_DEV_ENDPOINT_CANIOT_BLC0:
+		{
+			const struct ha_ds_caniot_blc0 *const dt =
+				HA_DEV_EP0_GET_CAST_LAST_DATA(dev, const struct ha_ds_caniot_blc0);
+
+			/* TODO refactor, because same code for CLS0 and 1 */
+			for (size_t i = 0U; i < ARRAY_SIZE(dt->temperatures); i++) {
+				ha_dev_sensor_type_t sensor_type =
+					dt->temperatures[i].type;
+				if (sensor_type != HA_DEV_SENSOR_TYPE_NONE) {
+					val.fvalue = dt->temperatures[i].value / 100.0;
+					tags_values.sensor = prom_myd_sensor_type_to_str(sensor_type);
+					encode_metric(buffer, &val, &mdef_device_temperature, false);
+				}
 			}
 		}
-		
+		break;
+		case HA_DEV_ENDPOINT_CANIOT_BLC1:
+		{
+			const struct ha_ds_caniot_blc1 *const dt =
+				HA_DEV_EP0_GET_CAST_LAST_DATA(dev, const struct ha_ds_caniot_blc1);
+
+			/* TODO refactor, because same code for CLS0 and 1 */
+			for (size_t i = 0U; i < ARRAY_SIZE(dt->temperatures); i++) {
+				ha_dev_sensor_type_t sensor_type =
+					dt->temperatures[i].type;
+				if (sensor_type != HA_DEV_SENSOR_TYPE_NONE) {
+					val.fvalue = dt->temperatures[i].value / 100.0;
+					tags_values.sensor = prom_myd_sensor_type_to_str(sensor_type);
+					encode_metric(buffer, &val, &mdef_device_temperature, false);
+				}
+			}
+
+			break;
+		}
+		default:
+			break;
+		}
+
 		ha_ev_t *last_ev = ha_dev_get_last_event(dev, 0u);
 		prom_metric_feed_dev_measurement_timestamp(last_ev->timestamp, &val);
 		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);

@@ -20,7 +20,7 @@
 #include <system.h>
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(ble_obv, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(ble_obv, LOG_LEVEL_WRN);
 
 /*___________________________________________________________________________*/
 
