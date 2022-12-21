@@ -3,6 +3,7 @@ mainmenu "ble"
 config APP_XIAOMI_MAX_DEVICES
 	int "Maximum XIAOMI devices supported"
 	default 13
+	depends on BT_OBSERVER
 	help
 		Maximum XIAOMI devices supported.
 

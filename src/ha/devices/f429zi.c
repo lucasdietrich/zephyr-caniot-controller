@@ -13,10 +13,10 @@ static void f429zi_temp_convert(struct ha_ds_f429zi *dt,
 }
 
 static int ingest(struct ha_event *ev,
-	   struct ha_dev_payload *pl)
+		  const struct ha_device_payload *pl)
 {
 
-	f429zi_temp_convert(ev->data, (const float *) pl->buffer);
+	f429zi_temp_convert(ev->data, (const float *)pl->buffer);
 
 	return 0;
 }
@@ -47,7 +47,7 @@ static int init_endpoints(const ha_dev_addr_t *addr,
 
 const struct ha_device_api ha_device_api_f429zi = {
 	.init_endpoints = init_endpoints,
-	.select_endpoint = HA_DEV_API_SELECT_ENDPOINT_0_CB
+	.select_endpoint = HA_DEV_ENDPOINT_SELECT_0_CB
 };
 
 int ha_dev_register_die_temperature(uint32_t timestamp, float die_temperature)
@@ -59,8 +59,15 @@ int ha_dev_register_die_temperature(uint32_t timestamp, float die_temperature)
 		}
 	};
 
-	return ha_dev_register_data(&addr, &die_temperature,
-				    sizeof(die_temperature), timestamp, NULL);
+	const struct ha_device_payload pl =
+	{
+		.buffer = (const char *)&die_temperature,
+		.len = sizeof(die_temperature),
+		.timestamp = timestamp,
+		.y = NULL
+	};
+
+	return ha_dev_register_data(&addr, &pl);
 }
 
 float ha_ev_get_die_temperature(const ha_ev_t *ev)

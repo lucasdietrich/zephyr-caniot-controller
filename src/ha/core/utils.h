@@ -15,7 +15,7 @@
 #include <caniot/caniot.h>
 #endif 
 
-#include "ha.h"
+#include "ha/core/ha.h"
 
 const char *ha_dev_medium_to_str(ha_dev_medium_type_t medium);
 

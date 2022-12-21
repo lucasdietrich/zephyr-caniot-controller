@@ -13,5 +13,5 @@ properties:
     required: true
   label:
     type: string
-    description: human-readable name
+    description: STM32 CRC peripheral
     required: false

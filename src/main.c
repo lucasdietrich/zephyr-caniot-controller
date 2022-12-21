@@ -41,7 +41,7 @@
 #endif /* CONFIG_APP_BLE_INTERFACE */
 
 #ifndef CONFIG_QEMU_TARGET
-#include "ha/devices.h"
+#include "ha/core/devices.h"
 #endif /* CONFIG_QEMU_TARGET */
 
 #ifdef CONFIG_LUA

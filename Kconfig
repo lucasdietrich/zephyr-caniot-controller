@@ -70,6 +70,7 @@ config APP_CAN_INTERFACE
 config APP_BLE_INTERFACE
         bool "BLE interface"
         default y
+        depends on BT
         help
                 Enable BLE interface with coprocessor
 

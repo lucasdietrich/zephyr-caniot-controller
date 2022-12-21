@@ -7,10 +7,9 @@
 #ifndef _HA_DEVICES_CANIOT_H
 #define _HA_DEVICES_CANIOT_H
 
-#include "../ha.h"
-#include "../devices.h"
-
-#include "../data.h"
+#include "ha/core/ha.h"
+#include "ha/core/devices.h"
+#include "ha/core/data.h"
 
 /* blt stands for board level telemetry */
 struct ha_ds_caniot_blc0
@@ -109,5 +108,18 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 				     caniot_id_t *id);
 
 const struct caniot_blc0_telemetry *ha_ev_get_caniot_telemetry(const ha_ev_t *ev);
+
+static inline ssize_t ha_dev_caniot_iterate_data(ha_dev_iterate_cb_t callback,
+						 void *user_data)
+{
+	const ha_dev_filter_t filter = {
+		.flags =
+			HA_DEV_FILTER_DATA_EXIST |
+			HA_DEV_FILTER_DEVICE_TYPE,
+		.device_type = HA_DEV_TYPE_CANIOT,
+	};
+
+	return ha_dev_iterate(callback, &filter, NULL, user_data);
+}
 
 #endif /* _HA_DEVICES_CANIOT_H */

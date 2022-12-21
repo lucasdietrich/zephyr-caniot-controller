@@ -3,7 +3,7 @@
 
 #include "xiaomi.h"
 
-#include "ha/devices.h"
+#include "ha/core/devices.h"
 
 static void ble_record_to_xiaomi(struct ha_ds_xiaomi *xiaomi,
 				 const xiaomi_record_t *rec,
@@ -21,7 +21,7 @@ static void ble_record_to_xiaomi(struct ha_ds_xiaomi *xiaomi,
 }
 
 static int ingest(struct ha_event *ev,
-	   struct ha_dev_payload *pl)
+		  const struct ha_device_payload *pl)
 {
 
 	ble_record_to_xiaomi(ev->data,
@@ -60,7 +60,7 @@ static int init_endpoints(const ha_dev_addr_t *addr,
 
 const struct ha_device_api ha_device_api_xiaomi = {
 	.init_endpoints = init_endpoints,
-	.select_endpoint = HA_DEV_API_SELECT_ENDPOINT_0_CB
+	.select_endpoint = HA_DEV_ENDPOINT_SELECT_0_CB
 };
 
 int ha_dev_xiaomi_register_record(const xiaomi_record_t *record)
@@ -73,8 +73,15 @@ int ha_dev_xiaomi_register_record(const xiaomi_record_t *record)
 		}
 	};
 
-	return ha_dev_register_data(&addr, (void *)record,
-				    sizeof(xiaomi_record_t), record->time, NULL);
+	const struct ha_device_payload pl =
+	{
+		.buffer = (const char *)record,
+		.len = sizeof(xiaomi_record_t),
+		.timestamp = record->time,
+		.y = NULL
+	};
+
+	return ha_dev_register_data(&addr, &pl);
 }
 
 void ha_dev_xiaomi_record_init(xiaomi_record_t *record)

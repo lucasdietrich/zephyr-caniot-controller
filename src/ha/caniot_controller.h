@@ -49,7 +49,17 @@ int ha_ciot_ctrl_query(struct caniot_frame *__restrict req,
 typedef void (*ha_ciot_ctrl_did_cb_t)(caniot_did_t did,
 				      const struct caniot_frame *frame,
 				      void *user_data);
-				      
+
+/**
+ * @brief Discover all CANIOT devices, call cb for each one
+ * 
+ * @param timeout 
+ * @param cb 
+ * @return int 
+ */
+int ha_ciot_ctrl_discover(uint32_t timeout,
+			  ha_ciot_ctrl_did_cb_t cb);
+
 /* 
 IDEAS
 

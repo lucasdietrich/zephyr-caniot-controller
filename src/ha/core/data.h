@@ -140,17 +140,45 @@ struct ha_data_descr
 	HA_DATA_DESCR(_struct, _member, _type, HA_ASSIGN_UNASSIGNED)
 
 
-
+/**
+ * @brief Get the value matching the requested type from a data structure using 
+ * its descriptor.
+ * 
+ * Note: Pointer needs to be casted to the correct type.
+ * 
+ * @param data Data structure to get the value from
+ * @param descr Descriptor of the data structure
+ * @param data_descr_size Descriptor size
+ * @param type Type of the data to get
+ * @param occurence Occurence of the data type in the descriptor
+ * @return void* Pointer to the data value
+ */
 void *ha_data_get(void *data,
 		  const struct ha_data_descr *descr,
 		  size_t data_descr_size,
 		  ha_data_type_t type,
-		  uint8_t index);
+		  uint8_t occurence);
 
+/**
+ * @brief Tell whether a descriptor contains a given data type.
+ * 
+ * @param descr Descriptor to check
+ * @param data_descr_size Descriptor size
+ * @param type Type to search for
+ * @return true 
+ * @return false 
+ */
 bool ha_data_descr_data_type_has(const struct ha_data_descr *descr,
 				 size_t data_descr_size,
 				 ha_data_type_t type);
 
+/**
+ * @brief Calculate a mask of all data types supported in a descriptor.
+ * 
+ * @param descr Descriptor to compute the mask from
+ * @param data_descr_size Descriptor size
+ * @return uint32_t Mask of data types
+ */
 uint32_t ha_data_descr_data_types_mask(const struct ha_data_descr *descr,
 				       size_t data_descr_size);
 

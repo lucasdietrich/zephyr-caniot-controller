@@ -12,6 +12,7 @@
 #include <zephyr/drivers/can.h>
 
 #include "devices.h"
+
 #include "net_time.h"
 #include "config.h"
 #include "system.h"
@@ -30,9 +31,11 @@ struct {
 	struct k_mutex mutex;
 	ha_dev_t list[HA_MAX_DEVICES];
 	uint8_t count;
+	uint32_t sdevuid; /* Session Device Unique ID reference */
 } devices = {
 	.mutex = Z_MUTEX_INITIALIZER(devices.mutex),
-	.count = 0U
+	.count = 0u,
+	.sdevuid = 1u
 };
 
 #define __DEV_CONTEXT_LOCK() k_mutex_lock(&devices.mutex, K_FOREVER)
@@ -44,11 +47,6 @@ static struct ha_stats stats =
 	.mem_device_remaining = HA_MAX_DEVICES,
 	.mem_sub_remaining = HA_EV_SUBS_MAX_COUNT,
 };
-
-static uint32_t dev_get_index(ha_dev_t *dev)
-{
-	return (uint32_t)(dev - devices.list);
-}
 
 typedef int (*addr_cmp_func_t)(const ha_dev_mac_addr_t *a,
 			      const ha_dev_mac_addr_t *b);
@@ -300,7 +298,7 @@ static const struct ha_device_api *ha_device_get_default_api(ha_dev_type_t type)
  * @param addr
  * @return int
  */
-ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
+static ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 {
 	ha_dev_t *dev = NULL;
 
@@ -317,6 +315,7 @@ ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 
 	ha_dev_clear(dev);
 
+	dev->sdevuid = devices.sdevuid;
 	dev->addr = *addr;
 	dev->registered_timestamp = sys_time_get();
 	
@@ -359,17 +358,24 @@ ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 		goto exit;
 	}
 
-#if HA_DEVICES_ENDPOINT_TYPE_SEARCH_OPTIMIZATION
+#if HA_DEV_ENDPOINT_TYPE_SEARCH_OPTIMIZATION
 	/* Finalize endpoints initialization */
 	for (int i = 0; i < dev->endpoints_count; i++) {
 		dev->endpoints[i]._data_types = ha_data_descr_data_types_mask(
 			dev->endpoints[i].api->data_descr,
 			dev->endpoints[i].api->data_descr_size);
 	}
-#endif /* HA_DEVICES_ENDPOINT_TYPE_SEARCH_OPTIMIZATION */
+#endif /* HA_DEV_ENDPOINT_TYPE_SEARCH_OPTIMIZATION */
 
 	/* Increment device count */
 	devices.count++;
+
+	/* Use a seperate counter to define a Session Device Unique ID
+	 * because in the future, removal of devices could be supported.
+	 * Then we need a counter which doesn't get decremented when a device
+	 * is removed to guarantee that the "sdevuid" is unique.
+	 */
+	devices.sdevuid++;
 
 	stats.mem_device_count++;
 	stats.mem_device_remaining--;
@@ -563,17 +569,24 @@ ssize_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 	return count;
 }
 
-int ha_dev_get_index(ha_dev_t *dev)
+static inline void ha_dev_inc_stats_rx(ha_dev_t *dev, uint32_t rx_bytes)
 {
-	if (!dev) {
-		return -EINVAL;
-	}
-	
-	return (int) dev_get_index(dev);
+	__ASSERT(dev != NULL, "dev is NULL");
+
+	dev->stats.rx_bytes += rx_bytes;
+	dev->stats.rx++;
+}
+
+static inline void ha_dev_inc_stats_tx(ha_dev_t *dev, uint32_t tx_bytes)
+{
+	__ASSERT(dev != NULL, "dev is NULL");
+
+	dev->stats.tx_bytes += tx_bytes;
+	dev->stats.tx++;
 }
 
 static int device_process_data(ha_dev_t *dev,
-			       struct ha_dev_payload *pl)
+			       const struct ha_device_payload *pl)
 {
 	__ASSERT_NO_MSG(dev != NULL);
 	__ASSERT_NO_MSG(dev->api != NULL);
@@ -705,10 +718,7 @@ exit:
 }
 
 int ha_dev_register_data(const ha_dev_addr_t *addr,
-			 const void *payload,
-			 size_t payload_len,
-			 uint32_t timestamp,
-			 void *y)
+			 const struct ha_device_payload *payload)
 {
 	ha_dev_t *dev;
 	int ret = -ENOMEM;
@@ -719,15 +729,8 @@ int ha_dev_register_data(const ha_dev_addr_t *addr,
 		dev = ha_dev_register(addr);
 	}
 
-	struct ha_dev_payload pl = {
-		.timestamp = timestamp,
-		.buffer = payload,
-		.len = payload_len,
-		.y = y,
-	};
-
 	if (dev != NULL) {
-		ret = device_process_data(dev, &pl);
+		ret = device_process_data(dev, payload);
 	}
 
 	return ret;
@@ -735,13 +738,13 @@ int ha_dev_register_data(const ha_dev_addr_t *addr,
 
 
 ha_ev_t *ha_dev_command(const ha_dev_addr_t *addr,
-			ha_dev_cmd_t *cmd,
+			struct ha_device_cmd *cmd,
 			k_timeout_t timeout)
 {
 	return NULL;
 }
 
-struct ha_device_endpoint *ha_dev_get_endpoint(ha_dev_t *dev, uint32_t ep)
+struct ha_device_endpoint *ha_dev_endpoint_get(ha_dev_t *dev, uint32_t ep)
 {
 	if (!dev || (ep >= dev->endpoints_count)) {
 		return NULL;
@@ -782,7 +785,7 @@ int ha_dev_endpoint_get_index_by_id(ha_dev_t *dev, ha_endpoint_id_t eid)
 
 ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, uint32_t ep)
 {
-	return ha_dev_get_endpoint(dev, ep)->last_data_event;
+	return ha_dev_endpoint_get(dev, ep)->last_data_event;
 }
 
 const void *ha_dev_get_last_event_data(ha_dev_t *dev, uint32_t ep)
@@ -948,6 +951,12 @@ static bool event_match_sub(struct ha_ev_subs *sub,
 		}
 	}
 
+	if (conf->flags & HA_EV_SUBS_CONF_FILTER_FUNCTION) {
+		if (conf->filter_cb(event) == false) {
+			return false;
+		}
+	}
+
 	return true;
 }
 
@@ -980,8 +989,8 @@ static int event_notify_single(struct ha_ev_subs *sub,
 
 			/* call event function hook */
 			if (conf->flags & HA_EV_SUBS_CONF_ON_QUEUED_HOOK) {
-				__ASSERT_NO_MSG(conf->on_queued != NULL);
-				conf->on_queued(sub, event);
+				__ASSERT_NO_MSG(conf->on_queued_cb != NULL);
+				conf->on_queued_cb(sub, event);
 			}
 			ret = 1;
 		} else {
@@ -1042,20 +1051,20 @@ static bool subscription_conf_validate(const ha_ev_subs_conf_t *conf)
 		}
 	}
 
-	if (conf->flags & HA_EV_SUBS_CONF_FUNCTION) {
-		if (conf->func == NULL) {
+	if (conf->flags & HA_EV_SUBS_CONF_FILTER_FUNCTION) {
+		if (conf->filter_cb == NULL) {
 			return false;
 		}
 	}
 
 	if (conf->flags & HA_EV_SUBS_CONF_ON_QUEUED_HOOK) {
-		if (conf->on_queued == NULL) {
+		if (conf->on_queued_cb == NULL) {
 			return false;
 		}
-	} else if (conf->on_queued != NULL) {
-		LOG_WRN("on_queued hook set (%p) but HA_EV_SUBS_CONF_ON_QUEUED_HOOK "
+	} else if (conf->on_queued_cb != NULL) {
+		LOG_WRN("on_queued_cb hook set (%p) but HA_EV_SUBS_CONF_ON_QUEUED_HOOK "
 			"flag is missing",
-			conf->on_queued);
+			conf->on_queued_cb);
 	}
 
 	/* TODO check for conflicting flags */
@@ -1159,17 +1168,6 @@ void *ha_ev_get_data(const ha_ev_t *event)
 	return NULL;
 }
 
-const void *ha_ev_get_data_check_type(const ha_ev_t *event,
-					 ha_dev_type_t expected_type)
-{
-	if ((event != NULL) &&
-	    (event->dev != NULL) &&
-	    (expected_type == event->dev->addr.type)) {
-		return event->data;
-	}
-	return NULL;
-}
-
 struct ha_room *ha_dev_get_room(ha_dev_t *const dev)
 {
 	struct ha_room_assoc *assoc = NULL;
@@ -1223,7 +1221,7 @@ bool ha_dev_endpoint_has_datatype(const ha_dev_t *dev,
 
 	const struct ha_device_endpoint *const ep = &dev->endpoints[endpoint_index];
 	
-#if HA_DEVICES_ENDPOINT_TYPE_SEARCH_OPTIMIZATION
+#if HA_DEV_ENDPOINT_TYPE_SEARCH_OPTIMIZATION
 	return (bool) (ep->_data_types & (1u << datatype));
 #else
 	return ha_data_descr_data_type_has(ep->data_descr, 

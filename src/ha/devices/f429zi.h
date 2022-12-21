@@ -7,8 +7,8 @@
 #ifndef _HA_DEVICES_F429ZI_H
 #define _HA_DEVICES_F429ZI_H
 
-#include "../ha.h"
-#include "../devices.h"
+#include "ha/core/ha.h"
+#include "ha/core/devices.h"
 
 struct ha_ds_f429zi
 {

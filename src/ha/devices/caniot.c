@@ -63,7 +63,7 @@ void ha_dev_caniot_blc_cls0_to_blt(struct ha_ds_caniot_blc0 *blt,
 }
 
 static int blc0_ingest(struct ha_event *ev,
-		       struct ha_dev_payload *pl)
+		       const struct ha_device_payload *pl)
 {
 	ha_dev_caniot_blc_cls0_to_blt(ev->data,
 				      (const struct caniot_blc0_telemetry *)pl->buffer);
@@ -96,7 +96,7 @@ void ha_dev_caniot_blc_cls1_to_blt(struct ha_ds_caniot_blc1 *blt,
 }
 
 static int blc1_ingest(struct ha_event *ev,
-		       struct ha_dev_payload *pl)
+		       const struct ha_device_payload *pl)
 {
 	ha_dev_caniot_blc_cls1_to_blt(ev->data,
 				      (const struct caniot_blc1_telemetry *)pl->buffer);
@@ -104,7 +104,7 @@ static int blc1_ingest(struct ha_event *ev,
 }
 
 static int ep_heating_control_ingest(struct ha_event *ev,
-				     struct ha_dev_payload *pl)
+				     const struct ha_device_payload *pl)
 {
 	struct caniot_heating_control *can_buf =
 		(struct caniot_heating_control *)pl->buffer;
@@ -119,7 +119,7 @@ static int ep_heating_control_ingest(struct ha_event *ev,
 }
 
 static int ep_shutters_control_ingest(struct ha_event *ev,
-				      struct ha_dev_payload *pl)
+				      const struct ha_device_payload *pl)
 {
 	struct caniot_shutters_control *can_buf =
 		(struct caniot_shutters_control *)pl->buffer;
@@ -129,12 +129,12 @@ static int ep_shutters_control_ingest(struct ha_event *ev,
 	ds->shutters[1u].position = can_buf->shutters_openness[1u];
 	ds->shutters[2u].position = can_buf->shutters_openness[2u];
 	ds->shutters[3u].position = can_buf->shutters_openness[3u];
-		
+
 	return 0;
 }
 
 static int select_endpoint(const ha_dev_addr_t *addr,
-			   const struct ha_dev_payload *pl)
+			   const struct ha_device_payload *pl)
 {
 	__ASSERT_NO_MSG(addr->type == HA_DEV_TYPE_CANIOT);
 
@@ -142,9 +142,9 @@ static int select_endpoint(const ha_dev_addr_t *addr,
 
 	switch (id->endpoint) {
 	case CANIOT_ENDPOINT_BOARD_CONTROL:
-		return HA_ENDPOINT_INDEX(0);
+		return HA_DEV_ENDPOINT_INDEX(0);
 	case CANIOT_ENDPOINT_APP:
-		return HA_ENDPOINT_INDEX(1);
+		return HA_DEV_ENDPOINT_INDEX(1);
 	default:
 		return -ENOENT;
 	}
@@ -330,7 +330,15 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 		}
 	};
 
-	return ha_dev_register_data(&addr, buf, 8u, timestamp, (void *)id);
+	const struct ha_device_payload pl =
+	{
+		.buffer = buf,
+		.len = 8u,
+		.timestamp = timestamp,
+		.y = (void *)id
+	};
+
+	return ha_dev_register_data(&addr, &pl);
 }
 
 const struct caniot_blc0_telemetry *ha_ev_get_caniot_telemetry(const ha_ev_t *ev)

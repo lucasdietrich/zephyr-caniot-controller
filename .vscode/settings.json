@@ -215,7 +215,8 @@
                 "__assert.h": "c",
                 "ctype.h": "c",
                 "bluetooth.h": "c",
-                "chrono": "c"
+                "chrono": "c",
+                "ha_spe.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

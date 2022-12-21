@@ -31,10 +31,21 @@
 			"svdFile": "./res/STM32F429.svd"
 		},
         {
-            "name": "(gdb) mps2_an385",
+            "name": "(gdb) mps2_an385 (launch)",
             "cwd": "${workspaceRoot}",
             "executable": "build/zephyr/zephyr.elf",
             "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "external",
+            "gdbTarget": "localhost:1234",
+            "runToEntryPoint": "", /* main */
+            "svdFile": "./res/CMSDK_CM3.svd"
+        },
+        {
+            "name": "(gdb) mps2_an385 (attach)",
+            "cwd": "${workspaceRoot}",
+            "executable": "build/zephyr/zephyr.elf",
+            "request": "attach",
             "type": "cortex-debug",
             "servertype": "external",
             "gdbTarget": "localhost:1234",

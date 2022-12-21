@@ -31,7 +31,7 @@
 
 #include "prometheus_client.h"
 
-#include "ha/devices.h"
+#include "ha/core/devices.h"
 #include "ha/devices/caniot.h"
 #include "ha/devices/xiaomi.h"
 #include "ha/devices/garage.h"
@@ -172,7 +172,7 @@ static const struct metric_tag device_measurement_tags[] = {
 const struct metric_definition mdef_device_rssi =
 METRIC_DEF_TAGS("device_rssi", GAUGE, device_measurement_tags,
 		"Device rssi (in dBm)");
-		
+
 const struct metric_definition mdef_device_temperature =
 METRIC_DEF_TAGS("device_temperature", GAUGE, device_measurement_tags,
 		"Device temperature (in °C)");
@@ -378,7 +378,7 @@ static ssize_t encode_metric(buffer_t *buffer,
 struct prom_metric_descr
 {
 	const struct metric_definition *def;
-	
+
 	const char *metric_name;
 
 	uint32_t align_shift : 2;
@@ -400,7 +400,7 @@ struct prom_metric_descr
 		.type = type_, \
 		.offset = offsetof(struct_, field_name_), \
 	}
-	
+
 #define PROM_METRIC_DESCR_NAMED(struct_, metric_field_name_, \
 				struct_field_name_, type_, def_) \
 	{ \
@@ -570,11 +570,11 @@ static void prom_metric_feed_xiaomi_rssi(const struct ha_ds_xiaomi *dt,
 					 struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_INT32;
-	val->svalue = (float) dt->rssi.value;
+	val->svalue = (float)dt->rssi.value;
 }
 
 static void prom_metric_feed_xiaomi_battery_voltage(const struct ha_ds_xiaomi *dt,
-						  struct metric_value *val)
+						    struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
 	val->encoding.digits = 3U;
@@ -593,8 +593,8 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 		bt_addr_to_str(&dev->addr.mac.addr.ble.a,
 			       mac_addr, sizeof(mac_addr));
 
-		const struct ha_ds_xiaomi *const dt = 
-			HA_DEV_EP0_GET_CAST_LAST_DATA(dev, const struct ha_ds_xiaomi);
+		const struct ha_ds_xiaomi *const dt =
+			HA_DEV_EP_0_GET_CAST_LAST_DATA(dev, const struct ha_ds_xiaomi);
 
 		union measurements_tags_values tags_values = {
 			.medium = prom_myd_medium_to_str(dev->addr.mac.medium),
@@ -635,7 +635,7 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 		caniot_encode_deviceid(dev->addr.mac.addr.caniot,
 				       caniot_addr_str,
 				       sizeof(caniot_addr_str));
-		
+
 		/* prepare temperature sensors metric tags */
 		union measurements_tags_values tags_values = {
 			.medium = prom_myd_medium_to_str(dev->addr.mac.medium),
@@ -661,7 +661,7 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 		case HA_DEV_ENDPOINT_CANIOT_BLC0:
 		{
 			const struct ha_ds_caniot_blc0 *const dt =
-				HA_DEV_EP0_GET_CAST_LAST_DATA(dev, const struct ha_ds_caniot_blc0);
+				HA_DEV_EP_0_GET_CAST_LAST_DATA(dev, const struct ha_ds_caniot_blc0);
 
 			/* TODO refactor, because same code for CLS0 and 1 */
 			for (size_t i = 0U; i < ARRAY_SIZE(dt->temperatures); i++) {
@@ -678,7 +678,7 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 		case HA_DEV_ENDPOINT_CANIOT_BLC1:
 		{
 			const struct ha_ds_caniot_blc1 *const dt =
-				HA_DEV_EP0_GET_CAST_LAST_DATA(dev, const struct ha_ds_caniot_blc1);
+				HA_DEV_EP_0_GET_CAST_LAST_DATA(dev, const struct ha_ds_caniot_blc1);
 
 			/* TODO refactor, because same code for CLS0 and 1 */
 			for (size_t i = 0U; i < ARRAY_SIZE(dt->temperatures); i++) {
@@ -703,9 +703,9 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev,
 
 	} else if (dev->addr.type == HA_DEV_TYPE_NUCLEO_F429ZI) {
 		const struct ha_ds_f429zi *const dt =
-			HA_DEV_EP0_GET_CAST_LAST_DATA(dev, const struct ha_ds_f429zi);
+			HA_DEV_EP_0_GET_CAST_LAST_DATA(dev, const struct ha_ds_f429zi);
 
-		
+
 		union measurements_tags_values tags_values = {
 			.medium = "",
 			.mac = "",
@@ -760,11 +760,11 @@ int prometheus_metrics(http_request_t *req,
 		.to_index = next_index + CONFIG_PROMETHEUS_METRICS_PER_FLUSH,
 	};
 
-	ssize_t count = ha_dev_iterate(prom_ha_devs_iterate_cb, &filter, 
-				      &HA_DEV_ITER_OPT_LOCK_ALL(),
-				      (void *)&resp->buffer);
-	
-	/* Check wether there are more metrics to encode */
+	ssize_t count = ha_dev_iterate(prom_ha_devs_iterate_cb, &filter,
+				       &HA_DEV_ITER_OPT_LOCK_ALL(),
+				       (void *)&resp->buffer);
+
+	 /* Check wether there are more metrics to encode */
 	if (count != -ENOENT) {
 		http_response_mark_not_complete(resp);
 		next_index += CONFIG_PROMETHEUS_METRICS_PER_FLUSH;

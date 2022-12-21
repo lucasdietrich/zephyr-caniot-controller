@@ -16,8 +16,8 @@
 #include "caniot_controller.h"
 #endif
 
-#include "ha/devices.h"
-#include "ha/room.h"
+#include "ha/core/devices.h"
+#include "ha/core/room.h"
 #include "ha/devices/xiaomi.h"
 
 #include <caniot/device.h>

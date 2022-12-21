@@ -27,9 +27,9 @@
 #include <mbedtls/memory_buffer_alloc.h>
 
 #include <zephyr/bluetooth/addr.h>
-#include "ha/devices.h"
-#include "ha/config.h"
-#include "ha/utils.h"
+#include "ha/core/devices.h"
+#include "ha/core/config.h"
+#include "ha/core/utils.h"
 #include "ha/caniot_controller.h"
 #include "ha/devices/all.h"
 
@@ -479,7 +479,7 @@ static bool caniot_device_cb(ha_dev_t *dev,
 
 	struct json_caniot_telemetry *const rec = &arr->records[arr->count];
 	const struct ha_ds_caniot_blc0 *const dt =
-		HA_DEV_EP0_GET_CAST_LAST_DATA(dev, struct ha_ds_caniot_blc0);
+		HA_DEV_EP_0_GET_CAST_LAST_DATA(dev, struct ha_ds_caniot_blc0);
 
 	ha_ev_t *ev = ha_dev_get_last_event(dev, 0u);
 	rec->base.timestamp = ev->timestamp;
@@ -513,7 +513,7 @@ static bool caniot_device_cb(ha_dev_t *dev,
 }
 
 __deprecated int rest_caniot_records(http_request_t *req,
-			http_response_t *resp)
+				     http_response_t *resp)
 {
 	/* Parge page */
 	int page_n = 0;
@@ -568,7 +568,7 @@ struct json_device_endpoint
 };
 
 struct json_device {
-	uint32_t index;
+	uint32_t sdevuid;
 	const char *addr_type;
 	const char *addr_medium;
 	char *addr_repr;
@@ -578,7 +578,7 @@ struct json_device {
 	uint32_t rid;
 	const char *room_name;
 
-	struct ha_dev_stats stats;
+	struct ha_device_stats stats;
 
 	uint32_t endpoints_count;
 	struct json_device_endpoint endpoints[HA_DEV_ENDPOINT_MAX_COUNT];
@@ -606,16 +606,16 @@ static const struct json_obj_descr json_device_endpoint_descr[] = {
 };
 
 static const struct json_obj_descr json_device_stats_descr[] = {
-	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, rx, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, rx_bytes, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, tx, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, tx_bytes, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, err_ev, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct ha_dev_stats, err_flags, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_device_stats, rx, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_device_stats, rx_bytes, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_device_stats, tx, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_device_stats, tx_bytes, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_device_stats, err_ev, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_device_stats, err_flags, JSON_TOK_NUMBER),
 };
 
 static const struct json_obj_descr json_device_descr[] = {
-	JSON_OBJ_DESCR_PRIM(struct json_device, index, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_device, sdevuid, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_device, addr_type, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_PRIM(struct json_device, addr_medium, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_PRIM(struct json_device, addr_repr, JSON_TOK_STRING),
@@ -655,7 +655,7 @@ static bool devices_cb(ha_dev_t *dev,
 	jd->endpoints_count = 0u;
 
 	for (uint32_t i = 0u; i < dev->endpoints_count; i++) {
-		struct ha_device_endpoint *ep = ha_dev_get_endpoint(dev, i);
+		struct ha_device_endpoint *ep = ha_dev_endpoint_get(dev, i);
 		if (ep) {
 			struct json_device_endpoint *jep = &jd->endpoints[jd->endpoints_count];
 			jep->eid = ep->api->eid;
@@ -678,7 +678,7 @@ static bool devices_cb(ha_dev_t *dev,
 		}
 	}
 
-	jd->index = ha_dev_get_index(dev);
+	jd->sdevuid = dev->sdevuid;
 	jd->addr_repr = arr->_bufs[arr->count].addr_repr;
 	ha_dev_addr_to_str(&dev->addr, jd->addr_repr, HA_DEV_ADDR_STR_MAX_LEN);
 	jd->addr_medium = ha_dev_medium_to_str(dev->addr.mac.medium);
@@ -1098,7 +1098,7 @@ const struct json_obj_descr json_caniot_blc1_cmd_post_descr[] = {
 };
 
 int rest_devices_caniot_blc1_command(http_request_t *req,
-				    http_response_t *resp)
+				     http_response_t *resp)
 {
 	/* parse did */
 	int ret = 0;

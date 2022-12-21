@@ -15,10 +15,11 @@
 
 #include "can/can_interface.h"
 
+#include "ha/core/devices.h"
+#include "ha/core/utils.h"
+
 #include "caniot_controller.h"
-#include "devices.h"
 #include "net_time.h"
-#include "ha/utils.h"
 #include "utils/misc.h"
 #include "ha/devices/caniot.h"
 #include "emu.h"

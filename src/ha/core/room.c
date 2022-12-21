@@ -8,4 +8,4 @@
 
 #include "room.h"
 
-#include "ha/config.h"
+#include "config.h"

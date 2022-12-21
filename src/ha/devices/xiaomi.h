@@ -9,8 +9,12 @@
 
 #include <zephyr/kernel.h>
 
-#include "../ha.h"
-#include "../devices.h"
+#include "ha/core/ha.h"
+#include "ha/core/devices.h"
+
+#define XIAOMI_BT_LE_ADDR_0 0xA4U
+#define XIAOMI_BT_LE_ADDR_1 0xC1U
+#define XIAOMI_BT_LE_ADDR_2 0x38U
 
 /* size is 7B */
 typedef struct {
@@ -111,5 +115,18 @@ void ha_dev_xiaomi_record_init(xiaomi_record_t *record);
 int ha_dev_xiaomi_register_record(const xiaomi_record_t *record);
 
 const struct ha_ds_xiaomi *ha_ev_get_xiaomi_data(const ha_ev_t *ev);
+
+static inline ssize_t ha_dev_xiaomi_iterate_data(ha_dev_iterate_cb_t callback,
+						 void *user_data)
+{
+	const ha_dev_filter_t filter = {
+		.flags =
+			HA_DEV_FILTER_DATA_EXIST |
+			HA_DEV_FILTER_DEVICE_TYPE,
+		.device_type = HA_DEV_TYPE_XIAOMI_MIJIA,
+	};
+
+	return ha_dev_iterate(callback, &filter, NULL, user_data);
+}
 
 #endif /* _HA_DEVICES_XIAOMI_H */
