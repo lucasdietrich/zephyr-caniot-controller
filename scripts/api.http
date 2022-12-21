@@ -69,3 +69,7 @@ GET http://{{host}}/metrics_controller
 ###
 
 GET http://{{host}}/api/credentials/flash
+
+###
+
+GET http://{{host}}/api/dfu

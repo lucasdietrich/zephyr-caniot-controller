@@ -24,6 +24,14 @@ LOG_MODULE_REGISTER(dfu, LOG_LEVEL_DBG);
 #define FLASH_AREA_SLOT0_ID 	FIXED_PARTITION_ID(FLASH_SLOT0_PARTITION)
 #define FLASH_AREA_SLOT1_ID 	FIXED_PARTITION_ID(FLASH_SLOT1_PARTITION)
 
+int dfu_image_read_header(struct mcuboot_img_header *header)
+{
+	return boot_read_bank_header(
+		FLASH_AREA_SLOT0_ID,
+		header,
+		sizeof(struct mcuboot_img_header));
+}
+
 void dfu_image_check(void)
 {
 	struct mcuboot_img_header header;
@@ -34,7 +42,7 @@ void dfu_image_check(void)
 	}
 
 	/* Check current image */
-	int ret = boot_read_bank_header(FLASH_AREA_SLOT0_ID, &header, sizeof(header));
+	int ret = dfu_image_read_header(&header);
 	if (ret) {
 		LOG_ERR("Failed to read bank header: %d", ret);
 		return;

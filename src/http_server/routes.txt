@@ -27,6 +27,7 @@ GET /api/demo/json -> rest_demo_json
 
 POST /api/dfu -> http_dfu_image_upload, http_dfu_image_upload_response (CONFIG_APP_DFU) | MULTIPART
 GET /api/dfu -> http_dfu_status (CONFIG_APP_DFU)
+GET /api/dfu/status -> http_dfu_status (CONFIG_APP_DFU)
 
 GET /api/devices/ -> rest_devices_list
 GET /api/room/:u -> rest_room_devices_list

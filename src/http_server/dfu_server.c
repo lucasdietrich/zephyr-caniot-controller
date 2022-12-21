@@ -10,7 +10,12 @@
 #include <zephyr/dfu/flash_img.h>
 #include <zephyr/dfu/mcuboot.h>
 
+#include <zephyr/data/json.h>
+
+
+#include "dfu/dfu.h"
 #include "dfu_server.h"
+#include "rest_server.h"
 #include "http_utils.h"
 
 #include <zephyr/logging/log.h>
@@ -23,12 +28,48 @@ LOG_MODULE_REGISTER(http_dfu, LOG_LEVEL_DBG);
 #define FLASH_AREA_SLOT0_ID 	FIXED_PARTITION_ID(FLASH_SLOT0_PARTITION)
 #define FLASH_AREA_SLOT1_ID 	FIXED_PARTITION_ID(FLASH_SLOT1_PARTITION)
 
+struct json_mcuboot_img_header {
+	uint32_t mcuboot_version;
+	uint32_t image_size;
+	uint32_t version_major;
+	uint32_t version_minor;
+	uint32_t version_revision;
+	uint32_t version_build;
+};
+
+static const struct json_obj_descr json_mcuboot_img_header_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_mcuboot_img_header, mcuboot_version, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_mcuboot_img_header, image_size, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_mcuboot_img_header, version_major, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_mcuboot_img_header, version_minor, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_mcuboot_img_header, version_revision, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_mcuboot_img_header, version_build, JSON_TOK_NUMBER),
+};
+
 int http_dfu_status(struct http_request *req,
 		    struct http_response *resp)
 {
-	LOG_DBG("DFU http_dfu_status");
+	struct mcuboot_img_header header;
 
-	return 0;
+	int ret = dfu_image_read_header(&header);
+
+	if (ret == 0) {
+		struct json_mcuboot_img_header json = {
+			.mcuboot_version = header.mcuboot_version,
+			.image_size = header.h.v1.image_size,
+			.version_major = header.h.v1.sem_ver.major,
+			.version_minor = header.h.v1.sem_ver.minor,
+			.version_revision = header.h.v1.sem_ver.revision,
+			.version_build = header.h.v1.sem_ver.build_num,
+		};
+
+		ret = rest_encode_response_json(resp,
+						&json,
+						json_mcuboot_img_header_descr,
+						ARRAY_SIZE(json_mcuboot_img_header_descr));
+	}
+
+	return ret;
 }
 
 static struct flash_img_context img;
