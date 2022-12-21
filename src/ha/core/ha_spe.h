@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/* HA Specific header
+ * TODO refactor in order to get rid of it in the future */
+
 #ifndef _HA_SPE_H_
 #define _HA_SPE_H_
 

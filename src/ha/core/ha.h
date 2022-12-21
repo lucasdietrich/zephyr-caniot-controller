@@ -18,6 +18,20 @@
 /* (TODO) Specific need rework */
 #include "ha/core/ha_spe.h"
 
+/* Forward declaration */
+struct ha_device_api;
+struct ha_device_endpoint_api;
+struct ha_device_endpoint;
+struct ha_device_stats;
+struct ha_device_payload;
+struct ha_device_cmd;
+struct ha_device_filter;
+struct ha_device_iter_opt;
+struct ha_ev_subs_conf;
+struct ha_ev_subs;
+struct ha_event;
+struct ha_device;
+
 /* Defines */
 #define HA_DEV_ENDPOINT_MAX_COUNT 			2u
 #define HA_DEV_ENDPOINT_TYPE_SEARCH_OPTIMIZATION 	1u
@@ -55,37 +69,19 @@ typedef enum
 	HA_DEV_FILTER_TO_COUNT = BIT(8),
 } ha_dev_filter_flags_t;
 
-struct ha_device_api;
-struct ha_device_endpoint_api;
-struct ha_device_endpoint;
-struct ha_device_stats;
-struct ha_device_payload;
-struct ha_device_cmd;
-struct ha_device_filter;
-struct ha_device_iter_opt;
-struct ha_ev_subs_conf;
-struct ha_ev_subs;
-
-typedef struct ha_device_mac 		ha_dev_mac_t;
-typedef struct ha_device_address 	ha_dev_addr_t;
-typedef struct ha_device 		ha_dev_t;
-typedef struct ha_event 		ha_ev_t;
-typedef struct ha_ev_subs_conf 		ha_ev_subs_conf_t;
-typedef struct ha_ev_subs 		ha_ev_subs_t;
-typedef struct ha_device_filter ha_dev_filter_t;
-typedef struct ha_device_iter_opt ha_dev_iter_opt_t;
-
 typedef uint32_t ha_timestamp_t;
 
 struct ha_device_mac {
 	ha_dev_medium_type_t medium;
 	ha_dev_mac_addr_t addr;
 };
+typedef struct ha_device_mac ha_dev_mac_t;
 
 struct ha_device_address {
 	ha_dev_type_t type;
 	ha_dev_mac_t mac;
 };
+typedef struct ha_device_address ha_dev_addr_t;
 
 struct ha_device_payload
 {
@@ -254,6 +250,7 @@ struct ha_device {
 	/* Room where the device is */
 	struct ha_room *room;
 };
+typedef struct ha_device ha_dev_t;
 
 struct ha_device_api {
 	/**
@@ -308,6 +305,7 @@ struct ha_event {
 	uint16_t data_size;
 #endif
 };
+typedef struct ha_event ha_ev_t;
 
 /* Event subscription Control flags */
 #define HA_EV_SUBS_FLAG_SUBSCRIBED_BIT 	0u
@@ -337,8 +335,8 @@ struct ha_ev_subs
 
 	/* Subscription Configuration */
 	const struct ha_ev_subs_conf *conf;
-
 };
+typedef struct ha_ev_subs ha_ev_subs_t;
 
 
 /* Event subscription Config flags */
@@ -367,6 +365,7 @@ struct ha_ev_subs_conf
 	/* Callback */
 	ha_subs_ev_on_queued_func_t on_queued_cb;
 };
+typedef struct ha_ev_subs_conf ha_ev_subs_conf_t;
 
 /* TODO Check for incompatible masks */
 
@@ -399,6 +398,7 @@ struct ha_device_filter
 	uint32_t to_count : 4u;
 	ha_endpoint_id_t endpoint_id;
 };
+typedef struct ha_device_filter ha_dev_filter_t;
 
 /**
  * @brief Lock only the last event of the first endpoint
@@ -424,6 +424,7 @@ struct ha_device_iter_opt
 	 */
 	uint8_t ep_lock_last_ev_mask;
 };
+typedef struct ha_device_iter_opt ha_dev_iter_opt_t;
 
 struct ha_stats
 {
