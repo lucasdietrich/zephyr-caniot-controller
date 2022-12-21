@@ -8,7 +8,7 @@
 #define _HA_CONFIG_H_
 
 #include "ha/core/room.h"
-#include "ha/core/devices.h"
+#include "ha/core/ha.h"
 
 #define HA_ROOM_MY HA_ROOM_LOFT_BEDROOM
 #define HA_ROOM_PARENTS HA_ROOM_BEDROOM_1

@@ -11,7 +11,7 @@
 
 #include <zephyr/drivers/can.h>
 
-#include "devices.h"
+#include "ha.h"
 
 #include "net_time.h"
 #include "config.h"
@@ -29,7 +29,7 @@ static void ha_ev_free(struct ha_event *ev);
 
 struct {
 	struct k_mutex mutex;
-	ha_dev_t list[HA_MAX_DEVICES];
+	ha_dev_t list[HA_DEVICES_MAX_COUNT];
 	uint8_t count;
 	uint32_t sdevuid; /* Session Device Unique ID reference */
 } devices = {
@@ -43,9 +43,9 @@ struct {
 
 static struct ha_stats stats = 
 {
-	.mem_ev_remaining = HA_EV_MAX_COUNT,
-	.mem_device_remaining = HA_MAX_DEVICES,
-	.mem_sub_remaining = HA_EV_SUBS_MAX_COUNT,
+	.mem_ev_remaining = HA_EVENTS_MAX_COUNT,
+	.mem_device_remaining = HA_DEVICES_MAX_COUNT,
+	.mem_sub_remaining = HA_SUBSCRIPTIONS_MAX_COUNT,
 };
 
 typedef int (*addr_cmp_func_t)(const ha_dev_mac_addr_t *a,
@@ -800,7 +800,7 @@ const void *ha_dev_get_last_event_data(ha_dev_t *dev, uint32_t ep)
 }
 
 /* Subscription structure can be allocated from any thread, so we need to protect it */
-K_MEM_SLAB_DEFINE(sub_slab, sizeof(struct ha_ev_subs), HA_EV_SUBS_MAX_COUNT, 4);
+K_MEM_SLAB_DEFINE(sub_slab, sizeof(struct ha_ev_subs), HA_SUBSCRIPTIONS_MAX_COUNT, 4);
 
 K_MUTEX_DEFINE(sub_mutex);
 static sys_dlist_t sub_dlist = SYS_DLIST_STATIC_INIT(&sub_dlist);
@@ -836,7 +836,7 @@ static void sub_init(struct ha_ev_subs *sub)
 	sys_dnode_init(&sub->_handle);
 }
 
-K_MEM_SLAB_DEFINE(ev_slab, sizeof(struct ha_event), HA_EV_MAX_COUNT, 4);
+K_MEM_SLAB_DEFINE(ev_slab, sizeof(struct ha_event), HA_EVENTS_MAX_COUNT, 4);
 
 static struct ha_event *ha_ev_alloc(void)
 {

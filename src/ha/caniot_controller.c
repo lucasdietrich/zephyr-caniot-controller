@@ -15,7 +15,7 @@
 
 #include "can/can_interface.h"
 
-#include "ha/core/devices.h"
+#include "ha/core/ha.h"
 #include "ha/core/utils.h"
 
 #include "caniot_controller.h"

@@ -27,3 +27,26 @@ config APP_HA_DEVICE_STATS
         depends on APP_HA_STATS
         help
                 Enable HA Device Stats.
+
+config APP_HA_DEVICES_MAX_COUNT
+        int "Maximum number of HA devices"
+        default 128 if QEMU_TARGET || APP_HA_EMULATED_DEVICES
+        default 32
+        range 1 256
+        help
+                Maximum number of HA devices.
+
+config APP_HA_EVENTS_MAX_COUNT
+        int "Maximum number of HA events"
+        default 256 if QEMU_TARGET || APP_HA_EMULATED_DEVICES
+        default 64
+        range 1 512
+        help
+                Maximum number of HA devices.
+
+config APP_HA_SUBSCRIPTIONS_MAX_COUNT
+        int "Maximum number of HA subscriptions"
+        default 8
+        range 1 32
+        help
+                Maximum number of HA devices.

@@ -89,7 +89,6 @@
                 "dispatcher.h": "c",
                 "canif.h": "c",
                 "room.h": "c",
-                "devices.h": "c",
                 "archutils.h": "c",
                 "stddef.h": "c",
                 "xiaomi_record.h": "c",

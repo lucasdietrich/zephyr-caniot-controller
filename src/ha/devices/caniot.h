@@ -8,8 +8,11 @@
 #define _HA_DEVICES_CANIOT_H
 
 #include "ha/core/ha.h"
-#include "ha/core/devices.h"
 #include "ha/core/data.h"
+
+#define HA_CANIOT_CLS0_MAX_TEMPERATURES 		4u
+#define HA_CANIOT_CLS1_MAX_TEMPERATURES 		4u
+#define HA_CANIOT_MAX_TEMPERATURES 4U
 
 /* blt stands for board level telemetry */
 struct ha_ds_caniot_blc0

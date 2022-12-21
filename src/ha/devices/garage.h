@@ -8,7 +8,6 @@
 #define _HA_DEVICES_GARAGE_H
 
 #include "ha/core/ha.h"
-#include "ha/core/devices.h"
 
 /* move to specific header */
 struct ha_dev_garage_cmd

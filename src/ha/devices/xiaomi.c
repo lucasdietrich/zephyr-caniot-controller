@@ -3,7 +3,7 @@
 
 #include "xiaomi.h"
 
-#include "ha/core/devices.h"
+#include "ha/core/ha.h"
 
 static void ble_record_to_xiaomi(struct ha_ds_xiaomi *xiaomi,
 				 const xiaomi_record_t *rec,

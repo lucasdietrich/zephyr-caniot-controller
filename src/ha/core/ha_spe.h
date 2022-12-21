@@ -14,20 +14,13 @@
 #include <caniot/datatype.h>
 #endif
 
-/* No filters, iterate over all devices */
-#define HA_DEV_FILTER_DISABLED NULL
-
-#define _HA_DEV_FILTER_BY_DEVICE_MEDIUM(_medium) \
-	(&(ha_dev_filter_t) { \
-		.flags = HA_DEV_FILTER_MEDIUM, \
-		.medium = _medium, \
-	})
-
-#define _HA_DEV_FILTER_BY_DEVICE_TYPE(_type) \
-	(&(ha_dev_filter_t) { \
-		.flags = HA_DEV_FILTER_DEVICE_TYPE, \
-		.type = _type, \
-	})
+#if defined(CONFIG_APP_HA_EMULATED_DEVICES)
+#	define HA_CANIOT_MAX_DEVICES 63u
+#	define HA_XIAOMI_MAX_DEVICES 40u
+#else
+#	define HA_CANIOT_MAX_DEVICES 5U
+#	define HA_XIAOMI_MAX_DEVICES 15U
+#endif
 
 #define HA_DEV_FILTER_CAN _HA_DEV_FILTER_BY_DEVICE_MEDIUM(HA_DEV_MEDIUM_CAN)
 #define HA_DEV_FILTER_BLE _HA_DEV_FILTER_BY_DEVICE_MEDIUM(HA_DEV_MEDIUM_BLE)

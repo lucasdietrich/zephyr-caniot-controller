@@ -2,7 +2,7 @@
 
 #include "data.h"
 
-#include "devices.h"
+#include "ha.h"
 
 size_t get_data_size(ha_data_type_t type)
 {

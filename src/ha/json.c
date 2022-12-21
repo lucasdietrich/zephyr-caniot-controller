@@ -3,7 +3,6 @@
 #include <zephyr/data/json.h>
 #include <zephyr/bluetooth/addr.h>
 
-#include "ha/core/devices.h"
 #include "ha/core/ha.h"
 #include "ha/devices/all.h"
 

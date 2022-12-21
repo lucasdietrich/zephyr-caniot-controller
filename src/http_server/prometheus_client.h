@@ -12,7 +12,7 @@
 #include "http_request.h"
 #include "http_response.h"
 
-#include "ha/core/devices.h"
+#include "ha/core/ha.h"
 
 int prometheus_metrics_demo(http_request_t *req,
 			    http_response_t *resp);

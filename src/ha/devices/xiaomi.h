@@ -10,7 +10,6 @@
 #include <zephyr/kernel.h>
 
 #include "ha/core/ha.h"
-#include "ha/core/devices.h"
 
 #define XIAOMI_BT_LE_ADDR_0 0xA4U
 #define XIAOMI_BT_LE_ADDR_1 0xC1U

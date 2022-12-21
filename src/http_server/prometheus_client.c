@@ -31,7 +31,7 @@
 
 #include "prometheus_client.h"
 
-#include "ha/core/devices.h"
+#include "ha/core/ha.h"
 #include "ha/devices/caniot.h"
 #include "ha/devices/xiaomi.h"
 #include "ha/devices/garage.h"

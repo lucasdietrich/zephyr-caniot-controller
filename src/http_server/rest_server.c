@@ -27,7 +27,7 @@
 #include <mbedtls/memory_buffer_alloc.h>
 
 #include <zephyr/bluetooth/addr.h>
-#include "ha/core/devices.h"
+#include "ha/core/ha.h"
 #include "ha/core/config.h"
 #include "ha/core/utils.h"
 #include "ha/caniot_controller.h"
@@ -61,7 +61,7 @@ LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_INF);
 #define REST_CANIOT_QUERY_MAX_TIMEOUT_MS		(1000u)
 
 #define REST_HA_DEVICES_MAX_COUNT_PER_PAGE 10u
-#define JSON_HA_MAX_DEVICES MIN(HA_MAX_DEVICES, REST_HA_DEVICES_MAX_COUNT_PER_PAGE)
+#define JSON_HA_MAX_DEVICES MIN(HA_DEVICES_MAX_COUNT, REST_HA_DEVICES_MAX_COUNT_PER_PAGE)
 
 #define FIELD_SET(ret, n) (((ret) & (1 << (n))) != 0)
 

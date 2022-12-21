@@ -1,7 +1,7 @@
 # GENERATOR=Unix Makefiles
 # GENERATOR=Ninja
 GENERATOR=Ninja
-SERIAL_PORT=/dev/ttyACM1
+SERIAL_PORT=/dev/ttyACM0
 BAUDRATE=115200
 PYOCD = pyocd
 
@@ -124,3 +124,6 @@ http_routes_generate:
 		--descr-whole \
 		--def-begin="=== ROUTES DEFINITION BEGIN  === */" \
 		--def-end="/* === ROUTES DEFINITION END === */"
+
+zephyr_conf_synthesis:
+	python3 ./scripts/zephyr_conf_parser.py

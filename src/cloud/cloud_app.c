@@ -9,7 +9,7 @@
 #include "cloud.h"
 #include "mqttc.h"
 
-#include "ha/core/devices.h"
+#include "ha/core/ha.h"
 #include "ha/json.h"
 #include "ha/devices/all.h"
 
