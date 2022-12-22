@@ -41,7 +41,7 @@ struct {
 #define __DEV_CONTEXT_LOCK() k_mutex_lock(&devices.mutex, K_FOREVER)
 #define __DEV_CONTEXT_UNLOCK() k_mutex_unlock(&devices.mutex)
 
-static struct ha_stats stats = 
+static struct ha_stats stats =
 {
 	.mem_ev_remaining = HA_EVENTS_MAX_COUNT,
 	.mem_device_remaining = HA_DEVICES_MAX_COUNT,
@@ -49,10 +49,10 @@ static struct ha_stats stats =
 };
 
 typedef int (*addr_cmp_func_t)(const ha_dev_mac_addr_t *a,
-			      const ha_dev_mac_addr_t *b);
+			       const ha_dev_mac_addr_t *b);
 
 typedef int (*addr_str_func_t)(const ha_dev_mac_addr_t *a,
-			      char *str, size_t len);
+			       char *str, size_t len);
 
 static int internal_caniot_addr_cmp(const ha_dev_mac_addr_t *a,
 				    const ha_dev_mac_addr_t *b)
@@ -114,7 +114,7 @@ static const struct mac_funcs mac_medium_funcs[] = {
 
 /* Overload the medium mac address functions */
 static const struct mac_funcs mac_type_funcs[] = {
-	[HA_DEV_TYPE_CANIOT] = { .cmp = internal_caniot_addr_cmp, .str = internal_caniot_addr_str },
+	[HA_DEV_TYPE_CANIOT] = {.cmp = internal_caniot_addr_cmp, .str = internal_caniot_addr_str },
 };
 
 
@@ -318,7 +318,7 @@ static ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 	dev->sdevuid = devices.sdevuid;
 	dev->addr = *addr;
 	dev->registered_timestamp = sys_time_get();
-	
+
 	dev->api = ha_device_get_default_api(addr->type);
 	if (dev->api == NULL) {
 		stats.dev_dropped++;
@@ -353,7 +353,7 @@ static ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 	if (dev->endpoints_count > HA_DEV_ENDPOINT_MAX_COUNT) {
 		stats.dev_dropped++;
 		stats.dev_toomuch_ep++;
-		LOG_ERR("Too many endpoints (%hhu) defined for device addr %p", 
+		LOG_ERR("Too many endpoints (%hhu) defined for device addr %p",
 			dev->endpoints_count, addr);
 		goto exit;
 	}
@@ -442,7 +442,7 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 			ep = ha_dev_endpoint_get_by_id(dev, filter->endpoint_id);
 		}
 
-		if (!ep || !ep->last_data_event) 
+		if (!ep || !ep->last_data_event)
 			return false;
 
 		ev = ep->last_data_event;
@@ -536,7 +536,7 @@ ssize_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 	while (dev < last) {
 		if (ha_dev_match_filter(dev, filter) == true) {
 			/*
-			 * Reference endpoints devices event in case the 
+			 * Reference endpoints devices event in case the
 			 * callback wants to keep a reference to it/them.
 			 */
 			/* TODO only lock necessary events and not all */
@@ -621,7 +621,7 @@ static int device_process_data(ha_dev_t *dev,
 			LOG_DBG("(%p) No endpoint for payload", dev);
 			goto exit;
 		}
-		ep_index = (uint8_t) ret;
+		ep_index = (uint8_t)ret;
 	}
 
 	if (ep_index >= MIN(dev->endpoints_count, HA_DEV_ENDPOINT_MAX_COUNT)) {
@@ -678,7 +678,7 @@ static int device_process_data(ha_dev_t *dev,
 
 
 	struct ha_device_endpoint *const ep = &dev->endpoints[ep_index];
-	
+
 	/* If there is a previous data event is referenced here, unref it */
 	ha_ev_t *const prev_data_ev = ep->last_data_event;
 	if (prev_data_ev != NULL) {
@@ -691,7 +691,7 @@ static int device_process_data(ha_dev_t *dev,
 
 	/* Reference current event */
 	atomic_set(&ev->ref_count, 1u);
-	ep->last_data_event = ev;	
+	ep->last_data_event = ev;
 
 	/* Notify the event to listeners */
 	ret = ha_ev_notify_all(ev);
@@ -791,7 +791,7 @@ ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, uint32_t ep)
 const void *ha_dev_get_last_event_data(ha_dev_t *dev, uint32_t ep)
 {
 	ha_ev_t *ev = ha_dev_get_last_event(dev, ep);
-	
+
 	if (ev) {
 		return ev->data;
 	} else {
@@ -876,7 +876,7 @@ static void ha_ev_free(struct ha_event *ev)
 	stats.mem_heap_alloc -= ev->data_size;
 
 	k_mem_slab_free(&ev_slab, (void **)&ev);
-	
+
 	stats.mem_ev_count--;
 	stats.mem_ev_remaining++;
 }
@@ -891,7 +891,7 @@ void ha_ev_ref(struct ha_event *event)
 	if (event) {
 		atomic_val_t prev_val = atomic_inc(&event->ref_count);
 
-		LOG_DBG("[ ev %p ref_count %u ++> %u ]", 
+		LOG_DBG("[ ev %p ref_count %u ++> %u ]",
 			event, (uint32_t)prev_val, (uint32_t)(prev_val + 1));
 	}
 }
@@ -952,7 +952,7 @@ static bool event_match_sub(struct ha_ev_subs *sub,
 	}
 
 	if (conf->flags & HA_EV_SUBS_CONF_FILTER_FUNCTION) {
-		if (conf->filter_cb(event) == false) {
+		if (conf->filter_cb(sub, event) == false) {
 			return false;
 		}
 	}
@@ -962,9 +962,9 @@ static bool event_match_sub(struct ha_ev_subs *sub,
 
 /**
  * @brief Notify the event to the subscription event queue if it is listening for it
- * 
- * @param sub 
- * @param event 
+ *
+ * @param sub
+ * @param event
  * @return int 1 if notified, 0 if not, negative value on error
  */
 static int event_notify_single(struct ha_ev_subs *sub,
@@ -976,32 +976,20 @@ static int event_notify_single(struct ha_ev_subs *sub,
 	bool match = event_match_sub(sub, event);
 
 	if (match) {
-		/* Reference the event, the subscriber will have to unref it 
+		/* Reference the event, the subscriber will have to unref it
 		 * when it will don't need it anymore */
 		ha_ev_ref(event);
 
-		/* TODO: Find a way to use a regular k_fifo_put() 
-		 * i.e. without k_malloc() */
-		ret = k_fifo_alloc_put(&sub->_evq, event);
-		
-		if (ret == 0) {
-			const struct ha_ev_subs_conf *const conf = sub->conf;
+		k_fifo_put(&sub->_evq, event);
 
-			/* call event function hook */
-			if (conf->flags & HA_EV_SUBS_CONF_ON_QUEUED_HOOK) {
-				__ASSERT_NO_MSG(conf->on_queued_cb != NULL);
-				conf->on_queued_cb(sub, event);
-			}
-			ret = 1;
-		} else {
-			if (ret == -ENOMEM) {
-				LOG_ERR("k_fifo_alloc_put() error %d, heap full", ret);
-			} else {
-				LOG_ERR("k_fifo_alloc_put() error %d", ret);
-			}
+		const struct ha_ev_subs_conf *const conf = sub->conf;
 
-			ha_ev_unref(event);
+		/* call event function hook */
+		if (conf->flags & HA_EV_SUBS_CONF_ON_QUEUED_HOOK) {
+			__ASSERT_NO_MSG(conf->on_queued_cb != NULL);
+			conf->on_queued_cb(sub, event);
 		}
+		ret = 1;
 	}
 
 	return ret;
@@ -1036,8 +1024,8 @@ int ha_ev_notify_all(struct ha_event *event)
 
 /**
  * @brief Validate subscription is valid
- * 
- * @param sub 
+ *
+ * @param sub
  */
 static bool subscription_conf_validate(const ha_ev_subs_conf_t *conf)
 {
@@ -1072,8 +1060,19 @@ static bool subscription_conf_validate(const ha_ev_subs_conf_t *conf)
 	return true;
 }
 
-int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
-		    struct ha_ev_subs **sub)
+int ha_ev_subs_conf_init(ha_ev_subs_conf_t *conf)
+{
+	if (conf == NULL) {
+		return -EINVAL;
+	}
+
+	memset(conf, 0, sizeof(*conf));
+
+	return 0;
+}
+
+int ha_subscribe(const ha_ev_subs_conf_t *conf,
+		 struct ha_ev_subs **sub)
 {
 	int ret;
 	struct ha_ev_subs *psub = NULL;
@@ -1095,7 +1094,7 @@ int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
 
 	/* Reference configuration */
 	psub->conf = conf;
-	
+
 	/* prefer k_spin_lock() to mutex here */
 	k_mutex_lock(&sub_mutex, K_FOREVER);
 	sys_dlist_append(&sub_dlist, &psub->_handle);
@@ -1116,7 +1115,7 @@ exit:
 	return ret;
 }
 
-int ha_ev_unsubscribe(struct ha_ev_subs *sub)
+int ha_unsubscribe(struct ha_ev_subs *sub)
 {
 	if (sub == NULL) {
 		return -EINVAL;
@@ -1220,12 +1219,12 @@ bool ha_dev_endpoint_has_datatype(const ha_dev_t *dev,
 	}
 
 	const struct ha_device_endpoint *const ep = &dev->endpoints[endpoint_index];
-	
+
 #if HA_DEV_ENDPOINT_TYPE_SEARCH_OPTIMIZATION
-	return (bool) (ep->_data_types & (1u << datatype));
+	return (bool)(ep->_data_types & (1u << datatype));
 #else
-	return ha_data_descr_data_type_has(ep->data_descr, 
-					   ep->data_descr_count, 
+	return ha_data_descr_data_type_has(ep->data_descr,
+					   ep->data_descr_count,
 					   datatype);
 #endif
 }

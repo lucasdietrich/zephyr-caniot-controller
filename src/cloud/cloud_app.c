@@ -53,7 +53,7 @@ int cloud_app_init(void)
 		.on_queued = cloud_on_queued,
 	};
 
-	return ha_ev_subscribe(&conf, &sub);
+	return ha_subscribe(&conf, &sub);
 }
 
 int process_event(ha_ev_t *event)
@@ -130,7 +130,7 @@ int cloud_app_process(atomic_val_t flags)
 
 int cloud_app_cleanup(void)
 {
-	int ret = ha_ev_unsubscribe(sub);
+	int ret = ha_unsubscribe(sub);
 	sub = 0;
 	return ret;
 }

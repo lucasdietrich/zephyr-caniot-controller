@@ -215,7 +215,8 @@
                 "ctype.h": "c",
                 "bluetooth.h": "c",
                 "chrono": "c",
-                "ha_spe.h": "c"
+                "ha_spe.h": "c",
+                "subs_extended.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

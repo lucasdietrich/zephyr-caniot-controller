@@ -19,14 +19,15 @@
 #include "ha/core/ha.h"
 #include "ha/core/room.h"
 #include "ha/devices/xiaomi.h"
+#include "ha/core/subs_extended.h"
 
 #include <caniot/device.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(ha_emu, LOG_LEVEL_INF);
 
-#define EMU_BLE_RDM_MIN_MS 		100
-#define EMU_BLE_RDM_MAX_MS 		250
+#define EMU_BLE_RDM_MIN_MS 		1000
+#define EMU_BLE_RDM_MAX_MS 		1000
 #define EMU_CAN_BROADCAST_RDM_MS 	1000
 #define EMU_CAN_CMD_RDM_MS 		1000
 
@@ -37,7 +38,11 @@ LOG_MODULE_REGISTER(ha_emu, LOG_LEVEL_INF);
 
 static uint32_t get_rdm_delay_ms(uint32_t min, uint32_t max)
 {
-	return sys_rand32_get() % (max - min) + min;
+	if (min >= max) {
+		return min;
+	} else {
+		return sys_rand32_get() % (max - min) + min;
+	}
 }
 
 static uint32_t get_rdm_delay_ms_1(void)
@@ -139,24 +144,29 @@ void emu_ble_device(void *_a, void *_b, void *_c)
 		const uint32_t next = get_rdm_delay_ms(EMU_BLE_RDM_MIN_MS,
 						 EMU_BLE_RDM_MAX_MS);
 		k_sleep(K_MSEC(next));
-
-		if (_a != NULL) {
-			LOG_DBG("k_mem_slab_num_free_get(): %u",
-				ha_ev_free_count());
-		}
 	}
 }
 
 void emu_consumer(void *_a, void *_b, void *_c)
 {
 
-	ha_ev_subs_t *trig;
+	ha_subs_ext_lt_t lt;
+	ha_ev_subs_t *sub;
 	ha_ev_t *event;
-	const struct ha_ev_subs_conf sub = {
+
+
+	struct ha_ev_subs_conf conf = {
 		.flags = HA_EV_SUBS_CONF_DEVICE_TYPE,
 		.device_type = HA_DEV_TYPE_XIAOMI_MIJIA
 	};
-	int ret = ha_ev_subscribe(&sub, &trig);
+
+	ha_subs_ext_conf_set(&conf,
+			     &lt,
+			     HA_SUBS_EXT_LOOKUP_TYPE_SDEVUID,
+			     HA_SUBS_EXT_FILTERING_TYPE_INTERVAL,
+			     HA_SUBS_EXT_FILTERING_PARAM_INTERVAL(20u));
+
+	int ret = ha_subscribe(&conf, &sub);
 	if (ret != 0) {
 		LOG_ERR("(thread %p) Failed to subscribe to events, ret=%d", 
 			_current, ret);
@@ -164,11 +174,12 @@ void emu_consumer(void *_a, void *_b, void *_c)
 	}
 
 	for (uint32_t i = 0u;;i++) {
-		event = ha_ev_wait(trig, K_MSEC(get_rdm_delay_ms_1()));
+		event = ha_ev_wait(sub, K_MSEC(get_rdm_delay_ms_1()));
 
 		if (event != NULL) {
-			LOG_DBG("(thread %p) got event %p (refc = %u) - time=%u temp=%d",
+			LOG_DBG("(thread %p) got event %p (refc = %u) - dev=%p time=%u temp=%d",
 				_current, event, (uint32_t)atomic_get(&event->ref_count),
+				event->dev,
 				event->timestamp,
 				((struct ha_ds_xiaomi *)event->data)->temperature.value);
 
@@ -185,6 +196,9 @@ void emu_consumer(void *_a, void *_b, void *_c)
 		 */
 		// k_sleep(K_MSEC(get_rdm_delay_ms_1() >> 2));
 	}
+
+	ha_unsubscribe(sub);
+	ha_subs_ext_lt_clear(&lt);
 }
 
 void emu_caniot_broadcast_thread(void *_a, void *_b, void *_c)

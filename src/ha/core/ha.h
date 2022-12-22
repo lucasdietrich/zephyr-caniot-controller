@@ -95,7 +95,7 @@ struct ha_device_payload
 	size_t len;
 
 	/* Additionnal specific context for data, which will be passed to the
- 	 * device API to resolve the endpoint. Set NULL if not needed. */
+	 * device API to resolve the endpoint. Set NULL if not needed. */
 	void *y;
 };
 
@@ -147,6 +147,7 @@ struct ha_device_endpoint
 	uint32_t _data_types;
 #endif /* HA_DEV_ENDPOINT_TYPE_SEARCH_OPTIMIZATION */
 };
+typedef struct ha_device_endpoint ha_dev_ep_t;
 
 
 #define HA_DEV_ENDPOINT_SELECT_0_CB NULL
@@ -212,21 +213,6 @@ struct ha_device_stats
 };
 
 struct ha_device {
-	/* Session Device Unique ID
-	 * ID guaranteed to be unique accross the current session.
-	 * i.e. Between two reboots of the controller.
-	 *
-	 * Note:
-	 * - It can be used as a human readable identifier for the device, which
-	 * can be used to differentiate two devices without comparing their
-	 * addresses.
-	 * - Also, devices with higher sdevuid are more recent than
-	 * devices with lower sdevuid.
-	 * - This ID is not persistent accross reboots.
-	 * - It starts as 1 and is incremented for each new device.
-	 */
-	uint32_t sdevuid;
-
 	/* Addr which uniquely identifies the device */
 	struct ha_device_address addr;
 
@@ -246,6 +232,21 @@ struct ha_device {
 
 	/* Endpoints count */
 	uint8_t endpoints_count;
+
+	/* Session Device Unique ID
+	 * ID guaranteed to be unique accross the current session.
+	 * i.e. Between two reboots of the controller.
+	 *
+	 * Note:
+	 * - It can be used as a human readable identifier for the device, which
+	 * can be used to differentiate two devices without comparing their
+	 * addresses.
+	 * - Also, devices with higher sdevuid are more recent than
+	 * devices with lower sdevuid.
+	 * - This ID is not persistent accross reboots.
+	 * - It starts as 1 and is incremented for each new device.
+	 */
+	uint16_t sdevuid;
 
 	/* Room where the device is */
 	struct ha_room *room;
@@ -274,6 +275,9 @@ struct ha_device_api {
 };
 
 struct ha_event {
+	/* First word reserved for use by FIFO */
+	void *_handle;
+
 	/******************/
 	/* Private members */
 	/******************/
@@ -284,10 +288,6 @@ struct ha_event {
 	/* Number of times the event is referenced
 	 * If ref_count is 0, the event data can be freed */
 	atomic_val_t ref_count;
-
-	/* Device the event is related to */
-	ha_dev_t *dev;
-
 	/* Singly linked list of data item */
 	sys_slist_t slist;
 
@@ -301,6 +301,12 @@ struct ha_event {
 	/* Event payload */
 	void *data;
 
+	/* Device the event is related to */
+	struct ha_device *dev;
+
+	/* Endpoint the event is related to */
+	// struct ha_device_endpoint *ep;
+
 #if defined(CONFIG_APP_HA_STATS)
 	uint16_t data_size;
 #endif
@@ -312,16 +318,24 @@ typedef struct ha_event ha_ev_t;
 #define HA_EV_SUBS_FLAG_SUBSCRIBED 	BIT(HA_EV_SUBS_FLAG_SUBSCRIBED_BIT)
 
 /**
- * @brief 
- * 
+ * @brief Event filter function for subscription
+ *
+ * @param sub Subscription handler
+ * @param event Event to filter
+ * @return true if the event should be notified to the subscriber
+ * @return false otherwise
  */
-typedef bool (*ha_subs_ev_filter_func_t)(ha_ev_t *event);
+typedef bool (*ha_subs_ev_filter_func_t)(struct ha_ev_subs *sub,
+					 ha_ev_t *event);
 
 /**
- * @brief 
- * 
+ * @brief On queued event hook
+ *
+ * @param sub Subscription handler
+ * @param event Event that has been queued
  */
-typedef void (*ha_subs_ev_on_queued_func_t)(struct ha_ev_subs *sub, ha_ev_t *event);
+typedef void (*ha_subs_ev_on_queued_func_t)(struct ha_ev_subs *sub,
+					    ha_ev_t *event);
 
 struct ha_ev_subs
 {
@@ -340,16 +354,15 @@ typedef struct ha_ev_subs ha_ev_subs_t;
 
 
 /* Event subscription Config flags */
-#define HA_EV_SUBS_CONF_ON_QUEUED_HOOK_BIT 	1u
-#define HA_EV_SUBS_CONF_ON_QUEUED_HOOK 		BIT(HA_EV_SUBS_CONF_ON_QUEUED_HOOK_BIT)
+#define HA_EV_SUBS_CONF_ON_QUEUED_HOOK 		BIT(0u)
 
 /* Event subscription filter flags */
-#define HA_EV_SUBS_CONF_DEVICE_TYPE 		BIT(2u)
-#define HA_EV_SUBS_CONF_DEVICE_ADDR 		BIT(3u)
-#define HA_EV_SUBS_CONF_DEVICE_DATA 		BIT(4u)
-#define HA_EV_SUBS_CONF_DEVICE_COMMAND 		BIT(5u)
-#define HA_EV_SUBS_CONF_DEVICE_ERROR 		BIT(6u)
-#define HA_EV_SUBS_CONF_FILTER_FUNCTION 	BIT(7u)
+#define HA_EV_SUBS_CONF_DEVICE_TYPE 		BIT(1u)
+#define HA_EV_SUBS_CONF_DEVICE_ADDR 		BIT(2u)
+#define HA_EV_SUBS_CONF_DEVICE_DATA 		BIT(3u)
+#define HA_EV_SUBS_CONF_DEVICE_COMMAND 		BIT(4u)
+#define HA_EV_SUBS_CONF_DEVICE_ERROR 		BIT(5u)
+#define HA_EV_SUBS_CONF_FILTER_FUNCTION 	BIT(6u)
 
 #define HA_EV_SUBS_CONF_SUBSCRIBED(_subs) (atomic_test_bit(&_subs->_ctrl, HA_EV_SUBS_FLAG_SUBSCRIBED_BIT))
 
@@ -364,6 +377,9 @@ struct ha_ev_subs_conf
 
 	/* Callback */
 	ha_subs_ev_on_queued_func_t on_queued_cb;
+
+	/* User data */
+	void *user_data;
 };
 typedef struct ha_ev_subs_conf ha_ev_subs_conf_t;
 
@@ -480,7 +496,7 @@ struct ha_room_assoc
 
 /**
  * @brief Compare two devices addresses
- * 
+ *
  * @param a First device address
  * @param b Second device address
  * @return int 0 if equal, any other value otherwise
@@ -490,7 +506,7 @@ int ha_dev_addr_cmp(const ha_dev_addr_t *a,
 
 /**
  * @brief Convert a device address to a string
- * 
+ *
  * @param addr Address to convert
  * @param buf Buffer to store the string
  * @param buf_len Buffer length
@@ -520,8 +536,8 @@ int ha_dev_register_data(const ha_dev_addr_t *addr,
 
 /**
  * @brief Get device endpoint last event
- * 
- * @param dev 
+ *
+ * @param dev
  * @param ep Endpoint index
  * @return ha_ev_t* Last event received on the endpoint or NULL if none
  */
@@ -529,8 +545,8 @@ ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, uint32_t ep);
 
 /**
  * @brief Get device endpoint last event data
- * 
- * @param dev 
+ *
+ * @param dev
  * @param ep Endpoint index
  * @return const void* Last event data received on the endpoint or NULL if none
  */
@@ -538,7 +554,7 @@ const void *ha_dev_get_last_event_data(ha_dev_t *dev, uint32_t ep);
 
 /**
  * @brief Callback for iterating over devices
- * 
+ *
  * @param dev Current device
  * @param user_data User data passed to the iterator
  * @return typedef Return true to continue iterating, false to stop
@@ -548,7 +564,7 @@ typedef bool ha_dev_iterate_cb_t(ha_dev_t *dev,
 
 /**
  * @brief Iterate over filtered devices
- * 
+ *
  * @param callback Callback to call for each device
  * @param filter Filter to apply to the devices to iterate
  * @param options Additional options to manupulate the iteration
@@ -562,32 +578,32 @@ ssize_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 
 /**
  * @brief Reference an event, i.e. incrementing its reference counter
- * 
- * Note: 
+ *
+ * Note:
  * - This function is thread-safe
- * - This function requires ha_ev_unref() to be called when the event is no 
+ * - This function requires ha_ev_unref() to be called when the event is no
  * longer needed
- * 
- * @param event 
+ *
+ * @param event
  */
 void ha_ev_ref(ha_ev_t *event);
 
 /**
  * @brief Unreference an event, i.e. decrementing its reference counter
- * 
+ *
  * Note:
  * - This function is thread-safe
  * - This function requires ha_ev_ref() to be called before
- * 
- * @param event 
+ *
+ * @param event
  */
 void ha_ev_unref(ha_ev_t *event);
 
 /**
  * @brief Get the data associated with an event if any
- * 
- * @param event 
- * @return void* 
+ *
+ * @param event
+ * @return void*
  */
 void *ha_ev_get_data(const ha_ev_t *event);
 
@@ -606,6 +622,15 @@ void *ha_ev_get_data(const ha_ev_t *event);
 int ha_ev_notify_all(ha_ev_t *event);
 
 /**
+ * @brief Initialize a subscription configuration with default values
+ * i.e. no filtering, no callbacks, no user data.
+ *
+ * @param conf Configuration to initialize
+ * @return int
+ */
+int ha_ev_subs_conf_init(ha_ev_subs_conf_t *conf);
+
+/**
  * @brief Subscribe to a specific type of event, using given subscription
  *  configuration. If subscription succeeds, the subscription handle is returned in
  *  the provided pointer "subs".
@@ -614,22 +639,22 @@ int ha_ev_notify_all(ha_ev_t *event);
  * @param sub Pointer to event subscription handle
  * @return int 0 on success, negative error code otherwise
  */
-int ha_ev_subscribe(const ha_ev_subs_conf_t *conf,
-		    struct ha_ev_subs **sub);
+int ha_subscribe(const ha_ev_subs_conf_t *conf,
+		 struct ha_ev_subs **sub);
 
 /**
  * @brief Unsubscribe from a specific type of event, using given subscription
  * handle.
  *
- * @param sub Subscription handle, set by ha_ev_subscribe()
+ * @param sub Subscription handle, set by ha_subscribe()
  * @return int
  */
-int ha_ev_unsubscribe(struct ha_ev_subs *sub);
+int ha_unsubscribe(struct ha_ev_subs *sub);
 
 /**
  * @brief Wait for an event to be notified on given subscription handle.
  *
- * @param sub Subscription handle, set by ha_ev_subscribe()
+ * @param sub Subscription handle, set by ha_subscribe()
  * @param timeout Timeout to wait for an event
  * @return ha_ev_t*
  */
@@ -638,15 +663,15 @@ ha_ev_t *ha_ev_wait(struct ha_ev_subs *sub,
 
 /**
  * @brief Get the room associated with a device
- * 
- * @param dev 
+ *
+ * @param dev
  * @return struct ha_room* Room associated with the device, NULL if none
  */
 struct ha_room *ha_dev_get_room(ha_dev_t *const dev);
 
 /**
  * @brief Send a command to a device, and wait for the response event
- * 
+ *
  * @param addr Address to request
  * @param cmd Command to send
  * @param timeout Timeout to wait for the response
@@ -659,50 +684,50 @@ ha_ev_t *ha_dev_command(const ha_dev_addr_t *addr,
 
 /**
  * @brief Get device endpoint by index
- * 
- * @param dev 
+ *
+ * @param dev
  * @param ep Index of the endpoint
- * @return struct ha_device_endpoint* 
+ * @return struct ha_device_endpoint*
  */
 struct ha_device_endpoint *ha_dev_endpoint_get(ha_dev_t *dev, uint32_t ep);
 
 /**
  * @brief Get device endpoint by its type id
- * 
- * @param dev 
+ *
+ * @param dev
  * @param eid Endpoint type id
- * @return struct ha_device_endpoint* 
+ * @return struct ha_device_endpoint*
  */
 struct ha_device_endpoint *ha_dev_endpoint_get_by_id(ha_dev_t *dev, ha_endpoint_id_t eid);
 
 /**
  * @brief Get device endpoint index by its endpoint type id
- * 
- * @param dev 
- * @param eid 
- * @return int 
+ *
+ * @param dev
+ * @param eid
+ * @return int
  */
 int ha_dev_endpoint_get_index_by_id(ha_dev_t *dev, ha_endpoint_id_t eid);
 
 /**
  * @brief Tell whether a device has a endpoint at the given index
- * 
- * @param dev 
- * @param endpoint_index 
- * @return true 
- * @return false 
+ *
+ * @param dev
+ * @param endpoint_index
+ * @return true
+ * @return false
  */
 bool ha_dev_endpoint_exists(const ha_dev_t *dev,
 			    uint8_t endpoint_index);
 
 /**
- * @brief Tell whether a device has a endpoint at the given index which supports 
- * the given datatype for incoming data events. 
- * @param dev 
+ * @brief Tell whether a device has a endpoint at the given index which supports
+ * the given datatype for incoming data events.
+ * @param dev
  * @param endpoint_index Endpoint index.
- * @param datatype 
- * @return true 
- * @return false 
+ * @param datatype
+ * @return true
+ * @return false
  */
 bool ha_dev_endpoint_has_datatype(const ha_dev_t *dev,
 				  uint8_t endpoint_index,
@@ -711,11 +736,11 @@ bool ha_dev_endpoint_has_datatype(const ha_dev_t *dev,
 /**
  * @brief Tell whether a device has a endpoint at the given index which supports
  * data events.
- * 
- * @param dev 
- * @param endpoint_index 
- * @return true 
- * @return false 
+ *
+ * @param dev
+ * @param endpoint_index
+ * @return true
+ * @return false
  */
 bool ha_dev_endpoint_check_data_support(const ha_dev_t *dev,
 					uint8_t endpoint_index);
@@ -723,33 +748,33 @@ bool ha_dev_endpoint_check_data_support(const ha_dev_t *dev,
 /**
  * @brief Tell whether a device has a endpoint at the given index which supports
  * commands.
- * 
- * @param dev 
- * @param endpoint_index 
- * @return true 
- * @return false 
+ *
+ * @param dev
+ * @param endpoint_index
+ * @return true
+ * @return false
  */
 bool ha_dev_endpoint_check_cmd_support(const ha_dev_t *dev,
 				       uint8_t endpoint_index);
 
 /**
- * @brief Iterate over all devices/endpoints and count all data inputs matching 
+ * @brief Iterate over all devices/endpoints and count all data inputs matching
  * given "assignement".
- * 
- * @param type 
- * @param assignement 
- * @return int 
+ *
+ * @param type
+ * @param assignement
+ * @return int
  */
 int ha_dev_count_data_inputs(ha_data_type_t type,
 			     ha_data_assignement_t assignement);
 
 /** Iterate over all devices/endpoints and count all control outputs matching
  * given "assignement".
- * @brief 
- * 
- * @param type 
- * @param assignement 
- * @return int 
+ * @brief
+ *
+ * @param type
+ * @param assignement
+ * @return int
  */
 int ha_dev_count_control_outputs(ha_data_type_t type,
 				 ha_data_assignement_t assignement);
@@ -758,18 +783,18 @@ int ha_dev_count_control_outputs(ha_data_type_t type,
 
 /**
  * @brief Return the number of unallocated memory block in the pool for events
- * 
+ *
  * Note: Debug function
- * 
- * @return uint32_t 
+ *
+ * @return uint32_t
  */
 uint32_t ha_ev_free_count(void);
 
 /**
  * @brief Copy HA statistics to given structure
- * 
- * @param dest 
- * @return int 
+ *
+ * @param dest
+ * @return int
  */
 int ha_stats_copy(struct ha_stats *dest);
 
