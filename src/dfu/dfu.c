@@ -50,7 +50,7 @@ void dfu_image_check(void)
 
 	const bool confirmed = boot_is_img_confirmed();
 
-	LOG_INF("MCUBOOT version=%x IMAGE size=%x version=%u.%u.%u+%u confirmed=%u",
+	LOG_INF("MCUBOOT version=%x IMAGE size=0x%x version=%u.%u.%u+%u confirmed=%u",
 		header.mcuboot_version, header.h.v1.image_size,
 		header.h.v1.sem_ver.major, header.h.v1.sem_ver.minor,
 		header.h.v1.sem_ver.revision, header.h.v1.sem_ver.build_num,

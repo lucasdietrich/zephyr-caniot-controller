@@ -9,8 +9,8 @@
 
 #include <stddef.h>
 
-#include "http_request.h"
-#include "http_response.h"
+#include "core/http_request.h"
+#include "core/http_response.h"
 
 #include "ha/core/ha.h"
 

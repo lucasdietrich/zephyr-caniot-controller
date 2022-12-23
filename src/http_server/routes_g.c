@@ -12,10 +12,10 @@
 #include "prometheus_client.h"
 #include "files_server.h"
 #include "test_server.h"
-#include "http_utils.h"
+#include "core/http_utils.h"
 #include "dfu_server.h"
 
-#include "routes.h"
+#include "core/routes.h"
 
 #define REST 		ROUTE_ATTR_REST
 #define HTML 		ROUTE_ATTR_HTML

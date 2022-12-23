@@ -7,8 +7,8 @@
 #ifndef _HTTP_FILES_SERVER_H_
 #define _HTTP_FILES_SERVER_H_
 
-#include "http_request.h"
-#include "http_response.h"
+#include "core/http_request.h"
+#include "core/http_response.h"
 
 int http_file_upload(struct http_request *req,
 		     struct http_response *resp);

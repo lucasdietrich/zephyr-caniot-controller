@@ -9,8 +9,8 @@
 
 #include <stdint.h>
 
-#include "http_response.h"
-#include "http_request.h"
+#include "core/http_response.h"
+#include "core/http_request.h"
 
 int web_server_index_html(http_request_t *req,
 			  http_response_t *resp);

@@ -13,7 +13,7 @@
 #include <zephyr/data/json.h>
 #include <zephyr/net/http_parser.h>
 
-#include "http_utils.h"
+#include "core/http_utils.h"
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(files_server, LOG_LEVEL_WRN);

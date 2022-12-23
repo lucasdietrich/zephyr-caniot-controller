@@ -27,10 +27,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include "http_utils.h"
-#include "http_request.h"
-#include "http_response.h"
-#include "routes.h"
+#include "core/http_utils.h"
+#include "core/http_request.h"
+#include "core/http_response.h"
+#include "core/routes.h"
 
 int http_test_any(struct http_request *req,
 		  struct http_response *resp);

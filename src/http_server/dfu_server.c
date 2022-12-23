@@ -16,7 +16,7 @@
 #include "dfu/dfu.h"
 #include "dfu_server.h"
 #include "rest_server.h"
-#include "http_utils.h"
+#include "core/http_utils.h"
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(http_dfu, LOG_LEVEL_DBG);

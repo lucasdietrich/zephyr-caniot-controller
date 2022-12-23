@@ -12,7 +12,6 @@
 #include "net_interface.h"
 #include "net_time.h"
 #include "crypto.h"
-#include "http_server/http_server.h"
 #include "lua/utils.h"
 #include "lua/orchestrator.h"
 #include "utils/freelist.h"
