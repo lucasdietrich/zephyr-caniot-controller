@@ -13,7 +13,7 @@
 #include <errno.h>
 #include <stdio.h>
 
-#include <sys/util.h>
+#include <zephyr/sys/util.h>
 #include <unistd.h>
 
 #include <poll.h>
@@ -34,10 +34,10 @@
 #include "creds/credentials.h"
 #include "creds/manager.h"
 
-#include "cloud/cloud.h"
-#include "cloud/backoff.h"
-#include "cloud/utils.h"
-#include "cloud/mqttc.h"
+#include "cloud.h"
+#include "backoff.h"
+#include "utils.h"
+#include "mqttc.h"
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(mqttc, LOG_LEVEL_INF);

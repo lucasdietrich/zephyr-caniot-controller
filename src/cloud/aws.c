@@ -7,16 +7,16 @@
 #include <zephyr/kernel.h>
 
 #include "creds/manager.h"
-#include "net/tls_credentials.h"
-#include "net/mqtt.h"
-#include "net/socket.h"
+#include <zephyr/net/tls_credentials.h>
+#include <zephyr/net/mqtt.h>
+#include <zephyr/net/socket.h>
 
 #include "utils/misc.h"
 #include "utils/buffers.h"
 #include "app_sections.h"
 
-#include "utils.h"
-#include "cloud_internal.h"
+#include "core/utils.h"
+#include "core/cloud_internal.h"
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(aws, LOG_LEVEL_DBG);

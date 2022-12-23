@@ -13,7 +13,7 @@
 #include <errno.h>
 #include <stdio.h>
 
-#include <sys/util.h>
+#include <zephyr/sys/util.h>
 #include <unistd.h>
 
 #include <poll.h>
@@ -25,7 +25,7 @@
 
 #include "net_time.h"
 
-#include "cloud/mqttc.h"
+#include "mqttc.h"
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(cloud, LOG_LEVEL_DBG);

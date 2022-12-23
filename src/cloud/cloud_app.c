@@ -4,16 +4,16 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <data/json.h>
+#include <zephyr/data/json.h>
+#include <zephyr/net/mqtt.h>
 
-#include "cloud.h"
-#include "mqttc.h"
+#include "core/cloud.h"
+#include "core/mqttc.h"
 
 #include "ha/core/ha.h"
 #include "ha/json.h"
 #include "ha/devices/all.h"
 
-#include "net/mqtt.h"
 
 
 #include <zephyr/logging/log.h>
@@ -50,7 +50,7 @@ int cloud_app_init(void)
 			HA_EV_SUBS_CONF_ON_QUEUED_HOOK |
 			HA_EV_SUBS_CONF_DEVICE_TYPE,
 		.device_type = HA_DEV_TYPE_XIAOMI_MIJIA,
-		.on_queued = cloud_on_queued,
+		.on_queued_cb = cloud_on_queued,
 	};
 
 	return ha_subscribe(&conf, &sub);
@@ -79,13 +79,13 @@ int process_event(ha_ev_t *event)
 			       BT_ADDR_LE_STR_LEN);
 
 		json_data.bt_mac = bt_mac_str;
-		json_data.base.timestamp = event->time;
+		json_data.base.timestamp = event->timestamp;
 
-		json_data.measures.rssi = data->rssi;
+		json_data.measures.rssi = data->rssi.value;
 		json_data.measures.temperature = temp_str;
-		json_data.measures.humidity = data->humidity;
-		json_data.measures.battery_level = data->battery_level;
-		json_data.measures.battery_voltage = data->battery_mv;
+		json_data.measures.humidity = data->humidity.value;
+		json_data.measures.battery_level = data->battery_level.level;
+		json_data.measures.battery_voltage = data->battery_level.voltage;
 
 		json_obj_encode_buf(json_cloud_xiaomi_record_descr,
 				    ARRAY_SIZE(json_cloud_xiaomi_record_descr),
