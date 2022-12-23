@@ -37,7 +37,7 @@ static int on_url(struct http_parser *parser, const char *at, size_t length);
 static int on_chunk_header(struct http_parser *parser);
 static int on_chunk_complete(struct http_parser *parser);
 
-
+extern int http_call_req_handler(http_request_t *req);
 
 /*_____________________________________________________________________________________*/
 const struct http_parser_settings parser_settings = {
@@ -64,6 +64,7 @@ void http_request_init(http_request_t *req)
 		.route_parse_results_len = CONFIG_APP_ROUTE_MAX_DEPTH,
 
 		.url_len = 0u,
+		.flush_len = 0u,
 	};
 
 	sys_dlist_init(&req->headers);
@@ -413,6 +414,8 @@ static int on_body(struct http_parser *parser,
 		   const char *at,
 		   size_t length)
 {
+	int ret = 0;
+
 	/* can be called several times */
 	http_request_t *req = REQUEST_FROM_PARSER(parser);
 
@@ -420,24 +423,12 @@ static int on_body(struct http_parser *parser,
 
 	req->payload_len += length;
 
-	if (!req->discarded) {
-		if (req->streaming) {
-			req->payload.loc = (char *)at;
-			req->payload.len = length;
+	if (req->discarded)
+		goto exit;
 
-			if (req->payload.len >= req->flush_len) {
-				/* We pause the parser, so that we
-				* can call the streaming handler */
-				http_parser_pause(parser, 1);
-			}
-		} else {
-			if (req->payload.loc == NULL) {
-				req->payload.loc = (char *)at;
-				req->payload.len = length;
-			} else {
-				req->payload.len += length;
-			}
-		}
+	if (req->streaming) {
+		req->payload.loc = (char *)at;
+		req->payload.len = length;
 
 		if (req->chunked_encoding) {
 			/* Increase chunk offset using previous part size */
@@ -447,13 +438,31 @@ static int on_body(struct http_parser *parser,
 			req->chunk.loc = (char *)at;
 			req->chunk.len = length;
 		}
+
+		if (req->payload.len >= req->flush_len) {
+			/* We pause the parser, so that we
+			* can call the streaming handler */
+			int ret = http_call_req_handler(req);
+			if (ret < 0) {
+				http_request_discard(req, HTTP_REQUEST_PROCESSING_ERROR);
+				LOG_ERR("(%p) Streaming handler error %d", req, ret);
+				ret = 0;
+				goto exit;
+			}
+		}
+	} else {
+		if (req->payload.loc == NULL) {
+			req->payload.loc = (char *)at;
+			req->payload.len = length;
+		} else {
+			req->payload.len += length;
+		}
 	}
 
-	// req->calls_count++;
+	LOG_DBG("(%p) on_body at=%p len=%u", req, (void *)at, length);
 
-	LOG_DBG("(%p) on_body at=%p len=%u", req, at, length);
-
-	return 0;
+exit:
+	return ret;
 }
 
 static int on_message_complete(struct http_parser *parser)
@@ -474,6 +483,8 @@ static int on_message_complete(struct http_parser *parser)
 	 * If this case happens the current server will closes the connection.
 	 */
 	http_parser_pause(parser, 1);
+
+	LOG_DBG("(%p) on_message_complete", req);
 
 	return 0;
 }
@@ -536,73 +547,29 @@ int http_req_route_arg_get_number_by_index(http_request_t *req,
 
 bool http_request_parse_buf(http_request_t *req,
 			    char *buf,
-			    size_t len,
-			    bool *keep_buf)
+			    size_t len)
 {
 	__ASSERT_NO_MSG(req != NULL);
 	__ASSERT_NO_MSG(buf != NULL);
-	__ASSERT_NO_MSG(keep_buf != NULL);
 
-	/* Number of bytes to parse */
-	size_t toack = len;
+	const size_t parsed = http_parser_execute(&req->parser, &parser_settings,
+						  buf, len);
 
-	do {
-		size_t parsed = http_parser_execute(&req->parser,
-						    &parser_settings,
-						    buf, len);
-		if (parsed < 0) {
-			LOG_ERR("(%p) http_parser_execute error %d", req, parsed);
-			return false;
-		}
-
-		buf += parsed;
-		len -= parsed;
-
+	if (parsed == len) {
+		return true;
+	} else {
 		const bool paused = HTTP_PARSER_ERRNO(&req->parser) == HPE_PAUSED;
 
-		if (paused && (req->complete == 0u)) {
-			__ASSERT_NO_MSG(req->streaming == 1u);
-
-			req->parser.http_errno = HPE_OK; /* Unpause the parser */
-
-#if defined(CONFIG_APP_HTTP_TEST)
-			/* Should always be called when the handler is called */
-			http_test_run(&req->_test_ctx, req, NULL, HTTP_TEST_HANDLER_REQ);
-#endif /* CONFIG_APP_HTTP_TEST */
-
-			const http_handler_t handler = route_get_req_handler(req->route);
-
-			int ret = handler(req, NULL);
-			if (ret < 0) {
-				LOG_ERR("(%p) handler error %d", req, ret);
-				return false;
-			}
-
-			/* Reset payload buffer */
-			req->payload.loc = NULL;
-			req->payload.len = 0u;
-
-			req->calls_count++;
-
-			toack -= parsed;
+		if (paused && req->complete) {
+			LOG_ERR("(%p) Request malformed, more "
+				"data to parse rem=%u", req, len);
+		} else {
+			LOG_ERR("Unexpected HTTP parser pause parsed/len = %u/%u",
+				parsed, len);
 		}
 
-		/* Make sure there are no more bytes to receive, when the request
-		 * is complete */
-		if (req->complete && len) {
-			if (len != 0u) {
-				LOG_ERR("(%p) Request malformed, more "
-					"data to parse rem=%u", req, len);
-			}
-		}
-	} while (len);
-
-	/* If request is discarded or received data have been totally parsed, 
-	 * the content doesn't matter, so keep could be
-	 * reused */
-	*keep_buf = (req->discarded == 0u) && (toack != 0u);
-
-	return true;
+		return false;
+	}
 }
 
 void http_request_discard(http_request_t *req,

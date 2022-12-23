@@ -197,7 +197,7 @@ void main(void)
 			extern struct k_heap _system_heap;
 			struct sys_memory_stats stats;
 			sys_heap_runtime_stats_get(&_system_heap.heap, &stats);
-			LOG_INF("sys heap stats: alloc=%u free=%u max=%u",
+			LOG_DBG("sys heap stats: alloc=%u free=%u max=%u",
 				stats.allocated_bytes, stats.free_bytes,
 				stats.max_allocated_bytes);
 #endif

@@ -501,7 +501,6 @@ static void request_chunk_buf_cleanup(http_request_t *req)
 
 static int sock_recv(int sock, char *buf, size_t len)
 {
-	LOG_DBG("zsock_recv(%d, %p, %d, 0) ENTER", sock, (void *)buf, len);
 	int rc = zsock_recv(sock, buf, len, 0);
 	LOG_DBG("zsock_recv(%d, %p, %d, 0) = %d", sock, (void *)buf, len, rc);
 
@@ -532,17 +531,20 @@ static bool handle_request(http_session_t *sess)
 			/* Reset buffer */
 			p = buffer;
 			remaining = sizeof(buffer);
+			LOG_WRN("(%d) Request payload too large, discarding", 
+				sess->sock);
 		}
 
 		rc = sock_recv(sess->sock, p, remaining);
 		if (rc > 0) {
-			bool keep_buf = false;
-			if (http_request_parse_buf(req, p, rc, &keep_buf) == false) {
+			if (http_request_parse_buf(req, p, rc) == false) {
 				goto close;
 			}
 
-			/* If buffer should be keeped */
-			if (keep_buf) {
+			/* If not streaming, we need to keep the data in
+			 * the buffer for later processing.
+			 */
+			if (!req->streaming && !req->discarded) {
 				p += rc;
 				remaining -= rc;
 			}
@@ -636,9 +638,51 @@ static int send_end_of_chunked_encoding(http_session_t *sess)
 	return sendall(sess->sock, "0\r\n\r\n", 5u);
 }
 
+static int call_resp_handler(http_request_t *req,
+			     http_response_t *resp)
+{
+#if defined(CONFIG_APP_HTTP_TEST)
+		/* Should always be called when the handler is called */
+	http_test_run(&req->_test_ctx, req, resp, HTTP_TEST_HANDLER_RESP);
+#endif /* CONFIG_APP_HTTP_TEST */
+
+	http_handler_t resp_hdlr = route_get_resp_handler(req->route);
+
+	__ASSERT_NO_MSG(resp_hdlr != NULL);
+
+	const int ret = resp_hdlr(req, resp);
+	if (ret >= 0) {
+		resp->calls_count++;
+	}
+
+	return ret;
+}
+
+int http_call_req_handler(http_request_t *req)
+{
+#if defined(CONFIG_APP_HTTP_TEST)
+			/* Should always be called when the handler is called */
+	http_test_run(&req->_test_ctx, req, NULL, HTTP_TEST_HANDLER_REQ);
+#endif /* CONFIG_APP_HTTP_TEST */
+
+	const http_handler_t req_hdlr = route_get_req_handler(req->route);
+
+	const int ret = req_hdlr(req, NULL);
+	if (ret >= 0) {
+		/* Reset payload buffer */
+		req->payload.loc = NULL;
+		req->payload.len = 0u;
+
+		req->calls_count++;
+	}
+
+	return ret;
+}
+
 static bool handle_response(http_session_t *sess)
 {
 	int ret;
+	bool zsend_headers = true;
 
 	http_request_t *const req = sess->req;
 	http_response_t *const resp = sess->resp;
@@ -654,20 +698,15 @@ static bool handle_response(http_session_t *sess)
 		 */
 		resp->complete = 1u;
 
-#if defined(CONFIG_APP_HTTP_TEST)
-		/* Should always be called when the handler is called */
-		http_test_run(&req->_test_ctx, req, resp, HTTP_TEST_HANDLER_RESP);
-#endif /* CONFIG_APP_HTTP_TEST */
-
 		/* process request, prepare response */
 
-		ret = route_get_resp_handler(req->route)(req, resp);
+		ret = call_resp_handler(req, resp);
 		if (ret < 0) {
 			http_request_discard(sess->req, HTTP_REQUEST_PROCESSING_ERROR);
 			LOG_ERR("(%d) Request processing failed = %d", sess->sock, ret);
 		}
 
-		if (http_response_is_first_call(resp) == true) {
+		if (zsend_headers == true) {
 			if (http_request_is_discarded(req)) {
 				http_discard_reason_to_status_code(req->discard_reason,
 								   &resp->status_code);
@@ -693,6 +732,8 @@ static bool handle_response(http_session_t *sess)
 				LOG_ERR("(%d) Failed to send headers = %d", sess->sock, ret);
 				goto exit;
 			}
+			
+			zsend_headers = false;
 		}
 
 		const bool success = http_response_is_stream(resp) ? 
@@ -701,8 +742,6 @@ static bool handle_response(http_session_t *sess)
 		if (!success) {
 			goto close;
 		}
-
-		resp->calls_count++;
 	} while (resp->complete == 0U);
 
 	/* End of chunked encoding */

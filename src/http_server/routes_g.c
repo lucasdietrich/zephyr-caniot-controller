@@ -35,22 +35,22 @@ static const struct route_descr root_api_test_zs[] = {
 #endif
 
 #if defined(CONFIG_APP_HTTP_TEST_SERVER)
-static const struct route_descr root_api_test_route_args_zu_zu[] = {
+static const struct route_descr root_api_test_route_args_firstzu_secondzu[] = {
 	LEAF(":u", GET | ARG_UINT, http_test_route_args, NULL, 0u),
 };
 #endif
 
 #if defined(CONFIG_APP_HTTP_TEST_SERVER)
-static const struct route_descr root_api_test_route_args_zu[] = {
-	SECTION(":u", ARG_UINT, root_api_test_route_args_zu_zu, 
-		ARRAY_SIZE(root_api_test_route_args_zu_zu), 0u),
+static const struct route_descr root_api_test_route_args_firstzu[] = {
+	SECTION("second:u", ARG_UINT, root_api_test_route_args_firstzu_secondzu, 
+		ARRAY_SIZE(root_api_test_route_args_firstzu_secondzu), 0u),
 };
 #endif
 
 #if defined(CONFIG_APP_HTTP_TEST_SERVER)
 static const struct route_descr root_api_test_route_args[] = {
-	SECTION(":u", ARG_UINT, root_api_test_route_args_zu, 
-		ARRAY_SIZE(root_api_test_route_args_zu), 0u),
+	SECTION("first:u", ARG_UINT, root_api_test_route_args_firstzu, 
+		ARRAY_SIZE(root_api_test_route_args_firstzu), 0u),
 };
 #endif
 
@@ -173,6 +173,18 @@ static const struct route_descr root_api_room[] = {
 	LEAF(":u", GET | ARG_UINT, rest_room_devices_list, NULL, 0u),
 };
 
+#if defined(CONFIG_APP_DFU)
+static const struct route_descr root_api_dfu[] = {
+#if defined(CONFIG_APP_DFU)
+	LEAF("", POST, http_dfu_image_upload, http_dfu_image_upload_response, MULTIPART),
+#endif
+#if defined(CONFIG_APP_DFU)
+	LEAF("", GET, http_dfu_status, NULL, 0u),
+#endif
+	LEAF("status", GET, http_dfu_status, NULL, 0u),
+};
+#endif
+
 static const struct route_descr root_api_demo[] = {
 	LEAF("json", GET, rest_demo_json, NULL, 0u),
 };
@@ -239,10 +251,8 @@ static const struct route_descr root_api[] = {
 	SECTION("demo", 0u, root_api_demo, 
 		ARRAY_SIZE(root_api_demo), 0u),
 #if defined(CONFIG_APP_DFU)
-	LEAF("dfu", POST, http_dfu_image_upload, http_dfu_image_upload_response, MULTIPART),
-#endif
-#if defined(CONFIG_APP_DFU)
-	LEAF("dfu", GET, http_dfu_status, NULL, 0u),
+	SECTION("dfu", 0u, root_api_dfu, 
+		ARRAY_SIZE(root_api_dfu), 0u),
 #endif
 	SECTION("room", 0u, root_api_room, 
 		ARRAY_SIZE(root_api_room), 0u),

@@ -52,7 +52,7 @@ POST /api/if/can/id:x -> rest_if_can (CONFIG_APP_CAN_INTERFACE)
 POST /api/test/any -> http_test_any, http_test_any (CONFIG_APP_HTTP_TEST_SERVER)
 POST /api/test/messaging -> http_test_messaging (CONFIG_APP_HTTP_TEST_SERVER)
 POST /api/test/streaming -> http_test_streaming, http_test_streaming (CONFIG_APP_HTTP_TEST_SERVER) | REST
-GET /api/test/route_args/:u/:u/:u -> http_test_route_args (CONFIG_APP_HTTP_TEST_SERVER)
+GET /api/test/route_args/first:u/second:u/third:u -> http_test_route_args (CONFIG_APP_HTTP_TEST_SERVER)
 POST /api/test/big_payload -> http_test_big_payload (CONFIG_APP_HTTP_TEST_SERVER) | BINARY
 GET /api/test/headers -> http_test_headers (CONFIG_APP_HTTP_TEST_SERVER)
 GET /api/test/payload -> http_test_payload (CONFIG_APP_HTTP_TEST_SERVER)

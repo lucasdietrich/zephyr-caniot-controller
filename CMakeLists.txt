@@ -23,7 +23,6 @@ if (BOARD STREQUAL "nucleo_f429zi")
     # but “mix in” some additional configuration options.
     set(OVERLAY_CONFIG "overlays/nucleo_f429zi_spi_disk.conf \
         overlays/nucleo_f429zi_mcuboot.conf \
-        overlays/nucleo_f429zi_logging_fs.conf \
         ${OVERLAY_CONFIG}")
     message(STATUS "OVERLAY_CONFIG: ${OVERLAY_CONFIG}")
 

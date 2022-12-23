@@ -4,6 +4,7 @@ GENERATOR=Ninja
 SERIAL_PORT=/dev/ttyACM0
 BAUDRATE=115200
 PYOCD = pyocd
+BUILD_TYPE=debug
 
 ifeq ($(GENERATOR),Unix Makefiles)
 GEN_CMD=make
@@ -25,6 +26,11 @@ tmp:
 # add option "--cmake-only" to not build immediately
 build:
 	west build --board=nucleo_f429zi -- \
+		-G"$(GENERATOR)"
+
+build_nucleo_f429zi_loggingfs:
+	west build --board=nucleo_f429zi -- \
+		-DOVERLAY_CONFIG="overlays/nucleo_f429zi_logging_fs.conf" \
 		-G"$(GENERATOR)"
 
 build_nucleo_f429zi_ramfatfs:

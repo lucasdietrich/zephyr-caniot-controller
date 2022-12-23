@@ -241,7 +241,9 @@ struct http_request
 	/**
 	 * @brief Tells at what buffer fill level the handler should be called
 	 * 
-	 * If 0 and route supports streaming, handler is called immediately.
+	 * If flush_len=0 and route supports streaming, handler is called immediately.
+	 * 
+	 * This value can be tuned during streaming handling.
 	 */
 	size_t flush_len;
 
@@ -324,14 +326,12 @@ int http_req_route_arg_get_string(http_request_t *req,
  * @param req Current HTTP request
  * @param data Received data
  * @param len Length of the received data
- * @param keep_buf Tells whether the buffer can be freed or not
  * @return true On success
  * @return false On error
  */
 bool http_request_parse_buf(http_request_t *req,
 			    char *buf,
-			    size_t len,
-			    bool *keep_buf);
+			    size_t len);
 
 /**
  * @brief Mark the request as discarded
