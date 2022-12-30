@@ -6,7 +6,7 @@
 
 mainmenu "lua"
 
-if APP_LUA
+if LUA
 
 config APP_LUA_FS_SCRIPTS_DIR
         string "Directory for Lua scripts"
