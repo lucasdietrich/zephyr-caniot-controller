@@ -222,6 +222,11 @@ Sample application : https://github.com/zephyrproject-rtos/zephyr/tree/main/samp
         };
 };
 
+&mac {
+        status = "okay"; /* Set to disable to use USB interface only */
+};
+
+
 /* BLE HCI interface */
 &spi4 {
         status = "okay";
@@ -265,3 +270,10 @@ Sample application : https://github.com/zephyrproject-rtos/zephyr/tree/main/samp
 //         status = "okay";
 //         bus-speed = < 500000 >;
 // };
+
+&zephyr_udc0 {
+        status = "okay";
+        usb_cdc_acm_uart: cdc-acm-uart {
+                compatible = "zephyr,cdc-acm-uart";
+        };
+};

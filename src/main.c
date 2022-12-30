@@ -15,6 +15,7 @@
 #include "lua/utils.h"
 #include "lua/orchestrator.h"
 #include "utils/freelist.h"
+#include "usb/usb.h"
 
 #include <zephyr/sys/sys_heap.h>
 
@@ -120,18 +121,29 @@ extern int lua_fs_populate(void);
 void main(void)
 {
 	printk("Starting Zephyr application...\n");
-	
+
 #if defined(CONFIG_BOOTLOADER_MCUBOOT)
 	dfu_image_check();
-#endif 
+#endif
+
+#ifndef CONFIG_QEMU_TARGET
+	leds_init();
+	button_init();
+#endif
+	app_fs_init();
+
+	creds_manager_init();
+	
+	crypto_mbedtls_heap_init();
+	net_interface_init();
+
+#if defined(CONFIG_USB_DEVICE_STACK)
+	usb_init();
+#endif
 
 #if defined(CONFIG_APP_CAN_INTERFACE)
 	if_can_init();
 #endif /* CONFIG_APP_CAN_INTERFACE */
-
-	app_fs_init();
-
-	creds_manager_init();
 
 #if defined(CONFIG_APP_LUA_FS_DEFAULT_SCRIPTS)
 	lua_fs_populate();
@@ -141,24 +153,16 @@ void main(void)
 	lua_orch_init();
 #endif
 
-#ifndef CONFIG_QEMU_TARGET
-	leds_init();
-	button_init();
-#endif
-
-	crypto_mbedtls_heap_init();
-	net_interface_init();
-
 #ifdef TEMP_NODE
 	die_temp_dev_init();
 #endif /* TEMP_NODE */
 
-#if defined(CONFIG_APP_LUA_AUTORUN_SCRIPTS)
-	lua_utils_execute_fs_script2("/RAM:/lua/entry.lua");
-#endif
-
 #if defined(CONFIG_APP_BLE_INTERFACE)
 	ble_init();
+#endif
+
+#if defined(CONFIG_APP_LUA_AUTORUN_SCRIPTS)
+	lua_utils_execute_fs_script2("/RAM:/lua/entry.lua");
 #endif
 
 	uint32_t counter = 0;

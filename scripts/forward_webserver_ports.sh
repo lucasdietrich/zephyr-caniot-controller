@@ -13,5 +13,10 @@
 # # Apply
 # sudo iptables-save
 
+# QEMU net interface forwarded to nat
 sudo iptables -t nat -I PREROUTING -p tcp -i ens160 --dport 9080 -j DNAT --to 192.0.2.1:80
 sudo iptables -t nat -I PREROUTING -p tcp -i ens160 --dport 9443 -j DNAT --to 192.0.2.1:443
+
+# USB ECM interface forwarded to nat
+sudo iptables -t nat -I PREROUTING -p tcp -i ens160 --dport 8080 -j DNAT --to 192.0.3.2:80
+sudo iptables -t nat -I PREROUTING -p tcp -i ens160 --dport 8443 -j DNAT --to 192.0.3.2:443

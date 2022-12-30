@@ -73,6 +73,9 @@ make: build
 monitor:
 	python3 -m serial.tools.miniterm --filter=direct ${SERIAL_PORT} ${BAUDRATE}
 
+monitor_2:
+	python3 -m serial.tools.miniterm /dev/ttyACM1 ${BAUDRATE}
+
 reports: tmp
 	${GEN_CMD} -C build ram_report $(GEN_OPT) > docs/ram_report.txt
 	${GEN_CMD} -C build rom_report $(GEN_OPT) > docs/rom_report.txt

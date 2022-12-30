@@ -45,8 +45,8 @@ int resolve_hostname(struct sockaddr_in *addr,
 	};
 	ret = zsock_getaddrinfo(hostname, NULL, &hints, &ai);
 	if (ret != 0) {
-		LOG_ERR("failed to resolve hostname err = %d (errno = %d)",
-			ret, errno);
+		LOG_ERR("failed to resolve hostname \"%s\" err = %d (errno = %d)",
+			hostname, ret, errno);
 	} else {
 		memcpy(addr, ai->ai_addr,
 		       MIN(ai->ai_addrlen,
