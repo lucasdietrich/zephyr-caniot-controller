@@ -150,7 +150,7 @@ static void handle_published_message(const struct mqtt_publish_param *msg)
 static void mqtt_event_cb(struct mqtt_client *client,
 			  const struct mqtt_evt *evt)
 {
-	LOG_INF("mqtt_evt=%hhx [ %s ]", (uint8_t)evt->type,
+	LOG_DBG("mqtt_evt=%hhx [ %s ]", (uint8_t)evt->type,
 		mqtt_evt_get_str(evt->type));
 
 	switch (evt->type) {

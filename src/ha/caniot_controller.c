@@ -27,7 +27,7 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(caniot, LOG_LEVEL_WRN);
 
-#define HA_CIOT_QUERY_TIMEOUT_TOLERANCE_MS 1u
+#define HA_CIOT_QUERY_TIMEOUT_TOLERANCE_MS 200u
 
 
 #if defined(CONFIG_APP_CAN_INTERFACE)
@@ -42,8 +42,10 @@ static ha_ciot_ctrl_did_cb_t did_callbacks[CANIOT_DID_MAX_VALUE];
 
 static void thread(void *_a, void *_b, void *_c);
 
-K_THREAD_DEFINE(ha_ciot_thread, 0x800, thread, NULL, NULL, NULL,
-		K_PRIO_COOP(2), 0U, 0U);
+#define HA_CANIOT_CTRL_THREAD_STACK_SIZE 0x400
+
+K_THREAD_DEFINE(ha_caniot_ctrl_thread, HA_CANIOT_CTRL_THREAD_STACK_SIZE, thread,
+		NULL, NULL, NULL, K_PRIO_COOP(2), 0U, 0U);
 
 static int z_can_send(const struct caniot_frame *frame,
 		      uint32_t delay_ms)

@@ -11,13 +11,14 @@
 #include "core/mqttc.h"
 
 #include "ha/core/ha.h"
+#include "ha/core/subs_extended.h"
 #include "ha/json.h"
 #include "ha/devices/all.h"
 
-
-
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(cloud_app, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(cloud_app, LOG_LEVEL_WRN);
+
+#define TELEMETRY_INTERVAL_SEC 60u
 
 static struct ha_ev_subs *sub = NULL;
 
@@ -43,9 +44,11 @@ void cloud_on_queued(struct ha_ev_subs *sub, ha_ev_t *event)
 	cloud_notify(0u);
 }
 
+static struct ha_subs_ext_lookup_table sub_lt;
+
 int cloud_app_init(void)
 {
-	const struct ha_ev_subs_conf conf = {
+	static struct ha_ev_subs_conf sub_conf = {
 		.flags = HA_EV_SUBS_CONF_DEVICE_DATA |
 			HA_EV_SUBS_CONF_ON_QUEUED_HOOK |
 			HA_EV_SUBS_CONF_DEVICE_TYPE,
@@ -53,7 +56,12 @@ int cloud_app_init(void)
 		.on_queued_cb = cloud_on_queued,
 	};
 
-	return ha_subscribe(&conf, &sub);
+	ha_subs_ext_conf_set(&sub_conf, &sub_lt,
+			     HA_SUBS_EXT_LOOKUP_TYPE_SDEVUID,
+			     HA_SUBS_EXT_FILTERING_TYPE_INTERVAL,
+			     HA_SUBS_EXT_FILTERING_PARAM_INTERVAL(TELEMETRY_INTERVAL_SEC));
+
+	return ha_subscribe(&sub_conf, &sub);
 }
 
 int process_event(ha_ev_t *event)
@@ -118,6 +126,8 @@ int cloud_app_process(atomic_val_t flags)
 	ha_ev_t *ev;
 
 	if ((ev = ha_ev_wait(sub, K_NO_WAIT)) != NULL) {
+		LOG_INF("Processing event: %p", ev);
+		
 		ret = process_event(ev);
 		ha_ev_unref(ev);
 
@@ -131,6 +141,8 @@ int cloud_app_process(atomic_val_t flags)
 int cloud_app_cleanup(void)
 {
 	int ret = ha_unsubscribe(sub);
-	sub = 0;
+	ha_subs_ext_lt_clear(&sub_lt);
+
+	sub = NULL;
 	return ret;
 }

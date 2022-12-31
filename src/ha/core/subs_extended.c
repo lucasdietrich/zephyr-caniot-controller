@@ -6,7 +6,7 @@
 #include "subs_extended.h"
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(subs_ext, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(subs_ext, LOG_LEVEL_WRN);
 
 typedef bool (*lt_cmp_func_t)(ha_subs_ext_lte_t *lte, ha_ev_t *event);
 
@@ -197,6 +197,7 @@ int ha_subs_ext_conf_set(struct ha_ev_subs_conf *conf,
 	case HA_SUBS_EXT_LOOKUP_TYPE_DEVADDR:
 	case HA_SUBS_EXT_LOOKUP_TYPE_DEVADDR_ENDPOINT:
 	case HA_SUBS_EXT_LOOKUP_TYPE_ENDPOINTID:
+		LOG_WRN("Lookup type %d not supported yet", lookup_type);
 		return -ENOTSUP; /* TODO: not supported yet */
 	default:
 		return -ENOTSUP;

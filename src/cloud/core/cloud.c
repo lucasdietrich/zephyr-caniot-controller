@@ -28,9 +28,9 @@
 #include "mqttc.h"
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(cloud, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(cloud, LOG_LEVEL_INF);
 
-#define AWS_THREAD_STACK_SIZE 2096u
+#define AWS_THREAD_STACK_SIZE 4096u
 
 static void task(void *_a, void *_b, void *_c);
 

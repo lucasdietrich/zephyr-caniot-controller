@@ -177,7 +177,7 @@ void emu_consumer(void *_a, void *_b, void *_c)
 		event = ha_ev_wait(sub, K_MSEC(get_rdm_delay_ms_1()));
 
 		if (event != NULL) {
-			LOG_DBG("(thread %p) got event %p (refc = %u) - dev=%p time=%u temp=%d",
+			LOG_DBG("(thread %p) ev %p (refc = %u) - dev=%p time=%u temp=%d",
 				_current, event, (uint32_t)atomic_get(&event->ref_count),
 				event->dev,
 				event->timestamp,
