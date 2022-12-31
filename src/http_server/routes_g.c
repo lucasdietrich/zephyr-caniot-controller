@@ -36,7 +36,7 @@ static const struct route_descr root_api_test_zs[] = {
 
 #if defined(CONFIG_APP_HTTP_TEST_SERVER)
 static const struct route_descr root_api_test_route_args_firstzu_secondzu[] = {
-	LEAF(":u", GET | ARG_UINT, http_test_route_args, NULL, 0u),
+	LEAF("third:u", GET | ARG_UINT, http_test_route_args, NULL, 0u),
 };
 #endif
 
@@ -235,8 +235,16 @@ static const struct route_descr root_api_credentials[] = {
 };
 #endif
 
+static const struct route_descr root_api_interface[] = {
+	LEAF("", GET, rest_interfaces_list, NULL, 0u),
+	LEAF("idx:u", GET | ARG_UINT, rest_interface, NULL, 0u),
+	LEAF("idx:u", POST | ARG_UINT, rest_interface_set, NULL, 0u),
+};
+
 static const struct route_descr root_api[] = {
 	LEAF("info", GET, rest_info, NULL, 0u),
+	SECTION("interface", 0u, root_api_interface, 
+		ARRAY_SIZE(root_api_interface), 0u),
 #if defined(CONFIG_APP_CREDS_FLASH)
 	SECTION("credentials", 0u, root_api_credentials, 
 		ARRAY_SIZE(root_api_credentials), REST),

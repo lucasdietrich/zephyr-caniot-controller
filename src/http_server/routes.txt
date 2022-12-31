@@ -6,6 +6,9 @@ GET /metrics_controller -> prometheus_metrics_controller | TEXT
 GET /metrics_demo -> prometheus_metrics_demo | TEXT
 
 GET /api/info -> rest_info
+GET /api/interface -> rest_interfaces_list
+GET /api/interface/idx:u -> rest_interface
+POST /api/interface/idx:u -> rest_interface_set
 GET /api/credentials/flash -> rest_flash_credentials_list (CONFIG_APP_CREDS_FLASH) | REST
 
 GET /api/files_fetch -> web_server_files_html | HTML

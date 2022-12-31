@@ -33,6 +33,8 @@
 #include "ha/caniot_controller.h"
 #include "ha/devices/all.h"
 
+#include "net_interface.h"
+
 #include "ha/json.h"
 
 #include "can/can_interface.h"
@@ -148,23 +150,6 @@ static const struct json_obj_descr info_controller_status_descr[] = {
 			    JSON_TOK_TRUE),
 };
 
-/* base on : net_if / struct net_if_ipv4 */
-struct json_info_iface
-{
-	const char *ethernet_mac;
-	const char *unicast;
-	const char *mcast;
-	const char *gateway;
-	const char *netmask;
-};
-
-static const struct json_obj_descr json_info_iface_descr[] = {
-	JSON_OBJ_DESCR_PRIM(struct json_info_iface, ethernet_mac, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct json_info_iface, unicast, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct json_info_iface, mcast, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct json_info_iface, gateway, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct json_info_iface, netmask, JSON_TOK_STRING),
-};
 
 static const struct json_obj_descr net_stats_bytes_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct net_stats_bytes, sent, JSON_TOK_NUMBER),
@@ -252,8 +237,6 @@ struct json_info
 	uint32_t uptime;
 	uint32_t timestamp;
 	struct json_info_controller_status status;
-	struct json_info_iface interface;
-	struct net_stats net_stats;
 
 #if defined(CONFIG_APP_SYSTEM_MONITORING)
 	struct json_info_mbedtls_stats mbedtls_stats;
@@ -264,15 +247,10 @@ static const struct json_obj_descr info_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_info, uptime, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_info, timestamp, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_OBJECT(struct json_info, status, info_controller_status_descr),
-	JSON_OBJ_DESCR_OBJECT(struct json_info, interface, json_info_iface_descr),
-	JSON_OBJ_DESCR_OBJECT(struct json_info, net_stats, net_stats_descr),
 #if defined(CONFIG_APP_SYSTEM_MONITORING)
 	JSON_OBJ_DESCR_OBJECT(struct json_info, mbedtls_stats, info_mbedtls_stats_descr),
 #endif
 };
-
-#define ETH_ALEN sizeof(struct net_eth_addr)
-#define ETH_STR_LEN sizeof("FF:FF:FF:FF:FF:FF")
 
 int rest_info(http_request_t *req,
 	      http_response_t *resp)
@@ -284,36 +262,14 @@ int rest_info(http_request_t *req,
 	clock_gettime(CLOCK_REALTIME, &ts);
 
 	/* get iterface info */
-	struct net_if_config *const ifcfg = &net_if_get_default()->config;
-	char unicast_str[NET_IPV4_ADDR_LEN] = "";
-	char mcast_str[NET_IPV4_ADDR_LEN] = "";
-	char gateway_str[NET_IPV4_ADDR_LEN] = "";
-	char netmask_str[NET_IPV4_ADDR_LEN] = "";
-	char ethernet_mac_str[ETH_STR_LEN] = "";
+	// struct net_if_config *const ifcfg = &net_if_get_default()->config;
+	// char unicast_str[NET_IPV4_ADDR_LEN] = "";
+	// char mcast_str[NET_IPV4_ADDR_LEN] = "";
+	// char gateway_str[NET_IPV4_ADDR_LEN] = "";
+	// char netmask_str[NET_IPV4_ADDR_LEN] = "";
+	// char ethernet_mac_str[ETH_STR_LEN] = "";
 
-	net_addr_ntop(AF_INET,
-		      &ifcfg->ip.ipv4->unicast[0].address.in_addr,
-		      unicast_str, sizeof(unicast_str));
-	net_addr_ntop(AF_INET,
-		      &ifcfg->ip.ipv4->mcast[0].address.in_addr,
-		      mcast_str, sizeof(mcast_str));
-	net_addr_ntop(AF_INET,
-		      &ifcfg->ip.ipv4->gw,
-		      gateway_str, sizeof(gateway_str));
-	net_addr_ntop(AF_INET,
-		      &ifcfg->ip.ipv4->netmask,
-		      netmask_str, sizeof(netmask_str));
-
-	struct net_linkaddr *l2_addr = net_if_get_link_addr(net_if_get_default());
-	if (l2_addr->type == NET_LINK_ETHERNET) {
-		sprintf(ethernet_mac_str, "%02X:%02X:%02X:%02X:%02X:%02X",
-			l2_addr->addr[0], l2_addr->addr[1], l2_addr->addr[2],
-			l2_addr->addr[3], l2_addr->addr[4], l2_addr->addr[5]);
-	}
-
-	/* get network stats */
-	net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if_get_default(),
-		 &data.net_stats, sizeof(struct net_stats));
+	// ///
 
 	/* system status */
 	const controller_status_t status = {
@@ -322,11 +278,7 @@ int rest_info(http_request_t *req,
 
 	data.uptime = k_uptime_get() / MSEC_PER_SEC;
 	data.timestamp = (uint32_t)ts.tv_sec;
-	data.interface.ethernet_mac = ethernet_mac_str;
-	data.interface.unicast = unicast_str;
-	data.interface.mcast = mcast_str;
-	data.interface.gateway = gateway_str;
-	data.interface.netmask = netmask_str;
+
 	data.status.has_ipv4_addr = status.has_ipv4_addr;
 	data.status.valid_system_time = status.valid_system_time;
 
@@ -340,6 +292,147 @@ int rest_info(http_request_t *req,
 
 	/* rencode response */
 	return rest_encode_response_json(resp, &data, info_descr, ARRAY_SIZE(info_descr));
+}
+
+struct json_net_interface_config
+{
+	char *ethernet_mac;
+	char *unicast;
+	char *mcast;
+	char *gateway;
+	char *netmask;
+};
+
+struct json_net_interface_config_storage
+{
+	char unicast_str[NET_IPV4_ADDR_LEN];
+	char mcast_str[NET_IPV4_ADDR_LEN];
+	char gateway_str[NET_IPV4_ADDR_LEN];
+	char netmask_str[NET_IPV4_ADDR_LEN];
+	char ethernet_mac_str[ETH_STR_LEN];
+};
+
+static const struct json_obj_descr json_net_interface_config_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_net_interface_config, ethernet_mac, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_net_interface_config, unicast, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_net_interface_config, mcast, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_net_interface_config, gateway, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_net_interface_config, netmask, JSON_TOK_STRING),
+};
+
+/* base on : net_if / struct net_if_ipv4 */
+struct json_net_interface
+{
+	struct net_stats net_stats;
+	struct json_net_interface_config config;
+	struct json_net_interface_config_storage config_storage;
+};
+
+static const struct json_obj_descr json_net_interface_descr[] = {
+	JSON_OBJ_DESCR_OBJECT(struct json_net_interface, config, json_net_interface_config_descr),
+	JSON_OBJ_DESCR_OBJECT(struct json_net_interface, net_stats, net_stats_descr),
+};
+
+struct json_info_interfaces
+{
+	struct json_net_interface interfaces[2u];
+	uint32_t if_count;
+};
+
+static const struct json_obj_descr json_info_interfaces_descr[] = {
+	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_info_interfaces, interfaces, 2u, if_count,
+				 json_net_interface_descr, ARRAY_SIZE(json_net_interface_descr)),
+};
+
+static void json_net_interface_info_fill(struct json_net_interface *ifdata, struct net_if *iface)
+{
+	ifdata->config.unicast = ifdata->config_storage.unicast_str;
+	ifdata->config.mcast = ifdata->config_storage.mcast_str;
+	ifdata->config.gateway = ifdata->config_storage.gateway_str;
+	ifdata->config.netmask = ifdata->config_storage.netmask_str;
+	ifdata->config.ethernet_mac = ifdata->config_storage.ethernet_mac_str;
+
+	struct net_if_config *const ifcfg = &iface->config;
+
+	net_addr_ntop(AF_INET,
+		      (const void *) &ifcfg->ip.ipv4->unicast[0].address.in_addr,
+		      ifdata->config.unicast,
+		      sizeof(ifdata->config_storage.unicast_str));
+	net_addr_ntop(AF_INET,
+		      (const void *) &ifcfg->ip.ipv4->mcast[0].address.in_addr,
+		      ifdata->config.mcast,
+		      sizeof(ifdata->config_storage.mcast_str));
+	net_addr_ntop(AF_INET,
+		      (const void *) &ifcfg->ip.ipv4->gw,
+		      ifdata->config.gateway,
+		      sizeof(ifdata->config_storage.gateway_str));
+	net_addr_ntop(AF_INET,
+		      (const void *) &ifcfg->ip.ipv4->netmask,
+		      ifdata->config.netmask,
+		      sizeof(ifdata->config_storage.netmask_str));
+
+	struct net_linkaddr *l2_addr = net_if_get_link_addr(iface);
+	if (l2_addr->type == NET_LINK_ETHERNET) {
+		sprintf(ifdata->config.ethernet_mac, "%02X:%02X:%02X:%02X:%02X:%02X",
+			l2_addr->addr[0], l2_addr->addr[1], l2_addr->addr[2],
+			l2_addr->addr[3], l2_addr->addr[4], l2_addr->addr[5]);
+	}
+
+	/* get network stats */
+	net_mgmt(NET_REQUEST_STATS_GET_ALL, iface,
+		 &ifdata->net_stats, sizeof(struct net_stats));
+}
+
+void rest_info_net_iface_cb(struct net_if *iface, void *user_data)
+{
+	struct json_info_interfaces *const data = user_data;
+
+	if (data->if_count < ARRAY_SIZE(data->interfaces)) {
+		json_net_interface_info_fill(&data->interfaces[data->if_count], iface);
+		data->if_count++;
+	}
+}
+
+int rest_interfaces_list(http_request_t *req,
+			 http_response_t *resp)
+{
+	struct json_info_interfaces data;
+
+	data.if_count = 0u;
+
+	net_if_foreach(rest_info_net_iface_cb, &data);
+
+	return rest_encode_response_json(resp, &data, 
+					 json_info_interfaces_descr, 
+					 ARRAY_SIZE(json_info_interfaces_descr));
+}
+
+int rest_interface(http_request_t *req,
+		   http_response_t *resp)
+{
+	int ret = 0;
+	uint32_t index = 0u;
+	route_arg_get(req, "idx", &index);
+	struct net_if *const iface = net_if_get_by_index(index);
+
+	if (iface != NULL) {
+		struct json_net_interface data;
+		json_net_interface_info_fill(&data, iface);
+
+		ret = rest_encode_response_json(resp, &data,
+						json_net_interface_descr,
+						ARRAY_SIZE(json_net_interface_descr));
+	} else {
+		http_response_set_status_code(resp, HTTP_STATUS_NOT_FOUND);
+	}
+
+	return ret;
+}
+
+int rest_interface_set(http_request_t *req,
+		       http_response_t *resp)
+{
+	return -ENOTSUP;
 }
 
 const struct json_obj_descr json_xiaomi_record_descr[] = {

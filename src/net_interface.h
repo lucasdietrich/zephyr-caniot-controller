@@ -7,6 +7,8 @@
 #ifndef _NET_INTERFACE_H_
 #define _NET_INTERFACE_H_
 
+#define ETH_STR_LEN sizeof("FF:FF:FF:FF:FF:FF")
+
 /**
  * @brief Initialize network management events (Ethernet, interface, DHCP)
  * 

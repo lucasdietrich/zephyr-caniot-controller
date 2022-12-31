@@ -36,6 +36,15 @@ int rest_index(http_request_t *req,
 int rest_info(http_request_t *req,
 	      http_response_t *resp);
 
+int rest_interface(http_request_t *req,
+		    http_response_t *resp);
+
+int rest_interfaces_list(http_request_t *req,
+			 http_response_t *resp);
+
+int rest_interface_set(http_request_t *req,
+			 http_response_t *resp);
+
 int rest_caniot_records(http_request_t *req,
 			http_response_t *resp);
 
