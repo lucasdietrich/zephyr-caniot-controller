@@ -141,7 +141,7 @@ if __name__ == "__main__":
             "boards/nucleo_f429zi.conf",
             "overlays/nucleo_f429zi_spi_disk.conf",
             "overlays/nucleo_f429zi_mcuboot.conf",
-            "overlays/nucleo_f429zi_logging_fs.conf",
+            "overlays/nucleo_f429zi_usb_net.conf"
         ],
         "mps2_an385": [
             prj,
