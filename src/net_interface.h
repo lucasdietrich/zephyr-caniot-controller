@@ -7,6 +7,8 @@
 #ifndef _NET_INTERFACE_H_
 #define _NET_INTERFACE_H_
 
+#include <zephyr/net/net_if.h>
+
 #define ETH_STR_LEN sizeof("FF:FF:FF:FF:FF:FF")
 
 /**
@@ -16,7 +18,12 @@
  */
 void net_interface_init(void);
 
-/* TODO add function to get the ethernet interface directly without using net_if_get_default() */
-
+/**
+ * @brief Get interface status
+ * 
+ * @param iface 
+ * @return const char* "up" if interface is up, "down" otherwise
+ */
+const char *net_interface_status_get(struct net_if *iface);
 
 #endif

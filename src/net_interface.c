@@ -348,3 +348,12 @@ static const char *net_mgmt_event_to_str(uint32_t mgmt_event)
 		return "<unknown net event>";
 	}
 }
+
+const char *net_interface_status_get(struct net_if *iface)
+{
+	if (net_if_flag_is_set(iface, NET_IF_UP)) {
+		return "up";
+	} else {
+		return "down";
+	}
+}

@@ -323,12 +323,14 @@ static const struct json_obj_descr json_net_interface_config_descr[] = {
 /* base on : net_if / struct net_if_ipv4 */
 struct json_net_interface
 {
+	const char *status;
 	struct net_stats net_stats;
 	struct json_net_interface_config config;
 	struct json_net_interface_config_storage config_storage;
 };
 
 static const struct json_obj_descr json_net_interface_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct json_net_interface, status, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_OBJECT(struct json_net_interface, config, json_net_interface_config_descr),
 	JSON_OBJ_DESCR_OBJECT(struct json_net_interface, net_stats, net_stats_descr),
 };
@@ -346,6 +348,8 @@ static const struct json_obj_descr json_info_interfaces_descr[] = {
 
 static void json_net_interface_info_fill(struct json_net_interface *ifdata, struct net_if *iface)
 {
+	ifdata->status = net_interface_status_get(iface);
+
 	ifdata->config.unicast = ifdata->config_storage.unicast_str;
 	ifdata->config.mcast = ifdata->config_storage.mcast_str;
 	ifdata->config.gateway = ifdata->config_storage.gateway_str;
@@ -402,18 +406,17 @@ int rest_interfaces_list(http_request_t *req,
 
 	net_if_foreach(rest_info_net_iface_cb, &data);
 
-	return rest_encode_response_json(resp, &data, 
-					 json_info_interfaces_descr, 
-					 ARRAY_SIZE(json_info_interfaces_descr));
+	return rest_encode_response_json_array(resp, &data,
+					       json_info_interfaces_descr);
 }
 
 int rest_interface(http_request_t *req,
 		   http_response_t *resp)
 {
 	int ret = 0;
-	uint32_t index = 0u;
-	route_arg_get(req, "idx", &index);
-	struct net_if *const iface = net_if_get_by_index(index);
+	uint32_t iface_number = 0u;
+	route_arg_get(req, "idx", &iface_number);
+	struct net_if *const iface = net_if_get_by_index(iface_number + 1u);
 
 	if (iface != NULL) {
 		struct json_net_interface data;
