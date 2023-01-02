@@ -35,8 +35,14 @@ const char *cred_id_to_str(cred_id_t id)
 		return "HTTPS Server Private Key";
 	case CRED_HTTPS_SERVER_CERTIFICATE:
 		return "HTTPS Server Certificate";
+	case CRED_HTTPS_SERVER_PRIVATE_KEY_DER:
+		return "HTTPS Server Private Key DER";
+	case CRED_HTTPS_SERVER_CERTIFICATE_DER:
+		return "HTTPS Server Certificate DER";
 	case CRED_HTTPS_SERVER_CLIENT_CA:
 		return "HTTPS Server Client CA";
+	case CRED_HTTPS_SERVER_CLIENT_CA_DER:
+		return "HTTPS Server Client CA DER";
 	case CRED_AWS_PRIVATE_KEY:
 		return "AWS Private Key";
 	case CRED_AWS_CERTIFICATE:

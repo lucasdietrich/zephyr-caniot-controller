@@ -68,25 +68,25 @@ static flash_cred_status_t check_cred(struct flash_cred_buf *p, bool assume_chec
 		return FLASH_CRED_NULL;
 	}
 
-	if (p->ctrl.descr == BLANK) {
+	if (p->header.descr == BLANK) {
 		return FLASH_CRED_UNALLOCATED;
 	}
 
-	if (p->ctrl.size == 0) {
+	if (p->header.size == 0) {
 		return FLASH_CRED_SIZE_BLANK;
 	}
 
-	if (p->ctrl.size > FLASH_CRED_MAX_SIZE) {
+	if (p->header.size > FLASH_CRED_MAX_SIZE) {
 		return FLASH_CRED_SIZE_INVALID;
 	}
 
-	if (p->ctrl.revoked != BLANK) {
+	if (p->header.revoked != BLANK) {
 		return FLASH_CRED_REVOKED;
 	}
 
 	if (!assume_checksum) {
-		uint32_t crc_calc = crc32_ieee((uint8_t *)p->data, p->ctrl.size);
-		if (crc_calc != p->ctrl.crc32) {
+		uint32_t crc_calc = crc32_ieee((uint8_t *)p->data, p->header.size);
+		if (crc_calc != p->header.crc32) {
 			return FLASH_CRED_CRC_MISMATCH;
 		}
 	}
@@ -161,8 +161,8 @@ bool cred_find_cb(struct flash_cred_buf *fc,
 
 	const cred_id_t search_for_id = c->len;
 
-	if ((status == FLASH_CRED_VALID) && (search_for_id == fc->ctrl.id)) {
-		c->len = fc->ctrl.size;
+	if ((status == FLASH_CRED_VALID) && (search_for_id == fc->header.id)) {
+		c->len = fc->header.size;
 		c->data = fc->data;
 		return false;
 	}

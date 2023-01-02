@@ -1723,11 +1723,11 @@ static bool flash_creds_list_cb(struct flash_cred_buf *cred,
 		struct json_flash_cred_entry *entry = &arr->creds[arr->nb_entries++];
 
 		entry->slot = flash_cred_get_slot_from_addr(cred);
-		entry->id = cred_id_to_str(cred->ctrl.id);
-		entry->format = cred_format_to_str(cred->ctrl.format);
-		entry->strength = cred->ctrl.strength;
-		entry->version = cred->ctrl.version;
-		entry->size = cred->ctrl.size;
+		entry->id = cred_id_to_str(cred->header.id);
+		entry->format = cred_format_to_str(cred->header.format);
+		entry->strength = cred->header.strength;
+		entry->version = cred->header.version;
+		entry->size = cred->header.size;
 	}
 
 	return true;

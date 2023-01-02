@@ -17,7 +17,7 @@
 
 #define FLASH_CREDS_SLOTS_MAX_COUNT 32u
 
-struct flash_cred_ctrl
+struct flash_cred_header
 {
 	union {
 		struct
@@ -35,7 +35,7 @@ struct flash_cred_ctrl
 };
 
 struct flash_cred_buf {
-	struct flash_cred_ctrl ctrl;
+	struct flash_cred_header header;
 	char data[];
 };
 
@@ -70,6 +70,6 @@ int flash_cred_copy_to(cred_id_t id, char *buf, size_t *size);
 
 int flash_cred_write(cred_id_t id, const struct cred *c);
 
-int flash_cred_ctrl_read(uint16_t slot, struct flash_cred_ctrl *ctrl);
+int flash_cred_header_read(uint16_t slot, struct flash_cred_header *header);
 
 #endif /* _CREDS_FLASH_CREDS_H_ */

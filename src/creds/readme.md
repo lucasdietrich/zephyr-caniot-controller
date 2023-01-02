@@ -32,7 +32,7 @@ A block is considered empty if `descr` is 0xFFFFFFFF.
 C representation of a credential block in the flash :
 
 ```c
-struct flash_cred_ctrl
+struct flash_cred_header
 {
 	union {
 		struct
