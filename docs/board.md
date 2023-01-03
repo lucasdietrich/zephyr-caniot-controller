@@ -14,12 +14,14 @@ Architecture, interfaces, chips, wiring, etc.
 
 ### Pin configuration
 
-| Label           | stm32f429bit6    | Note                |
-| --------------- | ---------------- | ------------------- |
-| STM_RCC_OSC_IN  | PH0-OSC_IN (32)  | HSE Clock           |
-| STM_RCC_OSC_OUT | PH1-OSC_OUT (33) | HSE Clock           |
-| MCO1            | PA8 (142)        |                     |
-| MCO2            | PC9 (141)        | Shared with SDIO_D1 |
+| Label             | stm32f429bit6           | Note                  |
+| ----------------- | ----------------------- | --------------------- |
+| STM_RCC_OSC_IN    | PH0-OSC_IN (32)         | HSE Clock             |
+| STM_RCC_OSC_OUT   | PH1-OSC_OUT (33)        | HSE Clock             |
+| STM_RCC_OSC32_IN  | PC14-RCC_OSC32_IN (9)   | RCC Clock (optionnal) |
+| STM_RCC_OSC32_OUT | PC15-RCC_OSC32_OUT (10) | RCC Clock (optionnal) |
+| MCO1              | PA8 (142)               |                       |
+| MCO2              | PC9 (141)               | Shared with SDIO_D1   |
 
 ## Power supply
 
@@ -58,15 +60,49 @@ Note DocID024030 Rev 10 page 97/239 :
 
 - Set to VDD
 
+## LEDs
+
+| Label      | stm32f429bit6      | Note         |
+| ---------- | ------------------ | ------------ |
+| STM32_LED1 | PI5 TIM8_CH1 (156) | PWM required |
+| STM32_LED2 | PI6 TIM8_CH2 (206) | PWM required |
+| STM32_LED3 | PI7 TIM8_CH3 (207) | PWM required |
+| STM32_LED4 | PI2 TIM8_CH4 (208) | PWM required |
+
+## Buttons
+
+| Label      | stm32f429bit6 | Note |
+| ---------- | ------------- | ---- |
+| STM32_BTN1 | PI8 (7)       |      |
+| STM32_BTN2 | PI10 (12)     |      |
+
+## I2C Bus
+
+| Label    | stm32f429bit6 | Note |
+| -------- | ------------- | ---- |
+| I2C3_SCL | PH7 (97)      |      |
+| I2C3_SDA | PH8 (98)      |      |
+
+
+### I2C Temperature sensor
+
+- Chip: MCP9804-E/MS
+
+| Label     | I2C Bus | stm32f429bit6 | MCP9804-E/MS | Note |
+| --------- | ------- | ------------- | ------------ | ---- |
+| MCP_SDA   | SDA     | -             | SDA          |      |
+| MCP_SCL   | SCL     | -             | SCL          |      |
+| MCP_ALERT | -       | PI12 (19)     | ALERT        | irq  |
+
 ## USB
 
-| Label             | stm32f429bit6  | Note             |
-| ----------------- | -------------- | ---------------- |
-| ~~USB_SOF~~       | ~~PA8 (142)~~  | not used         |
-| ~~USB_VBUS~~      | ~~PA9 (143)~~  | routed elsewhere |
-| ~~USB_OTG_FS_ID~~ | ~~PA10 (144)~~ | no OTG           |
-| USB_D-            | PA11 (145)     | -                |
-| USB_D+            | PA12 (146)     | -                |
+| Label                        | stm32f429bit6  | Note                                                     |
+| ---------------------------- | -------------- | -------------------------------------------------------- |
+| ~~USB_SOF~~                  | ~~PA8 (142)~~  | not used                                                 |
+| USB_VBUS (~~USB_OTG_HS_ID~~) | PA9 (143)      | If USB device is self-powered, VBUS sensing is mandatory |
+| ~~USB_OTG_FS_ID~~            | ~~PA10 (144)~~ | no OTG                                                   |
+| USB_D-                       | PA11 (145)     | -                                                        |
+| USB_D+                       | PA12 (146)     | -                                                        |
 
 ## SD Card
 
@@ -76,13 +112,13 @@ Note DocID024030 Rev 10 page 97/239 :
 
 | Label     | stm32f429bit6 | sdcard SPI | Note |
 | --------- | ------------- | ---------- | ---- |
-| SPI3_CS   | PC13          | 1 CS       |      |
-| SPI3_MOSI | PC12          | 2 DI       |      |
+| SPI3_CS   | PC13 (8)      | 1 CS       |      |
+| SPI3_MOSI | PC12 (163)    | 2 DI       |      |
 | -         | -             | 3 VSS1     |      |
 | -         | -             | 4 VDD      |      |
 | SPI3_SCK  | PC10 (161)    | 5 SCLK     |      |
 | -         | -             | 6 VSS2     |      |
-| SPI3_MISO | PC11          | 7 D0       |      |
+| SPI3_MISO | PC11 (162)    | 7 D0       |      |
 | -         | -             | 8 -        |      |
 | -         | -             | 9 -        |      |
 
@@ -90,15 +126,15 @@ Note DocID024030 Rev 10 page 97/239 :
 
 | Label MMC | stm32f429bit6 | sdcard MMC | Note             |
 | --------- | ------------- | ---------- | ---------------- |
-| SDIO_D3   | PC11          | 1 CD/DAT3  |                  |
-| SDIO_CMD  | PD2           | 2 CMD      |                  |
+| SDIO_D3   | PC11 (162)    | 1 CD/DAT3  |                  |
+| SDIO_CMD  | PD2 (166)     | 2 CMD      |                  |
 | -         | -             | 3 VSS1     |                  |
 | -         | -             | 4 VDD      |                  |
-| SDIO_CK   | PC12          | 5 SCLK     |                  |
+| SDIO_CK   | PC12 (163)    | 5 SCLK     |                  |
 | -         | -             | 6 VSS2     |                  |
-| SDIO_D0   | PC8           | 7 DAT1     |                  |
-| SDIO_D1   | PC9           | 8 DAT2     | Shared with MC02 |
-| SDIO_D2   | PC10          | 9 DAT3     |                  |
+| SDIO_D0   | PC8 (140)     | 7 DAT1     |                  |
+| SDIO_D1   | PC9 (141)     | 8 DAT2     | Shared with MC02 |
+| SDIO_D2   | PC10 (161)    | 9 DAT3     |                  |
 
 ## Ethernet
 
@@ -169,17 +205,20 @@ Note DocID024030 Rev 10 page 97/239 :
 
 ## CAN
 
-- 3v3 CAN transceiver: TCAN337DCNT
-- (MCP2551 not recommanded for new designs, prefer MCP2561) -> 5v only
+- 3v3 CAN transceiver: TCAN337DCNR
 
-| Label   | stm32f429bit6  | TCAN337DCNT | Note                  |
-| ------- | -------------- | ----------- | --------------------- |
-| CAN1_RX | ~~PA11 (145)~~ | RXD         | Used by USB_OTG_FS_DM |
-| CAN1_TX | ~~PA12 (156)~~ | TXD         | User by USB_OTG_FS_DP |
-| CAN1_RX | PB8 (198)      | RXD         |                       |
-| CAN1_TX | PB9 (199)      | TXD         |                       |
-| CAN2_RX | PB5 (194)      | RXD         |                       |
-| CAN2_TX | PB6 (195)      | TXD         |                       |
+| Label   | stm32f429bit6  | TCAN337DCNR | Note                                                    |
+| ------- | -------------- | ----------- | ------------------------------------------------------- |
+| CAN1_RX | ~~PA11 (145)~~ | RXD_1       | Used by USB_OTG_FS_DM                                   |
+| CAN1_TX | ~~PA12 (156)~~ | TXD_1       | User by USB_OTG_FS_DP                                   |
+| CAN1_RX | PB8 (198)      | RXD_1       |                                                         |
+| CAN1_TX | PB9 (199)      | TXD_1       |                                                         |
+| -       | -              | S_1 (8)     | Input: Drive high for silent mode, integrated pull down |
+| -       | -              | Fault_1 (5) | Output: Open drain fault output pin.                    |
+| CAN2_RX | PB5 (194)      | RXD_2       |                                                         |
+| CAN2_TX | PB6 (195)      | TXD_2       |                                                         |
+| -       | -              | S_2 (8)     | Input: Drive high for silent mode, integrated pull down |
+| -       | -              | Fault_2 (5) | Output: Open drain fault output pin.                    |
 
 ## BLE - HCI interface (with ACN52840)
 
