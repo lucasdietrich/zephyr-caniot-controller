@@ -25,6 +25,8 @@
 #include <zephyr/net/net_if.h>
 
 #include <mbedtls/memory_buffer_alloc.h>
+#include <mbedtls/x509.h>
+#include <mbedtls/x509_crt.h>
 
 #include <zephyr/bluetooth/addr.h>
 #include "ha/core/ha.h"
@@ -1691,6 +1693,7 @@ struct json_flash_cred_entry {
 	uint32_t strength;
 	uint32_t version;
 	uint32_t size;
+	const char *infostr;
 };
 
 static const struct json_obj_descr json_flash_cred_entry_descr[] = {
@@ -1728,6 +1731,34 @@ static bool flash_creds_list_cb(struct flash_cred_buf *cred,
 		entry->strength = cred->header.strength;
 		entry->version = cred->header.version;
 		entry->size = cred->header.size;
+
+		if (cred->header.format == CRED_FORMAT_DER) {
+			mbedtls_x509_crt crt;
+			mbedtls_x509_crt_init(&crt);
+			int ret = mbedtls_x509_crt_parse_der_nocopy(&crt, cred->data,
+								    cred->header.size);
+			if (ret < 0) {
+				LOG_ERR("mbedtls_x509_crt_parse_der_nocopy() failed: %04x",
+					(uint32_t)-ret);
+			}
+			mbedtls_x509_crt_free(&crt);
+
+			char info_str[512u];
+			ret = mbedtls_x509_crt_info(info_str, sizeof(info_str), "  ", &crt);
+			if (ret < 0) {
+				LOG_ERR("mbedtls_x509_crt_info() failed: %04x",
+					(uint32_t)-ret);
+			}
+
+			LOG_INF("%s", info_str);
+
+			entry->infostr = "";
+		} else {
+			/* TODO implement this for PEM certificate:
+			 *  allocate buffers in external SDRAM
+			 */
+			entry->infostr = "N/A";
+		}
 	}
 
 	return true;
