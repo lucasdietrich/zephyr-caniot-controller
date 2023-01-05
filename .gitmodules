@@ -9,9 +9,9 @@
 	path = scripts/caniot-sdk
 	url = https://github.com/lucasdietrich/canot-sdk.git
 	branch = main
-[submodule "modules/embedc-utils"]
-	path = modules/embedc-utils
-	url = git@github.com:lucasdietrich/embedc-utils.git
 [submodule "fs/web"]
 	path = fs/web
 	url = git@github.com:lucasdietrich/caniot-controller-webapp.git
+[submodule "modules/embedc-url"]
+	path = modules/embedc-url
+	url = https://github.com/lucasdietrich/embedc-url

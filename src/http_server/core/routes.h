@@ -10,7 +10,7 @@
 #include <stddef.h>
 #include <zephyr/net/http_parser.h>
 
-#include <embedc/parser.h>
+#include <embedc-url/parser.h>
 
 #include "http_utils.h"
 

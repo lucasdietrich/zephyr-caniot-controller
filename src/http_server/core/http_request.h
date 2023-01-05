@@ -16,7 +16,7 @@
 #include "http_utils.h"
 #include "routes.h"
 
-#include <embedc/parser.h>
+#include <embedc-url/parser.h>
 
 struct http_session;
 typedef struct http_session http_session_t;

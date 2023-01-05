@@ -127,7 +127,7 @@ dis:
 	./scripts/dis.sh
 
 http_routes_generate:
-	python3 ./modules/embedc-utils/scripts/genroutes.py \
+	python3 ./modules/embedc-url/scripts/genroutes.py \
 		src/http_server/routes.txt \
 		--output=src/http_server/routes_g.c \
 		--descr-whole \

@@ -51,7 +51,7 @@
 #include <caniot/classes/class0.h>
 #include <caniot/classes/class1.h>
 
-#include <embedc/parser.h>
+#include <embedc-url/parser.h>
 
 #include "system.h"
 #include "config.h"

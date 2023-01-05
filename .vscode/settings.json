@@ -217,7 +217,9 @@
                 "chrono": "c",
                 "ha_spe.h": "c",
                 "subs_extended.h": "c",
-                "net_context.h": "c"
+                "net_context.h": "c",
+                "x509.h": "c",
+                "x509_crt.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

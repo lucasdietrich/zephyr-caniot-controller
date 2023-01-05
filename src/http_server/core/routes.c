@@ -12,7 +12,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <embedc/parser_internal.h>
+#include <embedc-url/parser_internal.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);

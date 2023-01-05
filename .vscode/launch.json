@@ -163,10 +163,10 @@
 			"runToEntryPoint": "main",
 		},
 		{
-			"name": "Python: modules/embedc-utils/scripts/genroutes.py",
+			"name": "Python: modules/embedc-url/scripts/genroutes.py",
 			"type": "python",
 			"request": "launch",
-			"program": "modules/embedc-utils/scripts/genroutes.py",
+			"program": "modules/embedc-url/scripts/genroutes.py",
 			"args": [
 				"src/http_server/routes.txt",
 				"--output=src/http_server/routes_g.c",
