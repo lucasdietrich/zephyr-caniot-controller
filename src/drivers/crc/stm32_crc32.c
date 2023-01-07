@@ -6,22 +6,18 @@
 
 #include "stm32_crc32.h"
 
-#include <zephyr/kernel.h>
 #include <zephyr/device.h>
+#include <zephyr/kernel.h>
 
 #include <stm32f429xx.h>
 #include <stm32f4xx_ll_crc.h>
 
-#include "stm32_crc32.h"
-
 #if DT_NODE_HAS_COMPAT_STATUS(DT_NODELABEL(crc1), st_stm32_crc, okay)
 
-BUILD_ASSERT(DT_REG_ADDR(DT_NODELABEL(crc1)) == CRC_BASE,
-	     "CRC base address mismatch");
-	     
+BUILD_ASSERT(DT_REG_ADDR(DT_NODELABEL(crc1)) == CRC_BASE, "CRC base address mismatch");
+
 #define DEV_DATA(dev) ((struct crc_stm32_data *const)(dev)->data)
-#define DEV_CFG(dev) \
-	((const struct crc_stm32_config *const)(dev)->config)
+#define DEV_CFG(dev)  ((const struct crc_stm32_config *const)(dev)->config)
 
 static int crc_stm32_init(const struct device *dev)
 {
@@ -31,13 +27,12 @@ static int crc_stm32_init(const struct device *dev)
 	return 0;
 }
 
-static uint32_t crc_stm32_calculate(const struct device *dev,
-				    const uint32_t *buf,
-				    size_t len)
+static uint32_t
+crc_stm32_calculate(const struct device *dev, const uint32_t *buf, size_t len)
 {
 	const struct crc_stm32_config *cfg = DEV_CFG(dev);
-	struct crc_stm32_data *data = DEV_DATA(dev);
-	CRC_TypeDef *crc = cfg->crc;
+	struct crc_stm32_data *data	   = DEV_DATA(dev);
+	CRC_TypeDef *crc		   = cfg->crc;
 
 	k_mutex_lock(&data->lock, K_FOREVER);
 
@@ -66,8 +61,13 @@ static struct crc_stm32_data crc1_stm32_data = {
 	.lock = Z_MUTEX_INITIALIZER(crc1_stm32_data.lock),
 };
 
-DEVICE_DT_DEFINE(DT_NODELABEL(crc1), &crc_stm32_init,
-		 NULL, &crc1_stm32_data, &crc1_stm32_cfg, POST_KERNEL,
-		 CONFIG_KERNEL_INIT_PRIORITY_DEFAULT, &api);
+DEVICE_DT_DEFINE(DT_NODELABEL(crc1),
+		 &crc_stm32_init,
+		 NULL,
+		 &crc1_stm32_data,
+		 &crc1_stm32_cfg,
+		 POST_KERNEL,
+		 CONFIG_KERNEL_INIT_PRIORITY_DEFAULT,
+		 &api);
 
-#endif 
+#endif

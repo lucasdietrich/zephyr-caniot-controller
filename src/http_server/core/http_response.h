@@ -7,16 +7,15 @@
 #ifndef _HTTP_RESPONSE_H_
 #define _HTTP_RESPONSE_H_
 
-#include <stdio.h>
-#include <stdint.h>
-
-#include "utils/buffers.h"
 #include "http_utils.h"
+#include "utils/buffers.h"
+
+#include <stdint.h>
+#include <stdio.h>
 
 #define HTTP_DEFAULT_RESP_STATUS_CODE HTTP_STATUS_OK
 
-typedef struct http_response
-{
+typedef struct http_response {
 	/**
 	 * @brief Content-type to be encoded in the header
 	 */
@@ -43,16 +42,16 @@ typedef struct http_response
 	 * Note: Set this flag to false to indicate there are more
 	 *  data to be sent.
 	 */
-	uint8_t complete: 1u;
+	uint8_t complete : 1u;
 
 	/**
 	 * @brief Flag to indicate whether the response should be sent as chunks
-	 * 
+	 *
 	 * Note: In this case the content_length field is ignored.
 	 * Note: This flag must be set before the the first part of the payload
 	 *   is	sent.
 	 */
-	uint8_t stream: 1u;
+	uint8_t stream : 1u;
 
 	/* Number of times the response handler has been called */
 	uint32_t calls_count;
@@ -61,7 +60,7 @@ typedef struct http_response
 
 	/**
 	 * Total number of bytes sent in headers
-	 * 
+	 *
 	 * Note: Indicate whether the headers have been already sent or not
 	 */
 	size_t headers_sent;
@@ -82,11 +81,9 @@ static inline bool http_response_is_first_call(http_response_t *resp)
 void http_response_set_content_type(http_response_t *resp,
 				    http_content_type_t content_type);
 
-void http_response_set_status_code(http_response_t *resp,
-				   uint16_t status_code);
+void http_response_set_status_code(http_response_t *resp, uint16_t status_code);
 
-void http_response_set_content_length(http_response_t *resp,
-				      ssize_t content_length);
+void http_response_set_content_length(http_response_t *resp, ssize_t content_length);
 
 static inline void http_response_mark_not_complete(http_response_t *resp)
 {

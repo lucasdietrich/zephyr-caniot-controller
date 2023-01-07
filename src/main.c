@@ -4,33 +4,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr/kernel.h>
+#include "crypto.h"
+#include "lua/orchestrator.h"
+#include "lua/utils.h"
+#include "net_interface.h"
+#include "net_time.h"
+#include "usb/usb.h"
+#include "utils/freelist.h"
 
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
-
-#include "net_interface.h"
-#include "net_time.h"
-#include "crypto.h"
-#include "lua/utils.h"
-#include "lua/orchestrator.h"
-#include "utils/freelist.h"
-#include "usb/usb.h"
-
+#include <zephyr/kernel.h>
 #include <zephyr/sys/sys_heap.h>
 
 #if defined(CONFIG_APP_DFU)
 #include "dfu/dfu.h"
 #endif
 
-#include "ha/devices/f429zi.h"
-
-#include "userio/leds.h"
-#include "userio/button.h"
-
-#include "creds/manager.h"
-
 #include "appfs.h"
+#include "creds/manager.h"
+#include "ha/devices/f429zi.h"
+#include "userio/button.h"
+#include "userio/leds.h"
 
 #if defined(CONFIG_APP_CAN_INTERFACE)
 #include "can/can_interface.h"
@@ -48,11 +43,11 @@
 #include "lua/utils.h"
 #endif
 
-#include <mbedtls/memory_buffer_alloc.h>
-
 #include <stdio.h>
 
 #include <zephyr/logging/log.h>
+
+#include <mbedtls/memory_buffer_alloc.h>
 LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
 #if DT_HAS_COMPAT_STATUS_OKAY(st_stm32_temp)
@@ -108,12 +103,11 @@ exit:
 
 static void debug_mbedtls_memory(void)
 {
-        size_t cur_used, cur_blocks, max_used, max_blocks;
-        mbedtls_memory_buffer_alloc_cur_get(&cur_used, &cur_blocks);
-        mbedtls_memory_buffer_alloc_max_get(&max_used, &max_blocks);
+	size_t cur_used, cur_blocks, max_used, max_blocks;
+	mbedtls_memory_buffer_alloc_cur_get(&cur_used, &cur_blocks);
+	mbedtls_memory_buffer_alloc_max_get(&max_used, &max_blocks);
 
-        LOG_DBG("MAX %u (%u) CUR %u (%u)", max_used,
-                max_blocks, cur_used, cur_blocks);
+	LOG_DBG("MAX %u (%u) CUR %u (%u)", max_used, max_blocks, cur_used, cur_blocks);
 }
 
 extern int lua_fs_populate(void);
@@ -133,7 +127,7 @@ void main(void)
 	app_fs_init();
 
 	creds_manager_init();
-	
+
 	crypto_mbedtls_heap_init();
 	net_interface_init();
 
@@ -178,7 +172,6 @@ void main(void)
 		printf("Counter: %u\n", counter);
 #endif /* CONFIG_APP_PRINTF_1SEC_COUNTER */
 
-
 		/* 10 second tasks */
 		if (counter % 10 == 0) {
 #ifdef TEMP_NODE
@@ -188,7 +181,6 @@ void main(void)
 
 		/* 1min tasks */
 		if (counter % 60 == 0) {
-
 		}
 
 		/* 10min tasks but 5 seconds after startup*/
@@ -201,7 +193,8 @@ void main(void)
 			struct sys_memory_stats stats;
 			sys_heap_runtime_stats_get(&_system_heap.heap, &stats);
 			LOG_DBG("sys heap stats: alloc=%u free=%u max=%u",
-				stats.allocated_bytes, stats.free_bytes,
+				stats.allocated_bytes,
+				stats.free_bytes,
 				stats.max_allocated_bytes);
 #endif
 		}

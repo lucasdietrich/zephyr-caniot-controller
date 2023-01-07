@@ -4,13 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "hardcoded_creds.h"
 #include "manager.h"
 
 #include <zephyr/kernel.h>
 
 #include <memory.h>
-
-#include "hardcoded_creds.h"
 
 int harcoded_creds_init(void)
 {
@@ -26,10 +25,11 @@ int harcoded_cred_get(cred_id_t id, struct cred *c)
 	const struct hardcoded_cred *hc;
 
 	for (hc = creds_harcoded_array;
-	     hc < creds_harcoded_array + CREDS_HARDCODED_MAX_COUNT; hc++) {
+	     hc < creds_harcoded_array + CREDS_HARDCODED_MAX_COUNT;
+	     hc++) {
 		if ((hc->id == id) && hc->len && hc->data) {
 			c->data = hc->data;
-			c->len = hc->len;
+			c->len	= hc->len;
 			return 0;
 		}
 	}
@@ -50,10 +50,10 @@ int harcoded_cred_copy_to(cred_id_t id, char *buf, size_t *size)
 		if (*size >= c.len) {
 			memcpy(buf, c.data, c.len);
 			*size = c.len;
-			ret = c.len;
+			ret   = c.len;
 		} else {
 			*size = 0;
-			ret = -ENOMEM;
+			ret   = -ENOMEM;
 		}
 	}
 	return ret;

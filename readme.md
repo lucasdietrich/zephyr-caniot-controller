@@ -401,6 +401,13 @@ somecalc1.lua
 [00:01:32.598,000] <inf> http_server: (7) Closing sock conn 0x20003e98
 ```
 
+## clang-format
+
+- Install clang-format, and run `make format` to format all files
+- Or install `xaver.clang-format` extension for VS Code, and format on save or
+format using `Ctrl + K, Ctrl + F`
+
+
 ## Known issues
 
 - MAJOR: SD FAT FS internal state gets corrupted when doing many requests in a short time.

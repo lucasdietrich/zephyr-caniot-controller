@@ -4,20 +4,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <errno.h>
-#include <zephyr/kernel.h>
-
 #include "contig_alloc.h"
+
+#include <errno.h>
+
+#include <zephyr/kernel.h>
 
 int contig_block_init(struct contig *g, uint8_t *buffer, size_t size)
 {
 	if (!g || !buffer || !size) {
 		return -EINVAL;
 	}
-	
+
 	g->allocated = 0;
-	g->size = size;
-	g->buf = buffer;
+	g->size	     = size;
+	g->buf	     = buffer;
 	return 0;
 }
 
@@ -58,8 +59,8 @@ int kcontig_init(struct kcontig *g, uint8_t *buffer, size_t size)
 		return -EINVAL;
 	}
 	g->allocated = 0;
-	g->size = size;
-	g->buf = buffer;
+	g->size	     = size;
+	g->buf	     = buffer;
 	sys_dlist_init(&g->dlist);
 	return 0;
 }
@@ -94,7 +95,7 @@ void *kcontig_alloc(struct kcontig *g, size_t size)
 	if (g->allocated + size > g->size) {
 		return NULL;
 	}
-	struct kcontig_block *block = (struct kcontig_block *) g->buf + g->allocated;
+	struct kcontig_block *block = (struct kcontig_block *)g->buf + g->allocated;
 	sys_dlist_append(&g->dlist, &block->handle);
 	g->allocated += size;
 	return block;
@@ -119,8 +120,7 @@ int kcontig_iterate(struct kcontig *g,
 	int ret = 0;
 	struct kcontig_block *_dnode, *block;
 
-	SYS_DLIST_FOR_EACH_CONTAINER_SAFE(&g->dlist, block, _dnode, handle)
-	{
+	SYS_DLIST_FOR_EACH_CONTAINER_SAFE (&g->dlist, block, _dnode, handle) {
 		if (!cb(block, user_data)) {
 			break;
 		}

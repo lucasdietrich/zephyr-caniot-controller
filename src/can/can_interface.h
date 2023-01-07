@@ -7,12 +7,10 @@
 #ifndef _CAN_INTERFACE_H
 #define _CAN_INTERFACE_H
 
+#include <zephyr/drivers/can.h>
 #include <zephyr/kernel.h>
 
-#include <zephyr/drivers/can.h>
-
-typedef enum
-{
+typedef enum {
 	CAN_BUS_1,
 	CAN_BUS_2,
 } can_bus_id_t;
@@ -21,11 +19,10 @@ typedef enum
 
 int if_can_init(void);
 
-int if_can_attach_rx_msgq(can_bus_id_t canbus, 
+int if_can_attach_rx_msgq(can_bus_id_t canbus,
 			  struct k_msgq *rx_msgq,
 			  struct can_filter *filter);
 
-int if_can_send(can_bus_id_t canbus, 
-		struct can_frame *frame);
+int if_can_send(can_bus_id_t canbus, struct can_frame *frame);
 
 #endif /* _CAN_INTERFACE_H */

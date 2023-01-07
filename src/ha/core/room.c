@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr/kernel.h>
-
+#include "config.h"
 #include "room.h"
 
-#include "config.h"
+#include <zephyr/kernel.h>

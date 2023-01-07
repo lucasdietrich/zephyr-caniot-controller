@@ -56,11 +56,9 @@ static ha_subs_ext_lte_t *lt_find(ha_subs_ext_lt_t *lt, ha_ev_t *event)
 
 	if (cmp_func != NULL) {
 		ha_subs_ext_lte_t *lte;
-		SYS_SLIST_FOR_EACH_CONTAINER(&lt->_list, lte, _node)
-		{
+		SYS_SLIST_FOR_EACH_CONTAINER (&lt->_list, lte, _node) {
 			if (cmp_func(lte, event) == true) {
-				LOG_DBG("Event %p found in LT %p -> %p", 
-					event, lt, lte);
+				LOG_DBG("Event %p found in LT %p -> %p", event, lt, lte);
 				return lte;
 			}
 		}
@@ -71,11 +69,10 @@ static ha_subs_ext_lte_t *lt_find(ha_subs_ext_lt_t *lt, ha_ev_t *event)
 	return NULL;
 }
 
-static ha_subs_ext_lte_t *lt_find_otherwise_allocate(ha_subs_ext_lt_t *lt,
-						     ha_ev_t *event,
-						     bool *created)
+static ha_subs_ext_lte_t *
+lt_find_otherwise_allocate(ha_subs_ext_lt_t *lt, ha_ev_t *event, bool *created)
 {
-	bool zcreated = false;
+	bool zcreated	       = false;
 	ha_subs_ext_lte_t *lte = lt_find(lt, event);
 
 	if (lte == NULL) {
@@ -96,8 +93,7 @@ static ha_subs_ext_lte_t *lt_find_otherwise_allocate(ha_subs_ext_lt_t *lt,
 	return lte;
 }
 
-static bool lt_update_cb(struct ha_ev_subs *sub,
-				      ha_ev_t *event)
+static bool lt_update_cb(struct ha_ev_subs *sub, ha_ev_t *event)
 {
 	ha_subs_ext_lt_t *const lt = (ha_subs_ext_lt_t *)sub->conf->user_data;
 	lt_find_otherwise_allocate(lt, event, NULL);
@@ -105,8 +101,7 @@ static bool lt_update_cb(struct ha_ev_subs *sub,
 	return true;
 }
 
-static bool lt_filter_duplicate_cb(struct ha_ev_subs *sub,
-				      ha_ev_t *event)
+static bool lt_filter_duplicate_cb(struct ha_ev_subs *sub, ha_ev_t *event)
 {
 	bool created;
 	ha_subs_ext_lt_t *const lt = (ha_subs_ext_lt_t *)sub->conf->user_data;
@@ -115,12 +110,11 @@ static bool lt_filter_duplicate_cb(struct ha_ev_subs *sub,
 	return created;
 }
 
-static bool lt_filter_count_cb(struct ha_ev_subs *sub,
-				  ha_ev_t *event)
+static bool lt_filter_count_cb(struct ha_ev_subs *sub, ha_ev_t *event)
 {
 	bool created;
 	ha_subs_ext_lt_t *const lt = (ha_subs_ext_lt_t *)sub->conf->user_data;
-	ha_subs_ext_lte_t *lte = lt_find_otherwise_allocate(lt, event, &created);
+	ha_subs_ext_lte_t *lte	   = lt_find_otherwise_allocate(lt, event, &created);
 
 	if (lte == NULL) {
 		return false;
@@ -129,12 +123,11 @@ static bool lt_filter_count_cb(struct ha_ev_subs *sub,
 	}
 }
 
-static bool lt_filter_interval_cb(struct ha_ev_subs *sub,
-				     ha_ev_t *event)
+static bool lt_filter_interval_cb(struct ha_ev_subs *sub, ha_ev_t *event)
 {
 	bool created;
 	ha_subs_ext_lt_t *const lt = (ha_subs_ext_lt_t *)sub->conf->user_data;
-	ha_subs_ext_lte_t *lte = lt_find_otherwise_allocate(lt, event, &created);
+	ha_subs_ext_lte_t *lte	   = lt_find_otherwise_allocate(lt, event, &created);
 
 	const uint32_t interval = lt->filtering_param.interval;
 
@@ -153,12 +146,11 @@ static bool lt_filter_interval_cb(struct ha_ev_subs *sub,
 	}
 }
 
-static bool lt_filter_subsampling_cb(struct ha_ev_subs *sub,
-					ha_ev_t *event)
+static bool lt_filter_subsampling_cb(struct ha_ev_subs *sub, ha_ev_t *event)
 {
 	bool created;
 	ha_subs_ext_lt_t *const lt = (ha_subs_ext_lt_t *)sub->conf->user_data;
-	ha_subs_ext_lte_t *lte = lt_find_otherwise_allocate(lt, event, &created);
+	ha_subs_ext_lte_t *lte	   = lt_find_otherwise_allocate(lt, event, &created);
 
 	const uint32_t subsampling = lt->filtering_param.subsampling;
 
@@ -227,9 +219,9 @@ int ha_subs_ext_conf_set(struct ha_ev_subs_conf *conf,
 	conf->flags |= HA_EV_SUBS_CONF_FILTER_FUNCTION;
 
 	/* Initialize lookup table */
-	lookup_table->filtering_type = filtering_type;
+	lookup_table->filtering_type  = filtering_type;
 	lookup_table->filtering_param = filtering_param;
-	lookup_table->lookup_type = lookup_type;
+	lookup_table->lookup_type     = lookup_type;
 	sys_slist_init(&lookup_table->_list);
 
 	/* Set extended filter context */

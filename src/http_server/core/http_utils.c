@@ -4,24 +4,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <stdio.h>
-#include <zephyr/kernel.h>
-
+#include "http_request.h"
+#include "http_response.h"
+#include "http_utils.h"
 #include "utils/buffers.h"
 #include "utils/misc.h"
 
-#include "http_utils.h"
+#include <stdio.h>
 
-#include "http_request.h"
-#include "http_response.h"
-
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(http_utils, LOG_LEVEL_WRN);
 
 #define HTTP_UTILS_MAX_EXTENSION_LEN 8u
 
-struct code_str
-{
+struct code_str {
 	http_status_code_t code;
 	char *str;
 };
@@ -53,8 +50,8 @@ static const struct code_str status[] = {
 
 static const char *get_status_code_str(http_status_code_t status_code)
 {
-	for (const struct code_str *p = status;
-	     p <= &status[ARRAY_SIZE(status) - 1]; p++) {
+	for (const struct code_str *p = status; p <= &status[ARRAY_SIZE(status) - 1];
+	     p++) {
 		if (p->code == status_code) {
 			return p->str;
 		}
@@ -76,8 +73,7 @@ int http_encode_header_content_length(buffer_t *buf, ssize_t content_length)
 {
 	int ret = 0;
 	if (content_length >= 0) {
-		ret = buffer_snprintf(buf,
-				      "Content-Length: %u\r\n", content_length);
+		ret = buffer_snprintf(buf, "Content-Length: %u\r\n", content_length);
 	}
 	return ret;
 }
@@ -89,20 +85,17 @@ int http_encode_header_transer_encoding_chunked(buffer_t *buf)
 
 int http_encode_header_connection(buffer_t *buf, bool keep_alive)
 {
-	static const char *connection_str[] = {
-		"close",
-		"keep-alive"
-	};
+	static const char *connection_str[] = {"close", "keep-alive"};
 
-	return buffer_snprintf(buf, "Connection: %s\r\n",
+	return buffer_snprintf(buf,
+			       "Connection: %s\r\n",
 			       keep_alive ? connection_str[1] : connection_str[0]);
 }
 
 int http_encode_header_content_type(buffer_t *buf, http_content_type_t type)
 {
-	return buffer_snprintf(buf,
-			       "Content-Type: %s\r\n",
-			       http_content_type_to_str(type));
+	return buffer_snprintf(
+		buf, "Content-Type: %s\r\n", http_content_type_to_str(type));
 }
 
 int http_encode_endline(buffer_t *buf)
@@ -112,19 +105,18 @@ int http_encode_endline(buffer_t *buf)
 
 bool http_code_has_payload(uint16_t status_code)
 {
-	return (status_code == HTTP_STATUS_OK || 
-		status_code == HTTP_STATUS_BAD_REQUEST);
+	return (status_code == HTTP_STATUS_OK || status_code == HTTP_STATUS_BAD_REQUEST);
 }
 
 const char *http_content_type_to_str(http_content_type_t content_type)
 {
 	const char *strs[] = {
-		[HTTP_CONTENT_TYPE_TEXT_PLAIN] = "text/plain",
-		[HTTP_CONTENT_TYPE_TEXT_HTML] = "text/html",
-		[HTTP_CONTENT_TYPE_TEXT_CSS] = "text/css",
-		[HTTP_CONTENT_TYPE_TEXT_JAVASCRIPT] = "text/javascript",
-		[HTTP_CONTENT_TYPE_APPLICATION_JSON] = "application/json",
-		[HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA] = "multipart/form-data",
+		[HTTP_CONTENT_TYPE_TEXT_PLAIN]		     = "text/plain",
+		[HTTP_CONTENT_TYPE_TEXT_HTML]		     = "text/html",
+		[HTTP_CONTENT_TYPE_TEXT_CSS]		     = "text/css",
+		[HTTP_CONTENT_TYPE_TEXT_JAVASCRIPT]	     = "text/javascript",
+		[HTTP_CONTENT_TYPE_APPLICATION_JSON]	     = "application/json",
+		[HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA]	     = "multipart/form-data",
 		[HTTP_CONTENT_TYPE_APPLICATION_OCTET_STREAM] = "application/octet-stream",
 	};
 
@@ -138,7 +130,7 @@ const char *http_content_type_to_str(http_content_type_t content_type)
 const char *http_filepath_get_extension(const char *filepath)
 {
 	const char *ext = filepath;
-	const char *p = filepath;
+	const char *p	= filepath;
 
 	while (*p != '\0') {
 		if (*p == '.') {
@@ -152,11 +144,11 @@ const char *http_filepath_get_extension(const char *filepath)
 
 /**
  * @brief Get the mime type for the given file extension
- * 
+ *
  * Extension is case insensitive.
- * 
- * @param filepath 
- * @return const char* 
+ *
+ * @param filepath
+ * @return const char*
  */
 http_content_type_t http_get_content_type_from_extension(const char *extension)
 {
@@ -199,7 +191,7 @@ http_content_type_t http_get_content_type_from_extension(const char *extension)
 
 void http_test_init_context(struct http_test_context *ctx)
 {
-	*ctx = (struct http_test_context){ 0 };
+	*ctx = (struct http_test_context){0};
 }
 
 static uint32_t checksum_add(uint32_t checksum, const uint8_t *data, size_t len)
@@ -281,9 +273,9 @@ static http_test_result_t test_req_handler(struct http_test_context *ctx,
 
 		if (req->chunk.id > ctx->last_chunk_id + 1U) {
 			/* monotonic is sufficient
-			* Several calls can be made on the same chunk,
-			* but chunks cannot be skipped.
-			*/
+			 * Several calls can be made on the same chunk,
+			 * but chunks cannot be skipped.
+			 */
 			result = HTTP_TEST_RESULT_CHUNK_ID_DISCONTINUITY;
 			goto exit;
 		}
@@ -333,10 +325,7 @@ static http_test_result_t test_req_handler(struct http_test_context *ctx,
 	}
 
 	/* Calculate checksum */
-	ctx->checksum = checksum_add(ctx->checksum,
-				     req->chunk.loc,
-				     req->chunk.len);
-
+	ctx->checksum = checksum_add(ctx->checksum, req->chunk.loc, req->chunk.len);
 
 	ctx->last_chunk_id = req->chunk.id;
 
@@ -403,7 +392,8 @@ static http_test_result_t test_resp_handler(struct http_test_context *ctx,
 	}
 
 	if (resp->buffer.data == NULL) {
-		result = HTTP_TEST_RESULT_RESP_BUFFER_EXPECTED;;
+		result = HTTP_TEST_RESULT_RESP_BUFFER_EXPECTED;
+		;
 		goto exit;
 	}
 
@@ -422,12 +412,10 @@ static http_test_result_t test_resp_handler(struct http_test_context *ctx,
 		goto exit;
 	}
 
-
 	if (ctx->resp_calls_count == 0u && resp->calls_count != 0) {
 		result = HTTP_TEST_RESULT_RESP_CALLS_COUNT_IS_NOT_ZERO;
 		goto exit;
 	}
-
 
 	if (http_response_is_first_call(resp)) {
 		if (resp->content_length != 0) {
@@ -520,13 +508,14 @@ http_test_result_t http_test_run(struct http_test_context *ctx,
 
 	/* Application handler shouldn't be called if HTTP method doesn't
 	 * match what the route expects */
-	if ((req->route->flags & ROUTE_METHODS_MASK) 
-	    != http_method_to_route_flag(req->method)) {
+	if ((req->route->flags & ROUTE_METHODS_MASK) !=
+	    http_method_to_route_flag(req->method)) {
 		result = HTTP_TEST_RESULT_METHOD_UNEXPECTED;
 		goto exit;
 	}
 
-	/* headers_complete flag should be set when application handler is called */
+	/* headers_complete flag should be set when application handler is
+	 * called */
 	if (!req->headers_complete) {
 		result = HTTP_TEST_RESULT_HEADERS_COMPLETE_EXPECTED;
 		goto exit;
@@ -542,8 +531,11 @@ exit:
 	ctx->result = result;
 ret:
 	if (result != HTTP_TEST_RESULT_OK) {
-		LOG_ERR("(%p / %p) Test failed with %s (%d)", req, resp,
-			http_test_result_to_str(result), result);
+		LOG_ERR("(%p / %p) Test failed with %s (%d)",
+			req,
+			resp,
+			http_test_result_to_str(result),
+			result);
 	}
 	return result;
 }

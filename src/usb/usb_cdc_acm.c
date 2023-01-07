@@ -1,18 +1,24 @@
 #include "usb.h"
 
-#include <zephyr/kernel.h>
-#include <zephyr/usb/usb_device.h>
 #include <zephyr/drivers/uart.h>
-
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/usb/usb_device.h>
 LOG_MODULE_DECLARE(usb, LOG_LEVEL_DBG);
 
 static const struct device *dev = DEVICE_DT_GET_ONE(zephyr_cdc_acm_uart);
 
 void usb_cdc_acm_thread(void *_a, void *_b, void *_c);
 
-K_THREAD_DEFINE(usb_tid, 1024u, usb_cdc_acm_thread, 1, NULL, NULL,
-		K_PRIO_COOP(4u), 0u, SYS_FOREVER_MS);
+K_THREAD_DEFINE(usb_tid,
+		1024u,
+		usb_cdc_acm_thread,
+		1,
+		NULL,
+		NULL,
+		K_PRIO_COOP(4u),
+		0u,
+		SYS_FOREVER_MS);
 
 void usb_cdc_acm_thread_start(void)
 {

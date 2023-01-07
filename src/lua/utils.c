@@ -8,13 +8,12 @@
 
 #include <string.h>
 
-#include <lua/lua.h>
-#include <lua/lua.h>
-#include <lua/lauxlib.h>
-#include <lua/lualib.h>
-#include <lua/lstate.h>
-
 #include <zephyr/logging/log.h>
+
+#include <lua/lauxlib.h>
+#include <lua/lstate.h>
+#include <lua/lua.h>
+#include <lua/lualib.h>
 LOG_MODULE_REGISTER(lua_utils, LOG_LEVEL_DBG);
 
 #include "modules.h"
@@ -22,10 +21,10 @@ LOG_MODULE_REGISTER(lua_utils, LOG_LEVEL_DBG);
 const char *lua_utils_luaret2str(int lua_ret)
 {
 	const char *str = "<lua unknown>";
-	switch(lua_ret) {
+	switch (lua_ret) {
 	case LUA_OK:
 		str = "LUA_OK";
-		break;	
+		break;
 	case LUA_YIELD:
 		str = "LUA_YIELD";
 		break;
@@ -92,8 +91,7 @@ int lua_utils_execute_fs_script2(const char *name)
 
 	lua_close(L);
 
-	LOG_DBG("(%p) Script returned res=%d (%s)",
-		L, res, lua_utils_luaret2str(res));
+	LOG_DBG("(%p) Script returned res=%d (%s)", L, res, lua_utils_luaret2str(res));
 
 	return res;
 }

@@ -29,4 +29,4 @@ uint32_t crc_calculate32(const uint32_t *buf, size_t len)
 	return crc32_ieee((const uint8_t *)buf, len << 2u);
 }
 
-#endif 
+#endif

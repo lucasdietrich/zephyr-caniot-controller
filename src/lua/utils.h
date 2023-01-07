@@ -7,8 +7,9 @@
 #ifndef _LUA_UTILS_H_
 #define _LUA_UTILS_H_
 
-#include <zephyr/kernel.h>
 #include <assert.h>
+
+#include <zephyr/kernel.h>
 
 int lua_utils_string_test(void);
 

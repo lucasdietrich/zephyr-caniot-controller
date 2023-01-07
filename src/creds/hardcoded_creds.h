@@ -7,9 +7,9 @@
 #ifndef _CREDS_HARDCODED_CREDS_H_
 #define _CREDS_HARDCODED_CREDS_H_
 
-#include <zephyr/kernel.h>
-
 #include "credentials.h"
+
+#include <zephyr/kernel.h>
 
 #define CREDS_HARDCODED_MAX_COUNT 12u
 

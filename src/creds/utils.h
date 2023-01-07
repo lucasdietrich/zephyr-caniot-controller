@@ -7,10 +7,10 @@
 #ifndef _CREDS_UTILS_H
 #define _CREDS_UTILS_H
 
-#include <zephyr/kernel.h>
-
 #include "credentials.h"
 #include "flash_creds.h"
+
+#include <zephyr/kernel.h>
 
 const char *flash_cred_status_to_str(flash_cred_status_t status);
 

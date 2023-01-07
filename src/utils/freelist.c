@@ -40,12 +40,11 @@ void free_list_free(void *fl, void *block)
 	sys_slist_append(fl, block);
 }
 
-
 int free_list_count(void *fl)
 {
 	int count = 0;
 	sys_snode_t *node;
-	SYS_SLIST_FOR_EACH_NODE(fl, node) {
+	SYS_SLIST_FOR_EACH_NODE (fl, node) {
 		count++;
 	}
 	return count;
@@ -53,8 +52,11 @@ int free_list_count(void *fl)
 
 void sys_free_lists_init(void)
 {
-	STRUCT_SECTION_FOREACH(_flist_info, finfo) {
-		free_list_init(finfo->free_list, finfo->mem,
-			       finfo->block_size, finfo->block_count);
+	STRUCT_SECTION_FOREACH(_flist_info, finfo)
+	{
+		free_list_init(finfo->free_list,
+			       finfo->mem,
+			       finfo->block_size,
+			       finfo->block_count);
 	}
 }

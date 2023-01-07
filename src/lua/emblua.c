@@ -4,38 +4,33 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr/kernel.h>
+#include <stdio.h>
+#include <string.h>
 
 #include <zephyr/fs/fs.h>
-#include <string.h>
-#include <stdio.h>
-
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(app_fs, LOG_LEVEL_INF);
 
 #include "../appfs.h"
 
-struct emblua
-{
+struct emblua {
 	const char *start;
 	const char *end;
 	const char *name;
 };
 
-#define _EMBLUA_START_SYM(_name) \
-	_binary_ ## _name ## _lua_start
+#define _EMBLUA_START_SYM(_name) _binary_##_name##_lua_start
 
-#define _EMBLUA_START_END(_name) \
-	_binary_ ##_name ## _lua_end
+#define _EMBLUA_START_END(_name) _binary_##_name##_lua_end
 
-#define DECLARE_EMB_LUA_SCRIPT(_name) \
-	extern uint32_t _EMBLUA_START_SYM(_name); \
-	extern uint32_t _EMBLUA_START_END(_name); \
-	STRUCT_SECTION_ITERABLE(emblua, _name) = { \
-		.start = (const char *) &_EMBLUA_START_SYM(_name), \
-		.end = (const char *) &_EMBLUA_START_END(_name), \
-		.name = STRINGIFY(_name) STRINGIFY(.lua) \
-	}
+#define DECLARE_EMB_LUA_SCRIPT(_name)                                                    \
+	extern uint32_t _EMBLUA_START_SYM(_name);                                        \
+	extern uint32_t _EMBLUA_START_END(_name);                                        \
+	STRUCT_SECTION_ITERABLE(emblua, _name) = {                                       \
+		.start = (const char *)&_EMBLUA_START_SYM(_name),                        \
+		.end   = (const char *)&_EMBLUA_START_END(_name),                        \
+		.name  = STRINGIFY(_name) STRINGIFY(.lua) }
 
 /* find a way to somehow automatically generate this list */
 DECLARE_EMB_LUA_SCRIPT(helloworld);
@@ -77,12 +72,12 @@ DECLARE_EMB_LUA_SCRIPT(sort);
 // DECLARE_EMB_LUA_SCRIPT(verybig);
 
 #define FS_DEFAULT_MOUNT_POINT "RAM:"
-#define FS_DEFAULT_DIRECTORY "lua"
+#define FS_DEFAULT_DIRECTORY   "lua"
 
 /**
  * @brief Populate the filesystem with lua scripts
- * 
- * @return int 
+ *
+ * @return int
  */
 int lua_fs_populate(void)
 {
@@ -90,15 +85,20 @@ int lua_fs_populate(void)
 	char path[256u];
 
 	/* iterate over all lua scripts and add them to the filesystem */
-	STRUCT_SECTION_FOREACH(emblua, script) {
-		const char *loc = script->start;
+	STRUCT_SECTION_FOREACH(emblua, script)
+	{
+		const char *loc	  = script->start;
 		const size_t size = script->end - script->start;
 		LOG_DBG("Adding file %s to FS, at 0x%x [ %u B ]",
-			script->name, (uint32_t)loc, size);
+			script->name,
+			(uint32_t)loc,
+			size);
 
 		/* Create directory if required and doesn't exist */
 		if (strlen(FS_DEFAULT_DIRECTORY) > 0) {
-			ssize_t written = snprintf(path, sizeof(path), "/%s/%s",
+			ssize_t written = snprintf(path,
+						   sizeof(path),
+						   "/%s/%s",
 						   FS_DEFAULT_MOUNT_POINT,
 						   FS_DEFAULT_DIRECTORY);
 
@@ -110,14 +110,19 @@ int lua_fs_populate(void)
 
 			if (rc != 0) {
 				LOG_ERR("Failed to create directory %s, ret=%d",
-					path, rc);
+					path,
+					rc);
 				goto exit;
 			}
 
-			snprintf(&path[written], sizeof(path) - written,
-				 "/%s", script->name);
+			snprintf(&path[written],
+				 sizeof(path) - written,
+				 "/%s",
+				 script->name);
 		} else {
-			snprintf(path, sizeof(path), "/%s/%s",
+			snprintf(path,
+				 sizeof(path),
+				 "/%s/%s",
 				 FS_DEFAULT_MOUNT_POINT,
 				 script->name);
 		}

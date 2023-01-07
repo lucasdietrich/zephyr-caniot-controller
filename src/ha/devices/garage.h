@@ -10,10 +10,9 @@
 #include "ha/core/ha.h"
 
 /* move to specific header */
-struct ha_dev_garage_cmd
-{
-	uint8_t actuate_left: 1;
-	uint8_t actuate_right: 1;
+struct ha_dev_garage_cmd {
+	uint8_t actuate_left : 1;
+	uint8_t actuate_right : 1;
 };
 
 void ha_dev_garage_cmd_init(struct ha_dev_garage_cmd *cmd);

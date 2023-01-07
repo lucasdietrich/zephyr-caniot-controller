@@ -5,14 +5,13 @@
  */
 
 #include "test_server.h"
+#include "utils/misc.h"
 
 #include <zephyr/data/json.h>
+#include <zephyr/logging/log.h>
 #include <zephyr/net/http_parser.h>
 
-#include "utils/misc.h"
 #include <embedc-url/parser.h>
-
-#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(test_server, LOG_LEVEL_INF);
 
 static uint32_t test_checksum(uint32_t checksum, const char *str, size_t len)
@@ -23,17 +22,21 @@ static uint32_t test_checksum(uint32_t checksum, const char *str, size_t len)
 	return checksum;
 }
 
-extern int rest_encode_response_json(http_response_t *resp, const void *val,
+extern int rest_encode_response_json(http_response_t *resp,
+				     const void *val,
 				     const struct json_obj_descr *descr,
 				     size_t descr_len);
 
 #define HTTP_ROUTE_ARGS_MAX_COUNT CONFIG_APP_ROUTE_MAX_DEPTH
 
-int http_test_any(struct http_request *req,
-		  struct http_response *resp)
+int http_test_any(struct http_request *req, struct http_response *resp)
 {
-	LOG_INF("[Q %u] streaming=%u complete=%u discarded=%u chunked=%u", req->calls_count,
-		req->streaming, req->complete, req->discarded, req->chunked_encoding);
+	LOG_INF("[Q %u] streaming=%u complete=%u discarded=%u chunked=%u",
+		req->calls_count,
+		req->streaming,
+		req->complete,
+		req->discarded,
+		req->chunked_encoding);
 
 	if (resp != NULL) {
 		LOG_INF("[R %u] complete=%u", resp->calls_count, resp->complete);
@@ -42,8 +45,7 @@ int http_test_any(struct http_request *req,
 	return 0;
 }
 
-struct json_test_result
-{
+struct json_test_result {
 	uint32_t ok;
 	uint32_t payload_len;
 	uint32_t payload_checksum;
@@ -58,12 +60,14 @@ static const struct json_obj_descr json_test_result_message_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_test_result, ok, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_test_result, payload_len, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_test_result, payload_checksum, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_ARRAY(struct json_test_result, route_args, HTTP_ROUTE_ARGS_MAX_COUNT,
-	route_args_count, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_ARRAY(struct json_test_result,
+			     route_args,
+			     HTTP_ROUTE_ARGS_MAX_COUNT,
+			     route_args_count,
+			     JSON_TOK_NUMBER),
 };
 
-int http_test_messaging(struct http_request *req,
-			struct http_response *resp)
+int http_test_messaging(struct http_request *req, struct http_response *resp)
 {
 	bool req_ok = true;
 	req_ok &= req->method == http_route_get_method(req->route);
@@ -71,21 +75,24 @@ int http_test_messaging(struct http_request *req,
 	req_ok &= req->payload.len == req->payload_len;
 
 	struct json_test_result tr = {
-		.ok = (uint32_t)req_ok,
-		.payload_len = req->payload_len,
+		.ok		  = (uint32_t)req_ok,
+		.payload_len	  = req->payload_len,
 		.payload_checksum = test_checksum(0U, req->payload.loc, req->payload_len),
 		.route_args_count = 0U,
 	};
 
 	for (uint32_t i = 0; i < HTTP_ROUTE_ARGS_MAX_COUNT; i++) {
-		if (http_req_route_arg_get_number_by_index(req, i, &tr.route_args[i]) == 0) {
+		if (http_req_route_arg_get_number_by_index(req, i, &tr.route_args[i]) ==
+		    0) {
 			tr.route_args_count++;
 		} else {
 			break;
 		}
 	}
 
-	return rest_encode_response_json(resp, &tr, json_test_result_message_descr,
+	return rest_encode_response_json(resp,
+					 &tr,
+					 json_test_result_message_descr,
 					 ARRAY_SIZE(json_test_result_message_descr));
 }
 
@@ -99,57 +106,64 @@ static const struct json_obj_descr json_test_result_stream_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_test_result, ok, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_test_result, payload_len, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_test_result, payload_checksum, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_ARRAY(struct json_test_result, route_args, HTTP_ROUTE_ARGS_MAX_COUNT,
-	route_args_count, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_ARRAY(struct json_test_result,
+			     route_args,
+			     HTTP_ROUTE_ARGS_MAX_COUNT,
+			     route_args_count,
+			     JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_test_result, duration_ms, JSON_TOK_NUMBER),
 };
 
-int http_test_streaming(struct http_request *req,
-			struct http_response *resp)
+int http_test_streaming(struct http_request *req, struct http_response *resp)
 {
-	static uint32_t checksum = 0U;
+	static uint32_t checksum       = 0U;
 	static uint32_t received_bytes = 0U;
 	static uint32_t uptime_ms;
 
 	if (req->complete == 0) {
 		/* We are receiving a chunk */
 		LOG_DBG("STREAM receiving chunk=%u len=%u (offset = %u)",
-			req->chunk.id, req->chunk.len, req->chunk._offset);
+			req->chunk.id,
+			req->chunk.len,
+			req->chunk._offset);
 
 		if (req->calls_count == 0) {
-			checksum = 0;
+			checksum       = 0;
 			received_bytes = 0;
-			uptime_ms = k_uptime_get_32();
+			uptime_ms      = k_uptime_get_32();
 		}
 
 		checksum = test_checksum(checksum, req->payload.loc, req->payload.len);
 		received_bytes += req->chunk.len;
 	} else {
 		struct json_test_result tr = {
-			.ok = (uint32_t)1u,
-			.payload_len = req->payload_len,
+			.ok		  = (uint32_t)1u,
+			.payload_len	  = req->payload_len,
 			.payload_checksum = checksum,
 			.route_args_count = 0U,
-			.duration_ms = k_uptime_delta32(&uptime_ms),
+			.duration_ms	  = k_uptime_delta32(&uptime_ms),
 		};
 
 		for (uint32_t i = 0; i < HTTP_ROUTE_ARGS_MAX_COUNT; i++) {
-			if (http_req_route_arg_get_number_by_index(req, i, &tr.route_args[i]) == 0) {
+			if (http_req_route_arg_get_number_by_index(
+				    req, i, &tr.route_args[i]) == 0) {
 				tr.route_args_count++;
 			} else {
 				break;
 			}
 		}
 
-		return rest_encode_response_json(resp, &tr, json_test_result_stream_descr,
-						 ARRAY_SIZE(json_test_result_stream_descr));
+		return rest_encode_response_json(
+			resp,
+			&tr,
+			json_test_result_stream_descr,
+			ARRAY_SIZE(json_test_result_stream_descr));
 	}
 
 	return 0;
 }
 
-int http_test_route_args(struct http_request *req,
-			 struct http_response *resp)
+int http_test_route_args(struct http_request *req, struct http_response *resp)
 {
 	uint32_t a = 0, b = 0, c = 0;
 	http_req_route_arg_get(req, "first", &a);
@@ -169,7 +183,9 @@ int http_test_route_args(struct http_request *req,
 		struct query_arg *arg;
 		for (int i = 0; i < ret; i++) {
 			arg = &qal[i];
-			LOG_DBG("%u: %s : %s", i, arg->key,
+			LOG_DBG("%u: %s : %s",
+				i,
+				arg->key,
 				arg->value ? arg->value : "(null)");
 		}
 
@@ -177,35 +193,29 @@ int http_test_route_args(struct http_request *req,
 		LOG_DBG("Parameter 'name' = %s", val ? val : "(null)");
 	}
 
-	
-
 	return 0;
 }
 
-int http_test_big_payload(struct http_request *req,
-			  struct http_response *resp)
+int http_test_big_payload(struct http_request *req, struct http_response *resp)
 {
 	return 0;
 }
 
-int http_test_headers(struct http_request *req,
-		      struct http_response *resp)
+int http_test_headers(struct http_request *req, struct http_response *resp)
 {
 	sys_dnode_t *node;
-	SYS_DLIST_FOR_EACH_NODE(&req->headers, node) {
+	SYS_DLIST_FOR_EACH_NODE (&req->headers, node) {
 		struct http_header *header = HTTP_HEADER_FROM_HANDLE(node);
-		LOG_INF("[header] %s: %s", header->name, 
-			header->value);
+		LOG_INF("[header] %s: %s", header->name, header->value);
 	}
 
 	return 0;
 }
 
-int http_test_payload(struct http_request *req,
-		      struct http_response *resp)
+int http_test_payload(struct http_request *req, struct http_response *resp)
 {
 	static uint32_t it = 0;
-	const uint32_t n = 10u;
+	const uint32_t n   = 10u;
 
 	size_t s = MIN(1000u, resp->buffer.size);
 

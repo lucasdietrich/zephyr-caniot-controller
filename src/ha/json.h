@@ -3,8 +3,7 @@
 
 #include "utils/buffers.h"
 
-struct json_device_base
-{
+struct json_device_base {
 	// const char *device_name;
 
 	// const char *datetime;
@@ -13,19 +12,17 @@ struct json_device_base
 	uint32_t timestamp;
 };
 
-struct json_xiaomi_record_measures
-{
+struct json_xiaomi_record_measures {
 	int32_t rssi;
 
-	char *temperature; /* °C */
-	int32_t temperature_raw; /* 1e-2 °C */
-	uint32_t humidity; /* 1e-2 % */
-	uint32_t battery_level; /* % */
+	char *temperature;	  /* °C */
+	int32_t temperature_raw;  /* 1e-2 °C */
+	uint32_t humidity;	  /* 1e-2 % */
+	uint32_t battery_level;	  /* % */
 	uint32_t battery_voltage; /* mV */
 };
 
-struct json_xiaomi_record
-{
+struct json_xiaomi_record {
 	char *bt_mac;
 
 	struct json_device_base base;
@@ -37,8 +34,7 @@ struct json_xiaomi_record_buf {
 	char temperature[9u];
 };
 
-struct json_xiaomi_record_array
-{
+struct json_xiaomi_record_array {
 	struct json_xiaomi_record_buf _bufs[HA_XIAOMI_MAX_DEVICES];
 	struct json_xiaomi_record records[HA_XIAOMI_MAX_DEVICES];
 	size_t count;

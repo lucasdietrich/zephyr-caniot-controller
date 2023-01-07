@@ -1,11 +1,9 @@
 #include "usb.h"
 
 #include <zephyr/kernel.h>
-#include <zephyr/usb/usb_device.h>
-
 #include <zephyr/logging/log.h>
+#include <zephyr/usb/usb_device.h>
 LOG_MODULE_REGISTER(usb, LOG_LEVEL_DBG);
-
 
 int usb_init(void)
 {

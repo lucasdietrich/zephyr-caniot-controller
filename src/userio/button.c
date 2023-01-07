@@ -6,20 +6,19 @@
 
 #include "button.h"
 
-#include <zephyr/kernel.h>
-
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
-
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(button, LOG_LEVEL_INF);
 
-static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_NODELABEL(user_button), gpios);
+static const struct gpio_dt_spec button =
+	GPIO_DT_SPEC_GET(DT_NODELABEL(user_button), gpios);
 static struct gpio_callback button_cb_data;
 
-static void button_pressed(const struct device *dev, struct gpio_callback *cb,
-                    uint32_t pins)
+static void
+button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
 	uint64_t ms = k_uptime_get();
 	LOG_INF("Button pressed at %llu ms", ms);
@@ -27,29 +26,31 @@ static void button_pressed(const struct device *dev, struct gpio_callback *cb,
 
 int button_init(void)
 {
-        int ret = -EIO;
+	int ret = -EIO;
 
-        /* set up button */
-        if (!device_is_ready(button.port)) {
-                LOG_ERR("Error: button device %s is not ready",
-                        button.port->name);
-                goto exit;
-        }
+	/* set up button */
+	if (!device_is_ready(button.port)) {
+		LOG_ERR("Error: button device %s is not ready", button.port->name);
+		goto exit;
+	}
 
-        ret = gpio_pin_configure_dt(&button, GPIO_INPUT);
-        if (ret != 0) {
-                LOG_ERR("Error %d: failed to configure %s pin %d",
-                        ret, button.port->name, button.pin);
-                goto exit;
-        }
+	ret = gpio_pin_configure_dt(&button, GPIO_INPUT);
+	if (ret != 0) {
+		LOG_ERR("Error %d: failed to configure %s pin %d",
+			ret,
+			button.port->name,
+			button.pin);
+		goto exit;
+	}
 
-        ret = gpio_pin_interrupt_configure_dt(&button,
-                                              GPIO_INT_EDGE_TO_ACTIVE);
-        if (ret != 0) {
-                LOG_ERR("Error %d: failed to configure interrupt on %s pin %d",
-                        ret, button.port->name, button.pin);
-                goto exit;
-        }
+	ret = gpio_pin_interrupt_configure_dt(&button, GPIO_INT_EDGE_TO_ACTIVE);
+	if (ret != 0) {
+		LOG_ERR("Error %d: failed to configure interrupt on %s pin %d",
+			ret,
+			button.port->name,
+			button.pin);
+		goto exit;
+	}
 
 	gpio_init_callback(&button_cb_data, button_pressed, BIT(button.pin));
 	gpio_add_callback(button.port, &button_cb_data);

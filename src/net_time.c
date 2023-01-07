@@ -6,10 +6,9 @@
 
 #include "net_time.h"
 
+#include <zephyr/logging/log.h>
 #include <zephyr/net/sntp.h>
 #include <zephyr/posix/time.h>
-
-#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(net_time, LOG_LEVEL_INF);
 
 static void sntp_handler(struct k_work *work);
@@ -18,23 +17,23 @@ struct sntp_context {
 	const char *server; /* SNTP server */
 
 	uint32_t failures; /* Number of failures */
-	uint32_t count; /* Number of times we synced time */
-	time_t last_sync; /* Last time we synced time */
+	uint32_t count;	   /* Number of times we synced time */
+	time_t last_sync;  /* Last time we synced time */
 
 	struct k_work work; /* Work item to sync time */
 
-	struct k_mutex mutex; /* Mutex to protect context access from other threads */
+	struct k_mutex mutex;	  /* Mutex to protect context access from other threads */
 	struct k_condvar condvar; /* Condvar to signal when the time is synced */
 };
 
 struct sntp_context sntp_ctx = {
-	.server = "0.fr.pool.ntp.org",
-	.failures = 0U,
-	.count = 0U,
+	.server	   = "0.fr.pool.ntp.org",
+	.failures  = 0U,
+	.count	   = 0U,
 	.last_sync = 0U,
-	.work = Z_WORK_INITIALIZER(sntp_handler),
-	.mutex = Z_MUTEX_INITIALIZER(sntp_ctx.mutex),
-	.condvar = Z_CONDVAR_INITIALIZER(sntp_ctx.condvar),
+	.work	   = Z_WORK_INITIALIZER(sntp_handler),
+	.mutex	   = Z_MUTEX_INITIALIZER(sntp_ctx.mutex),
+	.condvar   = Z_CONDVAR_INITIALIZER(sntp_ctx.condvar),
 };
 
 static void sntp_handler(struct k_work *work)
@@ -51,7 +50,8 @@ static void sntp_handler(struct k_work *work)
 
 	if (ret == 0) {
 		tspec.tv_sec = time.seconds;
-		tspec.tv_nsec = ((uint64_t)time.fraction * (1000LU * 1000LU * 1000LU)) >> 32;
+		tspec.tv_nsec =
+			((uint64_t)time.fraction * (1000LU * 1000LU * 1000LU)) >> 32;
 
 		clock_settime(CLOCK_REALTIME, &tspec);
 
@@ -61,7 +61,9 @@ static void sntp_handler(struct k_work *work)
 		ret = k_condvar_broadcast(&ctx->condvar);
 
 		LOG_INF("SNTP time from %s:123 = %u, %d thread(s) signaled",
-			ctx->server, (uint32_t)time.seconds, ret);
+			ctx->server,
+			(uint32_t)time.seconds,
+			ret);
 	} else {
 		ctx->failures++;
 
@@ -136,7 +138,12 @@ void net_time_show(void)
 
 	gmtime_r(&timestamp, &time_infos);
 
-	printk("Local (Europe/Paris) Date and time : %04d/%02d/%02d %02d:%02d:%02d\n",
-	       time_infos.tm_year + 1900, time_infos.tm_mon + 1, time_infos.tm_mday,
-	       time_infos.tm_hour, time_infos.tm_min, time_infos.tm_sec);
+	printk("Local (Europe/Paris) Date and time : %04d/%02d/%02d "
+	       "%02d:%02d:%02d\n",
+	       time_infos.tm_year + 1900,
+	       time_infos.tm_mon + 1,
+	       time_infos.tm_mday,
+	       time_infos.tm_hour,
+	       time_infos.tm_min,
+	       time_infos.tm_sec);
 }

@@ -4,21 +4,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr/kernel.h>
+#include "buffers.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
-#include <ctype.h>
 
-#include "buffers.h"
+#include <zephyr/kernel.h>
 
 int buffer_init(buffer_t *buffer, char *data, size_t size)
 {
 	int ret = -EINVAL;
 
 	if ((data != NULL) && (size > 0U)) {
-		buffer->data = data;
-		buffer->size = size;
+		buffer->data	= data;
+		buffer->size	= size;
 		buffer->filling = 0U;
 
 		ret = 0;
@@ -56,7 +56,8 @@ ssize_t buffer_append(buffer_t *buffer, char *data, size_t size)
 
 ssize_t buffer_append_string(buffer_t *buffer, const char *string)
 {
-	// printk("%s [%u] (%p %u)\n", string, strlen(string), buffer->data, buffer->filling);
+	// printk("%s [%u] (%p %u)\n", string, strlen(string), buffer->data,
+	// buffer->filling);
 
 	return buffer_append(buffer, (void *)string, strlen(string));
 }
@@ -92,9 +93,6 @@ int buffer_snprintf(buffer_t *buf, const char *fmt, ...)
 	return ret;
 }
 
-
-
-
 int cursor_buffer_init(cursor_buffer_t *cbuf, char *buffer, size_t size)
 {
 	int ret = -EINVAL;
@@ -102,7 +100,7 @@ int cursor_buffer_init(cursor_buffer_t *cbuf, char *buffer, size_t size)
 	if ((buffer != NULL) && (size > 0U)) {
 		cbuf->buffer = buffer;
 		cbuf->cursor = buffer;
-		cbuf->size = size;
+		cbuf->size   = size;
 
 		ret = 0;
 	}
@@ -143,7 +141,7 @@ int cursor_buffer_snprintf(cursor_buffer_t *cbuf, const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 	const size_t remaining = cursor_buffer_remaining(cbuf);
-	ret = vsnprintf(cbuf->cursor, remaining, fmt, args);
+	ret		       = vsnprintf(cbuf->cursor, remaining, fmt, args);
 	if (ret >= 0 && ret <= remaining) {
 		cbuf->cursor += ret;
 	}

@@ -10,12 +10,14 @@
  * @brief Test server, for testing HTTP server features
  * @version 0.1
  * @date 2022-07-15
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  * Tests to implement:
- * 	- Route matching (args, length, method) : write arguments back to the client
- * 	- File transfer (stream / chunk) : calculate checksum of payload and send it back to the client
+ * 	- Route matching (args, length, method) : write arguments back to the
+ * client
+ * 	- File transfer (stream / chunk) : calculate checksum of payload and
+ * send it back to the client
  * 	- Payload size
  * 	- TLS
  * 	- Keep-alive
@@ -24,33 +26,26 @@
 #ifndef _HTTP_TEST_SERVER_H_
 #define _HTTP_TEST_SERVER_H_
 
-#include <stdint.h>
-#include <stddef.h>
-
-#include "core/http_utils.h"
 #include "core/http_request.h"
 #include "core/http_response.h"
+#include "core/http_utils.h"
 #include "core/routes.h"
 
-int http_test_any(struct http_request *req,
-		  struct http_response *resp);
-		  
-int http_test_messaging(struct http_request *req,
-			struct http_response *resp);
+#include <stddef.h>
+#include <stdint.h>
 
-int http_test_streaming(struct http_request *req,
-			struct http_response *resp);
+int http_test_any(struct http_request *req, struct http_response *resp);
 
-int http_test_route_args(struct http_request *req,
-			 struct http_response *resp);
+int http_test_messaging(struct http_request *req, struct http_response *resp);
 
-int http_test_big_payload(struct http_request *req,
-			  struct http_response *resp);
+int http_test_streaming(struct http_request *req, struct http_response *resp);
 
-int http_test_headers(struct http_request *req,
-		      struct http_response *resp);
+int http_test_route_args(struct http_request *req, struct http_response *resp);
 
-int http_test_payload(struct http_request *req,
-		      struct http_response *resp);
+int http_test_big_payload(struct http_request *req, struct http_response *resp);
+
+int http_test_headers(struct http_request *req, struct http_response *resp);
+
+int http_test_payload(struct http_request *req, struct http_response *resp);
 
 #endif /* _HTTP_TEST_SERVER_H_ */

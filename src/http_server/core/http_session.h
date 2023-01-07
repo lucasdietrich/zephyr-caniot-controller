@@ -7,28 +7,24 @@
 #ifndef _http_session_H_
 #define _http_session_H_
 
-#include <stdint.h>
-#include <stddef.h>
-#include <stdio.h>
-
-#include <zephyr/net/net_ip.h>
-#include <zephyr/net/http_parser.h>
-
-#include <zephyr/sys/dlist.h>
-
-#include <zephyr/sys/dlist.h>
-#include <zephyr/sys/slist.h>
-
 #include "http_request.h"
 #include "http_response.h"
 
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+
+#include <zephyr/net/http_parser.h>
+#include <zephyr/net/net_ip.h>
+#include <zephyr/sys/dlist.h>
+#include <zephyr/sys/slist.h>
+
 struct http_session;
 
-struct http_session
-{
-        /* INTERNAL */
-        struct sockaddr addr;
-	
+struct http_session {
+	/* INTERNAL */
+	struct sockaddr addr;
+
 	union {
 		/* Handle when allocated */
 		sys_dnode_t _handle;
@@ -42,11 +38,11 @@ struct http_session
 	 */
 	int sock;
 
-        /* struct sockaddr_in addr; */
+	/* struct sockaddr_in addr; */
 
 	struct {
 		/* keep alive enabled */
-		uint8_t enabled: 1;
+		uint8_t enabled : 1;
 
 		/* in ms */
 		uint32_t timeout;
@@ -55,8 +51,8 @@ struct http_session
 		uint32_t last_activity;
 	} keep_alive;
 
-        http_request_t *req;
-        http_response_t *resp;
+	http_request_t *req;
+	http_response_t *resp;
 
 	/* Is the session secure ? */
 	bool secure;
@@ -79,7 +75,6 @@ http_session_t *http_session_get_by_sock(int sock_fd);
 void http_session_free(http_session_t *sess);
 
 bool http_session_is_closed(http_session_t *sess);
-
 
 bool http_session_is_outdated(http_session_t *sess);
 

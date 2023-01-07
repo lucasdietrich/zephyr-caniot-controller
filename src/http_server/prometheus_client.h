@@ -7,21 +7,17 @@
 #ifndef _HTTP_PROMETHEUS_CLIENT_H_
 #define _HTTP_PROMETHEUS_CLIENT_H_
 
-#include <stddef.h>
-
 #include "core/http_request.h"
 #include "core/http_response.h"
-
 #include "ha/core/ha.h"
 
-int prometheus_metrics_demo(http_request_t *req,
-			    http_response_t *resp);
+#include <stddef.h>
 
-int prometheus_metrics(http_request_t *req,
-		       http_response_t *resp);
+int prometheus_metrics_demo(http_request_t *req, http_response_t *resp);
 
-int prometheus_metrics_controller(http_request_t *req,
-				  http_response_t *resp);
+int prometheus_metrics(http_request_t *req, http_response_t *resp);
+
+int prometheus_metrics_controller(http_request_t *req, http_response_t *resp);
 
 const char *prom_myd_medium_to_str(ha_dev_medium_type_t medium);
 

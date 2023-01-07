@@ -6,36 +6,37 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr/kernel.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <stdio.h>
-
-#include <zephyr/sys/util.h>
-#include <unistd.h>
-
-#include <poll.h>
-
-#include <sys/eventfd.h>
-
-#include <zephyr/net/socket.h>
-#include <zephyr/net/net_core.h>
-
+#include "mqttc.h"
 #include "net_time.h"
 
-#include "mqttc.h"
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
 
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/net/net_core.h>
+#include <zephyr/net/socket.h>
+#include <zephyr/sys/util.h>
+
+#include <poll.h>
+#include <sys/eventfd.h>
+#include <unistd.h>
 LOG_MODULE_REGISTER(cloud, LOG_LEVEL_INF);
 
 #define AWS_THREAD_STACK_SIZE 4096u
 
 static void task(void *_a, void *_b, void *_c);
 
-K_THREAD_DEFINE(cloud_thread, AWS_THREAD_STACK_SIZE, task,
-		NULL, NULL, NULL, K_PRIO_PREEMPT(7), 0, 0);
+K_THREAD_DEFINE(cloud_thread,
+		AWS_THREAD_STACK_SIZE,
+		task,
+		NULL,
+		NULL,
+		NULL,
+		K_PRIO_PREEMPT(7),
+		0,
+		0);
 
 extern int cloud_app_init(void);
 extern int cloud_app_process(atomic_val_t flags);
@@ -49,7 +50,7 @@ struct cloud_platform *cloud_platform_get(void)
 }
 
 #define FDS_MQTT 0u
-#define FDS_APP 1u
+#define FDS_APP	 1u
 
 static struct pollfd fds[2u];
 
@@ -95,9 +96,11 @@ enum cloud_state state = STATE_INIT;
 static void set_state(enum cloud_state new_state)
 {
 	if (state != new_state) {
-		LOG_INF("State changed: %s (%d) -> %s (%d)", 
-			cloud_state_to_str(state), state, 
-			cloud_state_to_str(new_state), new_state);
+		LOG_INF("State changed: %s (%d) -> %s (%d)",
+			cloud_state_to_str(state),
+			state,
+			cloud_state_to_str(new_state),
+			new_state);
 		state = new_state;
 	}
 }
@@ -107,8 +110,7 @@ static bool state_machine(void)
 	int ret = 0;
 
 	switch (state) {
-	case STATE_INIT:
-	{
+	case STATE_INIT: {
 		/* Initialize the MQTT client */
 		ret = mqttc_init();
 		if (ret == 0) {
@@ -119,22 +121,20 @@ static bool state_machine(void)
 		}
 		break;
 	}
-	case STATE_RESOLVE_HOST:
-	{
+	case STATE_RESOLVE_HOST: {
 		/* Resolve the host name */
 		ret = mqttc_resolve_broker();
 		if (ret == 0) {
 			set_state(STATE_CONNECTING);
 		} else {
 			LOG_WRN("Failed to resolve host err=%d", ret);
-			
+
 			/* Try again regularly */
 			k_sleep(K_SECONDS(10));
 		}
 		break;
 	}
-	case STATE_CONNECTING:
-	{
+	case STATE_CONNECTING: {
 		/* Try to connect to the MQTT broker */
 		if (mqttc_try_connect(MQTTC_TRY_CONNECT_FOREVER) == 0) {
 			mqttc_set_pollfd(&fds[FDS_MQTT]);
@@ -148,18 +148,18 @@ static bool state_machine(void)
 		}
 		break;
 	}
-	case STATE_CONNECTED:
-	{
+	case STATE_CONNECTED: {
 		/* Wait for events */
 		int timeout = mqttc_keepalive_time_left();
-		ret = poll(fds, 2u, timeout);
+		ret	    = poll(fds, 2u, timeout);
 		if (ret >= 0) {
 			if (mqttc_process(&fds[FDS_MQTT]) < 0) {
 				set_state(STATE_DISCONNECTING);
 				cloud_app_cleanup();
 			}
 
-			/* Check whether the application function can be called */
+			/* Check whether the application function can be called
+			 */
 			if (mqttc_ready() == false) {
 				fds[FDS_APP].events &= ~POLLIN;
 				fds[FDS_APP].revents &= ~POLLIN;
@@ -167,7 +167,8 @@ static bool state_machine(void)
 				fds[FDS_APP].events |= POLLIN;
 			}
 
-			/* Check whether the application function should be called */
+			/* Check whether the application function should be
+			 * called */
 			if (fds[FDS_APP].revents & POLLIN) {
 				/* Clear the event */
 				eventfd_t _val;
@@ -180,23 +181,20 @@ static bool state_machine(void)
 				}
 			}
 
-
 		} else {
 			LOG_ERR("poll failed: %d", ret);
 			set_state(STATE_ERROR);
 		}
 		break;
 	}
-	case STATE_DISCONNECTING:
-	{
+	case STATE_DISCONNECTING: {
 		mqttc_disconnect();
 
 		set_state(STATE_DISCONNECTED);
 
 		break;
 	}
-	case STATE_DISCONNECTED:
-	{
+	case STATE_DISCONNECTED: {
 		mqttc_cleanup();
 
 		set_state(STATE_INIT);
@@ -229,7 +227,7 @@ static void task(void *_a, void *_b, void *_c)
 		goto exit;
 	}
 
-	fds[FDS_APP].fd = appfd;
+	fds[FDS_APP].fd	    = appfd;
 	fds[FDS_APP].events = POLLIN;
 
 	for (;;) {

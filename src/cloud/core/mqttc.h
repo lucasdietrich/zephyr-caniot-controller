@@ -7,10 +7,10 @@
 #ifndef _CLOUD_MQTTC_H_
 #define _CLOUD_MQTTC_H_
 
-#include <zephyr/kernel.h>
-
-#include "utils/buffers.h"
 #include "poll.h"
+#include "utils/buffers.h"
+
+#include <zephyr/kernel.h>
 
 #define MQTTC_TRY_CONNECT_FOREVER (-1)
 
@@ -35,22 +35,18 @@ int mqttc_keepalive_time_left(void);
 
 int mqttc_process(struct pollfd *fds);
 
-int mqttc_set_publish_cb(mqttc_on_publish_cb_t cb,
-			    void *user_data);
+int mqttc_set_publish_cb(mqttc_on_publish_cb_t cb, void *user_data);
 
 int mqttc_subscribe(const char *topic, uint8_t qos);
 
-int mqttc_publish(const char *topic, 
-		  const char *payload, 
-		  size_t len,
-		  int qos);
+int mqttc_publish(const char *topic, const char *payload, size_t len, int qos);
 
 /**
- * @brief Return whether the MQTT client is connected to the broker 
+ * @brief Return whether the MQTT client is connected to the broker
  * and ready to publish or subscribe.
- * 
- * @return true 
- * @return false 
+ *
+ * @return true
+ * @return false
  */
 bool mqttc_ready(void);
 

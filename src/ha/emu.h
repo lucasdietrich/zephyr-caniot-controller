@@ -10,9 +10,9 @@
  * @brief Emulate devices data source
  * @version 0.1
  * @date 2022-08-09
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 
 #ifndef _HA_EMU_H_

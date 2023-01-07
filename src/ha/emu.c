@@ -5,12 +5,11 @@
  */
 
 #include "emu.h"
+#include "net_time.h"
+#include "system.h"
 
 #include <zephyr/kernel.h>
 #include <zephyr/random/rand32.h>
-
-#include "net_time.h"
-#include "system.h"
 
 #if defined(CONFIG_APP_CANIOT_CONTROLLER)
 #include "caniot_controller.h"
@@ -18,23 +17,23 @@
 
 #include "ha/core/ha.h"
 #include "ha/core/room.h"
-#include "ha/devices/xiaomi.h"
 #include "ha/core/subs_extended.h"
-
-#include <caniot/device.h>
+#include "ha/devices/xiaomi.h"
 
 #include <zephyr/logging/log.h>
+
+#include <caniot/device.h>
 LOG_MODULE_REGISTER(ha_emu, LOG_LEVEL_INF);
 
-#define EMU_BLE_RDM_MIN_MS 		1000
-#define EMU_BLE_RDM_MAX_MS 		1000
-#define EMU_CAN_BROADCAST_RDM_MS 	1000
-#define EMU_CAN_CMD_RDM_MS 		1000
+#define EMU_BLE_RDM_MIN_MS	 1000
+#define EMU_BLE_RDM_MAX_MS	 1000
+#define EMU_CAN_BROADCAST_RDM_MS 1000
+#define EMU_CAN_CMD_RDM_MS	 1000
 
 #define PRODUCER_THREADS_START_DELAY_MS 2000u
 #define CONSUMER_THREADS_START_DELAY_MS 3000u
-#define COMMAND_THREADS_START_DELAY_MS 3000u
-#define CANIOT_THREADS_START_DELAY_MS 1000u
+#define COMMAND_THREADS_START_DELAY_MS	3000u
+#define CANIOT_THREADS_START_DELAY_MS	1000u
 
 static uint32_t get_rdm_delay_ms(uint32_t min, uint32_t max)
 {
@@ -56,68 +55,292 @@ void emu_caniot_broadcast_thread(void *_a, void *_b, void *_c);
 void emu_caniot_cmd_thread(void *_a, void *_b, void *_c);
 void emu_caniot_devices_thread(void *_a, void *_b, void *_c);
 
-K_THREAD_DEFINE(emu_ble_device1, 1024u, emu_ble_device, 1, NULL, NULL,
-		K_PRIO_COOP(4u), 0u, PRODUCER_THREADS_START_DELAY_MS);
-K_THREAD_DEFINE(emu_ble_device2, 1024u, emu_ble_device, NULL, NULL, NULL,
-		K_PRIO_COOP(4u), 0u, PRODUCER_THREADS_START_DELAY_MS);
-K_THREAD_DEFINE(emu_ble_device3, 1024u, emu_ble_device, NULL, NULL, NULL,
-		K_PRIO_COOP(4u), 0u, PRODUCER_THREADS_START_DELAY_MS);
+K_THREAD_DEFINE(emu_ble_device1,
+		1024u,
+		emu_ble_device,
+		1,
+		NULL,
+		NULL,
+		K_PRIO_COOP(4u),
+		0u,
+		PRODUCER_THREADS_START_DELAY_MS);
+K_THREAD_DEFINE(emu_ble_device2,
+		1024u,
+		emu_ble_device,
+		NULL,
+		NULL,
+		NULL,
+		K_PRIO_COOP(4u),
+		0u,
+		PRODUCER_THREADS_START_DELAY_MS);
+K_THREAD_DEFINE(emu_ble_device3,
+		1024u,
+		emu_ble_device,
+		NULL,
+		NULL,
+		NULL,
+		K_PRIO_COOP(4u),
+		0u,
+		PRODUCER_THREADS_START_DELAY_MS);
 
-K_THREAD_DEFINE(emu_consumer1, 1024u, emu_consumer, NULL, NULL, NULL,
-		K_PRIO_COOP(4u), 0u, CONSUMER_THREADS_START_DELAY_MS);
-K_THREAD_DEFINE(emu_consumer2, 1024u, emu_consumer, NULL, NULL, NULL,
-		K_PRIO_COOP(4u), 0u, CONSUMER_THREADS_START_DELAY_MS);
-K_THREAD_DEFINE(emu_consumer3, 1024u, emu_consumer, NULL, NULL, NULL,
-		K_PRIO_COOP(4u), 0u, CONSUMER_THREADS_START_DELAY_MS);
-K_THREAD_DEFINE(emu_consumer4, 1024u, emu_consumer, NULL, NULL, NULL,
-		K_PRIO_COOP(4u), 0u, CONSUMER_THREADS_START_DELAY_MS);
+K_THREAD_DEFINE(emu_consumer1,
+		1024u,
+		emu_consumer,
+		NULL,
+		NULL,
+		NULL,
+		K_PRIO_COOP(4u),
+		0u,
+		CONSUMER_THREADS_START_DELAY_MS);
+K_THREAD_DEFINE(emu_consumer2,
+		1024u,
+		emu_consumer,
+		NULL,
+		NULL,
+		NULL,
+		K_PRIO_COOP(4u),
+		0u,
+		CONSUMER_THREADS_START_DELAY_MS);
+K_THREAD_DEFINE(emu_consumer3,
+		1024u,
+		emu_consumer,
+		NULL,
+		NULL,
+		NULL,
+		K_PRIO_COOP(4u),
+		0u,
+		CONSUMER_THREADS_START_DELAY_MS);
+K_THREAD_DEFINE(emu_consumer4,
+		1024u,
+		emu_consumer,
+		NULL,
+		NULL,
+		NULL,
+		K_PRIO_COOP(4u),
+		0u,
+		CONSUMER_THREADS_START_DELAY_MS);
 
 /* Enable this to force devices to respond */
-// K_THREAD_DEFINE(emu_caniot_broadcast_thread1, 1024u, emu_caniot_broadcast_thread, NULL, NULL, NULL,
-// 		K_PRIO_COOP(4u), 0u, COMMAND_THREADS_START_DELAY_MS);
+// K_THREAD_DEFINE(emu_caniot_broadcast_thread1, 1024u,
+// emu_caniot_broadcast_thread, NULL, NULL, NULL, 		K_PRIO_COOP(4u),
+// 0u, COMMAND_THREADS_START_DELAY_MS);
 
-// K_THREAD_DEFINE(emu_caniot_cmd_thread1, 1024u, emu_caniot_cmd_thread, NULL, NULL, NULL,
-// 		K_PRIO_COOP(4u), 0u, COMMAND_THREADS_START_DELAY_MS);
+// K_THREAD_DEFINE(emu_caniot_cmd_thread1, 1024u, emu_caniot_cmd_thread, NULL,
+// NULL, NULL, 		K_PRIO_COOP(4u), 0u, COMMAND_THREADS_START_DELAY_MS);
 
-K_THREAD_DEFINE(emu_caniot_devices_thread1, 1024u, emu_caniot_devices_thread, NULL, NULL, NULL,
-		K_PRIO_COOP(4u), 0u, CANIOT_THREADS_START_DELAY_MS);
+K_THREAD_DEFINE(emu_caniot_devices_thread1,
+		1024u,
+		emu_caniot_devices_thread,
+		NULL,
+		NULL,
+		NULL,
+		K_PRIO_COOP(4u),
+		0u,
+		CANIOT_THREADS_START_DELAY_MS);
 
-#define EMU_BLE_ADDR_INIT(_type, _last) \
-	{ _type, { { 0xFF, 0xFF, 0xFF, 0x00, 0x00, _last } } }
+#define EMU_BLE_ADDR_INIT(_type, _last)                                                  \
+	{                                                                                \
+		_type,                                                                   \
+		{                                                                        \
+			{                                                                \
+				0xFF, 0xFF, 0xFF, 0x00, 0x00, _last                      \
+			}                                                                \
+		}                                                                        \
+	}
 
 static const bt_addr_le_t addrs[] = {
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 1u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 2u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 3u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 4u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 5u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 6u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 7u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 8u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 9u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 10u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 11u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 12u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 13u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 14u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 15u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 16u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 17u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 18u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 19u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 20u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 21u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 22u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 23u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 24u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 25u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 26u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 27u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 28u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 29u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 30u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 31u),
-	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0, XIAOMI_BT_LE_ADDR_1, XIAOMI_BT_LE_ADDR_2, 0x0Au, 0x1Eu, 32u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  1u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  2u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  3u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  4u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  5u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  6u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  7u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  8u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  9u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  10u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  11u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  12u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  13u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  14u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  15u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  16u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  17u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  18u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  19u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  20u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  21u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  22u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  23u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  24u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  25u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  26u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  27u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  28u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  29u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  30u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  31u),
+	HA_BT_ADDR_LE_PUBLIC_INIT(XIAOMI_BT_LE_ADDR_0,
+				  XIAOMI_BT_LE_ADDR_1,
+				  XIAOMI_BT_LE_ADDR_2,
+				  0x0Au,
+				  0x1Eu,
+				  32u),
 };
 
 void emu_ble_device(void *_a, void *_b, void *_c)
@@ -125,24 +348,24 @@ void emu_ble_device(void *_a, void *_b, void *_c)
 	int ret;
 	xiaomi_record_t record;
 
-	for (uint32_t i = 0u;;i++) {
+	for (uint32_t i = 0u;; i++) {
 		/* Choose a fake address */
 		bt_addr_le_copy(&record.addr, &addrs[i % ARRAY_SIZE(addrs)]);
 
 		/* Populate with fake data */
-		record.time = sys_time_get();
+		record.time			  = sys_time_get();
 		record.measurements.battery_level = i % 100;
-		record.measurements.battery_mv = (i % 100) * 3.3;
-		record.measurements.humidity = i % 1000;
-		record.measurements.temperature = i % 1000;
-		record.measurements.rssi = i % 100;
-		
+		record.measurements.battery_mv	  = (i % 100) * 3.3;
+		record.measurements.humidity	  = i % 1000;
+		record.measurements.temperature	  = i % 1000;
+		record.measurements.rssi	  = i % 100;
+
 		/* Register the data to the device */
 		ret = ha_dev_xiaomi_register_record(&record);
 
 		/* Next emu measurement in */
-		const uint32_t next = get_rdm_delay_ms(EMU_BLE_RDM_MIN_MS,
-						 EMU_BLE_RDM_MAX_MS);
+		const uint32_t next =
+			get_rdm_delay_ms(EMU_BLE_RDM_MIN_MS, EMU_BLE_RDM_MAX_MS);
 		k_sleep(K_MSEC(next));
 	}
 }
@@ -154,11 +377,8 @@ void emu_consumer(void *_a, void *_b, void *_c)
 	ha_ev_subs_t *sub;
 	ha_ev_t *event;
 
-
-	struct ha_ev_subs_conf conf = {
-		.flags = HA_EV_SUBS_CONF_DEVICE_TYPE,
-		.device_type = HA_DEV_TYPE_XIAOMI_MIJIA
-	};
+	struct ha_ev_subs_conf conf = {.flags	    = HA_EV_SUBS_CONF_DEVICE_TYPE,
+				       .device_type = HA_DEV_TYPE_XIAOMI_MIJIA};
 
 	ha_subs_ext_conf_set(&conf,
 			     &lt,
@@ -168,29 +388,36 @@ void emu_consumer(void *_a, void *_b, void *_c)
 
 	int ret = ha_subscribe(&conf, &sub);
 	if (ret != 0) {
-		LOG_ERR("(thread %p) Failed to subscribe to events, ret=%d", 
-			_current, ret);
+		LOG_ERR("(thread %p) Failed to subscribe to events, ret=%d",
+			_current,
+			ret);
 		return;
 	}
 
-	for (uint32_t i = 0u;;i++) {
+	for (uint32_t i = 0u;; i++) {
 		event = ha_ev_wait(sub, K_MSEC(get_rdm_delay_ms_1()));
 
 		if (event != NULL) {
-			LOG_DBG("(thread %p) ev %p (refc = %u) - dev=%p time=%u temp=%d",
-				_current, event, (uint32_t)atomic_get(&event->ref_count),
+			LOG_DBG("(thread %p) ev %p (refc = %u) - dev=%p "
+				"time=%u temp=%d",
+				_current,
+				event,
+				(uint32_t)atomic_get(&event->ref_count),
 				event->dev,
 				event->timestamp,
 				((struct ha_ds_xiaomi *)event->data)->temperature.value);
 
 			if (event->dev && event->dev->room) {
-				LOG_DBG("(%p %p %p) Room: %s", event, event->dev, 
-					event->dev->room, event->dev->room->name);
+				LOG_DBG("(%p %p %p) Room: %s",
+					event,
+					event->dev,
+					event->dev->room,
+					event->dev->room->name);
 			}
 
 			ha_ev_unref(event);
 		}
-		
+
 		/* Remove this delay because it could lead to a huge memory
 		 * consumption if the thread doesn't consume events fast enough.
 		 */
@@ -244,8 +471,8 @@ void emu_caniot_cmd_thread(void *_a, void *_b, void *_c)
 			buf[i] = 1u;
 		}
 
-		caniot_build_query_command(&req, CANIOT_ENDPOINT_BOARD_CONTROL,
-					   buf, sizeof(buf));
+		caniot_build_query_command(
+			&req, CANIOT_ENDPOINT_BOARD_CONTROL, buf, sizeof(buf));
 
 		ret = ha_ciot_ctrl_query(&req, &resp, did, &timeout);
 
@@ -302,37 +529,35 @@ K_MSGQ_DEFINE(emu_caniot_rxq, sizeof(struct caniot_frame), 2u, 4u);
 struct caniot_config default_config = CANIOT_CONFIG_DEFAULT_INIT();
 
 const struct caniot_api emu_caniot_api = {
-	.config.on_read = NULL,
-	.config.on_write = NULL,
-	.custom_attr.read = NULL,
+	.config.on_read	   = NULL,
+	.config.on_write   = NULL,
+	.custom_attr.read  = NULL,
 	.custom_attr.write = NULL,
 	.telemetry_handler = caniot_emu_telem,
-	.command_handler = caniot_emu_cmd,
+	.command_handler   = caniot_emu_cmd,
 };
 
 void emu_caniot_device_init(struct emu_caniot_device *emu_dev)
 {
 	memcpy(&emu_dev->config, &default_config, sizeof(struct caniot_config));
 
-	emu_dev->dev.api = &emu_caniot_api;
-	emu_dev->dev.config = &emu_dev->config;
+	emu_dev->dev.api		     = &emu_caniot_api;
+	emu_dev->dev.config		     = &emu_dev->config;
 	emu_dev->dev.flags.request_telemetry = 0u;
-	emu_dev->dev.identification = &emu_dev->id;
+	emu_dev->dev.identification	     = &emu_dev->id;
 	caniot_device_system_reset(&emu_dev->dev);
 	emu_dev->state = 0ull;
 }
 
-#define EMU_CANIOT_ID(_cls, _did, _magic, _name) \
-	{ \
-		.did = CANIOT_DID(_cls, _did), \
-		.magic_number = _magic, \
-		.name = _name, \
-		.version = CANIOT_VERSION, \
+#define EMU_CANIOT_ID(_cls, _did, _magic, _name)                                         \
+	{                                                                                \
+		.did = CANIOT_DID(_cls, _did), .magic_number = _magic, .name = _name,    \
+		.version = CANIOT_VERSION,                                               \
 	}
 
-#define EMU_CANIOT(_cls, _did, _magic, _name) \
-	{ \
-		.id = EMU_CANIOT_ID(_cls, _did, _magic, _name), \
+#define EMU_CANIOT(_cls, _did, _magic, _name)                                            \
+	{                                                                                \
+		.id = EMU_CANIOT_ID(_cls, _did, _magic, _name),                          \
 	}
 
 struct emu_caniot_device caniot_devices[] = {
@@ -418,17 +643,20 @@ void emu_caniot_devices_thread(void *_a, void *_b, void *_c)
 
 	for (;;) {
 		ret = k_msgq_get(&emu_caniot_txq, &req, K_FOREVER);
-		if (ret) goto error;
+		if (ret)
+			goto error;
 
 		for (emu_dev = caniot_devices;
 		     emu_dev < caniot_devices + ARRAY_SIZE(caniot_devices);
 		     emu_dev++) {
 			if (caniot_deviceid_match(emu_dev->id.did,
 						  CANIOT_DID(req.id.cls, req.id.sid))) {
-				ret = caniot_device_handle_rx_frame(&emu_dev->dev, &req, &resp);
+				ret = caniot_device_handle_rx_frame(
+					&emu_dev->dev, &req, &resp);
 
 				ret = k_msgq_put(&emu_caniot_rxq, &resp, K_FOREVER);
-				if (ret) goto error;
+				if (ret)
+					goto error;
 			}
 		}
 	}

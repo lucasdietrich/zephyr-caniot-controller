@@ -11,5 +11,4 @@
 
 /* off-zephyr checks and configuration */
 
-
 #endif /* _APP_CONFIG_H_ */

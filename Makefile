@@ -136,3 +136,6 @@ http_routes_generate:
 
 zephyr_conf_synthesis:
 	python3 ./scripts/zephyr_conf_parser.py
+
+format:
+	find src -iname *.h -o -iname *.c -o -iname *.cpp | xargs clang-format -i

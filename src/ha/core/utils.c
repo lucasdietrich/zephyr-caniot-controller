@@ -8,23 +8,21 @@
 #include "utils/misc.h"
 
 #if defined(CONFIG_CANIOT_LIB)
-int zcan_to_caniot(const struct can_frame *zcan,
-		   struct caniot_frame *caniot)
+int zcan_to_caniot(const struct can_frame *zcan, struct caniot_frame *caniot)
 {
 	if ((zcan == NULL) || (caniot == NULL)) {
 		return -EINVAL;
 	}
 
 	caniot_clear_frame(caniot);
-	caniot->id = caniot_canid_to_id((uint16_t)zcan->id);
+	caniot->id  = caniot_canid_to_id((uint16_t)zcan->id);
 	caniot->len = MIN(zcan->dlc, 8U);
 	memcpy(caniot->buf, zcan->data, caniot->len);
 
 	return 0U;
 }
 
-int caniot_to_zcan(struct can_frame *zcan,
-		   const struct caniot_frame *caniot)
+int caniot_to_zcan(struct can_frame *zcan, const struct caniot_frame *caniot)
 {
 	if ((zcan == NULL) || (caniot == NULL)) {
 		return -EINVAL;
@@ -32,7 +30,7 @@ int caniot_to_zcan(struct can_frame *zcan,
 
 	memset(zcan, 0x00U, sizeof(struct can_frame));
 
-	zcan->id = caniot_id_to_canid(caniot->id);
+	zcan->id  = caniot_id_to_canid(caniot->id);
 	zcan->dlc = MIN(caniot->len, 8U);
 	memcpy(zcan->data, caniot->buf, zcan->dlc);
 
@@ -58,27 +56,21 @@ static int string_get_index_in_list(const char *str, const char *const *list)
 
 int ha_parse_ss_command(const char *str)
 {
-	static const char *const cmds[] = {
-		"none",
-		"set",
-		NULL
-	};
+	static const char *const cmds[] = {"none", "set", NULL};
 	return MAX(0, string_get_index_in_list(str, cmds));
 }
 
 int ha_parse_xps_command(const char *str)
 {
-	static const char *const cmds[] = {
-		"none",
-		"set_on",
-		"set_off",
-		"toggle",
-		"reset",
-		"pulse_on",
-		"pulse_off",
-		"pulse_cancel",
-		NULL
-	};
+	static const char *const cmds[] = {"none",
+					   "set_on",
+					   "set_off",
+					   "toggle",
+					   "reset",
+					   "pulse_on",
+					   "pulse_off",
+					   "pulse_cancel",
+					   NULL};
 	return MAX(0, string_get_index_in_list(str, cmds));
 }
 

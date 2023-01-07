@@ -7,12 +7,12 @@
 #ifndef _HTTP_UTILS_H_
 #define _HTTP_UTILS_H_
 
-#include <stdint.h>
+#include "utils/buffers.h"
+
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-
-#include "utils/buffers.h"
 
 /* https://www.geeksforgeeks.org/http-headers-content-type/ */
 typedef enum {
@@ -33,16 +33,16 @@ typedef enum {
 
 typedef enum {
 	/* 400 */
-	HTTP_STATUS_OK = 200,
-	HTTP_STATUS_CREATED = 201,
-	HTTP_STATUS_ACCEPTED = 202,
+	HTTP_STATUS_OK	       = 200,
+	HTTP_STATUS_CREATED    = 201,
+	HTTP_STATUS_ACCEPTED   = 202,
 	HTTP_STATUS_NO_CONTENT = 204,
 
 	/* 400 */
-	HTTP_STATUS_BAD_REQUEST = 400,
+	HTTP_STATUS_BAD_REQUEST	 = 400,
 	HTTP_STATUS_UNAUTHORIZED = 401,
-	HTTP_STATUS_FORBIDDEN = 403,
-	HTTP_STATUS_NOT_FOUND = 404,
+	HTTP_STATUS_FORBIDDEN	 = 403,
+	HTTP_STATUS_NOT_FOUND	 = 404,
 	// HTTP_STATUS_METHOD_NOT_ALLOWED = 405,
 	// HTTP_STATUS_NOT_ACCEPTABLE = 406,
 	HTTP_STATUS_REQUEST_TIMEOUT = 408,
@@ -51,30 +51,30 @@ typedef enum {
 	HTTP_STATUS_LENGTH_REQUIRED = 411,
 	// HTTP_STATUS_PRECONDITION_FAILED = 412,
 	HTTP_STATUS_REQUEST_ENTITY_TOO_LARGE = 413,
-	HTTP_STATUS_REQUEST_URI_TOO_LONG = 414,
-	HTTP_STATUS_UNSUPPORTED_MEDIA_TYPE = 415,
+	HTTP_STATUS_REQUEST_URI_TOO_LONG     = 414,
+	HTTP_STATUS_UNSUPPORTED_MEDIA_TYPE   = 415,
 	// HTTP_STATUS_RANGE_NOT_SATISFIABLE = 416,
 
 	/* 500 */
-	HTTP_STATUS_INTERNAL_SERVER_ERROR = 500,
-	HTTP_STATUS_NOT_IMPLEMENTED = 501,
-	HTTP_STATUS_BAD_GATEWAY = 502,
-	HTTP_STATUS_SERVICE_UNAVAILABLE = 503,
-	HTTP_STATUS_GATEWAY_TIMEOUT = 504,
+	HTTP_STATUS_INTERNAL_SERVER_ERROR      = 500,
+	HTTP_STATUS_NOT_IMPLEMENTED	       = 501,
+	HTTP_STATUS_BAD_GATEWAY		       = 502,
+	HTTP_STATUS_SERVICE_UNAVAILABLE	       = 503,
+	HTTP_STATUS_GATEWAY_TIMEOUT	       = 504,
 	HTTP_STATUS_HTTP_VERSION_NOT_SUPPORTED = 505,
-	HTTP_STATUS_INSUFFICIENT_STORAGE = 507,
+	HTTP_STATUS_INSUFFICIENT_STORAGE       = 507,
 
 } http_status_code_t;
-
 
 int http_encode_status(buffer_t *buf, http_status_code_t status_code);
 
 /**
- * @brief Encode the Content-Length header if content_length is greater or equal than 0
- * 
- * @param buf 
- * @param content_length 
- * @return int 
+ * @brief Encode the Content-Length header if content_length is greater or equal
+ * than 0
+ *
+ * @param buf
+ * @param content_length
+ * @return int
  */
 int http_encode_header_content_length(buffer_t *buf, ssize_t content_length);
 
@@ -159,7 +159,7 @@ struct http_test_context {
 	uint32_t chunk_received_bytes;
 
 	/**
-	 * @brief When called in stream mode, this is the 
+	 * @brief When called in stream mode, this is the
 	 * id of the last chunked processed.
 	 */
 	uint32_t last_chunk_id;
@@ -168,8 +168,8 @@ struct http_test_context {
 	 * @brief When called in message mode, this is the
 	 * number of times the handler is called,
 	 * Should be called once only.
-	 * 
-	 * In stream mode, this is the 
+	 *
+	 * In stream mode, this is the
 	 * expected value for "calls_count" on each call
 	 */
 	uint32_t req_calls_count;
@@ -179,8 +179,9 @@ struct http_test_context {
 	/**
 	 * @brief When called in stream mode:
 	 * - On first call, this is the uptime of the first call.
-	 * - On last call, this contain the difference between the first and last call.
-	 * 
+	 * - On last call, this contain the difference between the first and
+	 * last call.
+	 *
 	 * Ignored in message mode.
 	 */
 	union {
@@ -193,7 +194,7 @@ struct http_test_context {
 	 * @brief Expected request type stream or message
 	 * (decided on the first call)
 	 */
-	uint32_t stream: 1;
+	uint32_t stream : 1;
 
 	/**
 	 * @brief Current test result
@@ -215,7 +216,6 @@ enum http_test_handler {
 	HTTP_TEST_HANDLER_RESP,
 };
 
-
 http_test_result_t http_test_run(struct http_test_context *ctx,
 				 struct http_request *req,
 				 struct http_response *resp,
@@ -225,28 +225,28 @@ const char *http_test_result_to_str(http_test_result_t result);
 
 /**
  * @brief Get extension of a file
- * 
+ *
  * Assumptions:
  * - Extension is the part after the last dot.
  * - Extension is necessarily at the end of the string.
  * - Extension is not case sensitive.
- * 
+ *
  * web/index.0.html -> html
  * index.html -> html
  * readme -> NULL
- * 
- * @param filepath 
- * @return const char* 
+ *
+ * @param filepath
+ * @return const char*
  */
 const char *http_filepath_get_extension(const char *filepath);
 
 /**
  * @brief Get the mime type for the given file extension
- * 
+ *
  * Extension is case insensitive.
- * 
- * @param filepath 
- * @return const char* 
+ *
+ * @param filepath
+ * @return const char*
  */
 http_content_type_t http_get_content_type_from_extension(const char *extension);
 

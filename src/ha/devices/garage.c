@@ -4,20 +4,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr/kernel.h>
+#include "../caniot_controller.h"
+#include "garage.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdbool.h>
 
-#include "garage.h"
+#include <zephyr/kernel.h>
 
 #include <caniot/caniot.h>
 #include <caniot/datatype.h>
 
-#include "../caniot_controller.h"
-
-static const caniot_did_t garage_did = CANIOT_DID(CANIOT_DEVICE_CLASS0, CANIOT_DEVICE_SID4);
+static const caniot_did_t garage_did =
+	CANIOT_DID(CANIOT_DEVICE_CLASS0, CANIOT_DEVICE_SID4);
 
 void ha_dev_garage_cmd_init(struct ha_dev_garage_cmd *cmd)
 {
@@ -50,8 +50,10 @@ int ha_dev_garage_cmd_send(const struct ha_dev_garage_cmd *cmd)
 
 	ha_dev_garage_payload_build(&payload, cmd);
 
-	caniot_build_query_command(&frame, CANIOT_ENDPOINT_BOARD_CONTROL,
-				   (uint8_t *)&payload, sizeof(payload));
+	caniot_build_query_command(&frame,
+				   CANIOT_ENDPOINT_BOARD_CONTROL,
+				   (uint8_t *)&payload,
+				   sizeof(payload));
 
 	return ha_ciot_ctrl_send(&frame, garage_did);
 }

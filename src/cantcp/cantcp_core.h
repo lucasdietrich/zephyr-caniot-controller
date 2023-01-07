@@ -7,9 +7,9 @@
 #ifndef _CANTCP_CORE_H_
 #define _CANTCP_CORE_H_
 
-#include <zephyr/kernel.h>
-
 #include "cantcp.h"
+
+#include <zephyr/kernel.h>
 
 int cantcp_core_tunnel_init(cantcp_tunnel_t *tunnel);
 

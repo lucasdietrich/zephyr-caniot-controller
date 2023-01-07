@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr/kernel.h>
-
 #include "fs_creds.h"
+
+#include <zephyr/kernel.h>
 
 int fs_creds_init(void)
 {

@@ -4,18 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr/kernel.h>
-
-#include <zephyr/drivers/can.h>
-
 #include "cantcp/cantcp.h"
 
+#include <zephyr/drivers/can.h>
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(cantcp_test, LOG_LEVEL_NONE);
 
 void thread(void *_a, void *_b, void *_c);
 
-// K_THREAD_DEFINE(cantest_thread, 0x3000, thread, NULL, NULL, NULL, K_PRIO_PREEMPT(8), 0, 0);
+// K_THREAD_DEFINE(cantest_thread, 0x3000, thread, NULL, NULL, NULL,
+// K_PRIO_PREEMPT(8), 0, 0);
 
 void thread(void *_a, void *_b, void *_c)
 {
@@ -25,7 +24,8 @@ void thread(void *_a, void *_b, void *_c)
 
 	cantcp_client_tunnel_init(&tunnel);
 
-	tunnel.server.hostname = "192.168.10.236"; // "192.168.10.240"  "laptop-dev.local" "192.168.10.225"
+	tunnel.server.hostname = "192.168.10.236"; // "192.168.10.240"  "laptop-dev.local"
+						   // "192.168.10.225"
 	tunnel.server.port = CANTCP_DEFAULT_PORT;
 
 	k_sleep(K_SECONDS(1));
@@ -39,9 +39,9 @@ void thread(void *_a, void *_b, void *_c)
 		}
 
 		frame.id_type = CAN_ID_STD;
-		frame.rtr = CAN_RTR_DATA;
-		frame.id = 1;
-		frame.dlc = 8;
+		frame.rtr     = CAN_RTR_DATA;
+		frame.id      = 1;
+		frame.dlc     = 8;
 		memset(frame.data, 0x55, 8);
 
 		ret = cantcp_send(&tunnel, &frame);

@@ -4,19 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <stddef.h>
-#include <sys/types.h>
-
-#include <zephyr/net/socket.h>
-
 #include "cantcp.h"
 
+#include <stddef.h>
+
 #include <zephyr/logging/log.h>
+#include <zephyr/net/socket.h>
+
+#include <sys/types.h>
 LOG_MODULE_REGISTER(cantcp_core, LOG_LEVEL_WRN);
-
-
-
-
 
 static int sendall(int sock, const uint8_t *buf, size_t len)
 {
@@ -64,21 +60,18 @@ static int recvall(int sock, uint8_t *buf, size_t len)
 	return ret;
 }
 
-
-
-
 int cantcp_core_tunnel_init(cantcp_tunnel_t *tunnel)
 {
 	memset(tunnel, 0U, sizeof(cantcp_tunnel_t));
 
-	tunnel->sock = -1;
-	tunnel->flags.secure = CANTCP_UNSECURE;
+	tunnel->sock		    = -1;
+	tunnel->flags.secure	    = CANTCP_UNSECURE;
 	tunnel->flags.blocking_mode = CANTCP_BLOCKING;
-	tunnel->flags.bus = CANTCP_BUS_DEFAULT;
+	tunnel->flags.bus	    = CANTCP_BUS_DEFAULT;
 
 	tunnel->keep_alive_timeout = CANTCP_DEFAULT_KEEP_ALIVE_TIMEOUT;
-	tunnel->max_retries = CANTCP_DEFAULT_MAX_RETRIES;
-	tunnel->retry_delay = CANTCP_DEFAULT_RETRY_DELAY;
+	tunnel->max_retries	   = CANTCP_DEFAULT_MAX_RETRIES;
+	tunnel->retry_delay	   = CANTCP_DEFAULT_RETRY_DELAY;
 
 	tunnel->server.port = CANTCP_DEFAULT_PORT;
 
@@ -98,11 +91,9 @@ int cantcp_core_send_frame(cantcp_tunnel_t *tunnel, struct can_frame *msg)
 	/* send header */
 	struct {
 		uint16_t length;
-	} header = {
-		.length = get_frame_length(msg)
-	};
+	} header = {.length = get_frame_length(msg)};
 
-	ret = sendall(tunnel->sock, (const void *) &header, sizeof(header));
+	ret = sendall(tunnel->sock, (const void *)&header, sizeof(header));
 	LOG_DBG("sent = %d", ret);
 	if (ret <= 0) {
 		goto exit;
@@ -111,7 +102,7 @@ int cantcp_core_send_frame(cantcp_tunnel_t *tunnel, struct can_frame *msg)
 	sent += ret;
 
 	/* send frame */
-	ret = sendall(tunnel->sock, (const void *) msg, header.length);
+	ret = sendall(tunnel->sock, (const void *)msg, header.length);
 	LOG_DBG("sent = %d", ret);
 	if (ret <= 0) {
 		goto exit;
@@ -132,18 +123,17 @@ int cantcp_core_recv_frame(cantcp_tunnel_t *tunnel, struct can_frame *msg)
 	/* recv header */
 	struct {
 		uint16_t length;
-	} header = {
-		.length = 0U
-	};
-	
-	ret = recvall(tunnel->sock, (void *) &header, sizeof(header));
+	} header = {.length = 0U};
+
+	ret = recvall(tunnel->sock, (void *)&header, sizeof(header));
 	if (ret <= 0) {
 		goto exit;
 	}
 
 	if (header.length != sizeof(struct can_frame)) {
-		LOG_ERR("invalid frame length = %hu, expected %u", 
-			header.length, sizeof(struct can_frame));
+		LOG_ERR("invalid frame length = %hu, expected %u",
+			header.length,
+			sizeof(struct can_frame));
 		ret = -1;
 		goto exit;
 	}
@@ -151,7 +141,7 @@ int cantcp_core_recv_frame(cantcp_tunnel_t *tunnel, struct can_frame *msg)
 	recv += ret;
 
 	/* recv frame */
-	ret = recvall(tunnel->sock, (void *) msg, header.length);
+	ret = recvall(tunnel->sock, (void *)msg, header.length);
 	if (ret <= 0) {
 		goto exit;
 	}
@@ -163,35 +153,25 @@ exit:
 	return ret;
 }
 
-
-
-
-
-typedef enum
-{
-	DATA_FRAME = 0,
-	FILTER_FRAME = 1,
+typedef enum {
+	DATA_FRAME    = 0,
+	FILTER_FRAME  = 1,
 	CONTROL_FRAME = 2,
-	ERROR_FRAME = 3,
+	ERROR_FRAME   = 3,
 } cantcp_frame_type_t;
 
-struct cantcp_control_frame
-{
-	
+struct cantcp_control_frame {
 };
 
-struct cantcp_error_frame
-{
+struct cantcp_error_frame {
 	int error;
 };
 
-struct cantcp_header
-{
+struct cantcp_header {
 	cantcp_frame_type_t frame_type : 2;
 };
 
-struct cantcp_frame
-{
+struct cantcp_frame {
 	struct cantcp_header header;
 
 	union {

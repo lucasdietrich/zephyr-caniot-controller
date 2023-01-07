@@ -12,7 +12,5 @@
 
 const char *mqtt_evt_get_str(enum mqtt_evt_type evt_type);
 
-int resolve_hostname(struct sockaddr_in *addr,
-		     const char *hostname,
-		     uint16_t port);
+int resolve_hostname(struct sockaddr_in *addr, const char *hostname, uint16_t port);
 #endif /* _CLOUD_UTILS_H_ */

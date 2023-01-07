@@ -4,20 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr/kernel.h>
-
-#include <stdio.h>
-#include <malloc.h>
-
-#include <zephyr/drivers/can.h>
-
-#include "ha.h"
-
-#include "net_time.h"
 #include "config.h"
+#include "ha.h"
+#include "net_time.h"
 #include "system.h"
 
+#include <stdio.h>
+
+#include <zephyr/drivers/can.h>
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+
+#include <malloc.h>
 LOG_MODULE_REGISTER(ha_dev, LOG_LEVEL_INF);
 
 // #define HA_DEVICES_IGNORE_UNVERIFIED_DEVICES 1
@@ -33,26 +31,23 @@ struct {
 	uint8_t count;
 	uint32_t sdevuid; /* Session Device Unique ID reference */
 } devices = {
-	.mutex = Z_MUTEX_INITIALIZER(devices.mutex),
-	.count = 0u,
-	.sdevuid = 1u
+	.mutex	 = Z_MUTEX_INITIALIZER(devices.mutex),
+	.count	 = 0u,
+	.sdevuid = 1u,
 };
 
-#define __DEV_CONTEXT_LOCK() k_mutex_lock(&devices.mutex, K_FOREVER)
+#define __DEV_CONTEXT_LOCK()   k_mutex_lock(&devices.mutex, K_FOREVER)
 #define __DEV_CONTEXT_UNLOCK() k_mutex_unlock(&devices.mutex)
 
-static struct ha_stats stats =
-{
-	.mem_ev_remaining = HA_EVENTS_MAX_COUNT,
+static struct ha_stats stats = {
+	.mem_ev_remaining     = HA_EVENTS_MAX_COUNT,
 	.mem_device_remaining = HA_DEVICES_MAX_COUNT,
-	.mem_sub_remaining = HA_SUBSCRIPTIONS_MAX_COUNT,
+	.mem_sub_remaining    = HA_SUBSCRIPTIONS_MAX_COUNT,
 };
 
-typedef int (*addr_cmp_func_t)(const ha_dev_mac_addr_t *a,
-			       const ha_dev_mac_addr_t *b);
+typedef int (*addr_cmp_func_t)(const ha_dev_mac_addr_t *a, const ha_dev_mac_addr_t *b);
 
-typedef int (*addr_str_func_t)(const ha_dev_mac_addr_t *a,
-			       char *str, size_t len);
+typedef int (*addr_str_func_t)(const ha_dev_mac_addr_t *a, char *str, size_t len);
 
 static int internal_caniot_addr_cmp(const ha_dev_mac_addr_t *a,
 				    const ha_dev_mac_addr_t *b)
@@ -60,39 +55,39 @@ static int internal_caniot_addr_cmp(const ha_dev_mac_addr_t *a,
 	return caniot_deviceid_cmp(a->caniot, b->caniot);
 }
 
-static int internal_ble_addr_cmp(const ha_dev_mac_addr_t *a,
-				 const ha_dev_mac_addr_t *b)
+static int internal_ble_addr_cmp(const ha_dev_mac_addr_t *a, const ha_dev_mac_addr_t *b)
 {
 	return bt_addr_le_cmp(&a->ble, &b->ble);
 }
 
-
-static int internal_can_addr_cmp(const ha_dev_mac_addr_t *a,
-				 const ha_dev_mac_addr_t *b)
+static int internal_can_addr_cmp(const ha_dev_mac_addr_t *a, const ha_dev_mac_addr_t *b)
 {
-	const uint32_t id_a = a->can.id & (a->can.ext ? CAN_EXT_ID_MASK : CAN_STD_ID_MASK);
-	const uint32_t id_b = b->can.id & (b->can.ext ? CAN_EXT_ID_MASK : CAN_STD_ID_MASK);
+	const uint32_t id_a =
+		a->can.id & (a->can.ext ? CAN_EXT_ID_MASK : CAN_STD_ID_MASK);
+	const uint32_t id_b =
+		b->can.id & (b->can.ext ? CAN_EXT_ID_MASK : CAN_STD_ID_MASK);
 
 	/* TODO what to do if ext is different? */
 
 	return id_a - id_b;
 }
 
-static int internal_ble_addr_str(const ha_dev_mac_addr_t *a,
-				 char *str, size_t len)
+static int internal_ble_addr_str(const ha_dev_mac_addr_t *a, char *str, size_t len)
 {
 	return bt_addr_le_to_str(&a->ble, str, len);
 }
 
-static int internal_caniot_addr_str(const ha_dev_mac_addr_t *a,
-				    char *str, size_t len)
+static int internal_caniot_addr_str(const ha_dev_mac_addr_t *a, char *str, size_t len)
 {
-	return snprintf(str, len, "0x%x (cls=%u did=%u)", a->caniot,
-			CANIOT_DID_CLS(a->caniot), CANIOT_DID_SID(a->caniot));
+	return snprintf(str,
+			len,
+			"0x%x (cls=%u did=%u)",
+			a->caniot,
+			CANIOT_DID_CLS(a->caniot),
+			CANIOT_DID_SID(a->caniot));
 }
 
-static int internal_can_addr_str(const ha_dev_mac_addr_t *a,
-				 char *str, size_t len)
+static int internal_can_addr_str(const ha_dev_mac_addr_t *a, char *str, size_t len)
 {
 	const uint32_t id = a->can.id & (a->can.ext ? CAN_EXT_ID_MASK : CAN_STD_ID_MASK);
 
@@ -105,18 +100,20 @@ struct mac_funcs {
 };
 
 #define MAC_FUNCS_CANIOT 0u
-#define MAC_FUNCS_BLE 1u
+#define MAC_FUNCS_BLE	 1u
 
 static const struct mac_funcs mac_medium_funcs[] = {
-	[HA_DEV_MEDIUM_CAN] = {.cmp = internal_can_addr_cmp, .str = internal_can_addr_str },
-	[HA_DEV_MEDIUM_BLE] = {.cmp = internal_ble_addr_cmp, .str = internal_ble_addr_str },
+	[HA_DEV_MEDIUM_CAN] = {.cmp = internal_can_addr_cmp,
+			       .str = internal_can_addr_str},
+	[HA_DEV_MEDIUM_BLE] = {.cmp = internal_ble_addr_cmp,
+			       .str = internal_ble_addr_str},
 };
 
 /* Overload the medium mac address functions */
 static const struct mac_funcs mac_type_funcs[] = {
-	[HA_DEV_TYPE_CANIOT] = {.cmp = internal_caniot_addr_cmp, .str = internal_caniot_addr_str },
+	[HA_DEV_TYPE_CANIOT] = {.cmp = internal_caniot_addr_cmp,
+				.str = internal_caniot_addr_str},
 };
-
 
 static addr_cmp_func_t get_mac_medium_cmp_func(ha_dev_medium_type_t medium)
 {
@@ -166,9 +163,7 @@ static addr_str_func_t get_addr_str_func(ha_dev_type_t type, ha_dev_medium_type_
 	return func;
 }
 
-int ha_dev_addr_to_str(const ha_dev_addr_t *addr,
-		       char *buf,
-		       size_t buf_len)
+int ha_dev_addr_to_str(const ha_dev_addr_t *addr, char *buf, size_t buf_len)
 {
 	if (!buf || !buf_len) {
 		return -EINVAL;
@@ -187,7 +182,7 @@ int ha_dev_addr_to_str(const ha_dev_addr_t *addr,
 static bool addr_valid(const ha_dev_addr_t *addr)
 {
 	return (addr->type != HA_DEV_TYPE_NONE) &&
-		(get_addr_cmp_func(addr->type, addr->mac.medium) != NULL);
+	       (get_addr_cmp_func(addr->type, addr->mac.medium) != NULL);
 }
 
 static int addr_cmp(const ha_dev_addr_t *a1, const ha_dev_addr_t *a2)
@@ -209,8 +204,7 @@ static ha_dev_t *get_device_by_addr(const ha_dev_addr_t *addr)
 	addr_cmp_func_t cmp = get_addr_cmp_func(addr->type, addr->mac.medium);
 
 	if (cmp != NULL) {
-		for (ha_dev_t *dev = devices.list;
-		     dev < devices.list + devices.count;
+		for (ha_dev_t *dev = devices.list; dev < devices.list + devices.count;
 		     dev++) {
 			/* Device medium should match and
 			 * MAC address should match */
@@ -229,9 +223,7 @@ static ha_dev_t *get_first_device_by_type(ha_dev_type_t type)
 {
 	ha_dev_t *device = NULL;
 
-	for (ha_dev_t *dev = devices.list;
-	     dev < devices.list + devices.count;
-	     dev++) {
+	for (ha_dev_t *dev = devices.list; dev < devices.list + devices.count; dev++) {
 		if (dev->addr.type == type) {
 			device = dev;
 			break;
@@ -250,15 +242,14 @@ ha_dev_t *ha_dev_get_by_addr(const ha_dev_addr_t *addr)
 		device = get_device_by_addr(addr);
 	} else {
 		/* if medium type is not set, device should be
-		* differienciated using their device_type */
+		 * differienciated using their device_type */
 		device = get_first_device_by_type(addr->type);
 	}
 
 	return device;
 }
 
-int ha_dev_addr_cmp(const ha_dev_addr_t *a,
-		    const ha_dev_addr_t *b)
+int ha_dev_addr_cmp(const ha_dev_addr_t *a, const ha_dev_addr_t *b)
 {
 	if (addr_valid(a) && addr_valid(b)) {
 		return addr_cmp(a, b);
@@ -315,8 +306,8 @@ static ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 
 	ha_dev_clear(dev);
 
-	dev->sdevuid = devices.sdevuid;
-	dev->addr = *addr;
+	dev->sdevuid		  = devices.sdevuid;
+	dev->addr		  = *addr;
 	dev->registered_timestamp = sys_time_get();
 
 	dev->api = ha_device_get_default_api(addr->type);
@@ -329,13 +320,12 @@ static ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 
 	/* Clear endpoints */
 	for (int i = 0; i < HA_DEV_ENDPOINT_MAX_COUNT; i++) {
-		dev->endpoints[i].api = NULL;
+		dev->endpoints[i].api		  = NULL;
 		dev->endpoints[i].last_data_event = NULL;
 	}
 
-	const int ret = dev->api->init_endpoints(&dev->addr,
-						 dev->endpoints,
-						 &dev->endpoints_count);
+	const int ret = dev->api->init_endpoints(
+		&dev->addr, dev->endpoints, &dev->endpoints_count);
 	if (ret < 0) {
 		stats.dev_dropped++;
 		stats.dev_ep_init++;
@@ -354,7 +344,8 @@ static ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 		stats.dev_dropped++;
 		stats.dev_toomuch_ep++;
 		LOG_ERR("Too many endpoints (%hhu) defined for device addr %p",
-			dev->endpoints_count, addr);
+			dev->endpoints_count,
+			addr);
 		goto exit;
 	}
 
@@ -426,7 +417,7 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 	}
 
 	struct ha_device_endpoint *ep = NULL;
-	struct ha_event *ev = NULL;
+	struct ha_event *ev	      = NULL;
 
 	if (filter->flags & HA_DEV_FILTER_DATA_EXIST) {
 		if (filter->endpoint_id == HA_DEV_ENDPOINT_NONE) {
@@ -465,7 +456,7 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 
 static uint32_t dev_ep_lock_ev_mask(ha_dev_t *dev, uint32_t mask)
 {
-	uint32_t ep_index = 0u;
+	uint32_t ep_index    = 0u;
 	uint32_t locked_mask = 0u;
 	while (mask) {
 		if (ep_index < dev->endpoints_count) {
@@ -507,7 +498,7 @@ ssize_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 		options = &HA_DEV_ITER_OPT_DEFAULT();
 	}
 
-	ha_dev_t *dev = devices.list;
+	ha_dev_t *dev  = devices.list;
 	ha_dev_t *last = devices.list + devices.count;
 
 	/* Take boundaries into account */
@@ -517,7 +508,8 @@ ssize_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 		}
 
 		if (filter->flags & HA_DEV_FILTER_TO_INDEX) {
-			/* Never go beyond the end of the list of registered devices */
+			/* Never go beyond the end of the list of registered
+			 * devices */
 			last = MIN(last, devices.list + filter->to_index);
 		}
 
@@ -540,13 +532,14 @@ ssize_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 			 * callback wants to keep a reference to it/them.
 			 */
 			/* TODO only lock necessary events and not all */
-			const uint32_t locked_mask = dev_ep_lock_ev_mask(
-				dev, options->ep_lock_last_ev_mask);
+			const uint32_t locked_mask =
+				dev_ep_lock_ev_mask(dev, options->ep_lock_last_ev_mask);
 
-			__DEV_CONTEXT_UNLOCK(); /* TODO, evaluate if good idea */
+			__DEV_CONTEXT_UNLOCK(); /* TODO, evaluate if good idea
+						 */
 
-			/* Mutex should not be locked in application callback context
-			 * as it could last a lot of time */
+			/* Mutex should not be locked in application callback
+			 * context as it could last a lot of time */
 			bool zcontinue = callback(dev, user_data);
 
 			__DEV_CONTEXT_LOCK(); /* TODO, evaluate if good idea */
@@ -585,14 +578,13 @@ static inline void ha_dev_inc_stats_tx(ha_dev_t *dev, uint32_t tx_bytes)
 	dev->stats.tx++;
 }
 
-static int device_process_data(ha_dev_t *dev,
-			       const struct ha_device_payload *pl)
+static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl)
 {
 	__ASSERT_NO_MSG(dev != NULL);
 	__ASSERT_NO_MSG(dev->api != NULL);
 	__ASSERT_NO_MSG(pl->buffer != NULL);
 
-	int ret = -EINVAL;
+	int ret	    = -EINVAL;
 	ha_ev_t *ev = NULL;
 
 	/* Allocate memory */
@@ -605,9 +597,9 @@ static int device_process_data(ha_dev_t *dev,
 		goto exit;
 	}
 
-	ev->data = NULL;
-	ev->dev = dev;
-	ev->type = HA_EV_TYPE_DATA;
+	ev->data      = NULL;
+	ev->dev	      = dev;
+	ev->type      = HA_EV_TYPE_DATA;
 	ev->timestamp = pl->timestamp ? pl->timestamp : sys_time_get();
 	sys_slist_init(&ev->slist);
 
@@ -645,8 +637,12 @@ static int device_process_data(ha_dev_t *dev,
 		dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_PAYLOAD_SIZE;
 		stats.ev_payload_size++;
 		ret = -ENOTSUP;
-		LOG_DBG("(%p) Invalid payload size %u, expected %u for endpoint %u",
-			dev, pl->len, ep_api->expected_payload_size, ep_index);
+		LOG_DBG("(%p) Invalid payload size %u, expected %u for "
+			"endpoint %u",
+			dev,
+			pl->len,
+			ep_api->expected_payload_size,
+			ep_index);
 		goto exit;
 	}
 
@@ -662,7 +658,8 @@ static int device_process_data(ha_dev_t *dev,
 			dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_NO_DATA_MEM;
 			stats.ev_no_data_mem++;
 			LOG_ERR("(%p) Failed to allocate data req len=%u",
-				dev, ep_api->data_size);
+				dev,
+				ep_api->data_size);
 			goto exit;
 		}
 	}
@@ -675,7 +672,6 @@ static int device_process_data(ha_dev_t *dev,
 		LOG_DBG("(%p) Conversion failed reason=%d", dev, ret);
 		goto exit;
 	}
-
 
 	struct ha_device_endpoint *const ep = &dev->endpoints[ep_index];
 
@@ -736,10 +732,8 @@ int ha_dev_register_data(const ha_dev_addr_t *addr,
 	return ret;
 }
 
-
-ha_ev_t *ha_dev_command(const ha_dev_addr_t *addr,
-			struct ha_device_cmd *cmd,
-			k_timeout_t timeout)
+ha_ev_t *
+ha_dev_command(const ha_dev_addr_t *addr, struct ha_device_cmd *cmd, k_timeout_t timeout)
 {
 	return NULL;
 }
@@ -799,7 +793,8 @@ const void *ha_dev_get_last_event_data(ha_dev_t *dev, uint32_t ep)
 	}
 }
 
-/* Subscription structure can be allocated from any thread, so we need to protect it */
+/* Subscription structure can be allocated from any thread, so we need to
+ * protect it */
 K_MEM_SLAB_DEFINE(sub_slab, sizeof(struct ha_ev_subs), HA_SUBSCRIPTIONS_MAX_COUNT, 4);
 
 K_MUTEX_DEFINE(sub_mutex);
@@ -892,7 +887,9 @@ void ha_ev_ref(struct ha_event *event)
 		atomic_val_t prev_val = atomic_inc(&event->ref_count);
 
 		LOG_DBG("[ ev %p ref_count %u ++> %u ]",
-			event, (uint32_t)prev_val, (uint32_t)(prev_val + 1));
+			event,
+			(uint32_t)prev_val,
+			(uint32_t)(prev_val + 1));
 	}
 }
 
@@ -908,12 +905,13 @@ void ha_ev_unref(struct ha_event *event)
 		}
 
 		LOG_DBG("[ ev %p ref_count %u --> %u ]",
-			event, (uint32_t)prev_val, (uint32_t)(prev_val - 1));
+			event,
+			(uint32_t)prev_val,
+			(uint32_t)(prev_val - 1));
 	}
 }
 
-static bool event_match_sub(struct ha_ev_subs *sub,
-			    struct ha_event *event)
+static bool event_match_sub(struct ha_ev_subs *sub, struct ha_event *event)
 {
 	const struct ha_ev_subs_conf *const conf = sub->conf;
 
@@ -924,10 +922,7 @@ static bool event_match_sub(struct ha_ev_subs *sub,
 	}
 
 	if (conf->flags & HA_EV_SUBS_CONF_DEVICE_ADDR) {
-		ha_dev_addr_t addr = {
-			.type = conf->device_type,
-			.mac = conf->device_mac
-		};
+		ha_dev_addr_t addr = {.type = conf->device_type, .mac = conf->device_mac};
 		if (addr_cmp(&addr, &event->dev->addr) != 0) {
 			return false;
 		}
@@ -961,14 +956,14 @@ static bool event_match_sub(struct ha_ev_subs *sub,
 }
 
 /**
- * @brief Notify the event to the subscription event queue if it is listening for it
+ * @brief Notify the event to the subscription event queue if it is listening
+ * for it
  *
  * @param sub
  * @param event
  * @return int 1 if notified, 0 if not, negative value on error
  */
-static int event_notify_single(struct ha_ev_subs *sub,
-			       struct ha_event *event)
+static int event_notify_single(struct ha_ev_subs *sub, struct ha_event *event)
 {
 	int ret = 0;
 
@@ -1001,7 +996,7 @@ int ha_ev_notify_all(struct ha_event *event)
 	struct ha_ev_subs *_dnode, *sub;
 
 	k_mutex_lock(&sub_mutex, K_FOREVER);
-	SYS_DLIST_FOR_EACH_CONTAINER_SAFE(&sub_dlist, sub, _dnode, _handle) {
+	SYS_DLIST_FOR_EACH_CONTAINER_SAFE (&sub_dlist, sub, _dnode, _handle) {
 		ret = event_notify_single(sub, event);
 
 		if (ret == 1) {
@@ -1013,8 +1008,7 @@ int ha_ev_notify_all(struct ha_event *event)
 	k_mutex_unlock(&sub_mutex);
 
 	if (ret < 0) {
-		LOG_ERR("Failed to notify event %p to %p, err=%d",
-			event, sub, ret);
+		LOG_ERR("Failed to notify event %p to %p, err=%d", event, sub, ret);
 	} else {
 		ret = notified;
 	}
@@ -1050,7 +1044,8 @@ static bool subscription_conf_validate(const ha_ev_subs_conf_t *conf)
 			return false;
 		}
 	} else if (conf->on_queued_cb != NULL) {
-		LOG_WRN("on_queued_cb hook set (%p) but HA_EV_SUBS_CONF_ON_QUEUED_HOOK "
+		LOG_WRN("on_queued_cb hook set (%p) but "
+			"HA_EV_SUBS_CONF_ON_QUEUED_HOOK "
 			"flag is missing",
 			conf->on_queued_cb);
 	}
@@ -1071,8 +1066,7 @@ int ha_ev_subs_conf_init(ha_ev_subs_conf_t *conf)
 	return 0;
 }
 
-int ha_subscribe(const ha_ev_subs_conf_t *conf,
-		 struct ha_ev_subs **sub)
+int ha_subscribe(const ha_ev_subs_conf_t *conf, struct ha_ev_subs **sub)
 {
 	int ret;
 	struct ha_ev_subs *psub = NULL;
@@ -1128,7 +1122,8 @@ int ha_unsubscribe(struct ha_ev_subs *sub)
 		k_mutex_unlock(&sub_mutex);
 
 		if (k_fifo_is_empty(&sub->_evq)) {
-			/* TODO how to cancel all threads waiting on this sub ? */
+			/* TODO how to cancel all threads waiting on this sub ?
+			 */
 			k_fifo_cancel_wait(&sub->_evq);
 		} else {
 			/* Empty the fifo if not empty */
@@ -1139,7 +1134,9 @@ int ha_unsubscribe(struct ha_ev_subs *sub)
 				count++;
 			}
 			LOG_WRN("%u events not consumed because of "
-				"unsubscription of %p", count, sub);
+				"unsubscription of %p",
+				count,
+				sub);
 		}
 
 		LOG_DBG("%p unsubscribed", sub);
@@ -1150,8 +1147,7 @@ int ha_unsubscribe(struct ha_ev_subs *sub)
 	return 0;
 }
 
-ha_ev_t *ha_ev_wait(struct ha_ev_subs *sub,
-		    k_timeout_t timeout)
+ha_ev_t *ha_ev_wait(struct ha_ev_subs *sub, k_timeout_t timeout)
 {
 	if ((sub != NULL) && HA_EV_SUBS_CONF_SUBSCRIBED(sub)) {
 		return (ha_ev_t *)k_fifo_get(&sub->_evq, timeout);
@@ -1170,7 +1166,7 @@ void *ha_ev_get_data(const ha_ev_t *event)
 struct ha_room *ha_dev_get_room(ha_dev_t *const dev)
 {
 	struct ha_room_assoc *assoc = NULL;
-	struct ha_room *room = NULL;
+	struct ha_room *room	    = NULL;
 
 	/* Find the room associated to the device */
 	for (uint32_t i = 0u; i < ha_cfg_rooms_assoc_count; i++) {
@@ -1204,8 +1200,7 @@ int ha_stats_copy(struct ha_stats *dest)
 	return 0;
 }
 
-bool ha_dev_endpoint_exists(const ha_dev_t *dev,
-			    uint8_t endpoint_index)
+bool ha_dev_endpoint_exists(const ha_dev_t *dev, uint8_t endpoint_index)
 {
 	return dev && (endpoint_index < dev->endpoints_count);
 }
@@ -1223,14 +1218,12 @@ bool ha_dev_endpoint_has_datatype(const ha_dev_t *dev,
 #if HA_DEV_ENDPOINT_TYPE_SEARCH_OPTIMIZATION
 	return (bool)(ep->_data_types & (1u << datatype));
 #else
-	return ha_data_descr_data_type_has(ep->data_descr,
-					   ep->data_descr_count,
-					   datatype);
+	return ha_data_descr_data_type_has(
+		ep->data_descr, ep->data_descr_count, datatype);
 #endif
 }
 
-bool ha_dev_endpoint_check_data_support(const ha_dev_t *dev,
-					uint8_t endpoint_index)
+bool ha_dev_endpoint_check_data_support(const ha_dev_t *dev, uint8_t endpoint_index)
 {
 	bool support = false;
 
@@ -1244,8 +1237,7 @@ bool ha_dev_endpoint_check_data_support(const ha_dev_t *dev,
 	return support == true;
 }
 
-bool ha_dev_endpoint_check_cmd_support(const ha_dev_t *dev,
-				       uint8_t endpoint_index)
+bool ha_dev_endpoint_check_cmd_support(const ha_dev_t *dev, uint8_t endpoint_index)
 {
 	bool support = false;
 

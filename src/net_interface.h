@@ -13,15 +13,15 @@
 
 /**
  * @brief Initialize network management events (Ethernet, interface, DHCP)
- * 
+ *
  * https://docs.zephyrproject.org/latest/reference/networking/net_mgmt.html#listening-to-network-events
  */
 void net_interface_init(void);
 
 /**
  * @brief Get interface status
- * 
- * @param iface 
+ *
+ * @param iface
  * @return const char* "up" if interface is up, "down" otherwise
  */
 const char *net_interface_status_get(struct net_if *iface);

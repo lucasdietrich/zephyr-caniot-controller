@@ -15,15 +15,13 @@ typedef enum backoff_method {
 	BACKOFF_METHOD_DECORR_JITTER,
 } backoff_method_t;
 
-struct backoff
-{
-	backoff_method_t method: 8;
+struct backoff {
+	backoff_method_t method : 8;
 	uint32_t attempts;
 	uint32_t delay; /* Last delay in ms */
 };
 
-int backoff_init(struct backoff *backoff, 
-		 backoff_method_t method);
+int backoff_init(struct backoff *backoff, backoff_method_t method);
 
 int backoff_next(struct backoff *bo);
 

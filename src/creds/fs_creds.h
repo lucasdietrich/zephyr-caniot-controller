@@ -7,9 +7,9 @@
 #ifndef _CREDS_FS_CREDS_H_
 #define _CREDS_FS_CREDS_H_
 
-#include <zephyr/kernel.h>
-
 #include "credentials.h"
+
+#include <zephyr/kernel.h>
 
 int fs_creds_init(void);
 

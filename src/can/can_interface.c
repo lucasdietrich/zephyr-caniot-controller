@@ -49,8 +49,7 @@ exit:
 	return ret;
 }
 
-int if_can_send(can_bus_id_t canbus,
-		struct can_frame *frame)
+int if_can_send(can_bus_id_t canbus, struct can_frame *frame)
 {
 	if (canbus != CAN_BUS_1) {
 		return -EINVAL;

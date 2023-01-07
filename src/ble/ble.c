@@ -4,13 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "ble.h"
+
 #include <stddef.h>
 #include <stdio.h>
 
-#include "ble.h"
-
 #include <zephyr/bluetooth/bluetooth.h>
-
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(ble, LOG_LEVEL_INF);
 

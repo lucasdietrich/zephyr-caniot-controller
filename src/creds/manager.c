@@ -4,13 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "manager.h"
-
-#include "hardcoded_creds.h"
 #include "flash_creds.h"
 #include "fs_creds.h"
+#include "hardcoded_creds.h"
+#include "manager.h"
 #include "utils.h"
-
 #include "utils/misc.h"
 
 #include <zephyr/logging/log.h>
@@ -42,7 +40,6 @@ int creds_manager_init(void)
 	CHECK_OR_EXIT(ret == 0);
 #endif
 
-
 exit:
 	return ret;
 }
@@ -58,7 +55,7 @@ int cred_get(cred_id_t id, struct cred *c)
 	if (ret == 0) {
 		goto exit;
 	}
-#endif 
+#endif
 
 #if defined(CONFIG_APP_CREDS_FLASH)
 	ret = flash_cred_get(id, c);
@@ -91,7 +88,7 @@ int cred_copy_to(cred_id_t id, char *buf, size_t *size)
 	if (ret >= 0 || ret == -ENOMEM) {
 		goto exit;
 	}
-#endif 
+#endif
 
 #if defined(CONFIG_APP_CREDS_FLASH)
 	ret = flash_cred_copy_to(id, buf, size);

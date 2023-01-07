@@ -7,23 +7,24 @@
 #ifndef _HTTP_SERVER_ROUTES_H_
 #define _HTTP_SERVER_ROUTES_H_
 
+#include "http_utils.h"
+
 #include <stddef.h>
+
 #include <zephyr/net/http_parser.h>
 
 #include <embedc-url/parser.h>
 
-#include "http_utils.h"
+#define ROUTE_ATTR_REST		       (0x0u << 0u)
+#define ROUTE_ATTR_HTML		       (0x1u << 0u)
+#define ROUTE_ATTR_TEXT		       (0x2u << 0u)
+#define ROUTE_ATTR_FORM		       (0x3u << 0u)
+#define ROUTE_ATTR_MULTIPART_FORM_DATA (0x4u << 0u)
+#define ROUTE_ATTR_BINARY	       (0x5u << 0u)
 
-#define ROUTE_ATTR_REST				(0x0u << 0u)
-#define ROUTE_ATTR_HTML				(0x1u << 0u)
-#define ROUTE_ATTR_TEXT				(0x2u << 0u)
-#define ROUTE_ATTR_FORM				(0x3u << 0u)
-#define ROUTE_ATTR_MULTIPART_FORM_DATA		(0x4u << 0u)
-#define ROUTE_ATTR_BINARY			(0x5u << 0u)
+#define ROUTE_ATTR_SECURE (0x8u << 0u)
 
-#define ROUTE_ATTR_SECURE			(0x8u << 0u)
-
-#define ROUTE_ATTR_MASK				(0xFu << 0u)
+#define ROUTE_ATTR_MASK (0xFu << 0u)
 
 struct http_request;
 struct http_response;
@@ -35,9 +36,8 @@ struct http_response;
  * @param args The route arguments.
  * @return 0 on success, any other value on error.
  */
-typedef int (*http_handler_t) (struct http_request *__restrict req,
-			       struct http_response *__restrict resp);
-
+typedef int (*http_handler_t)(struct http_request *__restrict req,
+			      struct http_response *__restrict resp);
 
 /**
  * @brief Resolve the route in function of the tuple (url, method)
@@ -45,7 +45,8 @@ typedef int (*http_handler_t) (struct http_request *__restrict req,
  * @param method HTTP method
  * @param url Actual request URL
  * @param results Array of uint32_t to store the resolved arguments of the route
- * @return size_t *results size, number of resolved parts is returned in *results
+ * @return size_t *results size, number of resolved parts is returned in
+ * *results
  * @retval NULL if no route match
  */
 const struct route_descr *route_resolve(enum http_method method,

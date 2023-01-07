@@ -6,15 +6,14 @@
 
 #include "routes.h"
 
-#include <zephyr/kernel.h>
 #include <assert.h>
-
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
+
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 #include <embedc-url/parser_internal.h>
-
-#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(routes, LOG_LEVEL_WRN);
 
 extern const struct route_descr *const routes_root;
@@ -34,7 +33,6 @@ const struct route_descr *route_resolve(enum http_method method,
 				  results,
 				  results_count,
 				  query_string);
-
 }
 
 bool route_supports_streaming(const struct route_descr *route)

@@ -6,12 +6,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
-
-#include <zephyr/storage/flash_map.h>
+#include <zephyr/kernel.h>
 #include <zephyr/storage/disk_access.h>
+#include <zephyr/storage/flash_map.h>
+
 #include <ff.h>
 // #include <fs/littlefs.h>
 
@@ -22,8 +22,7 @@ LOG_MODULE_REGISTER(app_fs, LOG_LEVEL_DBG);
 
 #define APPFS_LIST_ROOT_FILES 0
 
-#if defined(CONFIG_DISK_DRIVER_SDMMC) && \
-	!DT_HAS_COMPAT_STATUS_OKAY(zephyr_sdhc_spi_slot)
+#if defined(CONFIG_DISK_DRIVER_SDMMC) && !DT_HAS_COMPAT_STATUS_OKAY(zephyr_sdhc_spi_slot)
 #warning "SDMMC driver enabled but no compatible slot found"
 #endif
 
@@ -37,28 +36,27 @@ static FATFS fatfs_ram;
 static const char *const ramdisk_mount_pt = "/" CONFIG_DISK_RAM_VOLUME_NAME ":";
 
 static struct fs_mount_t mp_ram = {
-	.type = FS_FATFS,
-	.fs_data = &fatfs_ram,
+	.type	   = FS_FATFS,
+	.fs_data   = &fatfs_ram,
 	.mnt_point = ramdisk_mount_pt,
 };
 
 #endif /* CONFIG_DISK_DRIVER_RAM */
 
-#if defined(CONFIG_DISK_DRIVER_SDMMC) && \
-	DT_HAS_COMPAT_STATUS_OKAY(zephyr_sdhc_spi_slot)
+#if defined(CONFIG_DISK_DRIVER_SDMMC) && DT_HAS_COMPAT_STATUS_OKAY(zephyr_sdhc_spi_slot)
 
 static FATFS fat_fs_mmc;
 
 /*
-*  Note the fatfs library is able to mount only strings inside _VOLUME_STRS
-*  in ffconf.h
-*/
+ *  Note the fatfs library is able to mount only strings inside _VOLUME_STRS
+ *  in ffconf.h
+ */
 static const char *const mmcdisk_mount_pt = "/" CONFIG_SDMMC_VOLUME_NAME ":";
 
 /* mounting info */
 static struct fs_mount_t mp_mmc = {
-	.type = FS_FATFS,
-	.fs_data = &fat_fs_mmc,
+	.type	   = FS_FATFS,
+	.fs_data   = &fat_fs_mmc,
 	.mnt_point = mmcdisk_mount_pt,
 };
 
@@ -68,8 +66,7 @@ struct appfs_disk_info {
 	uint32_t block_size;
 };
 
-int disk_get_info(const char *disk_pdrv,
-			 struct appfs_disk_info *dinfo)
+int disk_get_info(const char *disk_pdrv, struct appfs_disk_info *dinfo)
 {
 	int rc;
 	uint32_t memory_size_mb;
@@ -82,16 +79,13 @@ int disk_get_info(const char *disk_pdrv,
 		goto exit;
 	}
 
-	rc = disk_access_ioctl(disk_pdrv,
-			       DISK_IOCTL_GET_SECTOR_COUNT,
-			       &block_count);
+	rc = disk_access_ioctl(disk_pdrv, DISK_IOCTL_GET_SECTOR_COUNT, &block_count);
 	if (rc != 0) {
 		LOG_ERR("Unable to get sector count, rc=%d", rc);
 		goto exit;
 	}
 
-	if (disk_access_ioctl(disk_pdrv,
-			      DISK_IOCTL_GET_SECTOR_SIZE, &block_size)) {
+	if (disk_access_ioctl(disk_pdrv, DISK_IOCTL_GET_SECTOR_SIZE, &block_size)) {
 		LOG_ERR("Unable to get sector size, rc=%d", rc);
 		goto exit;
 	}
@@ -100,24 +94,24 @@ int disk_get_info(const char *disk_pdrv,
 
 	if (dinfo != NULL) {
 		dinfo->memory_size_mb = memory_size_mb;
-		dinfo->block_count = block_count;
-		dinfo->block_size = block_size;
+		dinfo->block_count    = block_count;
+		dinfo->block_size     = block_size;
 	}
 	LOG_DBG("SD Blocks %u of size %u, total size %uMB",
-		block_count, block_size, memory_size_mb);
+		block_count,
+		block_size,
+		memory_size_mb);
 exit:
 	return rc;
 }
 
-#endif 
-
+#endif
 
 struct fs_mount_t *appfs_mp[] = {
 #if defined(CONFIG_DISK_DRIVER_RAM)
 	&mp_ram,
 #endif
-#if defined(CONFIG_DISK_DRIVER_SDMMC) && \
-	DT_HAS_COMPAT_STATUS_OKAY(zephyr_sdhc_spi_slot)
+#if defined(CONFIG_DISK_DRIVER_SDMMC) && DT_HAS_COMPAT_STATUS_OKAY(zephyr_sdhc_spi_slot)
 	&mp_mmc,
 #endif
 };
@@ -153,8 +147,7 @@ int app_fs_lsdir(const char *path)
 		if (entry.type == FS_DIR_ENTRY_DIR) {
 			LOG_INF("[DIR ] %s", entry.name);
 		} else {
-			LOG_INF("[FILE] %s (size = %zu)",
-				entry.name, entry.size);
+			LOG_INF("[FILE] %s (size = %zu)", entry.name, entry.size);
 		}
 	}
 
@@ -212,7 +205,11 @@ int app_fs_stats(const char *abs_path)
 	}
 
 	LOG_INF("%s bsize=%lu frsize=%lu  bfree=%lu/%lu (blocks)",
-		abs_path, buf.f_bsize, buf.f_frsize, buf.f_bfree, buf.f_blocks);
+		abs_path,
+		buf.f_bsize,
+		buf.f_frsize,
+		buf.f_bfree,
+		buf.f_blocks);
 
 	app_fs_lsdir(abs_path);
 	if (rc < 0) {
@@ -225,7 +222,6 @@ int app_fs_stats(const char *abs_path)
 exit:
 	return rc;
 }
-
 
 int app_fs_init(void)
 {
@@ -242,16 +238,15 @@ int app_fs_init(void)
 	for (mp = appfs_mp; mp < appfs_mp + ARRAY_SIZE(appfs_mp); mp++) {
 		rc = fs_mount(*mp);
 		if (rc < 0) {
-			LOG_ERR("fs_mount( %s ) failed, err=%d",
-				(*mp)->mnt_point, rc);
+			LOG_ERR("fs_mount( %s ) failed, err=%d", (*mp)->mnt_point, rc);
 			goto exit;
 		}
 
 		LOG_INF("FS mounted %s", (*mp)->mnt_point);
-		
+
 #if APPFS_LIST_ROOT_FILES
 		app_fs_stats((*mp)->mnt_point);
-#endif 
+#endif
 	}
 
 exit:
@@ -311,7 +306,7 @@ int app_fs_filepath_normalize(const char *path, char *out_path, size_t out_size)
 	}
 
 	const int add_slash = path[0] == '/' ? 0 : 1;
-	const size_t len = strlen(path) + add_slash;
+	const size_t len    = strlen(path) + add_slash;
 
 	if (len >= out_size) {
 		return -ENOMEM;
@@ -328,7 +323,7 @@ int app_fs_mkdir_intermediate(const char *path, bool is_filepath)
 	int ret = 0;
 
 	char dirpath[128u] = "";
-	char *d = dirpath;
+	char *d		   = dirpath;
 
 	const char *p = path;
 	const char *s;
@@ -356,14 +351,15 @@ int app_fs_mkdir_intermediate(const char *path, bool is_filepath)
 
 			/* Copy directory name*/
 			strncpy(d, p, s - p);
-			d[s - p] = '/';
+			d[s - p]     = '/';
 			d[s - p + 1] = '\0';
 
 			/* Update cursors */
 			d += s - p + 1;
 			p = s;
 
-			/* Assume first level directory exists (e.g. RAM:/ SD:/)*/
+			/* Assume first level directory exists (e.g. RAM:/
+			 * SD:/)*/
 			if (depth++ == 0u) {
 				continue;
 			}

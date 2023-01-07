@@ -7,9 +7,9 @@
 #ifndef _HA_ROOM_H_
 #define _HA_ROOM_H_
 
-#include <zephyr/kernel.h>
-
 #include <stdint.h>
+
+#include <zephyr/kernel.h>
 
 typedef enum ha_room_id {
 	HA_ROOM_NONE = 0x00u,
@@ -50,19 +50,21 @@ typedef enum ha_room_id {
 	HA_ROOM_ATTIC_NORTH,
 } ha_room_id_t;
 
-struct ha_room
-{
+struct ha_room {
 	ha_room_id_t rid;
 	const char *name;
 
 	atomic_t devices_count;
 };
 
-#define HA_ROOM(_rid, _name) \
-	{ .rid = _rid, .name = _name, .devices_count = ATOMIC_INIT(0) }
+#define HA_ROOM(_rid, _name)                                                             \
+	{                                                                                \
+		.rid = _rid, .name = _name, .devices_count = ATOMIC_INIT(0)              \
+	}
 
-#define HA_ROOM_ASSOC(_rid, _addr) \
-	{ .rid = _rid, .addr = _addr }
-
+#define HA_ROOM_ASSOC(_rid, _addr)                                                       \
+	{                                                                                \
+		.rid = _rid, .addr = _addr                                               \
+	}
 
 #endif

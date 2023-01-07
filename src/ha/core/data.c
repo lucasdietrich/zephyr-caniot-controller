@@ -1,8 +1,7 @@
-#include <zephyr/kernel.h>
-
 #include "data.h"
-
 #include "ha.h"
+
+#include <zephyr/kernel.h>
 
 size_t get_data_size(ha_data_type_t type)
 {
@@ -67,7 +66,6 @@ bool ha_data_descr_data_type_has(const struct ha_data_descr *descr,
 
 	return false;
 }
-
 
 uint32_t ha_data_descr_data_types_mask(const struct ha_data_descr *descr,
 				       size_t data_descr_size)

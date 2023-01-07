@@ -7,37 +7,33 @@
 #ifndef _HA_DEVICES_CANIOT_H
 #define _HA_DEVICES_CANIOT_H
 
-#include "ha/core/ha.h"
 #include "ha/core/data.h"
+#include "ha/core/ha.h"
 
-#define HA_CANIOT_CLS0_MAX_TEMPERATURES 		4u
-#define HA_CANIOT_CLS1_MAX_TEMPERATURES 		4u
-#define HA_CANIOT_MAX_TEMPERATURES 4U
+#define HA_CANIOT_CLS0_MAX_TEMPERATURES 4u
+#define HA_CANIOT_CLS1_MAX_TEMPERATURES 4u
+#define HA_CANIOT_MAX_TEMPERATURES	4U
 
 /* blt stands for board level telemetry */
-struct ha_ds_caniot_blc0
-{
+struct ha_ds_caniot_blc0 {
 	struct ha_data_temperature temperatures[HA_CANIOT_MAX_TEMPERATURES];
 	struct ha_data_digital dio;
 	struct ha_data_digital pdio;
 };
 
-struct ha_cmd_caniot_blc0
-{
+struct ha_cmd_caniot_blc0 {
 	struct ha_data_xps oc1;
 	struct ha_data_xps oc2;
 	struct ha_data_xps rl1;
 	struct ha_data_xps rl2;
 };
 
-struct ha_ds_caniot_blc1
-{
+struct ha_ds_caniot_blc1 {
 	struct ha_data_temperature temperatures[HA_CANIOT_MAX_TEMPERATURES];
 	struct ha_data_digital dio;
 };
 
-struct ha_cmd_caniot_blc1
-{
+struct ha_cmd_caniot_blc1 {
 	union {
 		struct ha_data_xps pc0;
 		struct ha_data_xps pc1;
@@ -65,37 +61,31 @@ struct ha_cmd_caniot_blc1
 	struct ha_data_xps io[19u];
 };
 
-struct ha_ds_caniot_heating_control
-{
+struct ha_ds_caniot_heating_control {
 	struct ha_heater_mode heaters[4u];
 };
 
-struct ha_cmd_caniot_heating_control
-{
+struct ha_cmd_caniot_heating_control {
 	struct ha_heater_mode heaters[4u];
 };
 
-struct ha_ds_caniot_shutters_control
-{
+struct ha_ds_caniot_shutters_control {
 	struct ha_shutter_position shutters[4u];
 };
 
-struct ha_cmd_caniot_shutters_control
-{
+struct ha_cmd_caniot_shutters_control {
 	struct ha_shutter_position shutters[4u];
 };
 
-
-#define HA_DEV_CANIOT_MAC_INIT(_did) \
-	(ha_dev_mac_t) { \
-		.medium = HA_DEV_MEDIUM_CAN, \
-		.addr = { .caniot = _did }, \
+#define HA_DEV_CANIOT_MAC_INIT(_did)                                                     \
+	(ha_dev_mac_t)                                                                   \
+	{                                                                                \
+		.medium = HA_DEV_MEDIUM_CAN, .addr = {.caniot = _did},                   \
 	}
 
-#define HA_DEV_CANIOT_ADDR_INIT(_did) \
-	{ \
-		.type = HA_DEV_TYPE_CANIOT, \
-		.mac = HA_DEV_CANIOT_MAC_INIT(_did)\
+#define HA_DEV_CANIOT_ADDR_INIT(_did)                                                    \
+	{                                                                                \
+		.type = HA_DEV_TYPE_CANIOT, .mac = HA_DEV_CANIOT_MAC_INIT(_did)          \
 	}
 
 /* feed a board level telemetry dataset from a received CAN BLT/BCT buffer */
@@ -116,9 +106,7 @@ static inline ssize_t ha_dev_caniot_iterate_data(ha_dev_iterate_cb_t callback,
 						 void *user_data)
 {
 	const ha_dev_filter_t filter = {
-		.flags =
-			HA_DEV_FILTER_DATA_EXIST |
-			HA_DEV_FILTER_DEVICE_TYPE,
+		.flags	     = HA_DEV_FILTER_DATA_EXIST | HA_DEV_FILTER_DEVICE_TYPE,
 		.device_type = HA_DEV_TYPE_CANIOT,
 	};
 

@@ -9,8 +9,7 @@
 
 #include "ha/core/ha.h"
 
-struct ha_ds_f429zi
-{
+struct ha_ds_f429zi {
 	struct ha_data_temperature die_temperature;
 };
 
