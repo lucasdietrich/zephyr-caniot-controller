@@ -60,14 +60,12 @@ static int z_can_send(const struct caniot_frame *frame, uint32_t delay_ms)
 	struct can_frame zframe;
 	caniot_to_zcan(&zframe, frame);
 	ret = if_can_send(CAN_BUS_CANIOT, &zframe);
-	if (ret)
-		goto exit;
+	if (ret) goto exit;
 #endif
 
 #if defined(CONFIG_APP_HA_EMULATED_DEVICES)
 	ret = emu_caniot_send((struct caniot_frame *)frame);
-	if (ret)
-		goto exit;
+	if (ret) goto exit;
 #endif
 
 exit:

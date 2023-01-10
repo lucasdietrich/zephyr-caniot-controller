@@ -3,7 +3,9 @@
 # .clang-format inspired by the Zephyr RTOS project
 #
 # References:
-#   - https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+#   Documentation/process/clang-format.rst
+#   https://clang.llvm.org/docs/ClangFormat.html
+#   https://clang.llvm.org/docs/ClangFormatStyleOptions.html
 
 ---
 BasedOnStyle: LLVM
@@ -13,9 +15,10 @@ AlignConsecutiveAssignments: true
 AllowShortBlocksOnASingleLine: false
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortEnumsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: None
-AllowShortIfStatementsOnASingleLine: false
-AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: true
+AlignOperands: Align
+AllowShortLoopsOnASingleLine: true
 AlignTrailingComments: true
 BinPackArguments: false
 BinPackParameters: false

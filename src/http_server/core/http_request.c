@@ -428,8 +428,7 @@ static int on_body(struct http_parser *parser, const char *at, size_t length)
 
 	req->payload_len += length;
 
-	if (req->discarded)
-		goto exit;
+	if (req->discarded) goto exit;
 
 	if (req->streaming) {
 		req->payload.loc = (char *)at;

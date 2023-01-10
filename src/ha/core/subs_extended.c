@@ -87,8 +87,7 @@ lt_find_otherwise_allocate(ha_subs_ext_lt_t *lt, ha_ev_t *event, bool *created)
 		}
 	}
 
-	if (created)
-		*created = zcreated;
+	if (created) *created = zcreated;
 
 	return lte;
 }
@@ -171,14 +170,11 @@ int ha_subs_ext_conf_set(struct ha_ev_subs_conf *conf,
 			 ha_subs_ext_filtering_type_t filtering_type,
 			 ha_subs_ext_filtering_param_t filtering_param)
 {
-	if (!conf || !lookup_table)
-		return -EINVAL;
+	if (!conf || !lookup_table) return -EINVAL;
 
-	if (conf->user_data)
-		return -EINVAL; /* user_data already set */
+	if (conf->user_data) return -EINVAL; /* user_data already set */
 
-	if (conf->flags & HA_EV_SUBS_CONF_FILTER_FUNCTION)
-		return -EINVAL;
+	if (conf->flags & HA_EV_SUBS_CONF_FILTER_FUNCTION) return -EINVAL;
 
 	/* Check if lookup type is supported */
 	switch (lookup_type) {
@@ -232,8 +228,7 @@ int ha_subs_ext_conf_set(struct ha_ev_subs_conf *conf,
 
 int ha_subs_ext_lt_clear(struct ha_subs_ext_lookup_table *lt)
 {
-	if (!lt)
-		return -EINVAL;
+	if (!lt) return -EINVAL;
 
 	sys_snode_t *node;
 

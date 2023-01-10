@@ -643,8 +643,7 @@ void emu_caniot_devices_thread(void *_a, void *_b, void *_c)
 
 	for (;;) {
 		ret = k_msgq_get(&emu_caniot_txq, &req, K_FOREVER);
-		if (ret)
-			goto error;
+		if (ret) goto error;
 
 		for (emu_dev = caniot_devices;
 		     emu_dev < caniot_devices + ARRAY_SIZE(caniot_devices);
@@ -655,8 +654,7 @@ void emu_caniot_devices_thread(void *_a, void *_b, void *_c)
 					&emu_dev->dev, &req, &resp);
 
 				ret = k_msgq_put(&emu_caniot_rxq, &resp, K_FOREVER);
-				if (ret)
-					goto error;
+				if (ret) goto error;
 			}
 		}
 	}

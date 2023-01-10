@@ -44,8 +44,7 @@ int strcicmp(char const *a, char const *b)
 {
 	for (;; a++, b++) {
 		int d = tolower((unsigned char)*a) - tolower((unsigned char)*b);
-		if (d != 0 || !*a)
-			return d;
+		if (d != 0 || !*a) return d;
 	}
 }
 
@@ -53,8 +52,7 @@ int strncicmp(char const *a, char const *b, size_t len)
 {
 	for (int s = 0; s < len; a++, b++, s++) {
 		int d = tolower((unsigned char)*a) - tolower((unsigned char)*b);
-		if (d != 0 || !*a)
-			return d;
+		if (d != 0 || !*a) return d;
 	}
 	return 0;
 }

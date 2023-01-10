@@ -433,8 +433,7 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 			ep = ha_dev_endpoint_get_by_id(dev, filter->endpoint_id);
 		}
 
-		if (!ep || !ep->last_data_event)
-			return false;
+		if (!ep || !ep->last_data_event) return false;
 
 		ev = ep->last_data_event;
 	}
