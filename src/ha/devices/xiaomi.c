@@ -43,13 +43,15 @@ static const struct ha_data_descr ha_ds_xiaomi_descr[] = {
 };
 
 static struct ha_device_endpoint_api ep = {
-	.eid		       = HA_DEV_ENDPOINT_XIAOMI_MIJIA,
+	.eid		       = HA_DEV_EP_XIAOMI_MIJIA,
 	.data_size	       = sizeof(struct ha_ds_xiaomi),
 	.expected_payload_size = sizeof(xiaomi_record_t),
+	.flags		       = HA_DEV_EP_FLAG_DEFAULT,
 	.data_descr_size       = ARRAY_SIZE(ha_ds_xiaomi_descr),
 	.data_descr	       = ha_ds_xiaomi_descr,
 	.ingest		       = ingest,
-	.command	       = NULL};
+	.command	       = NULL,
+};
 
 static int init_endpoints(const ha_dev_addr_t *addr,
 			  struct ha_device_endpoint *endpoints,
@@ -62,7 +64,7 @@ static int init_endpoints(const ha_dev_addr_t *addr,
 }
 
 const struct ha_device_api ha_device_api_xiaomi = {
-	.init_endpoints = init_endpoints, .select_endpoint = HA_DEV_ENDPOINT_SELECT_0_CB};
+	.init_endpoints = init_endpoints, .select_endpoint = HA_DEV_EP_SELECT_0_CB};
 
 int ha_dev_xiaomi_register_record(const xiaomi_record_t *record)
 {

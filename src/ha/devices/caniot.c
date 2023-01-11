@@ -151,9 +151,9 @@ static int select_endpoint(const ha_dev_addr_t *addr, const struct ha_device_pay
 
 	switch (id->endpoint) {
 	case CANIOT_ENDPOINT_BOARD_CONTROL:
-		return HA_DEV_ENDPOINT_INDEX(0);
+		return HA_DEV_EP_INDEX(0);
 	case CANIOT_ENDPOINT_APP:
-		return HA_DEV_ENDPOINT_INDEX(1);
+		return HA_DEV_EP_INDEX(1);
 	default:
 		return -ENOENT;
 	}
@@ -195,15 +195,17 @@ static const struct ha_data_descr ha_cmd_caniot_blc0_descr[] = {
 };
 
 static const struct ha_device_endpoint_api ep_blc0 = {
-	.eid		       = HA_DEV_ENDPOINT_CANIOT_BLC0,
+	.eid		       = HA_DEV_EP_CANIOT_BLC0,
 	.data_size	       = sizeof(struct ha_ds_caniot_blc0),
 	.expected_payload_size = 8u,
+	.flags		       = HA_DEV_EP_FLAG_DEFAULT,
 	.data_descr	       = ha_ds_caniot_blc0_descr,
 	.data_descr_size       = ARRAY_SIZE(ha_ds_caniot_blc0_descr),
 	.cmd_descr	       = ha_cmd_caniot_blc0_descr,
 	.cmd_descr_size	       = ARRAY_SIZE(ha_cmd_caniot_blc0_descr),
 	.ingest		       = blc0_ingest,
-	.command	       = NULL};
+	.command	       = NULL,
+};
 
 static const struct ha_data_descr ha_ds_caniot_blc1_descr[] = {
 	HA_DATA_DESCR(struct ha_ds_caniot_blc1,
@@ -229,9 +231,10 @@ static const struct ha_data_descr ha_ds_caniot_blc1_descr[] = {
 };
 
 static const struct ha_device_endpoint_api ep_blc1 = {
-	.eid		       = HA_DEV_ENDPOINT_CANIOT_BLC1,
+	.eid		       = HA_DEV_EP_CANIOT_BLC1,
 	.data_size	       = sizeof(struct ha_ds_caniot_blc1),
 	.expected_payload_size = 8u,
+	.flags		       = HA_DEV_EP_FLAG_DEFAULT,
 	.data_descr_size       = ARRAY_SIZE(ha_ds_caniot_blc1_descr),
 	.data_descr	       = ha_ds_caniot_blc1_descr,
 	.cmd_descr	       = NULL,
@@ -262,15 +265,17 @@ static const struct ha_data_descr ha_cmd_caniot_ep_heating_control_descr[] = {
 };
 
 static const struct ha_device_endpoint_api ep_heating_control = {
-	.eid		       = HA_DEV_ENDPOINT_CANIOT_HEATING,
+	.eid		       = HA_DEV_EP_CANIOT_HEATING,
 	.data_size	       = sizeof(struct ha_ds_caniot_heating_control),
 	.expected_payload_size = 8u,
+	.flags		       = HA_DEV_EP_FLAG_DEFAULT,
 	.data_descr	       = ha_ds_caniot_ep_heating_control_descr,
 	.data_descr_size       = ARRAY_SIZE(ha_ds_caniot_ep_heating_control_descr),
 	.cmd_descr	       = ha_cmd_caniot_ep_heating_control_descr,
 	.cmd_descr_size	       = ARRAY_SIZE(ha_cmd_caniot_ep_heating_control_descr),
 	.ingest		       = ep_heating_control_ingest,
-	.command	       = NULL};
+	.command	       = NULL,
+};
 
 static const struct ha_data_descr ha_ds_caniot_ep_shutters_control_descr[] = {
 	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_caniot_shutters_control,
@@ -303,15 +308,17 @@ static const struct ha_data_descr ha_cmd_caniot_ep_shutters_control_descr[] = {
 };
 
 static const struct ha_device_endpoint_api ep_shutters_control = {
-	.eid		       = HA_DEV_ENDPOINT_CANIOT_SHUTTERS,
+	.eid		       = HA_DEV_EP_CANIOT_SHUTTERS,
 	.data_size	       = sizeof(struct ha_ds_caniot_shutters_control),
 	.expected_payload_size = 8u,
+	.flags		       = HA_DEV_EP_FLAG_DEFAULT,
 	.data_descr	       = ha_ds_caniot_ep_shutters_control_descr,
 	.data_descr_size       = ARRAY_SIZE(ha_ds_caniot_ep_shutters_control_descr),
 	.cmd_descr	       = ha_cmd_caniot_ep_shutters_control_descr,
 	.cmd_descr_size	       = ARRAY_SIZE(ha_cmd_caniot_ep_shutters_control_descr),
 	.ingest		       = ep_shutters_control_ingest,
-	.command	       = NULL};
+	.command	       = NULL,
+};
 
 static int init_endpoints(const ha_dev_addr_t *addr,
 			  struct ha_device_endpoint *endpoints,

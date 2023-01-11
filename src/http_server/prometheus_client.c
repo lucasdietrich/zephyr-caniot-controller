@@ -647,7 +647,7 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev, void *user_data)
 					   }};
 
 		switch (dev->endpoints[0].api->eid) {
-		case HA_DEV_ENDPOINT_CANIOT_BLC0: {
+		case HA_DEV_EP_CANIOT_BLC0: {
 			const struct ha_ds_caniot_blc0 *const dt =
 				HA_DEV_EP_0_GET_CAST_LAST_DATA(
 					dev, const struct ha_ds_caniot_blc0);
@@ -667,7 +667,7 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev, void *user_data)
 				}
 			}
 		} break;
-		case HA_DEV_ENDPOINT_CANIOT_BLC1: {
+		case HA_DEV_EP_CANIOT_BLC1: {
 			const struct ha_ds_caniot_blc1 *const dt =
 				HA_DEV_EP_0_GET_CAST_LAST_DATA(
 					dev, const struct ha_ds_caniot_blc1);

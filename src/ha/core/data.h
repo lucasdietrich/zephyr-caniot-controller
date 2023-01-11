@@ -26,6 +26,8 @@ typedef enum {
 
 } ha_data_assignement_t;
 
+#define HA_DATA_SPECIAL_TYPE_OFFSET 0x80u
+
 typedef enum {
 	HA_DATA_UNSPEC = 0u,
 
@@ -42,7 +44,7 @@ typedef enum {
 	HA_DATA_SHUTTER_POSITION,
 
 	/* Special types */
-	HA_DATA_XPS = 0x80u,
+	HA_DATA_XPS = HA_DATA_SPECIAL_TYPE_OFFSET,
 	HA_DATA_TS,
 	HA_DATA_SS,
 } ha_data_type_t;

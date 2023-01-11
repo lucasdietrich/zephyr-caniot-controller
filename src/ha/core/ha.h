@@ -24,7 +24,7 @@ struct ha_device_endpoint_api;
 struct ha_device_endpoint;
 struct ha_device_stats;
 struct ha_device_payload;
-struct ha_device_cmd;
+struct ha_device_command;
 struct ha_device_filter;
 struct ha_device_iter_opt;
 struct ha_ev_subs_conf;
@@ -33,8 +33,8 @@ struct ha_event;
 struct ha_device;
 
 /* Defines */
-#define HA_DEV_ENDPOINT_MAX_COUNT		 2u
-#define HA_DEV_ENDPOINT_TYPE_SEARCH_OPTIMIZATION 1u
+#define HA_DEV_EP_MAX_COUNT		   2u
+#define HA_DEV_EP_TYPE_SEARCH_OPTIMIZATION 1u
 
 #define HA_DEV_ADDR_STR_MAX_LEN	       MAX(BT_ADDR_LE_STR_LEN, sizeof("0x1FFFFFFF"))
 #define HA_DEV_ADDR_TYPE_STR_MAX_LEN   16u
@@ -99,10 +99,40 @@ struct ha_device_payload {
 	void *y;
 };
 
-struct ha_device_cmd {
-	/* Command type */
-	uint32_t type;
+enum ha_dev_cmd_type {
+	/* Send a normal command to the device */
+	HA_DEV_CMD_TYPE_COMMAND = 0u,
+
+	/* Request the device to reset to its factory settings */
+	HA_DEV_CMD_TYPE_RESET_FACTORY_SETTINGS,
+
+	/* Request the device to reboot */
+	HA_DEV_CMD_TYPE_REBOOT,
+
+	/* Ping the device */
+	HA_DEV_CMD_TYPE_PING,
 };
+typedef enum ha_dev_cmd_type ha_dev_cmd_type_t;
+
+struct ha_device_command {
+	/* Command type */
+	ha_dev_cmd_type_t type;
+
+	/* Command payload */
+	uint8_t *buffer;
+
+	/* Command payload size */
+	size_t len;
+};
+
+typedef struct ha_device_command ha_dev_cmd_t;
+
+enum {
+	/* Tells whether the endpoint should retain the last event */
+	HA_DEV_EP_FLAG_RETAIN_LAST_EVENT = BIT(0),
+};
+
+#define HA_DEV_EP_FLAG_DEFAULT HA_DEV_EP_FLAG_RETAIN_LAST_EVENT
 
 struct ha_device_endpoint_api {
 	/* Endpoint identifier */
@@ -114,9 +144,8 @@ struct ha_device_endpoint_api {
 	/* Endpoint expected payload size, 0 for unspecified*/
 	uint32_t expected_payload_size : 8u;
 
-	uint32_t retain_last_event : 1u;
-
-	uint32_t _unused : 7u;
+	/* Additional flags */
+	uint32_t flags : 8u;
 
 	const struct ha_data_descr *data_descr;
 	const struct ha_data_descr *cmd_descr;
@@ -126,7 +155,7 @@ struct ha_device_endpoint_api {
 
 	int (*ingest)(struct ha_event *ev, const struct ha_device_payload *pl);
 
-	int (*command)(struct ha_device *dev, const struct ha_device_cmd *cmd);
+	int (*command)(struct ha_device *dev, const struct ha_device_command *cmd);
 };
 
 struct ha_device_endpoint {
@@ -135,24 +164,23 @@ struct ha_device_endpoint {
 	/* Endpoint last data event item */
 	struct ha_event *last_data_event;
 
-#if HA_DEV_ENDPOINT_TYPE_SEARCH_OPTIMIZATION
+#if HA_DEV_EP_TYPE_SEARCH_OPTIMIZATION
 	/* Flags telling what kind of data types can be found in the endpoint
 	 * For optimization purpose
 	 */
 	uint32_t _data_types;
-#endif /* HA_DEV_ENDPOINT_TYPE_SEARCH_OPTIMIZATION */
+#endif /* HA_DEV_EP_TYPE_SEARCH_OPTIMIZATION */
 };
 typedef struct ha_device_endpoint ha_dev_ep_t;
 
-#define HA_DEV_ENDPOINT_SELECT_0_CB NULL
+#define HA_DEV_EP_SELECT_0_CB NULL
 
-#define HA_DEV_ENDPOINT_INDEX(_idx) (_idx)
+#define HA_DEV_EP_INDEX(_idx) (_idx)
 
 #define HA_DEV_EP_0_GET_CAST_LAST_DATA(_dev, _type)                                      \
 	((_type *)ha_dev_get_last_event_data(_dev, 0u))
 
-#define HA_DEV_ENDPOINT_API_INIT(                                                        \
-	_eid, _data_size, _expected_payload_size, _ingest, _command)                     \
+#define HA_DEV_EP_API_INIT(_eid, _data_size, _expected_payload_size, _ingest, _command)  \
 	{                                                                                \
 		.eid = _eid, .data_size = _data_size,                                    \
 		.expected_payload_size = _expected_payload_size, .ingest = _ingest,      \
@@ -216,7 +244,7 @@ struct ha_device {
 #endif
 
 	/* Endpoints */
-	struct ha_device_endpoint endpoints[HA_DEV_ENDPOINT_MAX_COUNT];
+	struct ha_device_endpoint endpoints[HA_DEV_EP_MAX_COUNT];
 
 	/* Endpoints count */
 	uint8_t endpoints_count;
@@ -273,9 +301,13 @@ struct ha_event {
 	/* Event type */
 	ha_ev_type_t type : 8u;
 
+	/* Tells whether the event has been issued or not (command) */
+	// uint8_t issued: 1u;
+
 	/* Number of times the event is referenced
 	 * If ref_count is 0, the event data can be freed */
 	atomic_val_t ref_count;
+
 	/* Singly linked list of data item */
 	sys_slist_t slist;
 
@@ -505,7 +537,7 @@ int ha_dev_addr_to_str(const ha_dev_addr_t *addr, char *buf, size_t buf_len);
 ha_dev_t *ha_dev_get_by_addr(const ha_dev_addr_t *addr);
 
 /**
- * @brief Propagate a payload issues from a device
+ * @brief Propagate a payload issued from a device
  *
  * @param addr Address of the device which issued the payload
  * @param payload Payload buffer and context
@@ -513,6 +545,79 @@ ha_dev_t *ha_dev_get_by_addr(const ha_dev_addr_t *addr);
  */
 int ha_dev_register_data(const ha_dev_addr_t *addr,
 			 const struct ha_device_payload *payload);
+
+/**
+ * @brief Callback for handling a device command response
+ *
+ * @param ev Event containing the response
+ * @param user_data User data passed to the command query
+ */
+typedef void (*ha_dev_command_cb_t)(ha_ev_t *ev, void *user_data);
+
+enum {
+	/* Tells whether the callback should be called on query timeout */
+	HA_CMD_FLAG_CB_ON_TIMEOUT = BIT(0),
+
+	/* Tells whether the command should be sent asynchronously,
+	 * if set, function ha_dev_command() will return immediately
+	 * and the callback will be called when the response is received in a
+	 * dedicated thread.
+	 *
+	 * Otherwise, the function will block until the response is received,
+	 * and the callback will be called in the context of the function
+	 * before returning.
+	 */
+	HA_CMD_FLAG_ASYNC = BIT(1),
+};
+
+/* Context for a command to send to a device */
+struct ha_cmd_query {
+	/* Device to send the command to */
+	const ha_dev_t *dev;
+
+	/* Endpoint index to send the command to */
+	uint8_t endpoint_index;
+
+	/* Command to send */
+	ha_dev_cmd_t *cmd;
+
+	/* Callback to call when the response is received */
+	ha_dev_command_cb_t cb;
+
+	/* User data to pass to the callback */
+	void *user_data;
+
+	/* Timeout to wait for the response */
+	k_timeout_t timeout;
+
+	/* Additional flags */
+	uint8_t flags;
+};
+
+/**
+ * @brief Send (asynchronously) a command to a device
+ *
+ * @note if flag HA_CMD_FLAG_ASYNC is set, the query is made asynchronously
+ * and function returns immediately.
+ *
+ * @note if flag HA_CMD_FLAG_CB_ON_TIMEOUT is set, the callback will be called
+ * if the timeout is reached (async or not)
+ *
+ * @param query Query to send
+ * @param ev Pointer to the event that will be notified when the response is received
+ * @return int 0 on success, negative error code otherwise
+ * 	-EINVAL if the query is invalid
+ * 	-ENOSUP if the command is not supported by the device/endpoint
+ * 	-ENOMEM if no memory is available to allocate the event
+ * 	-EAGAIN if the event queue is full
+ * 	-ETIMEDOUT if the timeout is reached (if HA_CMD_FLAG_ASYNC is not set)
+ *
+ * 	Possibly:
+ * 	-EIO if the command could not be sent
+ * 	-ENODEV if the device is not found
+ * 	-ENOENT if the endpoint is not found
+ */
+int ha_dev_command(struct ha_cmd_query *query, ha_ev_t **ev);
 
 /**
  * @brief Get device endpoint last event
@@ -646,24 +751,13 @@ ha_ev_t *ha_ev_wait(struct ha_ev_subs *sub, k_timeout_t timeout);
 struct ha_room *ha_dev_get_room(ha_dev_t *const dev);
 
 /**
- * @brief Send a command to a device, and wait for the response event
- *
- * @param addr Address to request
- * @param cmd Command to send
- * @param timeout Timeout to wait for the response
- * @return ha_ev_t* Response event, NULL on error/timeout
- */
-ha_ev_t *
-ha_dev_command(const ha_dev_addr_t *addr, struct ha_device_cmd *cmd, k_timeout_t timeout);
-
-/**
  * @brief Get device endpoint by index
  *
  * @param dev
  * @param ep Index of the endpoint
  * @return struct ha_device_endpoint*
  */
-struct ha_device_endpoint *ha_dev_endpoint_get(ha_dev_t *dev, uint32_t ep);
+struct ha_device_endpoint *ha_dev_ep_get(ha_dev_t *dev, uint32_t ep);
 
 /**
  * @brief Get device endpoint by its type id
@@ -672,7 +766,7 @@ struct ha_device_endpoint *ha_dev_endpoint_get(ha_dev_t *dev, uint32_t ep);
  * @param eid Endpoint type id
  * @return struct ha_device_endpoint*
  */
-struct ha_device_endpoint *ha_dev_endpoint_get_by_id(ha_dev_t *dev, ha_endpoint_id_t eid);
+struct ha_device_endpoint *ha_dev_ep_get_by_id(ha_dev_t *dev, ha_endpoint_id_t eid);
 
 /**
  * @brief Get device endpoint index by its endpoint type id
@@ -681,7 +775,7 @@ struct ha_device_endpoint *ha_dev_endpoint_get_by_id(ha_dev_t *dev, ha_endpoint_
  * @param eid
  * @return int
  */
-int ha_dev_endpoint_get_index_by_id(ha_dev_t *dev, ha_endpoint_id_t eid);
+int ha_dev_ep_get_index_by_id(ha_dev_t *dev, ha_endpoint_id_t eid);
 
 /**
  * @brief Tell whether a device has a endpoint at the given index
@@ -691,7 +785,7 @@ int ha_dev_endpoint_get_index_by_id(ha_dev_t *dev, ha_endpoint_id_t eid);
  * @return true
  * @return false
  */
-bool ha_dev_endpoint_exists(const ha_dev_t *dev, uint8_t endpoint_index);
+bool ha_dev_ep_exists(const ha_dev_t *dev, uint8_t endpoint_index);
 
 /**
  * @brief Tell whether a device has a endpoint at the given index which supports
@@ -702,9 +796,9 @@ bool ha_dev_endpoint_exists(const ha_dev_t *dev, uint8_t endpoint_index);
  * @return true
  * @return false
  */
-bool ha_dev_endpoint_has_datatype(const ha_dev_t *dev,
-				  uint8_t endpoint_index,
-				  const ha_data_type_t datatype);
+bool ha_dev_ep_has_datatype(const ha_dev_t *dev,
+			    uint8_t endpoint_index,
+			    const ha_data_type_t datatype);
 
 /**
  * @brief Tell whether a device has a endpoint at the given index which supports
@@ -715,7 +809,7 @@ bool ha_dev_endpoint_has_datatype(const ha_dev_t *dev,
  * @return true
  * @return false
  */
-bool ha_dev_endpoint_check_data_support(const ha_dev_t *dev, uint8_t endpoint_index);
+bool ha_dev_ep_check_data_support(const ha_dev_t *dev, uint8_t endpoint_index);
 
 /**
  * @brief Tell whether a device has a endpoint at the given index which supports
@@ -726,7 +820,7 @@ bool ha_dev_endpoint_check_data_support(const ha_dev_t *dev, uint8_t endpoint_in
  * @return true
  * @return false
  */
-bool ha_dev_endpoint_check_cmd_support(const ha_dev_t *dev, uint8_t endpoint_index);
+bool ha_dev_ep_check_cmd_support(const ha_dev_t *dev, uint8_t endpoint_index);
 
 /**
  * @brief Iterate over all devices/endpoints and count all data inputs matching

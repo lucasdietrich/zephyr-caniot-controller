@@ -5,23 +5,28 @@
 
 size_t get_data_size(ha_data_type_t type)
 {
+	static const uint32_t std_sizes[] = {
+		[HA_DATA_TEMPERATURE]	   = sizeof(struct ha_data_temperature),
+		[HA_DATA_HUMIDITY]	   = sizeof(struct ha_data_humidity),
+		[HA_DATA_BATTERY_LEVEL]	   = sizeof(struct ha_data_battery_level),
+		[HA_DATA_RSSI]		   = sizeof(struct ha_data_rssi),
+		[HA_DATA_DIGITAL_INOUT]	   = sizeof(struct ha_data_digital),
+		[HA_DATA_ANALOG]	   = sizeof(struct ha_data_analog),
+		[HA_DATA_HEATER_MODE]	   = sizeof(struct ha_heater_mode),
+		[HA_DATA_SHUTTER_POSITION] = sizeof(struct ha_shutter_position),
+	};
+
+	if (type < HA_DATA_SPECIAL_TYPE_OFFSET) {
+		return std_sizes[type];
+	}
+
 	switch (type) {
-	case HA_DATA_TEMPERATURE:
-		return sizeof(struct ha_data_temperature);
-	case HA_DATA_HUMIDITY:
-		return sizeof(struct ha_data_humidity);
-	case HA_DATA_BATTERY_LEVEL:
-		return sizeof(struct ha_data_battery_level);
-	case HA_DATA_RSSI:
-		return sizeof(struct ha_data_rssi);
-	case HA_DATA_DIGITAL_INOUT:
-		return sizeof(struct ha_data_digital);
-	case HA_DATA_ANALOG:
-		return sizeof(struct ha_data_analog);
-	case HA_DATA_HEATER_MODE:
-		return sizeof(struct ha_heater_mode);
-	case HA_DATA_SHUTTER_POSITION:
-		return sizeof(struct ha_shutter_position);
+	case HA_DATA_XPS:
+		return sizeof(struct ha_data_xps);
+	case HA_DATA_TS:
+		return sizeof(struct ha_data_ts);
+	case HA_DATA_SS:
+		return sizeof(struct ha_data_ss);
 	default:
 		return 0;
 	}

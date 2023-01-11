@@ -1,5 +1,15 @@
 # CANIoT Board
 
+TODO:
+- diode USB > LD3985..
+- MCP9804-E/MS x 4 / MCP9803 x 10 (footprint ??)
+- LD1117S50TR alim externe (>5V) + diode 
+- capa eth TC1206KKX7RDBB102 (1nF, 2000V)
+- diff pair resistance
+- res + diode buttons
+- unecessary 4.7uF capa with chips (other than I2C line, etc...)
+
+
 Choosen:
 - Main microcontroller: STM32F429BIT6
 - BLE module: ACN52840
@@ -108,7 +118,7 @@ Note DocID024030 Rev 10 page 97/239 :
 
 ![pics/sd-card-pinout.png](./pics/sd-card-pinout.png)
 
-## SD Card (SPI)
+### SD Card (SPI)
 
 | Label     | stm32f429bit6 | sdcard SPI | Note |
 | --------- | ------------- | ---------- | ---- |
@@ -135,6 +145,12 @@ Note DocID024030 Rev 10 page 97/239 :
 | SDIO_D0   | PC8 (140)     | 7 DAT1     |                  |
 | SDIO_D1   | PC9 (141)     | 8 DAT2     | Shared with MC02 |
 | SDIO_D2   | PC10 (161)    | 9 DAT3     |                  |
+
+### SD Detect
+
+| Label SD_DETECT | stm32f429bit6 | Note |
+| --------------- | ------------- | ---- |
+| SDIO_D3         | PC11 (162)    |      |
 
 ## Ethernet
 
@@ -295,3 +311,4 @@ STM32F439BIT6
 ## Ressources
 
 - STM32 Nomenclature: https://www.digikey.com/en/maker/blogs/2020/understanding-stm32-naming-conventions
+- https://www.altium.com/viewer/fr/

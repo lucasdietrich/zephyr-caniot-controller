@@ -72,11 +72,13 @@ exit:
 	return ret;
 }
 
-const struct caniot_drivers_api driv = {.entropy  = NULL,
-					.get_time = NULL,
-					.set_time = NULL,
-					.recv	  = NULL,
-					.send	  = z_can_send};
+const struct caniot_drivers_api driv = {
+	.entropy  = NULL,
+	.get_time = NULL,
+	.set_time = NULL,
+	.recv	  = NULL,
+	.send	  = z_can_send,
+};
 
 static struct caniot_controller ctrl;
 
@@ -485,4 +487,9 @@ int ha_ciot_ctrl_send(struct caniot_frame *__restrict req, caniot_did_t did)
 {
 	/* this is safe because no context is allocated */
 	return caniot_controller_send(&ctrl, did, req);
+}
+
+int ha_ciot_ctrl_discover(uint32_t timeout, ha_ciot_ctrl_did_cb_t cb)
+{
+	return -ENOTSUP;
 }

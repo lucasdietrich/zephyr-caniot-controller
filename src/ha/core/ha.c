@@ -291,6 +291,7 @@ static const struct ha_device_api *ha_device_get_default_api(ha_dev_type_t type)
  */
 static ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 {
+	int ret;
 	ha_dev_t *dev = NULL;
 
 	__DEV_CONTEXT_LOCK();
@@ -319,13 +320,12 @@ static ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 	}
 
 	/* Clear endpoints */
-	for (int i = 0; i < HA_DEV_ENDPOINT_MAX_COUNT; i++) {
+	for (int i = 0; i < HA_DEV_EP_MAX_COUNT; i++) {
 		dev->endpoints[i].api		  = NULL;
 		dev->endpoints[i].last_data_event = NULL;
 	}
 
-	const int ret = dev->api->init_endpoints(
-		&dev->addr, dev->endpoints, &dev->endpoints_count);
+	ret = dev->api->init_endpoints(&dev->addr, dev->endpoints, &dev->endpoints_count);
 	if (ret < 0) {
 		stats.dev_dropped++;
 		stats.dev_ep_init++;
@@ -340,7 +340,7 @@ static ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 		goto exit;
 	}
 
-	if (dev->endpoints_count > HA_DEV_ENDPOINT_MAX_COUNT) {
+	if (dev->endpoints_count > HA_DEV_EP_MAX_COUNT) {
 		stats.dev_dropped++;
 		stats.dev_toomuch_ep++;
 		LOG_ERR("Too many endpoints (%hhu) defined for device addr %p",
@@ -349,14 +349,14 @@ static ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 		goto exit;
 	}
 
-#if HA_DEV_ENDPOINT_TYPE_SEARCH_OPTIMIZATION
+#if HA_DEV_EP_TYPE_SEARCH_OPTIMIZATION
 	/* Finalize endpoints initialization */
 	for (int i = 0; i < dev->endpoints_count; i++) {
 		dev->endpoints[i]._data_types = ha_data_descr_data_types_mask(
 			dev->endpoints[i].api->data_descr,
 			dev->endpoints[i].api->data_descr_size);
 	}
-#endif /* HA_DEV_ENDPOINT_TYPE_SEARCH_OPTIMIZATION */
+#endif /* HA_DEV_EP_TYPE_SEARCH_OPTIMIZATION */
 
 	/* Increment device count */
 	devices.count++;
@@ -420,7 +420,7 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 	struct ha_event *ev	      = NULL;
 
 	if (filter->flags & HA_DEV_FILTER_DATA_EXIST) {
-		if (filter->endpoint_id == HA_DEV_ENDPOINT_NONE) {
+		if (filter->endpoint_id == HA_DEV_EP_NONE) {
 			/* Find first valid event through endpoints */
 			for (int i = 0; i < dev->endpoints_count; i++) {
 				ep = &dev->endpoints[i];
@@ -430,7 +430,7 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 			}
 		} else {
 			/* Find searched endpoint */
-			ep = ha_dev_endpoint_get_by_id(dev, filter->endpoint_id);
+			ep = ha_dev_ep_get_by_id(dev, filter->endpoint_id);
 		}
 
 		if (!ep || !ep->last_data_event) return false;
@@ -490,15 +490,15 @@ ssize_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 		       const ha_dev_iter_opt_t *options,
 		       void *user_data)
 {
-	size_t count = 0u, max_count = devices.count;
+	size_t count	 = 0u;
+	size_t max_count = devices.count;
+	ha_dev_t *dev	 = devices.list;
+	ha_dev_t *last	 = devices.list + devices.count;
 
 	/* Lock only first endpoint event by default */
 	if (options == NULL) {
 		options = &HA_DEV_ITER_OPT_DEFAULT();
 	}
-
-	ha_dev_t *dev  = devices.list;
-	ha_dev_t *last = devices.list + devices.count;
 
 	/* Take boundaries into account */
 	if (filter) {
@@ -579,12 +579,16 @@ static inline void ha_dev_inc_stats_tx(ha_dev_t *dev, uint32_t tx_bytes)
 
 static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl)
 {
+	int ret		 = -EINVAL;
+	uint8_t ep_index = 0u;
+	ha_ev_t *ev	 = NULL;
+	ha_ev_t *prev_data_ev;
+	const struct ha_device_endpoint_api *ep_api;
+	struct ha_device_endpoint *ep;
+
 	__ASSERT_NO_MSG(dev != NULL);
 	__ASSERT_NO_MSG(dev->api != NULL);
 	__ASSERT_NO_MSG(pl->buffer != NULL);
-
-	int ret	    = -EINVAL;
-	ha_ev_t *ev = NULL;
 
 	/* Allocate memory */
 	ev = ha_ev_alloc_and_reset();
@@ -603,7 +607,6 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 	sys_slist_init(&ev->slist);
 
 	/* Find endpoint */
-	uint8_t ep_index = 0u;
 	if (dev->api->select_endpoint != NULL) {
 		ret = dev->api->select_endpoint(&dev->addr, pl);
 		if (ret < 0) {
@@ -615,7 +618,7 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 		ep_index = (uint8_t)ret;
 	}
 
-	if (ep_index >= MIN(dev->endpoints_count, HA_DEV_ENDPOINT_MAX_COUNT)) {
+	if (ep_index >= MIN(dev->endpoints_count, HA_DEV_EP_MAX_COUNT)) {
 		dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_EP;
 		stats.ev_ep++;
 		ret = -ENOENT;
@@ -623,8 +626,10 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 		goto exit;
 	}
 
-	const struct ha_device_endpoint_api *const ep_api = dev->endpoints[ep_index].api;
-	if (ep_api->eid == HA_DEV_ENDPOINT_NONE) {
+	ep     = &dev->endpoints[ep_index];
+	ep_api = ep->api;
+
+	if (ep_api->eid == HA_DEV_EP_NONE) {
 		dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_NO_EP;
 		stats.ev_no_ep++;
 		ret = -ENOENT;
@@ -672,10 +677,8 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 		goto exit;
 	}
 
-	struct ha_device_endpoint *const ep = &dev->endpoints[ep_index];
-
-	/* If there is a previous data event is referenced here, unref it */
-	ha_ev_t *const prev_data_ev = ep->last_data_event;
+	/* If a previous data event is referenced here, unref it */
+	prev_data_ev = ep->last_data_event;
 	if (prev_data_ev != NULL) {
 		ep->last_data_event = NULL;
 		ha_ev_unref(prev_data_ev);
@@ -684,9 +687,12 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 	/* Update statistics */
 	ha_dev_inc_stats_rx(dev, ep_api->data_size);
 
-	/* Reference current event */
-	atomic_set(&ev->ref_count, 1u);
-	ep->last_data_event = ev;
+	atomic_set(&ev->ref_count, 0u);
+
+	if (ep->api->flags & HA_DEV_EP_FLAG_RETAIN_LAST_EVENT) {
+		ha_ev_ref(ev);
+		ep->last_data_event = ev;
+	}
 
 	/* Notify the event to listeners */
 	ret = ha_ev_notify_all(ev);
@@ -731,13 +737,12 @@ int ha_dev_register_data(const ha_dev_addr_t *addr,
 	return ret;
 }
 
-ha_ev_t *
-ha_dev_command(const ha_dev_addr_t *addr, struct ha_device_cmd *cmd, k_timeout_t timeout)
+int ha_dev_command(struct ha_cmd_query *query, ha_ev_t **ev)
 {
-	return NULL;
+	return -ENOTSUP;
 }
 
-struct ha_device_endpoint *ha_dev_endpoint_get(ha_dev_t *dev, uint32_t ep)
+struct ha_device_endpoint *ha_dev_ep_get(ha_dev_t *dev, uint32_t ep)
 {
 	if (!dev || (ep >= dev->endpoints_count)) {
 		return NULL;
@@ -746,7 +751,7 @@ struct ha_device_endpoint *ha_dev_endpoint_get(ha_dev_t *dev, uint32_t ep)
 	return &dev->endpoints[ep];
 }
 
-struct ha_device_endpoint *ha_dev_endpoint_get_by_id(ha_dev_t *dev, ha_endpoint_id_t eid)
+struct ha_device_endpoint *ha_dev_ep_get_by_id(ha_dev_t *dev, ha_endpoint_id_t eid)
 {
 	if (!dev) {
 		return NULL;
@@ -761,7 +766,7 @@ struct ha_device_endpoint *ha_dev_endpoint_get_by_id(ha_dev_t *dev, ha_endpoint_
 	return NULL;
 }
 
-int ha_dev_endpoint_get_index_by_id(ha_dev_t *dev, ha_endpoint_id_t eid)
+int ha_dev_ep_get_index_by_id(ha_dev_t *dev, ha_endpoint_id_t eid)
 {
 	if (!dev) {
 		return -EINVAL;
@@ -778,7 +783,7 @@ int ha_dev_endpoint_get_index_by_id(ha_dev_t *dev, ha_endpoint_id_t eid)
 
 ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, uint32_t ep)
 {
-	return ha_dev_endpoint_get(dev, ep)->last_data_event;
+	return ha_dev_ep_get(dev, ep)->last_data_event;
 }
 
 const void *ha_dev_get_last_event_data(ha_dev_t *dev, uint32_t ep)
@@ -1199,22 +1204,22 @@ int ha_stats_copy(struct ha_stats *dest)
 	return 0;
 }
 
-bool ha_dev_endpoint_exists(const ha_dev_t *dev, uint8_t endpoint_index)
+bool ha_dev_ep_exists(const ha_dev_t *dev, uint8_t endpoint_index)
 {
 	return dev && (endpoint_index < dev->endpoints_count);
 }
 
-bool ha_dev_endpoint_has_datatype(const ha_dev_t *dev,
-				  uint8_t endpoint_index,
-				  const ha_data_type_t datatype)
+bool ha_dev_ep_has_datatype(const ha_dev_t *dev,
+			    uint8_t endpoint_index,
+			    const ha_data_type_t datatype)
 {
-	if (!ha_dev_endpoint_exists(dev, endpoint_index)) {
+	if (!ha_dev_ep_exists(dev, endpoint_index)) {
 		return false;
 	}
 
 	const struct ha_device_endpoint *const ep = &dev->endpoints[endpoint_index];
 
-#if HA_DEV_ENDPOINT_TYPE_SEARCH_OPTIMIZATION
+#if HA_DEV_EP_TYPE_SEARCH_OPTIMIZATION
 	return (bool)(ep->_data_types & (1u << datatype));
 #else
 	return ha_data_descr_data_type_has(
@@ -1222,11 +1227,11 @@ bool ha_dev_endpoint_has_datatype(const ha_dev_t *dev,
 #endif
 }
 
-bool ha_dev_endpoint_check_data_support(const ha_dev_t *dev, uint8_t endpoint_index)
+bool ha_dev_ep_check_data_support(const ha_dev_t *dev, uint8_t endpoint_index)
 {
 	bool support = false;
 
-	if (ha_dev_endpoint_exists(dev, endpoint_index)) {
+	if (ha_dev_ep_exists(dev, endpoint_index)) {
 		const struct ha_device_endpoint_api *const api =
 			dev->endpoints[endpoint_index].api;
 
@@ -1236,11 +1241,11 @@ bool ha_dev_endpoint_check_data_support(const ha_dev_t *dev, uint8_t endpoint_in
 	return support == true;
 }
 
-bool ha_dev_endpoint_check_cmd_support(const ha_dev_t *dev, uint8_t endpoint_index)
+bool ha_dev_ep_check_cmd_support(const ha_dev_t *dev, uint8_t endpoint_index)
 {
 	bool support = false;
 
-	if (ha_dev_endpoint_exists(dev, endpoint_index)) {
+	if (ha_dev_ep_exists(dev, endpoint_index)) {
 		const struct ha_device_endpoint_api *const api =
 			dev->endpoints[endpoint_index].api;
 

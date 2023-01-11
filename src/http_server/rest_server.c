@@ -613,7 +613,7 @@ __deprecated int rest_caniot_records(http_request_t *req, http_response_t *resp)
 		.flags = HA_DEV_FILTER_DATA_EXIST | HA_DEV_FILTER_DEVICE_TYPE |
 			 HA_DEV_FILTER_FROM_INDEX | HA_DEV_FILTER_TO_INDEX,
 		.device_type = HA_DEV_TYPE_CANIOT,
-		.endpoint_id = HA_DEV_ENDPOINT_NONE,
+		.endpoint_id = HA_DEV_EP_NONE,
 		.from_index  = REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n,
 		.to_index    = REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n +
 			    REST_HA_DEVICES_MAX_COUNT_PER_PAGE};
@@ -657,7 +657,7 @@ struct json_device {
 	struct ha_device_stats stats;
 
 	uint32_t endpoints_count;
-	struct json_device_endpoint endpoints[HA_DEV_ENDPOINT_MAX_COUNT];
+	struct json_device_endpoint endpoints[HA_DEV_EP_MAX_COUNT];
 };
 
 struct json_device_buf {
@@ -698,7 +698,7 @@ static const struct json_obj_descr json_device_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_device, registered_timestamp, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_device,
 				 endpoints,
-				 HA_DEV_ENDPOINT_MAX_COUNT,
+				 HA_DEV_EP_MAX_COUNT,
 				 endpoints_count,
 				 json_device_endpoint_descr,
 				 ARRAY_SIZE(json_device_endpoint_descr)),
@@ -730,7 +730,7 @@ static bool devices_cb(ha_dev_t *dev, void *user_data)
 	jd->endpoints_count = 0u;
 
 	for (uint32_t i = 0u; i < dev->endpoints_count; i++) {
-		struct ha_device_endpoint *ep = ha_dev_endpoint_get(dev, i);
+		struct ha_device_endpoint *ep = ha_dev_ep_get(dev, i);
 		if (ep) {
 			struct json_device_endpoint *jep =
 				&jd->endpoints[jd->endpoints_count];

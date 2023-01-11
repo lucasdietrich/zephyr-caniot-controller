@@ -19,10 +19,25 @@ typedef enum {
 
 int if_can_init(void);
 
+/**
+ * @brief Attach a message queue to a CAN bus for receiving messages
+ *
+ * @param canbus
+ * @param rx_msgq
+ * @param filter
+ * @return int
+ */
 int if_can_attach_rx_msgq(can_bus_id_t canbus,
 			  struct k_msgq *rx_msgq,
 			  struct can_filter *filter);
 
+/**
+ * @brief Send a CAN frame on a CAN bus
+ *
+ * @param canbus
+ * @param frame
+ * @return int
+ */
 int if_can_send(can_bus_id_t canbus, struct can_frame *frame);
 
 #endif /* _CAN_INTERFACE_H */
