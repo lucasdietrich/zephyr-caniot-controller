@@ -63,9 +63,8 @@ static void eth_interface_up(void)
 static void eth_interface_down(void)
 {
 #if defined(CONFIG_NET_DHCPV4)
-	struct net_if *const iface = ifaces[ETH0];
-
-	net_dhcpv4_stop(iface);
+	// struct net_if *const iface = ifaces[ETH0];
+	// net_dhcpv4_stop(iface);
 #endif
 
 #ifndef CONFIG_QEMU_TARGET
