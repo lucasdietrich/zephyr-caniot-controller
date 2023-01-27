@@ -1,4 +1,5 @@
 #include "caniot.h"
+#include "ha/caniot_controller.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -75,6 +76,33 @@ static int blc0_ingest(struct ha_event *ev, const struct ha_device_payload *pl)
 				      (const struct caniot_blc0_telemetry *)pl->buffer);
 
 	return 0;
+}
+
+static int blc0_command(struct ha_device *dev, const struct ha_device_command *cmd)
+{
+	int ret;
+	bool send = false;
+	struct caniot_frame cf;
+	struct caniot_blc_command cc;
+
+	caniot_blc_command_init(&cc);
+
+	switch (cmd->type) {
+	case HA_DEV_CMD_TYPE_REBOOT:
+		send = true;
+		caniot_blc_sys_req_reboot(&cc.sys);
+		break;
+	default:
+		return -ENOTSUP;
+	}
+
+	if (send) {
+		caniot_build_query_blc_command(&cf, CANIOT_ENDPOINT_BOARD_CONTROL, &cc);
+
+		ret = ha_caniot_controller_send(&cf, dev->addr.mac.addr.caniot);
+	}
+	
+	return ret;
 }
 
 void ha_dev_caniot_blc_cls1_to_blt(struct ha_ds_caniot_blc1 *blt,
@@ -368,7 +396,12 @@ int ha_dev_register_caniot_telemetry(uint32_t timestamp,
 	/* check if device already exists */
 	const ha_dev_addr_t addr = {
 		.type = HA_DEV_TYPE_CANIOT,
-		.mac  = {.medium = HA_DEV_MEDIUM_CAN, .addr.caniot = did}};
+		.mac =
+			{
+				.medium	     = HA_DEV_MEDIUM_CAN,
+				.addr.caniot = did,
+			},
+	};
 
 	const struct ha_device_payload pl = {
 		.buffer = buf, .len = 8u, .timestamp = timestamp, .y = (void *)id};

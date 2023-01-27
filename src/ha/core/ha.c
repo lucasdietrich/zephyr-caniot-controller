@@ -319,12 +319,6 @@ static ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 		goto exit;
 	}
 
-	/* Clear endpoints */
-	for (int i = 0; i < HA_DEV_EP_MAX_COUNT; i++) {
-		dev->endpoints[i].api		  = NULL;
-		dev->endpoints[i].last_data_event = NULL;
-	}
-
 	ret = dev->api->init_endpoints(&dev->addr, dev->endpoints, &dev->endpoints_count);
 	if (ret < 0) {
 		stats.dev_dropped++;
@@ -478,9 +472,10 @@ static void dev_ep_unlock_ev_mask(ha_dev_t *dev, uint32_t locked_mask)
 	uint32_t ep_index = 0u;
 	while (locked_mask) {
 		if (locked_mask & 1u) {
-			ha_ev_t *ev = dev->endpoints[ep_index++].last_data_event;
+			ha_ev_t *ev = dev->endpoints[ep_index].last_data_event;
 			ha_ev_unref(ev);
 		}
+		ep_index++;
 		locked_mask >>= 1u;
 	}
 }

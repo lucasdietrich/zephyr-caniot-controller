@@ -17,6 +17,8 @@ endif
 # Get ap^plication VERSION
 VERSION := $(shell cat VERSION)
 
+.PHONY: build
+
 all: build make
 
 tmp:

@@ -55,5 +55,5 @@ int ha_dev_garage_cmd_send(const struct ha_dev_garage_cmd *cmd)
 				   (uint8_t *)&payload,
 				   sizeof(payload));
 
-	return ha_ciot_ctrl_send(&frame, garage_did);
+	return ha_caniot_controller_send(&frame, garage_did);
 }

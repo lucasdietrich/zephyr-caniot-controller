@@ -17,7 +17,7 @@
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_mgmt.h>
 #include <zephyr/net/sntp.h>
-LOG_MODULE_REGISTER(netif, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(netif, LOG_LEVEL_DBG);
 
 #define NET_ETH_ADDR_STR_LEN sizeof("xx:xx:xx:xx:xx:xx")
 

@@ -157,7 +157,7 @@ struct syncq {
 	};
 };
 
-K_MEM_SLAB_DEFINE(sq_pool, sizeof(struct syncq), CANIOT_MAX_PENDING_QUERIES, 4U);
+K_MEM_SLAB_DEFINE(sq_pool, sizeof(struct syncq), CONFIG_CANIOT_MAX_PENDING_QUERIES, 4U);
 
 /* requires ~80B of stack */
 void log_caniot_frame(const struct caniot_frame *frame)
@@ -361,7 +361,7 @@ static void thread(void *_a, void *_b, void *_c)
 				if (ret > 0) {
 					/* pending query registered */
 					qx->handle = (uint8_t)ret;
-					caniot_controller_handle_set_user_data(
+					caniot_controller_handle_user_data_set(
 						&ctrl, qx->handle, qx);
 				} else {
 					/* no context allocated, return
@@ -393,7 +393,7 @@ static void thread(void *_a, void *_b, void *_c)
 	}
 }
 
-int ha_ciot_ctrl_query(struct caniot_frame *__restrict req,
+int ha_caniot_controller_query(struct caniot_frame *__restrict req,
 		       struct caniot_frame *__restrict resp,
 		       caniot_did_t did,
 		       uint32_t *timeout)
@@ -409,7 +409,7 @@ int ha_ciot_ctrl_query(struct caniot_frame *__restrict req,
 	if (*timeout == CANIOT_TIMEOUT_FOREVER) {
 		goto exit;
 	} else if (*timeout == 0) {
-		LOG_WRN("Timeout=%d not recommended, use ha_ciot_ctrl_send() "
+		LOG_WRN("Timeout=%d not recommended, use ha_caniot_controller_send() "
 			"instead",
 			0);
 	}
@@ -483,13 +483,13 @@ exit:
 	return ret;
 }
 
-int ha_ciot_ctrl_send(struct caniot_frame *__restrict req, caniot_did_t did)
+int ha_caniot_controller_send(struct caniot_frame *__restrict req, caniot_did_t did)
 {
 	/* this is safe because no context is allocated */
 	return caniot_controller_send(&ctrl, did, req);
 }
 
-int ha_ciot_ctrl_discover(uint32_t timeout, ha_ciot_ctrl_did_cb_t cb)
+int ha_controller_caniot_discover(uint32_t timeout, ha_ciot_ctrl_did_cb_t cb)
 {
 	return -ENOTSUP;
 }

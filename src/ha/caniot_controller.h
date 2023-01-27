@@ -22,7 +22,7 @@
  * @retval 0 on success
  * @retval CANIOT error (errors below -CANIOT_ERROR_BASE)
  */
-int ha_ciot_ctrl_send(struct caniot_frame *__restrict req, caniot_did_t did);
+int ha_caniot_controller_send(struct caniot_frame *__restrict req, caniot_did_t did);
 
 /**
  * @brief Do a blocking (if timeout != 0) CANIOT query
@@ -43,10 +43,10 @@ int ha_ciot_ctrl_send(struct caniot_frame *__restrict req, caniot_did_t did);
  * @retval -EAGAIN Waiting period timed out.
  * @retval any other CANIOT error
  */
-int ha_ciot_ctrl_query(struct caniot_frame *__restrict req,
-		       struct caniot_frame *__restrict resp,
-		       caniot_did_t did,
-		       uint32_t *timeout);
+int ha_caniot_controller_query(struct caniot_frame *__restrict req,
+			       struct caniot_frame *__restrict resp,
+			       caniot_did_t did,
+			       uint32_t *timeout);
 
 /**
  * @brief CANIOT device discovery callback
@@ -66,7 +66,7 @@ typedef void (*ha_ciot_ctrl_did_cb_t)(caniot_did_t did,
  * @param cb
  * @return int
  */
-int ha_ciot_ctrl_discover(uint32_t timeout, ha_ciot_ctrl_did_cb_t cb);
+int ha_controller_caniot_discover(uint32_t timeout, ha_ciot_ctrl_did_cb_t cb);
 
 /*
 IDEAS

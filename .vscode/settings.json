@@ -89,7 +89,7 @@
                 "dispatcher.h": "c",
                 "canif.h": "c",
                 "room.h": "c",
-                "archutils.h": "c",
+                "caniot_private.h": "c",
                 "stddef.h": "c",
                 "xiaomi_record.h": "c",
                 "rpmsg_multi_instance.h": "c",

@@ -884,6 +884,7 @@ int rest_caniot_command(http_request_t *req, http_response_t *resp)
 
 	return -ENOTSUP;
 }
+
 int rest_test_caniot_query_telemetry(http_request_t *req, http_response_t *resp)
 {
 	struct caniot_frame query, response;
@@ -895,7 +896,7 @@ int rest_test_caniot_query_telemetry(http_request_t *req, http_response_t *resp)
 	const caniot_did_t did = CANIOT_DID(CANIOT_DEVICE_CLASS0, CANIOT_DEVICE_SID4);
 
 	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
-	ha_ciot_ctrl_query(&query, &response, did, &timeout);
+	ha_caniot_controller_query(&query, &response, did, &timeout);
 
 	return 0;
 }
@@ -1034,7 +1035,7 @@ int caniot_q_ct_to_json_resp(struct caniot_frame *q,
 {
 	struct caniot_frame r;
 
-	int ret = ha_ciot_ctrl_query(q, &r, did, timeout);
+	int ret = ha_caniot_controller_query(q, &r, did, timeout);
 
 	switch (ret) {
 	case 1:
@@ -1401,7 +1402,7 @@ int rest_devices_caniot_attr_read_write(http_request_t *req, http_response_t *re
 
 	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
 
-	ret = ha_ciot_ctrl_query(&q, &r, did, &timeout);
+	ret = ha_caniot_controller_query(&q, &r, did, &timeout);
 
 	/* Prepare response*/
 

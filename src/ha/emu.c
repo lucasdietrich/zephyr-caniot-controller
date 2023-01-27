@@ -444,7 +444,7 @@ void emu_caniot_broadcast_thread(void *_a, void *_b, void *_c)
 		// caniot_did_t did = CANIOT_DID(0, 0);
 		const caniot_did_t did = CANIOT_DID_BROADCAST;
 
-		int ret = ha_ciot_ctrl_query(&req, &resp, did, &timeout);
+		int ret = ha_caniot_controller_query(&req, &resp, did, &timeout);
 
 		LOG_DBG("ret = %d", ret);
 
@@ -474,7 +474,7 @@ void emu_caniot_cmd_thread(void *_a, void *_b, void *_c)
 		caniot_build_query_command(
 			&req, CANIOT_ENDPOINT_BOARD_CONTROL, buf, sizeof(buf));
 
-		ret = ha_ciot_ctrl_query(&req, &resp, did, &timeout);
+		ret = ha_caniot_controller_query(&req, &resp, did, &timeout);
 
 		LOG_DBG("CMD ret=%d timeout=%u", ret, timeout);
 
@@ -482,7 +482,7 @@ void emu_caniot_cmd_thread(void *_a, void *_b, void *_c)
 
 		caniot_build_query_telemetry(&req, CANIOT_ENDPOINT_BOARD_CONTROL);
 
-		ret = ha_ciot_ctrl_query(&req, &resp, did, &timeout);
+		ret = ha_caniot_controller_query(&req, &resp, did, &timeout);
 
 		LOG_DBG("TLM ret=%d timeout=%u", ret, timeout);
 
