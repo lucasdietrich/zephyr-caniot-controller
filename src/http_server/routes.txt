@@ -22,6 +22,11 @@ GET /api/files/1:s -> http_file_download | BINARY
 GET /api/files/1:s/2:s -> http_file_download | BINARY
 GET /api/files/1:s/2:s/3:s -> http_file_download | BINARY
 GET /api/files/1:s/2:s/3:s/4:s -> http_file_download | BINARY
+DELETE /api/files -> http_file_delete | REST
+DELETE /api/files/1:s -> http_file_delete | REST
+DELETE /api/files/1:s/2:s -> http_file_delete | REST
+DELETE /api/files/1:s/2:s/3:s -> http_file_delete | REST
+DELETE /api/files/1:s/2:s/3:s/4:s -> http_file_delete | REST
 
 GET /api/files/lua -> rest_fs_list_lua_scripts (CONFIG_LUA)
 DELETE /api/files/lua -> rest_fs_remove_lua_script (CONFIG_LUA)
@@ -32,13 +37,13 @@ POST /api/dfu -> http_dfu_image_upload, http_dfu_image_upload_response (CONFIG_A
 GET /api/dfu -> http_dfu_status (CONFIG_APP_DFU)
 GET /api/dfu/status -> http_dfu_status (CONFIG_APP_DFU)
 
-GET /api/devices/ -> rest_devices_list
-GET /api/room/:u -> rest_room_devices_list
-GET /api/devices/xiaomi -> rest_xiaomi_records
-GET /api/devices/caniot -> rest_caniot_records
-GET /api/device/:u -> rest_device_get
-GET /api/ha/stats -> rest_ha_stats
-GET /api/devices/garage -> rest_devices_garage_get (CONFIG_APP_CANIOT_CONTROLLER)
+GET /api/devices/ -> rest_devices_list (CONFIG_APP_HA)
+GET /api/room/:u -> rest_room_devices_list (CONFIG_APP_HA)
+GET /api/devices/xiaomi -> rest_xiaomi_records (CONFIG_APP_HA)
+GET /api/devices/caniot -> rest_caniot_records (CONFIG_APP_HA)
+GET /api/device/:u -> rest_device_get (CONFIG_APP_HA)
+GET /api/ha/stats -> rest_ha_stats (CONFIG_APP_HA)
+GET /api/devices/garage -> rest_devices_garage_get (CONFIG_APP_HA, CONFIG_APP_CANIOT_CONTROLLER)
 POST /api/devices/garage -> rest_devices_garage_post (CONFIG_APP_CANIOT_CONTROLLER)
 POST /api/devices/caniot/did:u/endpoint/blc0/command -> rest_devices_caniot_blc0_command (CONFIG_APP_CANIOT_CONTROLLER)
 POST /api/devices/caniot/did:u/endpoint/blc1/command -> rest_devices_caniot_blc1_command (CONFIG_APP_CANIOT_CONTROLLER)

@@ -88,13 +88,17 @@ static const struct route_descr root_api_if[] = {
 };
 #endif
 
+#if defined(CONFIG_APP_HA)
 static const struct route_descr root_api_ha[] = {
 	LEAF("stats", GET, rest_ha_stats, NULL, 0u),
 };
+#endif
 
+#if defined(CONFIG_APP_HA)
 static const struct route_descr root_api_device[] = {
 	LEAF(":u", GET | ARG_UINT, rest_device_get, NULL, 0u),
 };
+#endif
 
 #if defined(CONFIG_APP_CANIOT_CONTROLLER)
 static const struct route_descr root_api_devices_caniot_didzu_attribute[] = {
@@ -172,7 +176,9 @@ static const struct route_descr root_api_devices_caniot_didzu[] = {
 
 #if defined(CONFIG_APP_CANIOT_CONTROLLER)
 static const struct route_descr root_api_devices_caniot[] = {
+#if defined(CONFIG_APP_HA)
 	LEAF("", GET, rest_caniot_records, NULL, 0u),
+#endif
 	SECTION("did:u",
 		ARG_UINT,
 		root_api_devices_caniot_didzu,
@@ -181,12 +187,15 @@ static const struct route_descr root_api_devices_caniot[] = {
 };
 #endif
 
+#if defined(CONFIG_APP_CANIOT_CONTROLLER) || defined(CONFIG_APP_HA)
 static const struct route_descr root_api_devices[] = {
+#if defined(CONFIG_APP_HA)
 	LEAF("", GET, rest_devices_list, NULL, 0u),
-	LEAF("xiaomi", GET, rest_xiaomi_records, NULL, 0u),
-#if defined(CONFIG_APP_CANIOT_CONTROLLER)
-	LEAF("garage", GET, rest_devices_garage_get, NULL, 0u),
 #endif
+#if defined(CONFIG_APP_HA)
+	LEAF("xiaomi", GET, rest_xiaomi_records, NULL, 0u),
+#endif
+	LEAF("garage", GET, rest_devices_garage_get, NULL, 0u),
 #if defined(CONFIG_APP_CANIOT_CONTROLLER)
 	LEAF("garage", POST, rest_devices_garage_post, NULL, 0u),
 #endif
@@ -198,10 +207,13 @@ static const struct route_descr root_api_devices[] = {
 		0u),
 #endif
 };
+#endif
 
+#if defined(CONFIG_APP_HA)
 static const struct route_descr root_api_room[] = {
 	LEAF(":u", GET | ARG_UINT, rest_room_devices_list, NULL, 0u),
 };
+#endif
 
 #if defined(CONFIG_APP_DFU)
 static const struct route_descr root_api_dfu[] = {
@@ -230,6 +242,8 @@ static const struct route_descr root_api_files_1zs_2zs_3zs[] = {
 	LEAF("4:s", POST | ARG_STR, http_file_upload, http_file_upload, REST),
 	LEAF("", GET, http_file_download, NULL, BINARY),
 	LEAF("4:s", GET | ARG_STR, http_file_download, NULL, BINARY),
+	LEAF("", DELETE, http_file_delete, NULL, REST),
+	LEAF("4:s", DELETE | ARG_STR, http_file_delete, NULL, REST),
 };
 
 static const struct route_descr root_api_files_1zs_2zs[] = {
@@ -240,6 +254,7 @@ static const struct route_descr root_api_files_1zs_2zs[] = {
 		ARRAY_SIZE(root_api_files_1zs_2zs_3zs),
 		REST),
 	LEAF("", GET, http_file_download, NULL, BINARY),
+	LEAF("", DELETE, http_file_delete, NULL, REST),
 };
 
 static const struct route_descr root_api_files_1zs[] = {
@@ -250,12 +265,14 @@ static const struct route_descr root_api_files_1zs[] = {
 		ARRAY_SIZE(root_api_files_1zs_2zs),
 		REST),
 	LEAF("", GET, http_file_download, NULL, BINARY),
+	LEAF("", DELETE, http_file_delete, NULL, REST),
 };
 
 static const struct route_descr root_api_files[] = {
 	LEAF("", POST, http_file_upload, http_file_upload, REST),
 	SECTION("1:s", ARG_STR, root_api_files_1zs, ARRAY_SIZE(root_api_files_1zs), REST),
 	LEAF("", GET, http_file_download, NULL, BINARY),
+	LEAF("", DELETE, http_file_delete, NULL, REST),
 #if defined(CONFIG_LUA)
 	LEAF("lua", GET, rest_fs_list_lua_scripts, NULL, 0u),
 #endif
@@ -295,10 +312,18 @@ static const struct route_descr root_api[] = {
 #if defined(CONFIG_APP_DFU)
 	SECTION("dfu", 0u, root_api_dfu, ARRAY_SIZE(root_api_dfu), 0u),
 #endif
+#if defined(CONFIG_APP_HA)
 	SECTION("room", 0u, root_api_room, ARRAY_SIZE(root_api_room), 0u),
+#endif
+#if defined(CONFIG_APP_CANIOT_CONTROLLER) && defined(CONFIG_APP_HA)
 	SECTION("devices", 0u, root_api_devices, ARRAY_SIZE(root_api_devices), 0u),
+#endif
+#if defined(CONFIG_APP_HA)
 	SECTION("device", 0u, root_api_device, ARRAY_SIZE(root_api_device), 0u),
+#endif
+#if defined(CONFIG_APP_HA)
 	SECTION("ha", 0u, root_api_ha, ARRAY_SIZE(root_api_ha), 0u),
+#endif
 #if defined(CONFIG_APP_CAN_INTERFACE)
 	SECTION("if", 0u, root_api_if, ARRAY_SIZE(root_api_if), 0u),
 #endif

@@ -392,3 +392,8 @@ int http_file_stats(struct http_request *req, struct http_response *resp)
 {
 	return 0;
 }
+
+int http_file_delete(struct http_request *req, struct http_response *resp)
+{
+	return 0;
+}

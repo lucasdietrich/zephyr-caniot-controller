@@ -417,6 +417,8 @@ int rest_interface_set(http_request_t *req, http_response_t *resp)
 	return -ENOTSUP;
 }
 
+#if defined(CONFIG_APP_HA)
+
 const struct json_obj_descr json_xiaomi_record_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, bt_mac, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, base.timestamp, JSON_TOK_NUMBER),
@@ -872,6 +874,8 @@ int rest_room_devices_list(http_request_t *req, http_response_t *resp)
 	return 0;
 }
 
+#endif
+
 int rest_caniot_info(http_request_t *req, http_response_t *resp)
 {
 	return -ENOTSUP;
@@ -899,6 +903,38 @@ int rest_test_caniot_query_telemetry(http_request_t *req, http_response_t *resp)
 	ha_caniot_controller_query(&query, &response, did, &timeout);
 
 	return 0;
+}
+
+struct json_can_payload {
+	size_t count;
+	uint32_t vals[CAN_MAX_DLEN];
+};
+
+static const struct json_obj_descr json_can_payload_descr[] = {JSON_OBJ_DESCR_ARRAY(
+	struct json_can_payload, vals, CAN_MAX_DLEN, count, JSON_TOK_NUMBER)};
+
+static int json_parse_can_payload(char *buf, size_t len, uint8_t can_buf[CAN_MAX_DLEN])
+{
+	struct json_can_payload data;
+
+	/* Parse payload */
+	int ret = json_arr_parse(buf, len, json_can_payload_descr, &data);
+	if (ret < 0 || data.count > CAN_MAX_DLEN) {
+		goto exit;
+	}
+
+	/* validate command and build it */
+	for (size_t i = 0; i < data.count; i++) {
+		if (data.vals[i] > 0xFF) {
+			ret = -EINVAL;
+			goto exit;
+		}
+		can_buf[i] = data.vals[i];
+	}
+
+	ret = data.count;
+exit:
+	return ret;
 }
 
 #if defined(CONFIG_APP_CANIOT_CONTROLLER)
@@ -1234,38 +1270,6 @@ exit:
 int rest_devices_caniot_blc_command(http_request_t *req, http_response_t *resp)
 {
 	return -ENOTSUP;
-}
-
-struct json_can_payload {
-	size_t count;
-	uint32_t vals[CAN_MAX_DLEN];
-};
-
-static const struct json_obj_descr json_can_payload_descr[] = {JSON_OBJ_DESCR_ARRAY(
-	struct json_can_payload, vals, CAN_MAX_DLEN, count, JSON_TOK_NUMBER)};
-
-static int json_parse_can_payload(char *buf, size_t len, uint8_t can_buf[CAN_MAX_DLEN])
-{
-	struct json_can_payload data;
-
-	/* Parse payload */
-	int ret = json_arr_parse(buf, len, json_can_payload_descr, &data);
-	if (ret < 0 || data.count > CAN_MAX_DLEN) {
-		goto exit;
-	}
-
-	/* validate command and build it */
-	for (size_t i = 0; i < data.count; i++) {
-		if (data.vals[i] > 0xFF) {
-			ret = -EINVAL;
-			goto exit;
-		}
-		can_buf[i] = data.vals[i];
-	}
-
-	ret = data.count;
-exit:
-	return ret;
 }
 
 int rest_devices_caniot_command(http_request_t *req, http_response_t *resp)

@@ -88,7 +88,9 @@ static int die_temp_fetch(void)
 
 	const float temperature = (float)sensor_value_to_double(&val);
 	if (temperature > -276.0) {
+#if defined(CONFIG_APP_HA)
 		ha_dev_register_die_temperature(net_time_get(), temperature);
+#endif
 
 		LOG_DBG("Current DIE temperature: %.1f °C ", temperature);
 	} else {

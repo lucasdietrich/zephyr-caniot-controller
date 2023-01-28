@@ -135,6 +135,7 @@ http_routes_generate:
 		--descr-whole \
 		--def-begin="=== ROUTES DEFINITION BEGIN  === */" \
 		--def-end="/* === ROUTES DEFINITION END === */"
+	ls src/http_server/routes_g.c | xargs clang-format -i
 
 zephyr_conf_synthesis:
 	python3 ./scripts/zephyr_conf_parser.py
