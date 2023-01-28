@@ -61,7 +61,7 @@ K_THREAD_DEFINE(http_thread,
 		NULL,
 		NULL,
 		NULL,
-		K_PRIO_PREEMPT(8),
+		K_PRIO_PREEMPT(1u), /* Highest preemptive thread priority*/
 		0,
 		0);
 
@@ -283,7 +283,7 @@ static int srv_accept(int serv_sock, bool secure)
 	char ipv4_str[NET_IPV4_ADDR_LEN];
 	ipv4_to_str(&addr.sin_addr, ipv4_str, sizeof(ipv4_str));
 
-	LOG_DBG("(%d) Accepted session, allocating session context, cli sock = "
+	LOG_DBG("(%d) Accepted session, cli sock = "
 		"(%d)",
 		serv_sock,
 		sock);
@@ -432,7 +432,7 @@ static int sendall(int sock, char *buf, size_t len)
 	int ret;
 	size_t sent = 0;
 
-	LOG_DBG("sendall(%d, %p, %u)", sock, (void *)buf, len);
+	LOG_DBG("(%d, %p, %u)", sock, (void *)buf, len);
 
 	while (sent < len) {
 		ret = zsock_send(sock, &buf[sent], len - sent, 0U);
@@ -508,7 +508,7 @@ static void request_chunk_buf_cleanup(http_request_t *req)
 static int sock_recv(int sock, char *buf, size_t len)
 {
 	int rc = zsock_recv(sock, buf, len, 0);
-	LOG_DBG("zsock_recv(%d, %p, %d, 0) = %d", sock, (void *)buf, len, rc);
+	LOG_DBG("(%d, %p, %d, 0) = %d", sock, (void *)buf, len, rc);
 
 	if (rc == -EAGAIN) {
 		/* TODO find a way to return to wait for data */

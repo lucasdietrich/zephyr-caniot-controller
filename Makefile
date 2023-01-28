@@ -30,6 +30,21 @@ build:
 	west build --board=nucleo_f429zi -- \
 		-G"$(GENERATOR)"
 
+ninja:
+	ninja -C build
+
+make: build
+	${GEN_CMD} -C build $(GEN_OPT)
+	
+flash:
+	west flash
+
+# Build with shell
+build_debug:
+	west build --board=nucleo_f429zi -- \
+		-DOVERLAY_CONFIG="overlays/nucleo_f429zi_shell.conf" \
+		-G"$(GENERATOR)"
+
 build_nucleo_f429zi_loggingfs:
 	west build --board=nucleo_f429zi -- \
 		-DOVERLAY_CONFIG="overlays/nucleo_f429zi_logging_fs.conf" \
@@ -64,12 +79,6 @@ build_qemu_arm_lan9220:
 
 build_qemu_x86:
 	west build --board=qemu_x86 -- -G"$(GENERATOR)"
-
-flash:
-	west flash
-
-make: build
-	${GEN_CMD} -C build $(GEN_OPT)
 
 # Ctrl-T Q to quit
 monitor:

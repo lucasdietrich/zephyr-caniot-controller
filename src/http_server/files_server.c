@@ -16,6 +16,8 @@
 #include <libgen.h>
 LOG_MODULE_REGISTER(files_server, LOG_LEVEL_WRN);
 
+#define FILES_SERVER_DEBUG_SPEED	0u
+
 #define FILES_SERVER_MOUNT_POINT      CONFIG_APP_FILES_SERVER_MOUNT_POINT
 #define FILES_SERVER_MOUNT_POINT_SIZE (sizeof(FILES_SERVER_MOUNT_POINT) - 1u)
 
@@ -222,7 +224,7 @@ int http_file_upload(struct http_request *req, struct http_response *resp)
 			goto exit;
 		}
 
-#if FILES_SERVER_CREATE_DIR_IF_NOT_EXISTS
+#if FILES_SERVER_CREATE_DIR_IF_NOT_EXISTS && !FILES_SERVER_DEBUG_SPEED
 		ret = app_fs_mkdir_intermediate(filepath, true);
 		if (ret < 0) {
 			LOG_ERR("Failed to create intermediate directories: %s",
@@ -232,6 +234,7 @@ int http_file_upload(struct http_request *req, struct http_response *resp)
 		}
 #endif /* FILES_SERVER_CREATE_DIR_IF_NOT_EXISTS */
 
+#if !FILES_SERVER_DEBUG_SPEED
 		ret = open_w_file(&file, filepath);
 		if (ret == -ENOENT) {
 			http_request_discard(req, HTTP_REQUEST_BAD);
@@ -242,6 +245,7 @@ int http_file_upload(struct http_request *req, struct http_response *resp)
 			ret = 0;
 			goto exit;
 		}
+#endif
 
 		/* Reference context */
 		req->user_data = &file;
@@ -256,6 +260,7 @@ int http_file_upload(struct http_request *req, struct http_response *resp)
 			req->payload.loc,
 			req->payload.len,
 			&file);
+#if !FILES_SERVER_DEBUG_SPEED
 		ssize_t written = fs_write(&file, req->payload.loc, req->payload.len);
 		if (written != req->payload.len) {
 			ret = written;
@@ -265,10 +270,12 @@ int http_file_upload(struct http_request *req, struct http_response *resp)
 			http_request_discard(req, HTTP_REQUEST_BAD);
 			goto exit;
 		}
+#endif
 	}
 
 	bool complete = http_request_complete(req);
 	if (complete) {
+#if !FILES_SERVER_DEBUG_SPEED
 		/* Close file */
 		ret = fs_close(&file);
 		if (ret) {
@@ -276,6 +283,7 @@ int http_file_upload(struct http_request *req, struct http_response *resp)
 			LOG_ERR("Failed to close file = %d", ret);
 			goto ret;
 		}
+#endif
 
 		LOG_INF("Upload of %u B succeeded", req->payload_len);
 
@@ -287,10 +295,12 @@ int http_file_upload(struct http_request *req, struct http_response *resp)
 	}
 
 exit:
+#if !FILES_SERVER_DEBUG_SPEED
 	/* In case of fatal error, properly close file */
 	if (ret != 0) {
 		fs_close(&file);
 	}
+#endif
 
 ret:
 	return ret;
@@ -335,6 +345,8 @@ int http_file_download(struct http_request *req, struct http_response *resp)
 						      HTTP_STATUS_INTERNAL_SERVER_ERROR);
 			ret = 0;
 			goto exit;
+		} else if (FILES_SERVER_DEBUG_SPEED) {
+			fs_close(&file);
 		}
 
 		/* Set body size */
@@ -362,6 +374,7 @@ int http_file_download(struct http_request *req, struct http_response *resp)
 
 	/* Read & close */
 	if (req->user_data != NULL) {
+#if !FILES_SERVER_DEBUG_SPEED
 		ret = fs_read(&file, resp->buffer.data, resp->buffer.size);
 		if (ret < 0) {
 			fs_close(&file);
@@ -370,13 +383,16 @@ int http_file_download(struct http_request *req, struct http_response *resp)
 			ret = 0;
 			goto exit;
 		}
+#else
+		ret = MIN(resp->buffer.size, resp->content_length - resp->payload_sent);
+#endif
 
 		resp->buffer.filling = ret;
 
 		/* If more data are expected */
 		if (ret == resp->buffer.size) {
 			http_response_mark_not_complete(resp);
-		} else {
+		} else if (!FILES_SERVER_DEBUG_SPEED) {
 			fs_close(&file);
 			req->user_data = NULL;
 		}
