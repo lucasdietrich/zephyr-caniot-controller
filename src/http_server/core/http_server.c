@@ -27,7 +27,13 @@
 #include <zephyr/net/net_ip.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/tls_credentials.h>
+#include <zephyr/net/tls_verify_cb.h>
 #include <zephyr/posix/poll.h>
+
+#include <mbedtls/x509_crt.h>
+#include <mbedtls/oid.h>
+
+#include <user/auth.h>
 
 #include <fcntl.h>
 LOG_MODULE_REGISTER(http_server, LOG_LEVEL_WRN); /* INF */
@@ -48,11 +54,13 @@ LOG_MODULE_REGISTER(http_server, LOG_LEVEL_WRN); /* INF */
 #error "No server socket configured"
 #endif
 
+// forward declarations
+static bool process_request(http_session_t *sess);
+static void http_srv_thread(void *_a, void *_b, void *_c);
+
 static const sec_tag_t sec_tag_list[] = {HTTPS_SERVER_SEC_TAG};
 
 #define KEEP_ALIVE_DEFAULT_TIMEOUT_MS (30 * 1000)
-
-static void http_srv_thread(void *_a, void *_b, void *_c);
 
 #define HTTP_SERVER_THREAD_STACK_SIZE (0x1000U)
 K_THREAD_DEFINE(http_thread,
@@ -109,15 +117,54 @@ static void show_pfd(void)
 	}
 }
 
-// forward declarations
-static bool process_request(http_session_t *sess);
+#if defined(CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK)
+
+const struct user *handshake_auth_user = NULL;
+
+static int tls_verify_callback(void *user_data,
+			       struct mbedtls_x509_crt *crt,
+			       int depth,
+			       uint32_t *flags)
+{
+	if (depth != 0) return 0;
+
+	const mbedtls_x509_name *name;
+	struct user_auth auth;
+
+	LOG_INF("tls_verify_callback: user_data: %p, crt: %p, depth: %d, flags: %08x",
+		user_data,
+		crt,
+		depth,
+		*flags);
+
+	for (name = &crt->subject; name != NULL; name = name->next) {
+		if (MBEDTLS_OID_CMP(MBEDTLS_OID_AT_CN, &name->oid) == 0) {
+			memcpy(auth.username, name->val.p, name->val.len);
+			auth.username[name->val.len] = '\0';
+
+			handshake_auth_user = user_auth_verify(&auth);
+
+			LOG_INF("username: %s role: %s",
+				handshake_auth_user->name,
+				user_role_to_str(handshake_auth_user->role));
+
+			break;
+		}
+	}
+
+	return 0;
+}
+
+#endif /* CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK */
 
 static int setup_socket(struct pollfd *pfd, bool secure)
 {
 	int sock, ret;
-	struct sockaddr_in local = {.sin_family = AF_INET,
-				    .sin_port	= htons(secure ? HTTPS_PORT : HTTP_PORT),
-				    .sin_addr	= {.s_addr = INADDR_ANY}};
+	struct sockaddr_in local = {
+		.sin_family = AF_INET,
+		.sin_port   = htons(secure ? HTTPS_PORT : HTTP_PORT),
+		.sin_addr   = {.s_addr = INADDR_ANY},
+	};
 
 	sock = zsock_socket(AF_INET, SOCK_STREAM, secure ? IPPROTO_TLS_1_2 : IPPROTO_TCP);
 	if (sock < 0) {
@@ -145,9 +192,11 @@ static int setup_socket(struct pollfd *pfd, bool secure)
 		}
 
 #if defined(CONFIG_APP_HTTP_SERVER_VERIFY_CLIENT)
-		int verify = TLS_PEER_VERIFY_REQUIRED;
-		ret	   = zsock_setsockopt(
-			       sock, SOL_TLS, TLS_PEER_VERIFY, &verify, sizeof(int));
+		int verify;
+
+		verify = TLS_PEER_VERIFY_OPTIONAL;
+		ret    = zsock_setsockopt(
+			   sock, SOL_TLS, TLS_PEER_VERIFY, &verify, sizeof(int));
 		if (ret < 0) {
 			LOG_ERR("(%d) Failed to set TLS peer verify option : "
 				"%d",
@@ -155,7 +204,23 @@ static int setup_socket(struct pollfd *pfd, bool secure)
 				ret);
 			goto exit;
 		}
-#endif
+
+#if defined(CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK)
+		struct tls_verify_cb verify_cb;
+		verify_cb.callback  = tls_verify_callback;
+		verify_cb.user_data = (void *)0xAABBCCDD;
+
+		ret = zsock_setsockopt(
+			sock, SOL_TLS, TLS_PEER_VERIFY_CB, &verify_cb, sizeof(verify_cb));
+		if (ret < 0) {
+			LOG_ERR("(%d) Failed to set TLS peer verify callback : "
+				"%d",
+				sock,
+				ret);
+			goto exit;
+		}
+#endif /* CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK */
+#endif /* CONFIG_APP_HTTP_SERVER_VERIFY_CLIENT */
 	}
 
 	ret = zsock_bind(
@@ -267,6 +332,9 @@ static int srv_accept(int serv_sock, bool secure)
 
 	uint32_t a = k_uptime_get();
 
+	/* Make sure to clear the last authenticated user */
+	handshake_auth_user = user_get_unauthenticated_user();
+
 	sock = zsock_accept(serv_sock, (struct sockaddr *)&addr, &len);
 	if (sock < 0) {
 		LOG_ERR("(%d) Accept failed = %d", serv_sock, sock);
@@ -323,6 +391,7 @@ static int srv_accept(int serv_sock, bool secure)
 
 		/* Mark session as secure if secure socket */
 		sess->secure = secure;
+		sess->auth = handshake_auth_user;
 	}
 
 	show_pfd();

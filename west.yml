@@ -14,7 +14,7 @@ manifest:
   projects:
     - name: zephyr
       remote: zephyrproject-rtos-fork
-      revision: v3.2.0_hotfixes
+      revision: caniot-controller
       # revision: v3.2.0
       import: true
       

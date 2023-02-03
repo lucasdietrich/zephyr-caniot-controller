@@ -219,7 +219,13 @@
                 "subs_extended.h": "c",
                 "net_context.h": "c",
                 "x509.h": "c",
-                "x509_crt.h": "c"
+                "x509_crt.h": "c",
+                "tls_verify_cb.h": "c",
+                "private_access.h": "c",
+                "oid.h": "c",
+                "auth_internal.h": "c",
+                "auth.h": "c",
+                "user.h": "c"
         },
         "tasks.statusbar.default.hide": true,
         "cmake.sourceDirectory": "${workspaceFolder}/zephyr",

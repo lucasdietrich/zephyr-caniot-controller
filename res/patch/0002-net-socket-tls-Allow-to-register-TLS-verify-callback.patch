@@ -1,0 +1,213 @@
+From 273ff701107d352992493634058f25a7be311168 Mon Sep 17 00:00:00 2001
+From: Lucas Dietrich <ld.adecy@gmail.com>
+Date: Fri, 3 Feb 2023 23:50:07 +0100
+Subject: [PATCH] net: socket: tls: Allow to register TLS verify callback from
+ app.
+
+Introduce TLS_PEER_VERIFY_CB option enabling
+to register a verify callback that will be called during TLS
+handshake. This enables the application to cancel handshake
+depending on content of the peer certificate.
+
+Signed-off-by: Lucas Dietrich <ld.adecy@gmail.com>
+---
+ include/zephyr/net/socket.h          |  7 ++++
+ include/zephyr/net/tls_verify_cb.h   | 55 ++++++++++++++++++++++++++++
+ subsys/net/lib/sockets/Kconfig       |  8 ++++
+ subsys/net/lib/sockets/sockets_tls.c | 46 +++++++++++++++++++++++
+ 4 files changed, 116 insertions(+)
+ create mode 100644 include/zephyr/net/tls_verify_cb.h
+
+diff --git a/include/zephyr/net/socket.h b/include/zephyr/net/socket.h
+index ae6218b3b9..364f59cb51 100644
+--- a/include/zephyr/net/socket.h
++++ b/include/zephyr/net/socket.h
+@@ -164,6 +164,13 @@ struct zsock_pollfd {
+  */
+ #define TLS_SESSION_CACHE_PURGE 13
+ 
++/** Option to register a verify callback evaluated during TLS handshake
++ * This option should be set before TLS handshake:
++ * - before zsocket_connect() if client
++ * - before zsocket_accept() is server
++ */
++#define TLS_PEER_VERIFY_CB 14
++
+ /** @} */
+ 
+ /* Valid values for TLS_PEER_VERIFY option */
+diff --git a/include/zephyr/net/tls_verify_cb.h b/include/zephyr/net/tls_verify_cb.h
+new file mode 100644
+index 0000000000..40fad7bc03
+--- /dev/null
++++ b/include/zephyr/net/tls_verify_cb.h
+@@ -0,0 +1,55 @@
++/*
++ * Copyright (c) 2023 Lucas Dietrich <ld.adecy@gmail.com
++ *
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++/** @file
++ * @brief TLS verify callback
++ *
++ * An structure to register a verify callback for TLS handshake
++ */
++
++#ifndef ZEPHYR_INCLUDE_NET_TLS_VERIFY_CB_H_
++#define ZEPHYR_INCLUDE_NET_TLS_VERIFY_CB_H_
++
++#include <stdint.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/**
++ * Forward declaration of x509 certificate structure from <mbedtls/x509_crt.h>
++ */
++struct mbedtls_x509_crt;
++
++struct tls_verify_cb {
++	/**
++	 * @brief Callback function to verify peer certificate
++	 *
++	 * @param user_data User data passed to the callback via tls_verify_cb
++	 * @param crt mbedtls peer certificate structure
++	 * @param depth The depth of the certificate in the chain for n to 1, where n is the root
++	 * certificate in the chain and 1 is the leaf certificate
++	 * @param flags mbedtls verification flags
++	 *
++	 * @return 0 if the certificate is valid, negative value otherwise
++	 */
++	int (*callback)(void *user_data, struct mbedtls_x509_crt *crt, int depth, uint32_t *flags);
++
++	/**
++	 * @brief User data to be passed to the callback
++	 */
++	void *user_data;
++};
++
++#ifdef __cplusplus
++}
++#endif
++
++/**
++ * @}
++ */
++
++#endif /* ZEPHYR_INCLUDE_NET_TLS_VERIFY_CB_H_ */
+diff --git a/subsys/net/lib/sockets/Kconfig b/subsys/net/lib/sockets/Kconfig
+index a2ce09290d..8e7158432f 100644
+--- a/subsys/net/lib/sockets/Kconfig
++++ b/subsys/net/lib/sockets/Kconfig
+@@ -160,6 +160,14 @@ config NET_SOCKETS_TLS_MAX_CLIENT_SESSION_COUNT
+ 	    This variable specifies maximum number of stored TLS/DTLS sessions,
+ 	    used for TLS/DTLS session resumption.
+ 
++config NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK
++	bool "Verify function support"
++	default n
++	depends on NET_SOCKETS_SOCKOPT_TLS
++	help
++	   This variable specifies whether a verify callback can be register
++	   to verify peer certificate during TLS handshake.
++
+ config NET_SOCKETS_OFFLOAD
+ 	bool "Offload Socket APIs"
+ 	help
+diff --git a/subsys/net/lib/sockets/sockets_tls.c b/subsys/net/lib/sockets/sockets_tls.c
+index 773b1e4986..78d0f5c5bf 100644
+--- a/subsys/net/lib/sockets/sockets_tls.c
++++ b/subsys/net/lib/sockets/sockets_tls.c
+@@ -17,6 +17,7 @@ LOG_MODULE_REGISTER(net_sock_tls, CONFIG_NET_SOCKETS_LOG_LEVEL);
+ #include <zephyr/random/rand32.h>
+ #include <zephyr/syscall_handler.h>
+ #include <zephyr/sys/fdtable.h>
++#include <zephyr/net/tls_verify_cb.h>
+ 
+ /* TODO: Remove all direct access to private fields.
+  * According with Mbed TLS migration guide:
+@@ -205,6 +206,10 @@ __net_socket struct tls_context {
+ 	mbedtls_pk_context priv_key;
+ #endif /* MBEDTLS_X509_CRT_PARSE_C */
+ 
++#if defined(CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK)
++	struct tls_verify_cb verify_cb;
++#endif /* CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK */
++
+ #endif /* CONFIG_MBEDTLS */
+ };
+ 
+@@ -437,6 +442,11 @@ static struct tls_context *tls_clone(struct tls_context *source_tls)
+ 	target_tls->tls_version = source_tls->tls_version;
+ 	target_tls->type = source_tls->type;
+ 
++#if defined(CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK)
++	target_tls->verify_cb.callback = source_tls->verify_cb.callback;
++	target_tls->verify_cb.user_data = source_tls->verify_cb.user_data;
++#endif /* CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK */
++
+ 	memcpy(&target_tls->options, &source_tls->options,
+ 	       sizeof(target_tls->options));
+ 
+@@ -1249,6 +1259,11 @@ static int tls_mbedtls_init(struct tls_context *context, bool is_server)
+ 					  context->options.verify_level);
+ 	}
+ 
++#if defined(CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK)
++	mbedtls_ssl_conf_verify(&context->config, context->verify_cb.callback,
++				context->verify_cb.user_data);
++#endif /* CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK */
++
+ 	mbedtls_ssl_conf_rng(&context->config,
+ 			     tls_ctr_drbg_random,
+ 			     NULL);
+@@ -1635,6 +1650,31 @@ static int tls_opt_peer_verify_set(struct tls_context *context,
+ 	return 0;
+ }
+ 
++#if defined(CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK)
++
++static int tls_opt_peer_verify_cb_set(struct tls_context *context, const void *optval,
++				      socklen_t optlen)
++{
++	const struct tls_verify_cb *verify_cb;
++
++	if (!optval) {
++		return -EINVAL;
++	}
++
++	if (optlen != sizeof(struct tls_verify_cb)) {
++		return -EINVAL;
++	}
++
++	verify_cb = (const struct tls_verify_cb *)optval;
++
++	context->verify_cb.callback = verify_cb->callback;
++	context->verify_cb.user_data = verify_cb->user_data;
++
++	return 0;
++}
++
++#endif /* CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK */
++
+ static int tls_opt_cert_nocopy_set(struct tls_context *context,
+ 				   const void *optval, socklen_t optlen)
+ {
+@@ -2822,6 +2862,12 @@ int ztls_setsockopt_ctx(struct tls_context *ctx, int level, int optname,
+ 		err = tls_opt_peer_verify_set(ctx, optval, optlen);
+ 		break;
+ 
++#if defined(CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK)
++	case TLS_PEER_VERIFY_CB:
++		err = tls_opt_peer_verify_cb_set(ctx, optval, optlen);
++		break;
++#endif
++
+ 	case TLS_CERT_NOCOPY:
+ 		err = tls_opt_cert_nocopy_set(ctx, optval, optlen);
+ 		break;
+-- 
+2.39.1
+

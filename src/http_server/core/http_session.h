@@ -56,7 +56,9 @@ struct http_session {
 
 	/* Is the session secure ? */
 	bool secure;
-	/* TODO add secure context: client certificate common name, ... */
+
+	/* Authenticated user */
+	const struct user *auth;
 
 	/* STATS TODO */
 	size_t requests_count;

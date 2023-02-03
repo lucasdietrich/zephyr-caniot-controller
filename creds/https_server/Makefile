@@ -19,9 +19,12 @@ new_cert:
 	./gen_rsa_csr.sh $(keysize)
 	./sign_rsa_csr.sh $(keysize)
 
-try_https:
+connect:
 	openssl s_client -connect $(endpoint) -cert rsa2048/cert.pem \
 	-key rsa2048/key.pem -CAfile rsa2048/ca.cert.pem
+
+connect_anonymous:
+	openssl s_client -connect $(endpoint) -CAfile rsa2048/ca.cert.pem
 
 clean_certs:
 	rm -f rsa*/cert.der rsa*/cert.pem rsa*/cert.txt rsa*/csr.pem \
