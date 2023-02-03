@@ -14,7 +14,7 @@
 				"interface/stlink.cfg",
 				"target/stm32f4x.cfg"
 			],
-			"svdFile": "./res/STM32F429.svd"
+			"svdFile": "./res/svd/STM32F429.svd"
 		},
 		{
 			"name": "Attach cortex-debug nucleo_429zi",
@@ -28,7 +28,7 @@
 				"interface/stlink.cfg",
 				"target/stm32f4x.cfg"
 			],
-			"svdFile": "./res/STM32F429.svd"
+			"svdFile": "./res/svd/STM32F429.svd"
 		},
         {
             "name": "(gdb) mps2_an385 (launch)",
@@ -39,7 +39,7 @@
             "servertype": "external",
             "gdbTarget": "localhost:1234",
             "runToEntryPoint": "", /* main */
-            "svdFile": "./res/CMSDK_CM3.svd"
+            "svdFile": "./res/svd/CMSDK_CM3.svd"
         },
         {
             "name": "(gdb) mps2_an385 (attach)",
@@ -50,7 +50,7 @@
             "servertype": "external",
             "gdbTarget": "localhost:1234",
             "runToEntryPoint": "", /* main */
-            "svdFile": "./res/CMSDK_CM3.svd"
+            "svdFile": "./res/svd/CMSDK_CM3.svd"
         },
 		{
 			"name": "(gdb) qemu_x86",
