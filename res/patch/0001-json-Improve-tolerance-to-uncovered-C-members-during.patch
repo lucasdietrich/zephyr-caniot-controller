@@ -1,0 +1,206 @@
+From 058d937622c23f8b70c22c726467dcd4d79df965 Mon Sep 17 00:00:00 2001
+From: Lucas Dietrich <ld.adecy@gmail.com>
+Date: Sat, 24 Dec 2022 15:09:43 +0100
+Subject: [PATCH] json: Improve tolerance to uncovered C members during JSON
+ encoding
+
+This enhancement fix encoding of JSON objects for which descriptors do
+not covers all members of the C structure represented.
+
+Fix #50976
+
+Signed-off-by: Lucas Dietrich <ld.adecy@gmail.com>
+---
+ include/zephyr/data/json.h | 17 +++++++++++++----
+ lib/os/json.c              | 16 ++++++----------
+ tests/lib/json/src/main.c  | 12 +++++++++++-
+ 3 files changed, 30 insertions(+), 15 deletions(-)
+
+diff --git a/include/zephyr/data/json.h b/include/zephyr/data/json.h
+index 65c9096cb0..af39e121a2 100644
+--- a/include/zephyr/data/json.h
++++ b/include/zephyr/data/json.h
+@@ -109,7 +109,8 @@ struct json_obj_descr {
+ 	union {
+ 		struct {
+ 			const struct json_obj_descr *sub_descr;
+-			size_t sub_descr_len;
++			uint16_t sub_descr_len;
++			uint16_t sub_struct_size;
+ 		} object;
+ 		struct {
+ 			const struct json_obj_descr *element_descr;
+@@ -137,6 +138,9 @@ typedef int (*json_append_bytes_t)(const char *bytes, size_t len,
+ 				 __alignof__(type) == 2 ? 1 : \
+ 				 __alignof__(type) == 4 ? 2 : 3)
+ 
++/* Helper to get the size of a member within a struct. */
++#define Z_MEMBER_SIZE(type, member) sizeof(((type *)0)->member)
++
+ /**
+  * @brief Helper macro to declare a descriptor for supported primitive
+  * values.
+@@ -201,6 +205,7 @@ typedef int (*json_append_bytes_t)(const char *bytes, size_t len,
+ 			.object = { \
+ 				.sub_descr = sub_descr_, \
+ 				.sub_descr_len = ARRAY_SIZE(sub_descr_), \
++				.sub_struct_size = sizeof(struct_), \
+ 			}, \
+ 		}, \
+ 	}
+@@ -245,11 +250,12 @@ typedef int (*json_append_bytes_t)(const char *bytes, size_t len,
+  * @param elem_descr_ Element descriptor, pointer to a descriptor array
+  * @param elem_descr_len_ Number of elements in elem_descr_
+  */
+-#define Z_JSON_DESCR_OBJ(elem_descr_, elem_descr_len_) \
++#define Z_JSON_DESCR_OBJ(elem_descr_, elem_descr_len_, struct_size_) \
+ 	{ \
+ 		.object = { \
+ 			.sub_descr = elem_descr_, \
+ 			.sub_descr_len = elem_descr_len_, \
++			.sub_struct_size = struct_size_, \
+ 		}, \
+ 	}
+ 
+@@ -338,7 +344,8 @@ typedef int (*json_append_bytes_t)(const char *bytes, size_t len,
+ 			.array = { \
+ 				.element_descr = Z_JSON_ELEMENT_DESCR(struct_, len_field_, \
+ 					JSON_TOK_OBJECT_START, \
+-					Z_JSON_DESCR_OBJ(elem_descr_, elem_descr_len_)), \
++					Z_JSON_DESCR_OBJ(elem_descr_, elem_descr_len_, \
++						Z_MEMBER_SIZE(struct_, field_name_[0]))), \
+ 				.n_elements = (max_len_), \
+ 			}, \
+ 		}, \
+@@ -456,6 +463,7 @@ typedef int (*json_append_bytes_t)(const char *bytes, size_t len,
+ 			.object = { \
+ 				.sub_descr = sub_descr_, \
+ 				.sub_descr_len = ARRAY_SIZE(sub_descr_), \
++				.sub_struct_size = sizeof(struct_), \
+ 			}, \
+ 		}, \
+ 	}
+@@ -548,7 +556,8 @@ typedef int (*json_append_bytes_t)(const char *bytes, size_t len,
+ 			.array = { \
+ 				.element_descr = Z_JSON_ELEMENT_DESCR(struct_, len_field_, \
+ 					JSON_TOK_OBJECT_START, \
+-					Z_JSON_DESCR_OBJ(elem_descr_, elem_descr_len_)), \
++					Z_JSON_DESCR_OBJ(elem_descr_, elem_descr_len_, \
++						Z_MEMBER_SIZE(struct_, field_name_[0])), \
+ 				.n_elements = (max_len_), \
+ 			}, \
+ 		}, \
+diff --git a/lib/os/json.c b/lib/os/json.c
+index 3e9ffbee61..4854bb35b0 100644
+--- a/lib/os/json.c
++++ b/lib/os/json.c
+@@ -522,16 +522,7 @@ static ptrdiff_t get_elem_size(const struct json_obj_descr *descr)
+ 	case JSON_TOK_ARRAY_START:
+ 		return descr->array.n_elements * get_elem_size(descr->array.element_descr);
+ 	case JSON_TOK_OBJECT_START: {
+-		ptrdiff_t total = 0;
+-		size_t i;
+-
+-		for (i = 0; i < descr->object.sub_descr_len; i++) {
+-			ptrdiff_t s = get_elem_size(&descr->object.sub_descr[i]);
+-
+-			total += ROUND_UP(s, 1 << descr->align_shift);
+-		}
+-
+-		return total;
++		return descr->object.sub_struct_size;
+ 	}
+ 	default:
+ 		return -EINVAL;
+@@ -549,6 +540,8 @@ static int arr_parse(struct json_obj *obj,
+ 
+ 	if (val) {
+ 		elements = (size_t *)((char *)val + elem_descr->offset);
++	} else {
++		field = (char *)field + elem_descr->offset;
+ 	}
+ 
+ 	__ASSERT_NO_MSG(elem_size > 0);
+@@ -566,6 +559,9 @@ static int arr_parse(struct json_obj *obj,
+ 			return -ENOSPC;
+ 		}
+ 
++		/* Calculation "field = (char *)field + elem_descr->offset;"
++		 * can also be performed here
++		 */
+ 		if (decode_value(obj, elem_descr, &value, field, NULL) < 0) {
+ 			return -EINVAL;
+ 		}
+diff --git a/tests/lib/json/src/main.c b/tests/lib/json/src/main.c
+index 0171c85bbb..ed667f0aa8 100644
+--- a/tests/lib/json/src/main.c
++++ b/tests/lib/json/src/main.c
+@@ -11,6 +11,7 @@
+ 
+ struct test_nested {
+ 	int nested_int;
++	uint32_t _unused_member;
+ 	bool nested_bool;
+ 	const char *nested_string;
+ };
+@@ -19,6 +20,7 @@ struct test_struct {
+ 	const char *some_string;
+ 	int some_int;
+ 	bool some_bool;
++	uint32_t _unused_member;
+ 	struct test_nested some_nested_struct;
+ 	int some_array[16];
+ 	size_t some_array_len;
+@@ -30,17 +32,20 @@ struct test_struct {
+ };
+ 
+ struct elt {
++	uint32_t _unused_member;
+ 	const char *name;
+ 	int height;
+ };
+ 
+ struct obj_array {
+ 	struct elt elements[10];
++	uint32_t _unused_member;
+ 	size_t num_elements;
+ };
+ 
+ struct test_int_limits {
+ 	int int_max;
++	uint32_t _unused_member;
+ 	int int_cero;
+ 	int int_min;
+ };
+@@ -88,11 +93,15 @@ static const struct json_obj_descr obj_limits_descr[] = {
+ };
+ 
+ struct array {
++	uint32_t _unused_member1;
++	uint32_t _unused_member2;
+ 	struct elt objects;
+ };
+ 
+ struct obj_array_array {
++	uint32_t _unused_member1;
+ 	struct array objects_array[4];
++	uint32_t _unused_member2;
+ 	size_t objects_array_len;
+ };
+ 
+@@ -255,10 +264,11 @@ ZTEST(lib_json_test, test_json_limits)
+ 		     "Integer limits not decoded correctly");
+ }
+ 
++struct obj_array_array obj_array_array_ts;
++
+ ZTEST(lib_json_test, test_json_decoding_array_array)
+ {
+ 	int ret;
+-	struct obj_array_array obj_array_array_ts;
+ 	char encoded[] = "{\"objects_array\":["
+ 			  "[{\"height\":168,\"name\":\"Simón Bolívar\"}],"
+ 			  "[{\"height\":173,\"name\":\"Pelé\"}],"
+-- 
+2.39.1
+
