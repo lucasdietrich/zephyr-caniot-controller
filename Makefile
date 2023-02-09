@@ -39,7 +39,7 @@ make: build
 flash:
 	west flash
 
-# Build with shell
+# FIXME: compile but MCUBOOT doesn't recognize the image
 build_debug:
 	west build --board=nucleo_f429zi -- \
 		-DOVERLAY_CONFIG="overlays/nucleo_f429zi_shell.conf" \

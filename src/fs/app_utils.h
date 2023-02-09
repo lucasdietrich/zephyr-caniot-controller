@@ -92,4 +92,6 @@ int app_fs_lsdir(const char *path);
  */
 int app_fs_mkdir_intermediate(const char *path, bool is_filepath);
 
+int app_fs_create_big_file(const char *path, size_t size);
+
 #endif /* _APP_FS_H_ */

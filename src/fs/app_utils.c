@@ -15,7 +15,7 @@
 #include <ff.h>
 // #include <fs/littlefs.h>
 
-#include "appfs.h"
+#include "app_utils.h"
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(app_fs, LOG_LEVEL_DBG);
@@ -389,6 +389,53 @@ int app_fs_mkdir_intermediate(const char *path, bool is_filepath)
 		/* Reset current error */
 		ret = 0;
 	} while (s != NULL);
+
+exit:
+	return ret;
+}
+
+int app_fs_create_big_file(const char *path, size_t size)
+{
+	int ret = 0;
+
+	/* Create intermediate directories */
+	ret = app_fs_mkdir_intermediate(path, true);
+	if (ret < 0) {
+		goto exit;
+	}
+
+	/* Create file */
+	struct fs_file_t file;
+	fs_file_t_init(&file);
+
+	ret = fs_open(&file, path, FS_O_CREATE | FS_O_RDWR);
+	if (ret < 0) {
+		LOG_ERR("fs_open( %s ) failed, err=%d", path, ret);
+		goto exit;
+	}
+
+	/* Write data */
+	char buf[1024u] = {0};
+	size_t written	= 0u;
+
+	while (written < size) {
+		size_t to_write = MIN(size - written, sizeof(buf));
+
+		ret = fs_write(&file, buf, to_write);
+		if (ret < 0) {
+			LOG_ERR("fs_write( %s ) failed, err=%d", path, ret);
+			goto exit;
+		}
+
+		written += ret;
+	}
+
+	/* Close file */
+	ret = fs_close(&file);
+	if (ret < 0) {
+		LOG_ERR("fs_close( %s ) failed, err=%d", path, ret);
+		goto exit;
+	}
 
 exit:
 	return ret;

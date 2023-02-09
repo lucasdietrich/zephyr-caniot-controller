@@ -1,0 +1,21 @@
+config APP_FS_ASYNC_OPERATIONS
+        bool "Enable asynchronous file operations"
+        default n
+        help
+                Improve files access performance using asynchronous operations
+
+if APP_FS_ASYNC_OPERATIONS
+
+config APP_FS_ASYNC_READ
+        bool "Enable asynchronous file read"
+        default y
+        help
+                Improve files read access performance using asynchronous read operations
+
+config APP_FS_ASYNC_WRITE
+        bool "Enable asynchronous file write"
+        default n
+        help
+                Improve files write access performance using asynchronous write operations
+
+endif # APP_FS_ASYNC_OPERATIONS

@@ -394,9 +394,9 @@ static void thread(void *_a, void *_b, void *_c)
 }
 
 int ha_caniot_controller_query(struct caniot_frame *__restrict req,
-		       struct caniot_frame *__restrict resp,
-		       caniot_did_t did,
-		       uint32_t *timeout)
+			       struct caniot_frame *__restrict resp,
+			       caniot_did_t did,
+			       uint32_t *timeout)
 {
 	int ret		 = -EINVAL;
 	struct syncq *qx = NULL;

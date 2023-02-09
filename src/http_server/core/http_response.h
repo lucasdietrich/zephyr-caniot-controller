@@ -51,7 +51,7 @@ typedef struct http_response {
 	 * Note: This flag must be set before the the first part of the payload
 	 *   is	sent.
 	 */
-	uint8_t stream : 1u;
+	uint8_t chunked : 1u;
 
 	/* Number of times the response handler has been called */
 	uint32_t calls_count;
@@ -94,6 +94,6 @@ static inline void http_response_mark_not_complete(http_response_t *resp)
 
 void http_response_enable_chunk_encoding(http_response_t *resp);
 
-bool http_response_is_stream(http_response_t *resp);
+bool http_response_is_chunked(http_response_t *resp);
 
 #endif

@@ -438,7 +438,7 @@ static http_test_result_t test_resp_handler(struct http_test_context *ctx,
 			goto exit;
 		}
 
-		if (resp->stream != 0u) {
+		if (resp->chunked != 0u) {
 			result = HTTP_TEST_RESULT_RESP_DEFAULT_NO_STREAM_BY_DEFAULT;
 			goto exit;
 		}

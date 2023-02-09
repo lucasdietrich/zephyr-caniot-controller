@@ -4,18 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "appfs.h"
 #include "can/can_interface.h"
 #include "config.h"
 #include "creds/flash_creds.h"
 #include "creds/manager.h"
 #include "creds/utils.h"
+#include "fs/app_utils.h"
 #include "ha/caniot_controller.h"
 #include "ha/core/config.h"
 #include "ha/core/ha.h"
 #include "ha/core/utils.h"
 #include "ha/devices/all.h"
 #include "ha/json.h"
+#include "http_server/core/http_server.h"
 #include "lua/orchestrator.h"
 #include "net_interface.h"
 #include "net_time.h"
@@ -1805,4 +1806,39 @@ int rest_demo_json(http_request_t *req, http_response_t *resp)
 	// return rest_encode_response_json_array(
 	// 	resp, &arr, descr_mystruct_arr
 	// );
+}
+
+static const struct json_obj_descr http_stats_descr[] = {
+	JSON_OBJ_DESCR_PRIM(struct http_stats, conn_opened_count, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, conn_closed_count, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, conn_keep_alive_count, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, conn_open_failed, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, conn_alloc_failed, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, conn_outdated_count, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, conn_process_failed, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, accept_failed, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, recv_failed, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, recv_eagain, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, recv_closed, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, send_eagain, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, send_failed, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, headers_send_failed, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, req_discarded_count, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, req_handler_failed, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, resp_handler_failed, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, rx, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, tx, JSON_TOK_NUMBER),
+};
+
+int rest_http_stats(http_request_t *req, http_response_t *resp)
+{
+	int ret;
+
+	struct http_stats stats;
+	http_server_get_stats(&stats);
+
+	ret = rest_encode_response_json(
+		resp, &stats, http_stats_descr, ARRAY_SIZE(http_stats_descr));
+
+	return ret;
 }

@@ -27,7 +27,7 @@ void http_response_init(http_response_t *resp)
 	resp->status_code    = HTTP_DEFAULT_RESP_STATUS_CODE;
 	resp->content_type   = HTTP_CONTENT_TYPE_TEXT_PLAIN;
 
-	resp->stream   = 0u;
+	resp->chunked  = 0u;
 	resp->complete = 1u;
 
 	resp->calls_count = 0u;
@@ -74,20 +74,20 @@ void http_response_set_content_length(http_response_t *resp, ssize_t content_len
 	if (set_header_check(resp, "Content-Length") == true) {
 		resp->content_length = content_length;
 
-		resp->stream = 0u; /* Disable chunked encoding */
+		resp->chunked = 0u; /* Disable chunked encoding */
 	}
 }
 
 void http_response_enable_chunk_encoding(http_response_t *resp)
 {
 	if (set_header_check(resp, "Chunk-Encoding") == true) {
-		resp->stream = 1u;
+		resp->chunked = 1u;
 
 		resp->content_length = -1; /* Disable content length */
 	}
 }
 
-bool http_response_is_stream(http_response_t *resp)
+bool http_response_is_chunked(http_response_t *resp)
 {
-	return (bool)resp->stream;
+	return (bool)resp->chunked;
 }

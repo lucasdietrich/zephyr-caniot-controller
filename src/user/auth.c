@@ -4,14 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr/kernel.h>
+#include "auth.h"
+#include "user.h"
 
 #include <string.h>
 
-#include "user.h"
-#include "auth.h"
+#include <zephyr/kernel.h>
 
-extern size_t	 strnlen (const char *, size_t);
+extern size_t strnlen(const char *, size_t);
 
 const struct user *user_auth_verify(struct user_auth *auth)
 {
@@ -31,7 +31,7 @@ const struct user *user_auth_verify(struct user_auth *auth)
 	return user;
 }
 
-const struct user* user_get_unauthenticated_user(void)
+const struct user *user_get_unauthenticated_user(void)
 {
 	return &users_list[0u];
 }

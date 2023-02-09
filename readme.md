@@ -292,6 +292,10 @@ Interface to monitor is `zeth` (with `lan9220` for example):
 
     ssh lucas@fedora sudo tcpdump -U -s0 'not port 22' -i zeth -w - | "C:\Program Files\Wireshark\Wireshark.exe" -k -i -
 
+Interface to monitor is `tap0` :
+
+    ssh lucas@fedora sudo tcpdump -U -s0 'not port 22' -i tap0 -w - | "C:\Program Files\Wireshark\Wireshark.exe" -k -i -
+
 If you are on a Linux host, with your QEMU instance running on a Linux guest, use the following command :
 
     ssh lucas@fedora sudo tcpdump -U -s0 'not port 22' -i tap0 -w - | wireshark -k -i -

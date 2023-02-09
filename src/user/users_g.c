@@ -1,8 +1,9 @@
-#include <stddef.h>
-#include <zephyr/kernel.h>
-
-#include "user.h"
 #include "auth.h"
+#include "user.h"
+
+#include <stddef.h>
+
+#include <zephyr/kernel.h>
 
 const struct user users_list[] = {
 	{

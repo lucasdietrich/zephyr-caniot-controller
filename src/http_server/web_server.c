@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "appfs.h"
 #include "core/routes.h"
+#include "fs/app_utils.h"
 #include "utils/buffers.h"
 #include "web_server.h"
 

@@ -20,6 +20,7 @@ rsource "./src/lua/Kconfig"
 rsource "./src/ha/Kconfig"
 rsource "./src/creds/Kconfig"
 rsource "./src/cloud/Kconfig"
+rsource "./src/fs/Kconfig"
 
 config APP_DISCOVERY_SERVER
 	bool "Enable discovery server"

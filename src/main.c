@@ -21,8 +21,8 @@
 #include "dfu/dfu.h"
 #endif
 
-#include "appfs.h"
 #include "creds/manager.h"
+#include "fs/app_utils.h"
 #include "ha/devices/f429zi.h"
 #include "userio/button.h"
 #include "userio/leds.h"

@@ -30,13 +30,11 @@
 #include <zephyr/net/tls_verify_cb.h>
 #include <zephyr/posix/poll.h>
 
-#include <mbedtls/x509_crt.h>
-#include <mbedtls/oid.h>
-
-#include <user/auth.h>
-
 #include <fcntl.h>
-LOG_MODULE_REGISTER(http_server, LOG_LEVEL_WRN); /* INF */
+#include <mbedtls/oid.h>
+#include <mbedtls/x509_crt.h>
+#include <user/auth.h>
+LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF); /* INF */
 
 /* O_NONBLOCK */
 #define SOCK_BLOCKING_OPT 0u
@@ -69,7 +67,7 @@ K_THREAD_DEFINE(http_thread,
 		NULL,
 		NULL,
 		NULL,
-		K_PRIO_PREEMPT(1u), /* Highest preemptive thread priority*/
+		K_PRIO_PREEMPT(5u),
 		0,
 		0);
 
@@ -82,6 +80,8 @@ K_THREAD_DEFINE(http_thread,
  */
 __buf_noinit_section char buffer[0x2000u];
 __buf_noinit_section char buffer_internal[0x800u]; /* For encoding response headers */
+
+static struct http_stats stats;
 
 /**
  * @brief
@@ -301,7 +301,7 @@ exit:
 	return ret;
 }
 
-static void remove_pollfd_by_index(uint_fast8_t index)
+static void remove_pollfd_by_index(uint8_t index)
 {
 	LOG_DBG("Compress fds count = %u", clients_count);
 
@@ -337,6 +337,7 @@ static int srv_accept(int serv_sock, bool secure)
 
 	sock = zsock_accept(serv_sock, (struct sockaddr *)&addr, &len);
 	if (sock < 0) {
+		stats.accept_failed++;
 		LOG_ERR("(%d) Accept failed = %d", serv_sock, sock);
 		ret = sock;
 		goto exit;
@@ -358,6 +359,7 @@ static int srv_accept(int serv_sock, bool secure)
 
 	sess = http_session_alloc();
 	if (sess == NULL) {
+		stats.conn_alloc_failed++;
 		LOG_WRN("(%d) Connection refused from %s:%d, cli sock = (%d)",
 			serv_sock,
 			ipv4_str,
@@ -391,7 +393,7 @@ static int srv_accept(int serv_sock, bool secure)
 
 		/* Mark session as secure if secure socket */
 		sess->secure = secure;
-		sess->auth = handshake_auth_user;
+		sess->auth   = handshake_auth_user;
 	}
 
 	show_pfd();
@@ -400,9 +402,54 @@ static int srv_accept(int serv_sock, bool secure)
 
 	LOG_DBG("Accept delay %u ms", b - a);
 
+	stats.conn_opened_count++;
+
 	return 0;
 exit:
+	stats.conn_open_failed++;
 	return ret;
+}
+
+static void handle_active_sessions(void)
+{
+	uint8_t idx = 0;
+	http_session_t *sess;
+
+	/* We iterate over the session and check if there are
+	 * any data, or if the session has timeout.
+	 */
+	while (idx < clients_count) {
+		bool close = false;
+
+		sess = http_session_get_by_sock(fds.cli[idx].fd);
+		__ASSERT_NO_MSG(sess != NULL);
+
+		if (fds.cli[idx].revents & POLLIN) {
+			/* data available */
+			close = process_request(sess) != true;
+		} else if (http_session_is_outdated(sess)) {
+			/* Session has timed out */
+			close = true;
+			stats.conn_outdated_count++;
+			LOG_WRN("(%d) Closing outdated session "
+				"%p",
+				sess->sock,
+				sess);
+		}
+
+		/* Close the session, remove the socket from the
+		 * pollfd array */
+		if (close) {
+			stats.conn_closed_count++;
+			LOG_INF("(%d) Closing sock sess %p", sess->sock, sess);
+			zsock_close(sess->sock);
+			http_session_free(sess);
+			remove_pollfd_by_index(idx);
+			show_pfd();
+		} else {
+			idx++;
+		}
+	}
 }
 
 static void http_srv_thread(void *_a, void *_b, void *_c)
@@ -436,45 +483,7 @@ static void http_srv_thread(void *_a, void *_b, void *_c)
 			}
 #endif /* CONFIG_APP_HTTP_SERVER_SECURE */
 
-			/* We iterate over the session and check if there are
-			 * any data, or if the session has timeout.
-			 */
-			uint_fast8_t idx = 0;
-			while (idx < clients_count) {
-				http_session_t *sess =
-					http_session_get_by_sock(fds.cli[idx].fd);
-
-				__ASSERT_NO_MSG(sess != NULL);
-
-				bool close = false;
-
-				if (fds.cli[idx].revents & POLLIN) { /* data available */
-					close = process_request(sess) != true;
-				} else if (http_session_is_outdated(
-						   sess)) { /* check if the
-							       session has timed
-							       out */
-					close = true;
-					LOG_WRN("(%d) Closing outdated session "
-						"%p",
-						sess->sock,
-						sess);
-				}
-
-				/* Close the session, remove the socket from the
-				 * pollfd array */
-				if (close) {
-					LOG_INF("(%d) Closing sock sess %p",
-						sess->sock,
-						sess);
-					zsock_close(sess->sock);
-					http_session_free(sess);
-					remove_pollfd_by_index(idx);
-					show_pfd();
-				} else {
-					idx++;
-				}
-			}
+			handle_active_sessions();
 		} else {
 			LOG_ERR("unexpected poll(%p, %d, %d) return value = %d",
 				&fds,
@@ -482,7 +491,6 @@ static void http_srv_thread(void *_a, void *_b, void *_c)
 				SYS_FOREVER_MS,
 				errno);
 
-			/* TODO remove, sleep 1 sec here */
 			k_sleep(K_MSEC(5000));
 		}
 	}
@@ -506,14 +514,17 @@ static int sendall(int sock, char *buf, size_t len)
 	while (sent < len) {
 		ret = zsock_send(sock, &buf[sent], len - sent, 0U);
 		if (ret < 0) {
+			stats.send_eagain++;
 			if (ret == -EAGAIN) {
 				LOG_INF("-EAGAIN (%d)", sock);
 				continue;
 			}
 			goto exit;
 		} else if (ret > 0) {
+			stats.tx += ret;
 			sent += ret;
 		} else {
+			stats.send_failed++;
 			LOG_ERR("ret == %d ???", 0);
 			goto exit;
 		}
@@ -535,7 +546,7 @@ static int send_headers(http_session_t *sess)
 	ret = http_encode_status(&buf, resp->status_code);
 	ret = http_encode_header_connection(&buf, sess->keep_alive.enabled);
 	ret = http_encode_header_content_type(&buf, resp->content_type);
-	if (resp->stream == 1u) {
+	if (resp->chunked == 1u) {
 		ret = http_encode_header_transer_encoding_chunked(&buf);
 	} else {
 		ret = http_encode_header_content_length(&buf, resp->content_length);
@@ -550,14 +561,19 @@ static int send_headers(http_session_t *sess)
 	ret = sendall(sess->sock, buf.data, buf.filling);
 	if (ret >= 0) {
 		resp->headers_sent += ret;
+	} else {
+		stats.headers_send_failed++;
+		LOG_ERR("(%d) Failed to send headers = %d", sess->sock, ret);
 	}
 	return ret;
 }
 
 /* Response if the request is discarded */
-static bool handle_error_response(http_session_t *sess)
+static bool send_error_headers(http_session_t *sess)
 {
 	__ASSERT_NO_MSG(http_request_is_discarded(sess->req));
+
+	sess->resp->content_length = 0;
 
 	http_discard_reason_to_status_code(sess->req->discard_reason,
 					   &sess->resp->status_code);
@@ -580,12 +596,17 @@ static int sock_recv(int sock, char *buf, size_t len)
 	LOG_DBG("(%d, %p, %d, 0) = %d", sock, (void *)buf, len, rc);
 
 	if (rc == -EAGAIN) {
+		stats.recv_eagain++;
 		/* TODO find a way to return to wait for data */
 		LOG_WRN("(%d) -EAGAIN = %d", sock, rc);
 	} else if (rc < 0) {
+		stats.recv_failed++;
 		LOG_ERR("(%d) recv failed = %d", sock, rc);
 	} else if (rc == 0) {
 		LOG_INF("(%d) Connection closed by peer", sock);
+		stats.recv_closed++;
+	} else {
+		stats.rx += rc;
 	}
 
 	return rc;
@@ -639,7 +660,7 @@ static bool send_buffer(http_session_t *sess)
 {
 	http_response_t *const resp = sess->resp;
 
-	__ASSERT_NO_MSG(resp->stream == 0u);
+	__ASSERT_NO_MSG(resp->chunked == 0u);
 
 	int ret = sendall(sess->sock, resp->buffer.data, resp->buffer.filling);
 	if (ret >= 0) {
@@ -667,7 +688,7 @@ static bool send_chunk(http_session_t *sess)
 	int ret;
 	http_response_t *const resp = sess->resp;
 
-	__ASSERT_NO_MSG(resp->stream == 1u);
+	__ASSERT_NO_MSG(resp->chunked == 1u);
 
 	if (resp->buffer.filling == 0u) {
 		/* Nothing to send */
@@ -709,7 +730,7 @@ close:
 
 static int send_end_of_chunked_encoding(http_session_t *sess)
 {
-	__ASSERT_NO_MSG(sess->resp->stream == 1u);
+	__ASSERT_NO_MSG(sess->resp->chunked == 1u);
 
 	/* Send end of chunk */
 	return sendall(sess->sock, "0\r\n\r\n", 5u);
@@ -729,6 +750,8 @@ static int call_resp_handler(http_request_t *req, http_response_t *resp)
 	const int ret = resp_hdlr(req, resp);
 	if (ret >= 0) {
 		resp->calls_count++;
+	} else {
+		stats.resp_handler_failed++;
 	}
 
 	return ret;
@@ -750,6 +773,8 @@ int http_call_req_handler(http_request_t *req)
 		req->payload.len = 0u;
 
 		req->calls_count++;
+	} else {
+		stats.req_handler_failed++;
 	}
 
 	return ret;
@@ -778,16 +803,20 @@ static bool handle_response(http_session_t *sess)
 
 		ret = call_resp_handler(req, resp);
 		if (ret < 0) {
+			stats.req_discarded_count++;
 			http_request_discard(sess->req, HTTP_REQUEST_PROCESSING_ERROR);
 			LOG_ERR("(%d) Request processing failed = %d", sess->sock, ret);
+
+			/* It still time to send HTTP header with error response */
+			if (zsend_headers) {
+				send_error_headers(sess);
+			}
+
+			/* Close connection */
+			return false;
 		}
 
 		if (zsend_headers == true) {
-			if (http_request_is_discarded(req)) {
-				http_discard_reason_to_status_code(req->discard_reason,
-								   &resp->status_code);
-			}
-
 			if (http_code_has_payload(resp->status_code)) {
 				/* If response handler is called a single time
 				 * and content-length is not set then set it to
@@ -807,25 +836,20 @@ static bool handle_response(http_session_t *sess)
 
 			/* Headers sent after handler first call */
 			ret = send_headers(sess);
-			if (ret <= 0) {
-				LOG_ERR("(%d) Failed to send headers = %d",
-					sess->sock,
-					ret);
-				goto exit;
-			}
+			if (ret < 0) goto exit;
 
 			zsend_headers = false;
 		}
 
-		const bool success = http_response_is_stream(resp) ? send_chunk(sess)
-								   : send_buffer(sess);
+		const bool success = http_response_is_chunked(resp) ? send_chunk(sess)
+								    : send_buffer(sess);
 		if (!success) {
 			goto close;
 		}
 	} while (resp->complete == 0U);
 
 	/* End of chunked encoding */
-	if (http_response_is_stream(resp)) {
+	if (http_response_is_chunked(resp)) {
 		ret = send_end_of_chunked_encoding(sess);
 		if (ret <= 0) {
 			goto close;
@@ -833,7 +857,7 @@ static bool handle_response(http_session_t *sess)
 	}
 
 exit:
-	return ret > 0;
+	return ret >= 0;
 
 close:
 	return false;
@@ -871,9 +895,16 @@ static bool process_request(http_session_t *sess)
 
 	bool success;
 	if (http_request_is_discarded(&req)) {
-		success = handle_error_response(sess);
+		success = send_error_headers(sess);
+		stats.req_discarded_count++;
 	} else {
 		success = handle_response(sess);
+	}
+
+	if (!success) {
+		stats.conn_process_failed++;
+		LOG_ERR("(%d) Processing failed", sess->sock);
+		goto close;
 	}
 
 	LOG_INF("(%d) Req %s %s [%u B] -> Status %d [%u B] "
@@ -888,10 +919,16 @@ static bool process_request(http_session_t *sess)
 
 	/* Update last activity time */
 	if (sess->keep_alive.enabled) {
+		stats.conn_keep_alive_count++;
 		sess->keep_alive.last_activity = k_uptime_get_32();
 		return true;
 	}
 
 close:
 	return false;
+}
+
+void http_server_get_stats(struct http_stats *dest)
+{
+	memcpy(dest, &stats, sizeof(stats));
 }

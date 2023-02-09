@@ -86,9 +86,10 @@ bool http_session_is_closed(http_session_t *sess)
 
 bool http_session_is_outdated(http_session_t *sess)
 {
-	uint32_t now = k_uptime_get_32();
+	const uint32_t now  = k_uptime_get_32();
+	const uint32_t diff = now - sess->keep_alive.last_activity;
 
-	return (now - sess->keep_alive.last_activity) > sess->keep_alive.timeout;
+	return diff > sess->keep_alive.timeout;
 }
 
 int http_session_time_to_next_outdated(void)

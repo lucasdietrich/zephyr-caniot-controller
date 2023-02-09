@@ -12,7 +12,7 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(app_fs, LOG_LEVEL_INF);
 
-#include "../appfs.h"
+#include "fs/app_utils.h"
 
 struct emblua {
 	const char *start;

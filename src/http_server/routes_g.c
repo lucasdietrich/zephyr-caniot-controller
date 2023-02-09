@@ -215,6 +215,10 @@ static const struct route_descr root_api_room[] = {
 };
 #endif
 
+static const struct route_descr root_api_http[] = {
+	LEAF("stats", GET, rest_http_stats, NULL, REST),
+};
+
 #if defined(CONFIG_APP_DFU)
 static const struct route_descr root_api_dfu[] = {
 #if defined(CONFIG_APP_DFU)
@@ -312,6 +316,7 @@ static const struct route_descr root_api[] = {
 #if defined(CONFIG_APP_DFU)
 	SECTION("dfu", 0u, root_api_dfu, ARRAY_SIZE(root_api_dfu), 0u),
 #endif
+	SECTION("http", 0u, root_api_http, ARRAY_SIZE(root_api_http), REST),
 #if defined(CONFIG_APP_HA)
 	SECTION("room", 0u, root_api_room, ARRAY_SIZE(root_api_room), 0u),
 #endif

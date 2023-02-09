@@ -37,6 +37,8 @@ POST /api/dfu -> http_dfu_image_upload, http_dfu_image_upload_response (CONFIG_A
 GET /api/dfu -> http_dfu_status (CONFIG_APP_DFU)
 GET /api/dfu/status -> http_dfu_status (CONFIG_APP_DFU)
 
+GET /api/http/stats -> rest_http_stats | REST
+
 GET /api/devices/ -> rest_devices_list (CONFIG_APP_HA)
 GET /api/room/:u -> rest_room_devices_list (CONFIG_APP_HA)
 GET /api/devices/xiaomi -> rest_xiaomi_records (CONFIG_APP_HA)

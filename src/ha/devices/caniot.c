@@ -101,7 +101,7 @@ static int blc0_command(struct ha_device *dev, const struct ha_device_command *c
 
 		ret = ha_caniot_controller_send(&cf, dev->addr.mac.addr.caniot);
 	}
-	
+
 	return ret;
 }
 

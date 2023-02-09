@@ -250,4 +250,28 @@ const char *http_filepath_get_extension(const char *filepath);
  */
 http_content_type_t http_get_content_type_from_extension(const char *extension);
 
+/*____________________________________________________________________________*/
+
+struct http_stats {
+	uint32_t conn_opened_count;
+	uint32_t conn_closed_count;
+	uint32_t conn_keep_alive_count;
+	uint32_t conn_open_failed;
+	uint32_t conn_alloc_failed;
+	uint32_t conn_outdated_count;
+	uint32_t conn_process_failed;
+	uint32_t accept_failed;
+	uint32_t recv_failed;
+	uint32_t recv_eagain;
+	uint32_t recv_closed;
+	uint32_t send_eagain;
+	uint32_t send_failed;
+	uint32_t headers_send_failed;
+	uint32_t req_discarded_count;
+	uint32_t req_handler_failed;
+	uint32_t resp_handler_failed;
+	uint32_t rx;
+	uint32_t tx;
+};
+
 #endif

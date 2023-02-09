@@ -6,17 +6,18 @@
 
 #include "core/http_utils.h"
 #include "files_server.h"
+#include "fs/app_utils.h"
+#include "fs/asyncrw.h"
 
 #include <zephyr/data/json.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/net/http_parser.h>
 
-#include <appfs.h>
 #include <libgen.h>
-LOG_MODULE_REGISTER(files_server, LOG_LEVEL_WRN);
+LOG_MODULE_REGISTER(files_server, LOG_LEVEL_DBG);
 
-#define FILES_SERVER_DEBUG_SPEED	0u
+#define FILES_SERVER_DEBUG_SPEED 0u
 
 #define FILES_SERVER_MOUNT_POINT      CONFIG_APP_FILES_SERVER_MOUNT_POINT
 #define FILES_SERVER_MOUNT_POINT_SIZE (sizeof(FILES_SERVER_MOUNT_POINT) - 1u)
@@ -45,11 +46,11 @@ static uint32_t history_count = 0u;
 // TODO
 // static int get_arg_path(http_request_t *req, size_t nargs, ...)
 
-static const char *route_path_arg_names[] = {
-	"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
-
 static int req_get_arg_path_parts(http_request_t *req, char *parts[], size_t size)
 {
+	static const char *route_path_arg_names[] = {
+		"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
+
 	__ASSERT_NO_MSG(req != NULL);
 	__ASSERT_NO_MSG(parts != NULL);
 	__ASSERT_NO_MSG(size != 0u);
@@ -102,6 +103,18 @@ filepath_build(char *path_parts[], size_t path_parts_size, char filepath[], size
 	return 0;
 }
 
+struct file {
+#if defined(CONFIG_APP_FS_ASYNC_OPERATIONS)
+	uint8_t afile_buf[4096 * 2u];
+	struct fs_async afile;
+#else
+	struct fs_file_t file;
+#endif
+};
+
+/* File context */
+static struct file file;
+
 /**
  * @brief Open file corresponding to the requested filepath.
  *
@@ -112,11 +125,27 @@ filepath_build(char *path_parts[], size_t path_parts_size, char filepath[], size
  * @param filepath
  * @return int
  */
-static int open_r_file(struct fs_file_t *file, size_t *size, char *filepath)
+static int file_open_r(struct file *file, size_t *size, char *filepath)
 {
 	int ret;
 
-	fs_file_t_init(file);
+#if defined(CONFIG_APP_FS_ASYNC_OPERATIONS)
+	struct fs_async_config acfg = {
+		.file_path	= filepath,
+		.opt		= FS_ASYNC_READ | FS_ASYNC_CREATE | FS_ASYNC_READ_SIZE,
+		.ms_block_count = 2u,
+		.ms_block_size	= 4096u,
+		.ms_buf		= file->afile_buf,
+	};
+
+	ret = fs_async_open(&file->afile, &acfg);
+
+	if (ret == 0) {
+		*size = file->afile.file_size;
+	}
+
+#else
+	fs_file_t_init(&file->file);
 
 	/* Get file size */
 	if (size != NULL) {
@@ -140,42 +169,94 @@ static int open_r_file(struct fs_file_t *file, size_t *size, char *filepath)
 	}
 
 	/* Open file */
-	ret = fs_open(file, filepath, FS_O_READ);
+	ret = fs_open(&file->file, filepath, FS_O_READ);
 	if (ret != 0) {
 		LOG_ERR("Failed to open file ret=%d", ret);
 		goto exit;
 	}
-
 exit:
+#endif
+	return ret;
+}
+
+static int file_open_w(struct file *file, char *filepath)
+{
+	int ret;
+
+#if defined(CONFIG_APP_FS_ASYNC_OPERATIONS)
+
+	struct fs_async_config acfg = {
+		.file_path	= filepath,
+		.opt		= FS_ASYNC_WRITE | FS_ASYNC_CREATE | FS_ASYNC_TRUNCATE,
+		.ms_block_count = 2u,
+		.ms_block_size	= sizeof(file->afile_buf) / 2u,
+		.ms_buf		= file->afile_buf,
+	};
+
+	ret = fs_async_open(&file->afile, &acfg);
+#else
+
+	/* Prepare the file in the filesystem */
+	fs_file_t_init(&file->file);
+
+	ret = fs_open(&file->file, filepath, FS_O_CREATE | FS_O_WRITE);
+	if (ret != 0) {
+		LOG_ERR("fs_open failed: %d", ret);
+		goto exit;
+	}
+
+	/* Truncate file in case it already exists */
+	ret = fs_truncate(&file->file, 0U);
+	if (ret != 0) {
+		LOG_ERR("fs_truncate failed: %d", ret);
+		goto error;
+	}
+
+error:
+	if (ret != 0) {
+		fs_close(&file->file);
+	}
+exit:
+#endif
+	return ret;
+}
+
+static int file_read(struct file *file, char *buf, size_t length)
+{
+	int ret;
+
+#if defined(CONFIG_APP_FS_ASYNC_OPERATIONS)
+	ret = fs_async_read(&file->afile, (void *)buf, length, K_NO_WAIT);
+#else
+	ret = fs_read(&file->file, (void *)buf, length);
+#endif
 
 	return ret;
 }
 
-static int open_w_file(struct fs_file_t *file, char *filepath)
+static int file_write(struct file *file, char *buf, size_t length)
 {
 	int ret;
 
-	/* Prepare the file in the filesystem */
-	fs_file_t_init(file);
+#if defined(CONFIG_APP_FS_ASYNC_OPERATIONS)
+	ret = fs_async_write(&file->afile, (void *)buf, length, K_NO_WAIT);
+#else
+	ret = fs_write(&file->file, buf, length);
+#endif
 
-	ret = fs_open(file, filepath, FS_O_CREATE | FS_O_WRITE);
-	if (ret != 0) {
-		LOG_ERR("fs_open failed: %d", ret);
-		goto ret;
-	}
+	return ret;
+}
 
-	/* Truncate file in case it already exists */
-	ret = fs_truncate(file, 0U);
-	if (ret != 0) {
-		LOG_ERR("fs_truncate failed: %d", ret);
-		goto exit;
-	}
+static int file_close(struct file *file)
+{
+	int ret;
 
-exit:
-	if (ret != 0) {
-		fs_close(file);
-	}
-ret:
+#if defined(CONFIG_APP_FS_ASYNC_OPERATIONS)
+	ret = fs_async_close(&file->afile);
+#else
+	ret = fs_close(&file->file);
+#endif
+
 	return ret;
 }
 
@@ -196,8 +277,6 @@ ret:
  */
 int http_file_upload(struct http_request *req, struct http_response *resp)
 {
-	static struct fs_file_t file;
-
 	int ret = 0;
 
 	/**
@@ -235,7 +314,7 @@ int http_file_upload(struct http_request *req, struct http_response *resp)
 #endif /* FILES_SERVER_CREATE_DIR_IF_NOT_EXISTS */
 
 #if !FILES_SERVER_DEBUG_SPEED
-		ret = open_w_file(&file, filepath);
+		ret = file_open_w(&file, filepath);
 		if (ret == -ENOENT) {
 			http_request_discard(req, HTTP_REQUEST_BAD);
 			ret = 0;
@@ -245,10 +324,10 @@ int http_file_upload(struct http_request *req, struct http_response *resp)
 			ret = 0;
 			goto exit;
 		}
-#endif
 
 		/* Reference context */
 		req->user_data = &file;
+#endif
 
 		LOG_INF("Start upload to %s", filepath);
 	}
@@ -256,12 +335,9 @@ int http_file_upload(struct http_request *req, struct http_response *resp)
 	/* Prepare data to be written */
 
 	if (req->payload.loc != NULL) {
-		LOG_DBG("write loc=%p [%u] file=%p",
-			req->payload.loc,
-			req->payload.len,
-			&file);
 #if !FILES_SERVER_DEBUG_SPEED
-		ssize_t written = fs_write(&file, req->payload.loc, req->payload.len);
+		/* TODO */
+		ssize_t written = file_write(&file, req->payload.loc, req->payload.len);
 		if (written != req->payload.len) {
 			ret = written;
 			LOG_ERR("Failed to write file %d != %u",
@@ -273,11 +349,10 @@ int http_file_upload(struct http_request *req, struct http_response *resp)
 #endif
 	}
 
-	bool complete = http_request_complete(req);
-	if (complete) {
+	if (http_request_complete(req)) {
 #if !FILES_SERVER_DEBUG_SPEED
 		/* Close file */
-		ret = fs_close(&file);
+		ret = file_close(&file);
 		if (ret) {
 			// u->error = FILE_UPLOAD_FILE_CLOSE_FAILED;
 			LOG_ERR("Failed to close file = %d", ret);
@@ -298,11 +373,10 @@ exit:
 #if !FILES_SERVER_DEBUG_SPEED
 	/* In case of fatal error, properly close file */
 	if (ret != 0) {
-		fs_close(&file);
+		file_close(&file);
 	}
-#endif
-
 ret:
+#endif
 	return ret;
 }
 
@@ -311,11 +385,10 @@ ret:
 int http_file_download(struct http_request *req, struct http_response *resp)
 {
 	int ret = 0;
-	static struct fs_file_t file;
 
 	/* Init */
 	if (http_response_is_first_call(resp)) {
-		size_t filesize;
+		size_t filesize = 0u;
 
 		char *pp[FILES_SERVER_FILEPATH_MAX_DEPTH];
 		char filepath[FILE_FILEPATH_MAX_LEN];
@@ -335,7 +408,7 @@ int http_file_download(struct http_request *req, struct http_response *resp)
 			goto exit;
 		}
 
-		ret = open_r_file(&file, &filesize, filepath);
+		ret = file_open_r(&file, &filesize, filepath);
 		if (ret == -ENOENT) {
 			http_response_set_status_code(resp, HTTP_STATUS_NOT_FOUND);
 			ret = 0;
@@ -346,8 +419,11 @@ int http_file_download(struct http_request *req, struct http_response *resp)
 			ret = 0;
 			goto exit;
 		} else if (FILES_SERVER_DEBUG_SPEED) {
-			fs_close(&file);
+			file_close(&file);
 		}
+
+		/* Reference context */
+		req->user_data = &file;
 
 		/* Set body size */
 		http_response_set_content_length(resp, filesize);
@@ -366,22 +442,25 @@ int http_file_download(struct http_request *req, struct http_response *resp)
 		LOG_INF("Download %s [size=%u] content-len=%u",
 			filepath,
 			filesize,
-			content_type);
-
-		/* Reference context */
-		req->user_data = &file;
+			resp->content_length);
 	}
 
 	/* Read & close */
 	if (req->user_data != NULL) {
+		bool eof = false;
+
 #if !FILES_SERVER_DEBUG_SPEED
-		ret = fs_read(&file, resp->buffer.data, resp->buffer.size);
+		ret = file_read(&file, resp->buffer.data, resp->buffer.size);
 		if (ret < 0) {
-			fs_close(&file);
+			LOG_ERR("file_read(. %u) -> %d", resp->buffer.size, ret);
+
+			file_close(&file);
 			http_response_set_status_code(resp,
 						      HTTP_STATUS_INTERNAL_SERVER_ERROR);
 			ret = 0;
 			goto exit;
+		} else if (ret == 0) {
+			eof = true;
 		}
 #else
 		ret = MIN(resp->buffer.size, resp->content_length - resp->payload_sent);
@@ -390,10 +469,10 @@ int http_file_download(struct http_request *req, struct http_response *resp)
 		resp->buffer.filling = ret;
 
 		/* If more data are expected */
-		if (ret == resp->buffer.size) {
+		if (!eof) {
 			http_response_mark_not_complete(resp);
 		} else if (!FILES_SERVER_DEBUG_SPEED) {
-			fs_close(&file);
+			file_close(&file);
 			req->user_data = NULL;
 		}
 
