@@ -619,7 +619,8 @@ __deprecated int rest_caniot_records(http_request_t *req, http_response_t *resp)
 		.endpoint_id = HA_DEV_EP_NONE,
 		.from_index  = REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n,
 		.to_index    = REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n +
-			    REST_HA_DEVICES_MAX_COUNT_PER_PAGE};
+			    REST_HA_DEVICES_MAX_COUNT_PER_PAGE,
+	};
 
 	struct json_caniot_telemetry_array arr;
 	arr.count = 0;

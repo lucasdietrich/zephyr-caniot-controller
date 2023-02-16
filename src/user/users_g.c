@@ -8,7 +8,7 @@
 const struct user users_list[] = {
 	{
 		.name = "",
-		.role = USER_ROLE_UNAUTHENTICATED_USER,
+		.role = USER_ROLE_UNAUTHENTICATED,
 	},
 	{
 		.name = "caniot-lucas-dev",

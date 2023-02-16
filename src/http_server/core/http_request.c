@@ -556,12 +556,11 @@ bool http_request_parse_buf(http_request_t *req, char *buf, size_t len)
 	__ASSERT_NO_MSG(req != NULL);
 	__ASSERT_NO_MSG(buf != NULL);
 
+	bool success = true;
 	const size_t parsed =
 		http_parser_execute(&req->parser, &parser_settings, buf, len);
 
-	if (parsed == len) {
-		return true;
-	} else {
+	if (parsed != len) {
 		const bool paused = HTTP_PARSER_ERRNO(&req->parser) == HPE_PAUSED;
 
 		if (paused && req->complete) {
@@ -576,8 +575,10 @@ bool http_request_parse_buf(http_request_t *req, char *buf, size_t len)
 				len);
 		}
 
-		return false;
+		success = false;
 	}
+
+	return success;
 }
 
 void http_request_discard(http_request_t *req, http_request_discard_reason_t reason)

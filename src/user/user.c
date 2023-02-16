@@ -5,8 +5,8 @@
 const char *user_role_to_str(user_role_t role)
 {
 	switch (role) {
-	case USER_ROLE_UNAUTHENTICATED_USER:
-		return "Unauthenticated user";
+	case USER_ROLE_UNAUTHENTICATED:
+		return "Unauthenticated";
 	case USER_ROLE_USER:
 		return "User";
 	case USER_ROLE_ADMIN:

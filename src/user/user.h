@@ -6,7 +6,7 @@
 #define USER_NAME_MAX 32u
 
 typedef enum user_role {
-	USER_ROLE_UNAUTHENTICATED_USER,
+	USER_ROLE_UNAUTHENTICATED,
 	USER_ROLE_USER,
 	USER_ROLE_ADMIN,
 } user_role_t;

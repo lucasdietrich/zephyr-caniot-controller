@@ -160,6 +160,7 @@ static void process_read(struct fs_async *afile)
 #if defined(CONFIG_APP_FS_ASYNC_WRITE)
 static void process_write(struct fs_async *afile)
 {
+	/* TODO */
 }
 #endif
 
@@ -411,16 +412,12 @@ int fs_async_read(struct fs_async *afile, void *data, size_t len, k_timeout_t ti
 	return ret;
 }
 
-int fs_async_write_buf(struct fs_async *afile, struct fs_async_buf **buf)
-{
-	return -ENOTSUP;
-}
-
 int fs_async_write(struct fs_async *afile, void *data, size_t len, k_timeout_t timeout)
 {
 	int ret;
 
 #if defined(CONFIG_APP_FS_ASYNC_WRITE)
+	/* TODO */
 	ret = -ENOTSUP;
 #else
 	ret = fs_write(&afile->_zfp, data, len);

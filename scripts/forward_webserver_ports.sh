@@ -12,6 +12,7 @@
 
 # # Apply
 # sudo iptables-save
+sudo sysctl -w net.ipv4.ip_forward=1
 
 # QEMU net interface forwarded to nat
 sudo iptables -t nat -I PREROUTING -p tcp -i ens160 --dport 9080 -j DNAT --to 192.0.2.1:80
