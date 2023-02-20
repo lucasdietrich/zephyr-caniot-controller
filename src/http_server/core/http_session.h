@@ -14,7 +14,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include <zephyr/net/http_parser.h>
+#include <zephyr/net/http/parser.h>
 #include <zephyr/net/net_ip.h>
 #include <zephyr/sys/dlist.h>
 #include <zephyr/sys/slist.h>

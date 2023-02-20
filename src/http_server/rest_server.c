@@ -32,7 +32,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/net/ethernet.h>
-#include <zephyr/net/http_parser.h>
+#include <zephyr/net/http/parser.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_ip.h>
 #include <zephyr/net/net_mgmt.h>
@@ -1541,11 +1541,10 @@ int rest_if_can(http_request_t *req, http_response_t *resp)
 		goto exit;
 	}
 
-	frame.id      = arbitration_id;
-	frame.id_type = (arbitration_id <= CAN_STD_ID_MASK) ? CAN_ID_STD : CAN_ID_EXT;
-	frame.rtr     = 0u;
-	frame.dlc     = dlc;
-	ret	      = if_can_send(CAN_BUS_CANIOT, &frame);
+	frame.id    = arbitration_id;
+	frame.flags = (arbitration_id > CAN_STD_ID_MASK) ? CAN_FRAME_IDE : 0u;
+	frame.dlc   = dlc;
+	ret	    = if_can_send(CAN_BUS_CANIOT, &frame);
 
 	LOG_INF("POST /if/can/%x [dlc=%u] -> %d", frame.id, dlc, ret);
 exit:

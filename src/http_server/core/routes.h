@@ -11,7 +11,7 @@
 
 #include <stddef.h>
 
-#include <zephyr/net/http_parser.h>
+#include <zephyr/net/http/parser.h>
 
 #include <embedc-url/parser.h>
 

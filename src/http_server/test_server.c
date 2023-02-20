@@ -9,7 +9,7 @@
 
 #include <zephyr/data/json.h>
 #include <zephyr/logging/log.h>
-#include <zephyr/net/http_parser.h>
+#include <zephyr/net/http/parser.h>
 
 #include <embedc-url/parser.h>
 LOG_MODULE_REGISTER(test_server, LOG_LEVEL_INF);

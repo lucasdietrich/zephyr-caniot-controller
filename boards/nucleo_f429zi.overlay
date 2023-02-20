@@ -105,12 +105,10 @@
                 compatible = "zephyr,sdhc-spi-slot"; /* formerly zephyr,mmc-spi-slot */
                 reg = <0>;
                 status = "okay";
-                label = "SDHC_0";
                 spi-max-frequency = <24000000>;  // 24000000, 400000
 		mmc {
 			compatible = "zephyr,sdmmc-disk";
 			status = "okay";
-			label = "SDMMC_0";
 		};
         };
 };
@@ -194,7 +192,6 @@ Sample application : https://github.com/zephyrproject-rtos/zephyr/tree/main/samp
  */
 / {
         stm-temp {
-                label = "DIE_TEMP";
                 compatible = "st,stm32-temp";
                 io-channels = < &adc1 18 >;
                 // ts-voltage-mv = < 3300 >;

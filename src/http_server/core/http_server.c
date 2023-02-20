@@ -20,7 +20,7 @@
 #include <stdio.h>
 
 #include <zephyr/logging/log.h>
-#include <zephyr/net/http_parser.h>
+#include <zephyr/net/http/parser.h>
 #include <zephyr/net/net_config.h>
 #include <zephyr/net/net_core.h>
 #include <zephyr/net/net_if.h>

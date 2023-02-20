@@ -12,7 +12,7 @@
 #include <zephyr/data/json.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/logging/log.h>
-#include <zephyr/net/http_parser.h>
+#include <zephyr/net/http/parser.h>
 
 #include <libgen.h>
 LOG_MODULE_REGISTER(files_server, LOG_LEVEL_DBG);

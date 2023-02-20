@@ -14,7 +14,7 @@
 #include <stdint.h>
 
 #include <zephyr/data/json.h>
-#include <zephyr/net/http_parser.h>
+#include <zephyr/net/http/parser.h>
 
 int rest_encode_response_json(http_response_t *resp,
 			      const void *val,

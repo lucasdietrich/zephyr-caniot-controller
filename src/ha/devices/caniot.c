@@ -78,6 +78,7 @@ static int blc0_ingest(struct ha_event *ev, const struct ha_device_payload *pl)
 	return 0;
 }
 
+/*
 static int blc0_command(struct ha_device *dev, const struct ha_device_command *cmd)
 {
 	int ret;
@@ -104,6 +105,7 @@ static int blc0_command(struct ha_device *dev, const struct ha_device_command *c
 
 	return ret;
 }
+*/
 
 void ha_dev_caniot_blc_cls1_to_blt(struct ha_ds_caniot_blc1 *blt,
 				   const struct caniot_blc1_telemetry *can_buf)
