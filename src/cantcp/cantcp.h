@@ -107,6 +107,8 @@ int cantcp_recv(cantcp_tunnel_t *tunnel, struct can_frame *msg);
 
 int cantcp_live(cantcp_tunnel_t *tunnel);
 
+int cantcp_socket(cantcp_tunnel_t *tunnel);
+
 int cantcp_attach_msgq(cantcp_tunnel_t *tunnel, struct k_msgq *rx_queue);
 
 bool cantcp_connected(cantcp_tunnel_t *tunnel);
