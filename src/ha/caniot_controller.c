@@ -31,7 +31,7 @@ CAN_MSGQ_DEFINE(can_rxq, 4U);
 #endif
 
 /* initialized with 0 */
-static ha_ciot_ctrl_did_cb_t did_callbacks[CANIOT_DID_MAX_VALUE];
+static ha_ciot_ctrl_did_cb_t did_callbacks[CANIOT_DID_MAX_COUNT];
 
 // CONFIG CAN_INTERFACE
 // CONFIG_APP_HA_EMULATED_DEVICES

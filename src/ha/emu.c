@@ -491,9 +491,9 @@ void emu_caniot_cmd_thread(void *_a, void *_b, void *_c)
 }
 
 struct emu_caniot_device {
-	const struct caniot_identification id;
+	const struct caniot_device_id id;
 	struct caniot_device dev;
-	struct caniot_config config;
+	struct caniot_device_config config;
 
 	uint64_t state;
 };
@@ -526,9 +526,9 @@ int caniot_emu_cmd(struct caniot_device *dev,
 K_MSGQ_DEFINE(emu_caniot_txq, sizeof(struct caniot_frame), 2u, 4u);
 K_MSGQ_DEFINE(emu_caniot_rxq, sizeof(struct caniot_frame), 2u, 4u);
 
-struct caniot_config default_config = CANIOT_CONFIG_DEFAULT_INIT();
+struct caniot_device_config default_config = CANIOT_CONFIG_DEFAULT_INIT();
 
-const struct caniot_api emu_caniot_api = {
+const struct caniot_device_api emu_caniot_api = {
 	.config.on_read	   = NULL,
 	.config.on_write   = NULL,
 	.custom_attr.read  = NULL,
@@ -539,7 +539,7 @@ const struct caniot_api emu_caniot_api = {
 
 void emu_caniot_device_init(struct emu_caniot_device *emu_dev)
 {
-	memcpy(&emu_dev->config, &default_config, sizeof(struct caniot_config));
+	memcpy(&emu_dev->config, &default_config, sizeof(struct caniot_device_config));
 
 	emu_dev->dev.api		     = &emu_caniot_api;
 	emu_dev->dev.config		     = &emu_dev->config;
