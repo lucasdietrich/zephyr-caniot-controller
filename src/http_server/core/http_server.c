@@ -52,6 +52,9 @@ LOG_MODULE_REGISTER(http_server, LOG_LEVEL_INF); /* INF */
 #error "No server socket configured"
 #endif
 
+// externs
+extern size_t strnlen(const char *, size_t);
+
 // forward declarations
 static bool process_request(http_session_t *sess);
 static void http_srv_thread(void *_a, void *_b, void *_c);
@@ -536,7 +539,7 @@ exit:
 	return ret;
 }
 
-static int send_headers(http_session_t *sess)
+static bool send_headers(http_session_t *sess)
 {
 	int ret;
 	buffer_t buf;
@@ -565,20 +568,8 @@ static int send_headers(http_session_t *sess)
 		stats.headers_send_failed++;
 		LOG_ERR("(%d) Failed to send headers = %d", sess->sock, ret);
 	}
-	return ret;
-}
 
-/* Response if the request is discarded */
-static bool send_error_headers(http_session_t *sess)
-{
-	__ASSERT_NO_MSG(http_request_is_discarded(sess->req));
-
-	sess->resp->content_length = 0;
-
-	http_discard_reason_to_status_code(sess->req->discard_reason,
-					   &sess->resp->status_code);
-
-	return send_headers(sess) > 0;
+	return ret >= 0u;
 }
 
 static void request_chunk_buf_cleanup(http_request_t *req)
@@ -780,13 +771,64 @@ int http_call_req_handler(http_request_t *req)
 	return ret;
 }
 
+static bool send_error_response(http_session_t *sess)
+{
+	http_request_t *const req   = sess->req;
+	http_response_t *const resp = sess->resp;
+
+	__ASSERT_NO_MSG(req->discarded == 1u);
+
+	resp->content_length = 0;
+	resp->content_type   = HTTP_CONTENT_TYPE_TEXT_PLAIN;
+
+	switch (sess->req->discard_reason) {
+	case HTTP_REQUEST_ROUTE_UNKNOWN:
+		resp->status_code = HTTP_STATUS_NOT_FOUND;
+		strncpy(resp->buffer.data, "404 Not Found", resp->buffer.size);
+		break;
+	case HTTP_REQUEST_BAD:
+		resp->status_code = HTTP_STATUS_BAD_REQUEST;
+		strncpy(resp->buffer.data, "400 Bad Request", resp->buffer.size);
+		break;
+	case HTTP_REQUEST_ROUTE_NO_HANDLER:
+	case HTTP_REQUEST_STREAMING_UNSUPPORTED:
+		resp->status_code = HTTP_STATUS_NOT_IMPLEMENTED;
+		strncpy(resp->buffer.data, "501 Not Implemented", resp->buffer.size);
+		break;
+	case HTTP_REQUEST_PAYLOAD_TOO_LARGE:
+		resp->status_code = HTTP_STATUS_REQUEST_ENTITY_TOO_LARGE;
+		strncpy(resp->buffer.data, "413 Entity Too Large", resp->buffer.size);
+		break;
+	case HTTP_REQUEST_UNSECURE_ACCESS:
+		resp->status_code = HTTP_STATUS_FORBIDDEN;
+		strncpy(resp->buffer.data, "403 Forbidden", resp->buffer.size);
+		break;
+	case HTTP_REQUEST_PROCESSING_ERROR:
+	default:
+		resp->status_code = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+		strncpy(resp->buffer.data, "500 Server Error", resp->buffer.size);
+		break;
+	}
+
+	resp->buffer.filling = strnlen(resp->buffer.data, resp->buffer.size);
+	resp->content_length = resp->buffer.filling;
+
+	if (!send_headers(sess)) return false;
+
+	return send_buffer(sess);
+}
+
 static bool handle_response(http_session_t *sess)
 {
 	int ret;
-	bool zsend_headers = true;
 
 	http_request_t *const req   = sess->req;
 	http_response_t *const resp = sess->resp;
+
+	if (req->discarded) {
+		stats.req_discarded_count++;
+		return send_error_response(sess);
+	}
 
 	resp->content_type = http_route_resp_default_content_type(req->route);
 
@@ -807,16 +849,17 @@ static bool handle_response(http_session_t *sess)
 			http_request_discard(sess->req, HTTP_REQUEST_PROCESSING_ERROR);
 			LOG_ERR("(%d) Request processing failed = %d", sess->sock, ret);
 
-			/* It still time to send HTTP header with error response */
-			if (zsend_headers) {
-				send_error_headers(sess);
+			if (!resp->headers_sent) {
+				/* Headers already sent, cannot send proper error
+				 * response, just close the connection */
+				goto close;
+			} else {
+				/* It still time to send HTTP response */
+				return send_error_response(sess);
 			}
-
-			/* Close connection */
-			return false;
 		}
 
-		if (zsend_headers == true) {
+		if (!resp->headers_sent) {
 			if (http_code_has_payload(resp->status_code)) {
 				/* If response handler is called a single time
 				 * and content-length is not set then set it to
@@ -835,10 +878,7 @@ static bool handle_response(http_session_t *sess)
 			}
 
 			/* Headers sent after handler first call */
-			ret = send_headers(sess);
-			if (ret < 0) goto exit;
-
-			zsend_headers = false;
+			if (!send_headers(sess)) goto close;
 		}
 
 		const bool success = http_response_is_chunked(resp) ? send_chunk(sess)
@@ -856,7 +896,6 @@ static bool handle_response(http_session_t *sess)
 		}
 	}
 
-exit:
 	return ret >= 0;
 
 close:
@@ -893,14 +932,7 @@ static bool process_request(http_session_t *sess)
 	 */
 	sess->keep_alive.enabled = req.keep_alive;
 
-	bool success;
-	if (http_request_is_discarded(&req)) {
-		success = send_error_headers(sess);
-		stats.req_discarded_count++;
-	} else {
-		success = handle_response(sess);
-	}
-
+	const bool success = handle_response(sess);
 	if (!success) {
 		stats.conn_process_failed++;
 		LOG_ERR("(%d) Processing failed", sess->sock);

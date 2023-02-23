@@ -605,41 +605,6 @@ const char *http_header_get_value(http_request_t *req, const char *hdr_name)
 	return value;
 }
 
-bool http_discard_reason_to_status_code(http_request_discard_reason_t reason,
-					uint16_t *status_code)
-{
-	if (status_code == NULL) {
-		return false;
-	}
-
-	switch (reason) {
-	case HTTP_REQUEST_ROUTE_UNKNOWN:
-		*status_code = HTTP_STATUS_NOT_FOUND;
-		break;
-	case HTTP_REQUEST_BAD:
-		*status_code = HTTP_STATUS_BAD_REQUEST;
-		break;
-	case HTTP_REQUEST_ROUTE_NO_HANDLER:
-		*status_code = HTTP_STATUS_NOT_IMPLEMENTED;
-		break;
-	case HTTP_REQUEST_STREAMING_UNSUPPORTED:
-		*status_code = HTTP_STATUS_NOT_IMPLEMENTED;
-		break;
-	case HTTP_REQUEST_PAYLOAD_TOO_LARGE:
-		*status_code = HTTP_STATUS_REQUEST_ENTITY_TOO_LARGE;
-		break;
-	case HTTP_REQUEST_UNSECURE_ACCESS:
-		*status_code = HTTP_STATUS_FORBIDDEN;
-		break;
-	case HTTP_REQUEST_PROCESSING_ERROR:
-	default:
-		*status_code = HTTP_STATUS_INTERNAL_SERVER_ERROR;
-		break;
-	}
-
-	return true;
-}
-
 int http_req_route_arg_get(http_request_t *req, const char *name, uint32_t *value)
 {
 	__ASSERT_NO_MSG(req != NULL);

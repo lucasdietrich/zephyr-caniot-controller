@@ -483,7 +483,7 @@ http_test_result_t http_test_run(struct http_test_context *ctx,
 	 * If request is mark as discarded, the application handler should not
 	 * be called anymore.
 	 */
-	if (http_request_is_discarded(req)) {
+	if (req->discarded) {
 		result = HTTP_TEST_RESULT_DISCARDING_BUT_CALLED;
 		goto exit;
 	}

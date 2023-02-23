@@ -362,18 +362,6 @@ static inline bool http_request_complete(http_request_t *req)
 
 const char *http_header_get_value(http_request_t *req, const char *hdr_name);
 
-/**
- * @brief Write the appropriate HTTP status code in function of the given
- * discard reason.
- *
- * @param reason
- * @param status_code
- * @return true If modified
- * @return false If not modified
- */
-bool http_discard_reason_to_status_code(http_request_discard_reason_t reason,
-					uint16_t *status_code);
-
 static inline enum http_method http_req_get_method(http_request_t *req)
 {
 	return http_route_get_method(req->route);
