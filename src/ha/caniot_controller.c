@@ -348,7 +348,7 @@ static void thread(void *_a, void *_b, void *_c)
 			 * because the timeout queue was not shifted in time
 			 */
 			const uint32_t delta = k_uptime_delta32(&reftime);
-			caniot_controller_process_single(&ctrl, delta, resp);
+			caniot_controller_rx_frame(&ctrl, delta, resp);
 
 			struct syncq *qx;
 			if ((events.query.state == K_POLL_STATE_FIFO_DATA_AVAILABLE) &&
@@ -363,7 +363,7 @@ static void thread(void *_a, void *_b, void *_c)
 				if (ret > 0) {
 					/* pending query registered */
 					qx->handle = (uint8_t)ret;
-					caniot_controller_handle_user_data_set(
+					caniot_controller_query_user_data_set(
 						&ctrl, qx->handle, qx);
 				} else {
 					/* no context allocated, return
@@ -387,7 +387,7 @@ static void thread(void *_a, void *_b, void *_c)
 			}
 		} else if (ret == -EAGAIN) { /* k_poll timed out */
 			const uint32_t delta = k_uptime_delta32(&reftime);
-			caniot_controller_process_single(&ctrl, delta, NULL);
+			caniot_controller_rx_frame(&ctrl, delta, NULL);
 		} else {
 			LOG_ERR("k_poll failed: %d", ret);
 			break;

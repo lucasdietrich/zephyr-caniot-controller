@@ -1453,7 +1453,7 @@ int rest_devices_caniot_attr_read_write(http_request_t *req, http_response_t *re
 		resp->status_code = 200U;
 
 		json.status	  = "ERROR";
-		json.caniot_error = r.err;
+		json.caniot_error = r.err.code;
 		break;
 	case -EAGAIN:
 		/* timeout */
