@@ -15,8 +15,6 @@
 #include <zephyr/net/mqtt.h>
 LOG_MODULE_REGISTER(cloud_app, LOG_LEVEL_WRN);
 
-#define TELEMETRY_INTERVAL_SEC 60u
-
 static struct ha_ev_subs *sub = NULL;
 
 const struct json_obj_descr json_cloud_xiaomi_record_measures_descr[] = {
@@ -70,12 +68,12 @@ int cloud_app_init(void)
 		.on_queued_cb = cloud_on_queued,
 	};
 
-	ha_subs_ext_conf_set(
-		&sub_conf,
-		&sub_lt,
-		HA_SUBS_EXT_LOOKUP_TYPE_SDEVUID,
-		HA_SUBS_EXT_FILTERING_TYPE_INTERVAL,
-		HA_SUBS_EXT_FILTERING_PARAM_INTERVAL(TELEMETRY_INTERVAL_SEC));
+	ha_subs_ext_conf_set(&sub_conf,
+			     &sub_lt,
+			     HA_SUBS_EXT_LOOKUP_TYPE_SDEVUID,
+			     HA_SUBS_EXT_FILTERING_TYPE_INTERVAL,
+			     HA_SUBS_EXT_FILTERING_PARAM_INTERVAL(
+				     CONFIG_APP_CLOUD_TELEMETRY_INTERVAL));
 
 	return ha_subscribe(&sub_conf, &sub);
 }

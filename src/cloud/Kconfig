@@ -4,55 +4,25 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-mainmenu "cloud"
-
-choice
-	prompt "Choose the cloud platform (AWS, Azure, GCP, etc.)"
-	default APP_AWS
-
-config APP_AWS
-        bool "Enable AWS"
-        depends on APP_CLOUD
-		depends on APP_CREDENTIALS_MANAGER
-		select MQTT_LIB
-		select MQTT_LIB_TLS
+menuconfig APP_CLOUD
+        bool "Enable cloud"
+        default y
+        select APP_CREDENTIALS_MANAGER
         help
-                Select AWS as the cloud platform.
+                Enable cloud features (AWS, Azure, GCP, etc.)
 
-endchoice
+if APP_CLOUD
 
+rsource "./platforms/aws/Kconfig"
 
-if APP_AWS
-config APP_AWS_ENDPOINT
-	string "AWS MQTT endpoint"
-	help
-		Endpoint (hostname) of the AWS MQTT broker.
-		Make sure your region supports AWS Device Advisor for DQP
+menu "Application"
 
-config APP_AWS_THING_NAME
-	string "AWS Thing name"
-	default "myThingName"
-	help
-		Set the AWS Thing name created on IoT Console
+config APP_CLOUD_TELEMETRY_INTERVAL
+		int "Push interval in seconds"
+		default 60
+		help
+				Interval in seconds to push data to the cloud.
 
-config APP_AWS_DQP_SUBSCRIBE_TOPIC
-	string "AWS MQTT subscribe topic"
-	default "myThingName/downlink"
-	help
-		MQTT topic the client should subscribe to in the context of
-		the AWS Device Qualification Program
+endmenu
 
-config APP_AWS_DQP_PUBLISH_TOPIC
-	string "AWS MQTT publish topic"
-	default "myThingName/data"
-	help
-		MQTT topic the client should publish to  in the context of
-		the AWS Device Qualification Program
-
-config APP_AWS_QOS
-	int "MQTT QoS"
-	default 0
-	help
-		Quality of Service to use for publishing and subscribing to AWS MQTT broker.
-		Note only QoS 0 is supported for AWS DQP
 endif

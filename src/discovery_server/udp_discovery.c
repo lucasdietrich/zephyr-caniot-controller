@@ -25,9 +25,8 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(discovery, CONFIG_APP_DISCOVERY_SERVER_LOG_LEVEL);
 
-#define DISCOVERY_PORT	  5000
-#define SEARCH_STRING	  "Search caniot-controller"
-#define SEARCH_STRING_LEN (sizeof("Search caniot-controller") - 1)
+#define SEARCH_STRING	  CONFIG_APP_DISCOVERY_SERVER_SEARCH_STRING
+#define SEARCH_STRING_LEN (sizeof(SEARCH_STRING) - 1)
 
 static int fd;
 
@@ -35,14 +34,24 @@ static __noinit char buffer[0x20];
 
 static void thread(void *_a, void *_b, void *_c);
 
-K_THREAD_DEFINE(discovery, 0x400, thread, NULL, NULL, NULL, K_PRIO_PREEMPT(8), 0, 0);
+K_THREAD_DEFINE(discovery,
+		CONFIG_APP_DISCOVERY_SERVER_THREAD_STACK_SIZE,
+		thread,
+		NULL,
+		NULL,
+		NULL,
+		K_PRIO_PREEMPT(8),
+		0,
+		0);
 
 static int setup_socket(void)
 {
 	int ret;
-	const struct sockaddr_in addr = {.sin_family = AF_INET,
-					 .sin_port   = htons(DISCOVERY_PORT),
-					 .sin_addr   = {.s_addr = 0}};
+	const struct sockaddr_in addr = {
+		.sin_family = AF_INET,
+		.sin_port   = htons(CONFIG_APP_DISCOVERY_SERVER_PORT),
+		.sin_addr   = {.s_addr = 0},
+	};
 
 	fd = zsock_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd < 0) {

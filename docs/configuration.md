@@ -135,7 +135,7 @@ boards = {
 |CONFIG_APP_AWS_ENDPOINT                    |a31gokdeok...    |a31gokdeok...|        |
 |CONFIG_APP_AWS_THING_NAME                  |caniot_controller|qemu_canio...|        |
 |CONFIG_APP_BLE_INTERFACE                   |True             |False        |False   |
-|CONFIG_APP_CANIOT_CONTROLLER               |True             |True         |True    |
+|CONFIG_APP_HA_CANIOT_CONTROLLER               |True             |True         |True    |
 |CONFIG_APP_CANTCP_SERVER                   |False            |False        |False   |
 |CONFIG_APP_CAN_INTERFACE                   |True             |False        |False   |
 |CONFIG_APP_CLOUD                           |True             |True         |False   |

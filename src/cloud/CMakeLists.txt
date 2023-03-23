@@ -5,6 +5,8 @@
 #
 
 add_subdirectory(core)
+add_subdirectory(platforms)
 
 target_sources(app PRIVATE cloud_app.c)
-target_sources_ifdef(CONFIG_APP_AWS app PRIVATE aws.c)
+
+target_include_directories(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

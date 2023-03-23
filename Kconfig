@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-mainmenu "caniot-controller"
+menu "Application configuration: CANIOT Controller"
 
 # Your application configuration options go here
 
@@ -15,69 +15,20 @@ mainmenu "caniot-controller"
 # to 'source' relative to the current Kconfig file instead, use 'rsource' (or a
 # path relative to the Zephyr root).
 
+rsource "./src/cantcp/Kconfig"
+rsource "./src/dfu/Kconfig"
 rsource "./src/http_server/Kconfig"
+rsource "./src/discovery_server/Kconfig"
 rsource "./src/lua/Kconfig"
 rsource "./src/ha/Kconfig"
 rsource "./src/creds/Kconfig"
 rsource "./src/cloud/Kconfig"
 rsource "./src/fs/Kconfig"
+rsource "./src/ble/Kconfig"
+rsource "./src/can/Kconfig"
+rsource "./src/mbedtls_config/Kconfig"
 
-config APP_DISCOVERY_SERVER
-	bool "Enable discovery server"
-        default y
-	help
-	        Enable UDP discovery server on port 5000
-
-config APP_DISCOVERY_SERVER_LOG_LEVEL
-        int "UDP discovery server log level"
-        default 2
-        range 0 4
-        depends on APP_DISCOVERY_SERVER
-        help
-                NONE(0) ERR(1) WRN (2) INF(3) DBG(4)
-
-config APP_HTTP_SERVER
-	bool "Enable HTTP server"
-        default y
-	help
-	        Enable HTTP server features (webserver, REST API, prometheus, etc.)
-
-config APP_CREDENTIALS_MANAGER
-        bool "Enable credentials manager"
-        default y
-        help
-                Enable credentials manager features (certificates/key manager)
-
-# TODO: dependencies
-config APP_HA
-        bool "Enable Home Automation module"
-        default y
-        help
-                Enable Home Automation module features
-
-config APP_CLOUD
-        bool "Enable cloud"
-        default y
-        depends on APP_CREDENTIALS_MANAGER
-        help
-                Enable cloud features (AWS, Azure, GCP, etc.)
-
-config APP_CAN_INTERFACE
-        bool "CAN interface"
-        default y
-        help
-                Enable CAN interface
-
-config APP_BLE_INTERFACE
-        bool "BLE interface"
-        default y
-        depends on BT
-        help
-                Enable BLE interface with coprocessor
-
-config APP_BLE_CONTROLLER
-        bool "Enable BLE controller"
-        default y
+menu "Miscellaneous"
 
 config APP_SYSTEM_MONITORING
         bool "Enable system monitoring"
@@ -86,54 +37,8 @@ config APP_SYSTEM_MONITORING
         help
                 Enable system monitoring e.g. (mbedTLS heap usage, ...)
 
-config APP_CANTCP_SERVER
-        bool "Enable CANTCP server (DEPRECATED)"
-        default n
-        help
-                Enable CANTCP server thread (for CAN over TCP)
-
-config APP_CANIOT_CONTROLLER
-        bool "Enable CANIOT controller (DEPRECATED)"
-        default n
-        depends on APP_CAN_INTERFACE || APP_HA_EMULATED_DEVICES
-        depends on CANIOT_LIB
-        help
-                Enable CANIOT controller redirection for CAN messages
-                
-# artificaly enable HAL_CRC drivers from STM32CUBE
-# read : https://github.com/zephyrproject-rtos/zephyr/issues/37543
-config MY_STM32_HAL
-        bool "Enable STM32 HAL drivers (custom)"
-        default n
-        depends on SOC_FAMILY_STM32
-        select USE_STM32_HAL_CRC
-        select USE_STM32_HAL_GPIO
-
-config APP_DFU
-        bool "Enable DFU"
-        default n
-        depends on BOOTLOADER_MCUBOOT && IMG_MANAGER
-        help
-                Enable DFU features
-
-if MBEDTLS
-config APP_MBEDTLS_CUSTOM_HEAP_SIZE
-        int "mbedTLS heap size"
-        default 65536
-        range 0 65536
-        help
-                Set mbedTLS heap size in bytes
-
-config APP_MBEDTLS_CUSTOM_HEAP_CCM
-        bool "Place mbedTLS in CCM location"
-        default y
-        help
-                Place mbedTLS in CCM location
-endif 
-
-
 config APP_BIG_BUFFER_TO_CCM
-        bool "Place application big buffers in CCM memory"
+        bool "Place big buffers in CCM memory"
         # depends on CONFIG_STM32_CCM
         # depends on SOC_SERIES_STM32F4X
         default n
@@ -147,4 +52,21 @@ config APP_PRINTF_1SEC_COUNTER
         help
                 Enable 1 second counter in printf
 
+# artificaly enable HAL_CRC drivers from STM32CUBE
+# read : https://github.com/zephyrproject-rtos/zephyr/issues/37543
+config MY_STM32_HAL
+        bool "Enable STM32 HAL drivers (custom)"
+        default n
+        depends on SOC_FAMILY_STM32
+        select USE_STM32_HAL_CRC
+        select USE_STM32_HAL_GPIO
+        
+endmenu
+
+endmenu # caniot-controller
+
+menu "Zephyr RTOS Configuration"
+
 source "Kconfig.zephyr"
+
+endmenu

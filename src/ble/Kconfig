@@ -1,4 +1,11 @@
-mainmenu "ble"
+menuconfig APP_BLE_INTERFACE
+        bool "Bluetooth"
+        default y
+        depends on BT
+        help
+                Enable BLE interface with coprocessor
+
+if APP_BLE_INTERFACE
 
 config APP_XIAOMI_MAX_DEVICES
 	int "Maximum XIAOMI devices supported"
@@ -19,4 +26,4 @@ config APP_PASSIVE_SCAN_DURATION
 	help
 		Passive scan minimum required duration (in seconds)
 
-source "Kconfig.zephyr"
+endif

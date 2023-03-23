@@ -1,0 +1,33 @@
+From c8995a0082411dbfa4f6a5efcc23f58b710b2bd6 Mon Sep 17 00:00:00 2001
+From: Lucas Dietrich <ld.adecy@gmail.com>
+Date: Sat, 4 Mar 2023 01:16:15 +0100
+Subject: [PATCH] net: http: Make http_client.c compile with
+ CONFIG_NET_SOCKETS_POSIX_NAMES=n
+
+Use internal constant ZSOCK_POLLIN instead of POLLIN to
+ make the http_client source file compile without error with
+CONFIG_NET_SOCKETS_POSIX_NAMES disabled.
+
+ Fixes #55423
+
+Signed-off-by: Lucas Dietrich <ld.adecy@gmail.com>
+---
+ subsys/net/lib/http/http_client.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/subsys/net/lib/http/http_client.c b/subsys/net/lib/http/http_client.c
+index 3c1c7076a8..321e77d24a 100644
+--- a/subsys/net/lib/http/http_client.c
++++ b/subsys/net/lib/http/http_client.c
+@@ -424,7 +424,7 @@ static int http_wait_data(int sock, struct http_request *req, int32_t timeout)
+ 	int64_t timestamp = k_uptime_get();
+ 
+ 	fds[0].fd = sock;
+-	fds[0].events = POLLIN;
++	fds[0].events = ZSOCK_POLLIN;
+ 
+ 	do {
+ 		if (timeout > 0) {
+-- 
+2.39.1
+

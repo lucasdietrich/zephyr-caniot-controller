@@ -18,10 +18,6 @@
 #include <zephyr/net/tls_credentials.h>
 LOG_MODULE_REGISTER(aws, LOG_LEVEL_DBG);
 
-#define AWS_CERT_DER 1
-
-#define AWS_ENDPOINT_PORT 8883u
-
 #define TLS_TAG_DEVICE_CERT 2u
 #define TLS_TAG_DEVICE_KEY  2u
 #define TLS_TAG_CA_CERT	    2u
@@ -36,7 +32,7 @@ static int setup_credentials(void)
 	struct cred cert, key, ca;
 
 	/* Setup TLS credentials */
-#if AWS_CERT_DER
+#if defined(CONFIG_APP_AWS_X509_DER_ONLY)
 	CHECK_OR_EXIT((ret = cred_get(CRED_AWS_CERTIFICATE_DER, &cert)) == 0);
 	CHECK_OR_EXIT((ret = cred_get(CRED_AWS_PRIVATE_KEY_DER, &key)) == 0);
 	CHECK_OR_EXIT((ret = cred_get(CRED_AWS_ROOT_CA1_DER, &ca)) == 0);
@@ -106,7 +102,7 @@ struct cloud_platform aws_platform = {
 		{
 			.clientid      = CONFIG_APP_AWS_THING_NAME,
 			.endpoint      = CONFIG_APP_AWS_ENDPOINT,
-			.port	       = AWS_ENDPOINT_PORT,
+			.port	       = CONFIG_APP_AWS_PORT,
 			.sec_tag_list  = sec_tls_tags,
 			.sec_tag_count = ARRAY_SIZE(sec_tls_tags),
 		},

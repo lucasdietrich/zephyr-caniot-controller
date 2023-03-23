@@ -1,3 +1,5 @@
+menu "File System"
+
 config APP_FS_ASYNC_OPERATIONS
         bool "Enable asynchronous file operations"
         default n
@@ -19,3 +21,5 @@ config APP_FS_ASYNC_WRITE
                 Improve files write access performance using asynchronous write operations
 
 endif # APP_FS_ASYNC_OPERATIONS
+
+endmenu # File System

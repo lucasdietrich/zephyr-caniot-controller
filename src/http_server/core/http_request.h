@@ -21,7 +21,7 @@
 struct http_session;
 typedef struct http_session http_session_t;
 
-#define HTTP_URL_MAX_LEN 128u
+#define HTTP_URL_MAX_LEN CONFIG_APP_HTTP_URL_MAX_LENGTH
 
 typedef enum {
 	/**

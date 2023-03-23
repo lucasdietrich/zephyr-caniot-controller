@@ -85,7 +85,7 @@ monitor:
 	python3 -m serial.tools.miniterm --filter=direct ${SERIAL_PORT} ${BAUDRATE}
 
 monitor_2:
-	python3 -m serial.tools.miniterm /dev/ttyACM1 ${BAUDRATE}
+	python3 -m serial.tools.miniterm ${SERIAL_PORT} ${BAUDRATE}
 
 reports: tmp
 	${GEN_CMD} -C build ram_report $(GEN_OPT) > docs/ram_report.txt
@@ -151,3 +151,6 @@ zephyr_conf_synthesis:
 
 format:
 	find src -iname *.h -o -iname *.c -o -iname *.cpp | xargs clang-format -i
+
+menuconfig:
+	west build -t menuconfig

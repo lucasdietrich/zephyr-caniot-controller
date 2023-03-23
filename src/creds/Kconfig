@@ -4,10 +4,16 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-mainmenu "credentials"
+menuconfig APP_CREDENTIALS_MANAGER
+        bool "Enable credentials manager"
+        default y
+        help
+                Enable credentials manager features (certificates/key manager)
+
+if APP_CREDENTIALS_MANAGER
 
 config APP_CREDS_HARDCODED
-	bool "Credentials should be hardcoded"
+	bool "Enable credentials hardcoded in FLASH"
 	default y
 	help
 		No support for dynamic credentials yet.
@@ -38,3 +44,5 @@ config APP_CREDS_FS
 		Enable filesystem support for credentials
 
 endchoice
+
+endif

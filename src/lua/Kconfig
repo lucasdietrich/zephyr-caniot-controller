@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-mainmenu "lua"
+menu "LUA configuration"
 
 if LUA
 
@@ -32,3 +32,5 @@ config APP_LUA_AUTORUN_SCRIPTS
                 for testing
 
 endif
+
+endmenu

@@ -61,11 +61,10 @@ static void http_srv_thread(void *_a, void *_b, void *_c);
 
 static const sec_tag_t sec_tag_list[] = {HTTPS_SERVER_SEC_TAG};
 
-#define KEEP_ALIVE_DEFAULT_TIMEOUT_MS (30 * 1000)
+#define KEEP_ALIVE_DEFAULT_TIMEOUT_MS (CONFIG_APP_HTTP_SESSION_TIMEOUT * 1000)
 
-#define HTTP_SERVER_THREAD_STACK_SIZE (0x1000U)
 K_THREAD_DEFINE(http_thread,
-		HTTP_SERVER_THREAD_STACK_SIZE,
+		CONFIG_APP_HTTP_THREAD_STACK_SIZE,
 		http_srv_thread,
 		NULL,
 		NULL,
@@ -81,8 +80,10 @@ K_THREAD_DEFINE(http_thread,
  *
  * TODO: Find a way to use a single 0x1000 sized buffer
  */
-__buf_noinit_section char buffer[0x2000u];
-__buf_noinit_section char buffer_internal[0x800u]; /* For encoding response headers */
+__buf_noinit_section char buffer[CONFIG_APP_HTTP_BUFFER_SIZE];
+__buf_noinit_section char
+	buffer_internal[CONFIG_APP_HTTP_HEADERS_BUFFER_SIZE]; /* For encoding response
+								 headers */
 
 static struct http_stats stats;
 
@@ -120,9 +121,9 @@ static void show_pfd(void)
 	}
 }
 
-#if defined(CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK)
-
 const struct user *handshake_auth_user = NULL;
+
+#if defined(CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK)
 
 static int tls_verify_callback(void *user_data,
 			       struct mbedtls_x509_crt *crt,
@@ -517,19 +518,21 @@ static int sendall(int sock, char *buf, size_t len)
 	while (sent < len) {
 		ret = zsock_send(sock, &buf[sent], len - sent, 0U);
 		if (ret < 0) {
-			stats.send_eagain++;
 			if (ret == -EAGAIN) {
+				stats.send_eagain++;
 				LOG_INF("-EAGAIN (%d)", sock);
 				continue;
+			} else {
+				LOG_ERR("ret == %d ???", 0);
+				stats.send_failed++;
+				goto exit;
 			}
-			goto exit;
 		} else if (ret > 0) {
 			stats.tx += ret;
 			sent += ret;
 		} else {
-			stats.send_failed++;
-			LOG_ERR("ret == %d ???", 0);
-			goto exit;
+			LOG_WRN("Socket %d closed", sock);
+			break;
 		}
 	}
 
@@ -773,10 +776,9 @@ int http_call_req_handler(http_request_t *req)
 
 static bool send_error_response(http_session_t *sess)
 {
-	http_request_t *const req   = sess->req;
 	http_response_t *const resp = sess->resp;
 
-	__ASSERT_NO_MSG(req->discarded == 1u);
+	__ASSERT_NO_MSG(sess->req->discarded == 1u);
 
 	resp->content_length = 0;
 	resp->content_type   = HTTP_CONTENT_TYPE_TEXT_PLAIN;

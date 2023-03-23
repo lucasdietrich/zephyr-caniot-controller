@@ -1,0 +1,43 @@
+#
+# Copyright (c) 2022 Lucas Dietrich <ld.adecy@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+menuconfig APP_DISCOVERY_SERVER
+	bool "Enable discovery server"
+        default y
+	help
+	        Enable UDP discovery server on port 5000
+
+if APP_DISCOVERY_SERVER
+
+config APP_DISCOVERY_SERVER_PORT
+        int "UDP discovery server port"
+        default 5000
+        range 1 65535
+        help
+                UDP discovery server port
+
+config APP_DISCOVERY_SERVER_SEARCH_STRING
+        string "UDP discovery server search string"
+        default "Search caniot-controller"
+        help
+                UDP discovery server search string
+
+config APP_DISCOVERY_SERVER_THREAD_STACK_SIZE
+        int "UDP discovery server thread stack size"
+        default 1024
+        range 512 4096
+        help
+                UDP discovery server thread stack size
+
+config APP_DISCOVERY_SERVER_LOG_LEVEL
+        int "UDP discovery server log level"
+        default 2
+        range 0 4
+        depends on APP_DISCOVERY_SERVER
+        help
+                NONE(0) ERR(1) WRN (2) INF(3) DBG(4)
+
+endif

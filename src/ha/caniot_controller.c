@@ -174,16 +174,11 @@ void log_caniot_frame(const struct caniot_frame *frame)
 bool event_cb(const caniot_controller_event_t *ev, void *user_data)
 {
 	int ret;
-
-	bool response_is_set = false;
+	const struct caniot_frame *const resp = ev->response;
+	const bool response_is_set = resp != NULL;
 
 	switch (ev->status) {
 	case CANIOT_CONTROLLER_EVENT_STATUS_OK: {
-		const struct caniot_frame *resp = ev->response;
-		__ASSERT(resp != NULL, "response is NULL");
-
-		response_is_set = true;
-
 		if (resp->id.type == CANIOT_FRAME_TYPE_TELEMETRY) {
 			if (resp->len != 8U) {
 				LOG_WRN("Expected length for board control "
@@ -199,20 +194,14 @@ bool event_cb(const caniot_controller_event_t *ev, void *user_data)
 		}
 	} break;
 	case CANIOT_CONTROLLER_EVENT_STATUS_ERROR:
-		response_is_set = true;
-		break;
 	case CANIOT_CONTROLLER_EVENT_STATUS_TIMEOUT:
-		break;
 	case CANIOT_CONTROLLER_EVENT_STATUS_CANCELLED:
-		break;
 	default:
 		break;
 	}
 
 	/* call associated general callback */
-	if ((response_is_set == true) && (did_callbacks[ev->did] != NULL)) {
-		__ASSERT(ev->response != NULL, "response is NULL");
-
+	if (response_is_set && (did_callbacks[ev->did] != NULL)) {
 		LOG_DBG("callback set for did %d : %p", ev->did, did_callbacks[ev->did]);
 
 		/* implement a user_data mechanism to pass the context for
@@ -239,7 +228,7 @@ bool event_cb(const caniot_controller_event_t *ev, void *user_data)
 			break;
 		}
 
-		if (response_is_set == true) {
+		if (response_is_set) {
 			memcpy(qx->response, ev->response, sizeof(struct caniot_frame));
 		}
 

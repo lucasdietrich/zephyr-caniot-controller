@@ -100,39 +100,39 @@ static const struct route_descr root_api_device[] = {
 };
 #endif
 
-#if defined(CONFIG_APP_CANIOT_CONTROLLER)
+#if defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
 static const struct route_descr root_api_devices_caniot_didzu_attribute[] = {
 	LEAF("key:x", GET | ARG_HEX, rest_devices_caniot_attr_read_write, NULL, 0u),
 	LEAF("key:x", PUT | ARG_HEX, rest_devices_caniot_attr_read_write, NULL, 0u),
 };
 #endif
 
-#if defined(CONFIG_APP_CANIOT_CONTROLLER)
+#if defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
 static const struct route_descr root_api_devices_caniot_didzu_endpoint_epzu[] = {
 	LEAF("telemetry", GET, rest_devices_caniot_telemetry, NULL, 0u),
 	LEAF("command", POST, rest_devices_caniot_command, NULL, 0u),
 };
 #endif
 
-#if defined(CONFIG_APP_CANIOT_CONTROLLER)
+#if defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
 static const struct route_descr root_api_devices_caniot_didzu_endpoint_blc[] = {
 	LEAF("command", POST, rest_devices_caniot_blc_command, NULL, 0u),
 };
 #endif
 
-#if defined(CONFIG_APP_CANIOT_CONTROLLER)
+#if defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
 static const struct route_descr root_api_devices_caniot_didzu_endpoint_blc1[] = {
 	LEAF("command", POST, rest_devices_caniot_blc1_command, NULL, 0u),
 };
 #endif
 
-#if defined(CONFIG_APP_CANIOT_CONTROLLER)
+#if defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
 static const struct route_descr root_api_devices_caniot_didzu_endpoint_blc0[] = {
 	LEAF("command", POST, rest_devices_caniot_blc0_command, NULL, 0u),
 };
 #endif
 
-#if defined(CONFIG_APP_CANIOT_CONTROLLER)
+#if defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
 static const struct route_descr root_api_devices_caniot_didzu_endpoint[] = {
 	SECTION("blc0",
 		0u,
@@ -157,7 +157,7 @@ static const struct route_descr root_api_devices_caniot_didzu_endpoint[] = {
 };
 #endif
 
-#if defined(CONFIG_APP_CANIOT_CONTROLLER)
+#if defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
 static const struct route_descr root_api_devices_caniot_didzu[] = {
 	SECTION("endpoint",
 		0u,
@@ -174,7 +174,7 @@ static const struct route_descr root_api_devices_caniot_didzu[] = {
 };
 #endif
 
-#if defined(CONFIG_APP_CANIOT_CONTROLLER)
+#if defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
 static const struct route_descr root_api_devices_caniot[] = {
 #if defined(CONFIG_APP_HA)
 	LEAF("", GET, rest_caniot_records, NULL, 0u),
@@ -187,7 +187,7 @@ static const struct route_descr root_api_devices_caniot[] = {
 };
 #endif
 
-#if defined(CONFIG_APP_CANIOT_CONTROLLER) || defined(CONFIG_APP_HA)
+#if defined(CONFIG_APP_HA_CANIOT_CONTROLLER) || defined(CONFIG_APP_HA)
 static const struct route_descr root_api_devices[] = {
 #if defined(CONFIG_APP_HA)
 	LEAF("", GET, rest_devices_list, NULL, 0u),
@@ -196,10 +196,10 @@ static const struct route_descr root_api_devices[] = {
 	LEAF("xiaomi", GET, rest_xiaomi_records, NULL, 0u),
 #endif
 	LEAF("garage", GET, rest_devices_garage_get, NULL, 0u),
-#if defined(CONFIG_APP_CANIOT_CONTROLLER)
+#if defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
 	LEAF("garage", POST, rest_devices_garage_post, NULL, 0u),
 #endif
-#if defined(CONFIG_APP_CANIOT_CONTROLLER)
+#if defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
 	SECTION("caniot",
 		0u,
 		root_api_devices_caniot,
@@ -320,7 +320,7 @@ static const struct route_descr root_api[] = {
 #if defined(CONFIG_APP_HA)
 	SECTION("room", 0u, root_api_room, ARRAY_SIZE(root_api_room), 0u),
 #endif
-#if defined(CONFIG_APP_CANIOT_CONTROLLER) && defined(CONFIG_APP_HA)
+#if defined(CONFIG_APP_HA_CANIOT_CONTROLLER) && defined(CONFIG_APP_HA)
 	SECTION("devices", 0u, root_api_devices, ARRAY_SIZE(root_api_devices), 0u),
 #endif
 #if defined(CONFIG_APP_HA)

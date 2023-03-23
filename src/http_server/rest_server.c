@@ -939,7 +939,7 @@ exit:
 	return ret;
 }
 
-#if defined(CONFIG_APP_CANIOT_CONTROLLER)
+#if defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
 
 int rest_devices_garage_get(http_request_t *req, http_response_t *resp)
 {
@@ -1522,7 +1522,7 @@ exit:
 	return ret;
 }
 
-#endif /* CONFIG_APP_CANIOT_CONTROLLER */
+#endif /* CONFIG_APP_HA_CANIOT_CONTROLLER */
 
 #if defined(CONFIG_APP_CAN_INTERFACE)
 

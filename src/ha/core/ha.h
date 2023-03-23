@@ -40,6 +40,8 @@ struct ha_device;
 #define HA_DEV_ADDR_TYPE_STR_MAX_LEN   16u
 #define HA_DEV_ADDR_MEDIUM_STR_MAX_LEN 10u
 
+#define HA_UUID_STR_LEN sizeof("00000000-0000-0000-0000-000000000000")
+
 #define HA_DEVICES_MAX_COUNT	   CONFIG_APP_HA_DEVICES_MAX_COUNT
 #define HA_EVENTS_MAX_COUNT	   CONFIG_APP_HA_EVENTS_MAX_COUNT
 #define HA_SUBSCRIPTIONS_MAX_COUNT CONFIG_APP_HA_SUBSCRIPTIONS_MAX_COUNT
@@ -229,6 +231,8 @@ struct ha_device_stats {
 };
 
 struct ha_device {
+	char uuid[HA_UUID_STR_LEN];
+
 	/* Addr which uniquely identifies the device */
 	struct ha_device_address addr;
 
@@ -264,7 +268,7 @@ struct ha_device {
 	 */
 	uint16_t sdevuid;
 
-	/* Room where the device is */
+	/* Room where the device is located */
 	struct ha_room *room;
 };
 typedef struct ha_device ha_dev_t;
@@ -718,7 +722,7 @@ int ha_ev_subs_conf_init(ha_ev_subs_conf_t *conf);
  *  configuration. If subscription succeeds, the subscription handle is returned
  * in the provided pointer "subs".
  *
- * @param conf Subscription configuration, must live until unsubscribed
+ * @param conf Subscription configuration, must remain valid until unsubscribtion
  * @param sub Pointer to event subscription handle
  * @return int 0 on success, negative error code otherwise
  */
@@ -860,5 +864,29 @@ uint32_t ha_ev_free_count(void);
  * @return int
  */
 int ha_stats_copy(struct ha_stats *dest);
+
+/**
+ * @brief Save the device configuration and main information to flash
+ *
+ * @param dev
+ * @return int
+ */
+int ha_dev_storage_save(ha_dev_t *dev);
+
+/**
+ * @brief Load the device configuration and main information from flash
+ *
+ * @param dev
+ * @return int
+ */
+int ha_dev_storage_load(ha_dev_t *dev);
+
+/**
+ * @brief Delete the device configuration and main information from flash
+ *
+ * @param dev
+ * @return int
+ */
+int ha_dev_storage_delete(ha_dev_t *dev);
 
 #endif /* _HA_H_ */

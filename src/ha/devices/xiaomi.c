@@ -70,12 +70,19 @@ int ha_dev_xiaomi_register_record(const xiaomi_record_t *record)
 {
 	const ha_dev_addr_t addr = {
 		.type = HA_DEV_TYPE_XIAOMI_MIJIA,
-		.mac  = {.medium = HA_DEV_MEDIUM_BLE, .addr.ble = record->addr}};
+		.mac =
+			{
+				.medium	  = HA_DEV_MEDIUM_BLE,
+				.addr.ble = record->addr,
+			},
+	};
 
-	const struct ha_device_payload pl = {.buffer	= (const char *)record,
-					     .len	= sizeof(xiaomi_record_t),
-					     .timestamp = record->time,
-					     .y		= NULL};
+	const struct ha_device_payload pl = {
+		.buffer	   = (const char *)record,
+		.len	   = sizeof(xiaomi_record_t),
+		.timestamp = record->time,
+		.y	   = NULL,
+	};
 
 	return ha_dev_register_data(&addr, &pl);
 }

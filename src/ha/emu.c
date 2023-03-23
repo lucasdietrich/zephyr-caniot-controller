@@ -11,7 +11,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/random/rand32.h>
 
-#if defined(CONFIG_APP_CANIOT_CONTROLLER)
+#if defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
 #include "caniot_controller.h"
 #endif
 

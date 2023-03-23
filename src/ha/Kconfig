@@ -4,7 +4,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-mainmenu "ha"
+menuconfig APP_HA
+        bool "Enable Home Automation support"
+        default y
+        help
+                Enable Home Automation module features
+
+if APP_HA
 
 config APP_HA_EMULATED_DEVICES
         bool "Enable HA Emulated Devices"
@@ -50,3 +56,13 @@ config APP_HA_SUBSCRIPTIONS_MAX_COUNT
         range 1 32
         help
                 Maximum number of HA devices.
+
+config APP_HA_CANIOT_CONTROLLER
+        bool "Enable CANIOT controller (DEPRECATED)"
+        default n
+        depends on APP_CAN_INTERFACE || APP_HA_EMULATED_DEVICES
+        depends on CANIOT_LIB
+        help
+                Enable CANIOT controller redirection for CAN messages
+
+endif

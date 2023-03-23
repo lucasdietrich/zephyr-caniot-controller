@@ -1,0 +1,26 @@
+#
+# Copyright (c) 2022 Lucas Dietrich <ld.adecy@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+menu "mbedTLS configuration"
+
+if MBEDTLS
+
+config APP_MBEDTLS_CUSTOM_HEAP_SIZE
+        int "mbedTLS heap size"
+        default 65536
+        range 0 65536
+        help
+                Set mbedTLS heap size in bytes
+
+config APP_MBEDTLS_CUSTOM_HEAP_CCM
+        bool "Place mbedTLS in CCM"
+        default y
+        help
+                Place mbedTLS in Core Coupled Memory (CCM)
+
+endif
+
+endmenu

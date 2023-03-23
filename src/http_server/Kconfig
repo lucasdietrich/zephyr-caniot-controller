@@ -4,7 +4,20 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-mainmenu "http-server"
+menuconfig APP_HTTP_SERVER
+	bool "Enable HTTP server"
+        default y
+	help
+	        Enable HTTP server features (webserver, REST API, prometheus, etc.)
+
+if APP_HTTP_SERVER
+
+config APP_HTTP_THREAD_STACK_SIZE
+        int "HTTP thread stack size"
+        default 4096
+        range 2048 16384
+        help
+                Size of the stack used by the HTTP thread
 
 config APP_HTTP_SERVER_NONSECURE
         bool "Enable non secure HTTP server"
@@ -27,6 +40,28 @@ config APP_HTTP_MAX_SESSIONS
         help
                 Maximum number of HTTP sessions supported by the HTTP server
 
+config APP_HTTP_SESSION_TIMEOUT
+        int "HTTP session timeout in seconds"
+        default 30
+        range 0 600
+        help
+                Time in seconds after which an HTTP session is closed if no
+                activity is detected
+
+config APP_HTTP_BUFFER_SIZE
+        int "HTTP buffer size"
+        default 8192
+        range 0 65536
+        help
+                Size of the buffer used to store HTTP request and response
+
+config APP_HTTP_HEADERS_BUFFER_SIZE
+        int "HTTP buffer size dedicated for headers"
+        default 1024
+        range 0 65536
+        help
+                Size of the buffer used to store HTTP headers
+
 config APP_HTTP_REQUEST_HEADERS_BUFFER_SIZE
         int "HTTP buffer size dedicated for request headers values"
         default 352
@@ -35,7 +70,7 @@ config APP_HTTP_REQUEST_HEADERS_BUFFER_SIZE
                 Size of the buffer used to store HTTP request headers values
 
 config APP_ROUTE_MAX_DEPTH
-        int "Maximum depth of the route tree"
+        int "Maximum depth of the routes tree"
         default 8
         range 1 10
         help
@@ -52,6 +87,15 @@ config APP_HTTP_TEST_SERVER
         default n
         help
                 Enable test server and corresponding resources and routes
+
+config APP_HTTP_URL_MAX_LENGTH
+        int "Maximum length of an HTTP URL"
+        default 128
+        range 32 256
+        help
+                Maximum length of an HTTP URL
+
+menu "HTTP files server"
 
 config APP_FILES_SERVER_MOUNT_POINT
         string "Default mount point for file upload"
@@ -73,3 +117,7 @@ config APP_FILE_ACCESS_HISTORY_SIZE
         range 1 20
         help
                 Maximum number of file access history entries
+
+endmenu
+
+endif
