@@ -1,5 +1,7 @@
 # Bluetooth HCI
 
+**Current Bluetooth Coprocessor firmware: https://github.com/lucasdietrich/zephyr-caniot-radio-coprocessor**
+
 Controller have a nrf52840 chip dedicated to bluetooth. Formerly, the bluetooth
 application was hosted on the BLE SoC. A custom UART protocol was used between
 the two chips to communicate.
