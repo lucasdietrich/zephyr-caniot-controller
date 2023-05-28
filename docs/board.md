@@ -161,7 +161,7 @@ Note DocID024030 Rev 10 page 97/239 :
 | ~~Label MII~~ | Label RMII   | stm32f429bit6 | ~~MII DP83848C~~ | **RMII DP83848C** | Note |
 | ------------- | ------------ | ------------- | ---------------- | ----------------- | ---- |
 | MII_CRS       |              | ~~PA0 /WKUP~~ | ?                | -                 |      |
-| MII_RX_CLK    | RMII_REF_CLK | PA1 (44)      | ?                | X1 (34)           |      |
+| MII_RX_CLK    | RMII_REF_CLK | PA5 (48)      | ?                | X1 (34)           |      |
 | MII_MDIO      | RMII_MDIO    | PA2 (45)      | ?                | MDIO (30)         |      |
 | MII_COL       |              | ~~PA3~~       | ?                | -                 |      |
 | MII_RX_DV     | RMII_CRS_DV  | PA7 (56)      | ?                | CRS_DV (40)       |      |
@@ -293,56 +293,55 @@ and no interesting function.
 
 The star `*` means that the pin is select for the labelled function.
 
-| Label      | stm32f429bit6 | Selected function             |
-| ---------- | ------------- | ----------------------------- |
-| PA0        | PA0           | TIM2_CH1/TIM5_CH1/USART4_TX   |
-| PA1        | PA1           | TIM2_CH2/TIM5_CH2/USART4_RX   |
-| PA3        | PA3           | TIM2_CH4/TIM5_CH4/TIM9_CH2    |
-| PA4        | PA4           | TIM8_CH1N                     |
-| PA5        | PA5           | TIM3_CH1                      |
-| PA6        | PA6           | TIM3_CH2/TIM8_CH1N            |
-| PA10       | PA10          | TIM1_CH3                      |
-| PA15       | PA15          | TIM2_CH1                      |
-| PB0        | PB0           | TIM1_CH2N/TIM3_CH3/TIM8_CH2N  |
-| PB1        | PB1           | TIM1_CH3N/TIM3_CH4/TIM8_CH3N  |
-| PB2        | PB2           | -                             |
-| PB4        | PB4           | TIM3_CH1                      |
-| PB7        | PB7           | TIM4_CH2                      |
-| PB10       | PB10          | TIM2_CH3/SPI2_SCK             |
-| PB14       | PB14          | TIM1_CH2N/TIM8_CH2N/SPI2_MISO |
-| PB15       | PB15          | TIM1_CH3N/TIM8_CH2N/SPI2_MOSI |
-| PC6        | PC6           | TIM3_CH1/USART6_TX            |
-| PC7        | PC7           | TIM3_CH2/USART6_RX            |
-| PD4        | PD4           | -                             |
-| PD5        | PD5           | USART2_TX                     |
-| PD6        | PD6           | SPI3_MOSI/USART2_RX           |
-| PD7        | PD7           | -                             |
-| PD11       | PD11          | -                             |
-| PD12       | PD12          | TIM4_CH1                      |
-| PD13       | PD13          | TIM4_CH2                      |
-| *UART7_RX  | PF6           | UART7_RX                      |
-| *UART7_TX  | PF7           | UART7_TX                      |
-| *SPI5_MISO | PF8           | SPI5_MISO                     |
-| *SPI5_MOSI | PF9           | SPI5_MOSI                     |
-| PF10       | PF10          | -                             |
-| PG6        | PG6           | -                             |
-| PG7        | PG7           | -                             |
-| PG9        | PG9           | USAR6_RX                      |
-| PG10       | PG10          | -                             |
-| PG12       | PG12          | SPI6_MISO                     |
-| PH4        | PH4           | I2C2_SCL                      |
-| *SPI5_SCK  | PH6           | SPI5_SCK                      |
-| PH9        | PH9           | TIM12_CH2                     |
-| PH10       | PH10          | TIM5_CH1                      |
-| PH11       | PH11          | TIM5_CH2                      |
-| PH12       | PH12          | TIM5_CH3                      |
-| PH14       | PH14          | TIM8_CH2N                     |
-| PH15       | PH15          | TIM8_CH3N                     |
-| PI0        | PI0           | TIM5_CH4                      |
-| PI1        | PI1           | SPI2_SCK                      |
-| PI3        | PI3           | -                             |
-| PI4        | PI4           | -                             |
-| PI11       | PI11          | -                             |
+| Label         | stm32f429bit6 | Selected function             |
+| ------------- | ------------- | ----------------------------- |
+| **USART4_TX** | PA0           | TIM2_CH1/TIM5_CH1/USART4_TX   |
+| **USART4_RX** | PA1           | TIM2_CH2/TIM5_CH2/USART4_RX   |
+| **TIM2_CH4**  | PA3           | TIM2_CH4/TIM5_CH4/TIM9_CH2    |
+| PA4           | PA4           | TIM8_CH1N                     |
+| PA6           | PA6           | TIM3_CH2/TIM8_CH1N            |
+| PA10          | PA10          | TIM1_CH3                      |
+| PA15          | PA15          | TIM2_CH1                      |
+| PB0           | PB0           | TIM1_CH2N/TIM3_CH3/TIM8_CH2N  |
+| PB1           | PB1           | TIM1_CH3N/TIM3_CH4/TIM8_CH3N  |
+| PB2           | PB2           | -                             |
+| PB4           | PB4           | TIM3_CH1                      |
+| PB7           | PB7           | TIM4_CH2                      |
+| **TIM2_CH3**  | PB10          | TIM2_CH3/SPI2_SCK             |
+| PB14          | PB14          | TIM1_CH2N/TIM8_CH2N/SPI2_MISO |
+| PB15          | PB15          | TIM1_CH3N/TIM8_CH2N/SPI2_MOSI |
+| **USART6_TX** | PC6           | TIM3_CH1/USART6_TX            |
+| **USART6_RX** | PC7           | TIM3_CH2/USART6_RX            |
+| PD4           | PD4           | -                             |
+| **USART2_TX** | PD5           | USART2_TX                     |
+| **USART2_RX** | PD6           | SPI3_MOSI/USART2_RX           |
+| PD7           | PD7           | -                             |
+| PD11          | PD11          | -                             |
+| PD12          | PD12          | TIM4_CH1                      |
+| PD13          | PD13          | TIM4_CH2                      |
+| **UART7_RX**  | PF6           | UART7_RX                      |
+| **UART7_TX**  | PF7           | UART7_TX                      |
+| **SPI5_MISO** | PF8           | SPI5_MISO                     |
+| **SPI5_MOSI** | PF9           | SPI5_MOSI                     |
+| **GPIO_PF10** | PF10          | -                             |
+| PG6           | PG6           | -                             |
+| PG7           | PG7           | -                             |
+| PG9           | PG9           | USART6_RX                     |
+| PG10          | PG10          | -                             |
+| PG12          | PG12          | SPI6_MISO                     |
+| PH4           | PH4           | I2C2_SCL                      |
+| **SPI5_SCK**  | PH6           | SPI5_SCK                      |
+| PH9           | PH9           | TIM12_CH2                     |
+| **TIM5_CH1**  | PH10          | TIM5_CH1                      |
+| **TIM5_CH2**  | PH11          | TIM5_CH2                      |
+| **TIM5_CH3**  | PH12          | TIM5_CH3                      |
+| PH14          | PH14          | TIM8_CH2N                     |
+| PH15          | PH15          | TIM8_CH3N                     |
+| **TIM5_CH4**  | PI0           | TIM5_CH4                      |
+| PI1           | PI1           | SPI2_SCK                      |
+| PI3           | PI3           | -                             |
+| PI4           | PI4           | -                             |
+| PI11          | PI11          | -                             |
 
 
 
