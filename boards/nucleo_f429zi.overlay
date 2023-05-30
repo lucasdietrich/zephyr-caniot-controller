@@ -220,6 +220,7 @@ Sample application : https://github.com/zephyrproject-rtos/zephyr/tree/main/samp
 };
 
 &mac {
+        local-mac-address = [00 00 00 77 77 77];
         status = "okay"; /* Set to disable to use USB interface only */
 };
 

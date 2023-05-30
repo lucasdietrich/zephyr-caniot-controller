@@ -114,11 +114,11 @@ static void debug_mbedtls_memory(void)
 
 extern int lua_fs_populate(void);
 
-void main(void)
+int main(void)
 {
 	printk("Starting Zephyr application...\n");
 
-#if defined(CONFIG_BOOTLOADER_MCUBOOT)
+#if defined(CONFIG_APP_DFU)
 	dfu_image_check();
 #endif
 
@@ -204,4 +204,6 @@ void main(void)
 		counter++;
 		k_msleep(1000);
 	}
+
+	return 0;
 }
