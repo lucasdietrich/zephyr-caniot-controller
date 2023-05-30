@@ -255,6 +255,7 @@ http_content_type_t http_get_content_type_from_extension(const char *extension);
 struct http_stats {
 	uint32_t conn_opened_count;
 	uint32_t conn_closed_count;
+	uint32_t conn_error_count;
 	uint32_t conn_keep_alive_count;
 	uint32_t conn_open_failed;
 	uint32_t conn_alloc_failed;
