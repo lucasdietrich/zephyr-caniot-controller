@@ -431,10 +431,15 @@ static void handle_active_sessions(void)
 		if (fds.cli[idx].revents & POLLIN) {
 			/* data available */
 			close = process_request(sess) != true;
+		} else if (fds.cli[idx].revents & (POLLHUP | POLLERR)) {
+			/* Error or hangup detected on client connection -> unexpected
+			 * close */
+			close = true;
+			LOG_WRN("(%d) Unexpected close", sess->sock);
 		} else if (http_session_is_outdated(sess)) {
 			/* Session has timed out */
 			close = true;
-			stats.conn_outdated_count++;
+			stats.conn_error_count++;
 			LOG_WRN("(%d) Closing outdated session "
 				"%p",
 				sess->sock,

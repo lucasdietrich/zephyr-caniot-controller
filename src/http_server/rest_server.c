@@ -1811,6 +1811,7 @@ int rest_demo_json(http_request_t *req, http_response_t *resp)
 static const struct json_obj_descr http_stats_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct http_stats, conn_opened_count, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct http_stats, conn_closed_count, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct http_stats, conn_error_count, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct http_stats, conn_keep_alive_count, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct http_stats, conn_open_failed, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct http_stats, conn_alloc_failed, JSON_TOK_NUMBER),
