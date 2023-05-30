@@ -161,7 +161,7 @@ Note DocID024030 Rev 10 page 97/239 :
 | ~~Label MII~~ | Label RMII   | stm32f429bit6 | ~~MII DP83848C~~ | **RMII DP83848C** | Note |
 | ------------- | ------------ | ------------- | ---------------- | ----------------- | ---- |
 | MII_CRS       |              | ~~PA0 /WKUP~~ | ?                | -                 |      |
-| MII_RX_CLK    | RMII_REF_CLK | PA5 (48)      | ?                | X1 (34)           |      |
+| MII_RX_CLK    | RMII_REF_CLK | PA5 (54)      | ?                | X1 (34)           |      |
 | MII_MDIO      | RMII_MDIO    | PA2 (45)      | ?                | MDIO (30)         |      |
 | MII_COL       |              | ~~PA3~~       | ?                | -                 |      |
 | MII_RX_DV     | RMII_CRS_DV  | PA7 (56)      | ?                | CRS_DV (40)       |      |
