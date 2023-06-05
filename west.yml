@@ -14,6 +14,6 @@ manifest:
   projects:
     - name: zephyr
       remote: zephyrproject-rtos-fork
-      revision: ba46a4c7135d4321395079a1f2058c9689ff89c0
+      revision: 14352d02ccb908368dbc1e2ce227866cc7a22673
       import: true
       
