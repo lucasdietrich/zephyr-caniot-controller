@@ -522,22 +522,20 @@ static int sendall(int sock, char *buf, size_t len)
 
 	while (sent < len) {
 		ret = zsock_send(sock, &buf[sent], len - sent, 0U);
-		if (ret < 0) {
-			if (ret == -EAGAIN) {
-				stats.send_eagain++;
-				LOG_INF("-EAGAIN (%d)", sock);
-				continue;
-			} else {
-				LOG_ERR("ret == %d ???", 0);
-				stats.send_failed++;
-				goto exit;
-			}
-		} else if (ret > 0) {
+		if (ret > 0) {
 			stats.tx += ret;
 			sent += ret;
 		} else {
-			LOG_WRN("Socket %d closed", sock);
-			break;
+			ret = -errno;
+			if (ret == -EAGAIN) {
+				stats.send_eagain++;
+				LOG_INF("(%d) -EAGAIN", sock);
+				continue;
+			} else {
+				LOG_ERR("(%d) ret == %d ???", sock, ret);
+				stats.send_failed++;
+				goto exit;
+			}
 		}
 	}
 
@@ -566,8 +564,7 @@ static bool send_headers(http_session_t *sess)
 
 	/* Send custom headers */
 
-	/* TODO check for errors */
-	(void)ret;
+	/* TODO check for 'ret' errors */
 
 	ret = sendall(sess->sock, buf.data, buf.filling);
 	if (ret >= 0) {
@@ -577,7 +574,7 @@ static bool send_headers(http_session_t *sess)
 		LOG_ERR("(%d) Failed to send headers = %d", sess->sock, ret);
 	}
 
-	return ret >= 0u;
+	return ret >= 0;
 }
 
 static void request_chunk_buf_cleanup(http_request_t *req)
@@ -820,9 +817,7 @@ static bool send_error_response(http_session_t *sess)
 	resp->buffer.filling = strnlen(resp->buffer.data, resp->buffer.size);
 	resp->content_length = resp->buffer.filling;
 
-	if (!send_headers(sess)) return false;
-
-	return send_buffer(sess);
+	return send_headers(sess) && send_buffer(sess);
 }
 
 static bool handle_response(http_session_t *sess)
