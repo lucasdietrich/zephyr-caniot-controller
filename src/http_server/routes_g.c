@@ -12,6 +12,7 @@
 #include "rest_server.h"
 #include "test_server.h"
 #include "web_server.h"
+#include "debug_server.h"
 
 #include <embedc-url/parser.h>
 #include <embedc-url/parser_internal.h>
@@ -91,6 +92,7 @@ static const struct route_descr root_api_if[] = {
 #if defined(CONFIG_APP_HA)
 static const struct route_descr root_api_ha[] = {
 	LEAF("stats", GET, rest_ha_stats, NULL, 0u),
+	LEAF("telemetry", GET, debug_server_ha_telemetry, NULL, TEXT),
 };
 #endif
 
@@ -187,7 +189,7 @@ static const struct route_descr root_api_devices_caniot[] = {
 };
 #endif
 
-#if defined(CONFIG_APP_HA_CANIOT_CONTROLLER) || defined(CONFIG_APP_HA)
+#if defined(CONFIG_APP_HA) || defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
 static const struct route_descr root_api_devices[] = {
 #if defined(CONFIG_APP_HA)
 	LEAF("", GET, rest_devices_list, NULL, 0u),
@@ -320,7 +322,7 @@ static const struct route_descr root_api[] = {
 #if defined(CONFIG_APP_HA)
 	SECTION("room", 0u, root_api_room, ARRAY_SIZE(root_api_room), 0u),
 #endif
-#if defined(CONFIG_APP_HA_CANIOT_CONTROLLER) && defined(CONFIG_APP_HA)
+#if defined(CONFIG_APP_HA) && defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
 	SECTION("devices", 0u, root_api_devices, ARRAY_SIZE(root_api_devices), 0u),
 #endif
 #if defined(CONFIG_APP_HA)

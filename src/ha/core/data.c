@@ -25,8 +25,8 @@ size_t get_data_size(ha_data_type_t type)
 		return sizeof(struct ha_data_xps);
 	case HA_DATA_TS:
 		return sizeof(struct ha_data_ts);
-	case HA_DATA_SS:
-		return sizeof(struct ha_data_ss);
+	case HA_DATA_ONOFF:
+		return sizeof(struct ha_data_onoff);
 	default:
 		return 0;
 	}

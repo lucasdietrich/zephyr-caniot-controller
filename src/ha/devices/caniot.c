@@ -150,10 +150,11 @@ static int ep_heating_control_ingest(struct ha_event *ev,
 		(struct caniot_heating_control *)pl->buffer;
 	struct ha_ds_caniot_heating_control *ds = ev->data;
 
-	ds->heaters[0u].mode = can_buf->heater1_cmd;
-	ds->heaters[1u].mode = can_buf->heater2_cmd;
-	ds->heaters[2u].mode = can_buf->heater3_cmd;
-	ds->heaters[3u].mode = can_buf->heater4_cmd;
+	ds->heaters[0u].mode	= can_buf->heater1_cmd;
+	ds->heaters[1u].mode	= can_buf->heater2_cmd;
+	ds->heaters[2u].mode	= can_buf->heater3_cmd;
+	ds->heaters[3u].mode	= can_buf->heater4_cmd;
+	ds->power_status.status = can_buf->power_status;
 
 	return 0;
 }
@@ -281,6 +282,8 @@ static const struct ha_data_descr ha_ds_caniot_ep_heating_control_descr[] = {
 		struct ha_ds_caniot_heating_control, heaters[2u], HA_DATA_HEATER_MODE),
 	HA_DATA_DESCR_UNASSIGNED(
 		struct ha_ds_caniot_heating_control, heaters[3u], HA_DATA_HEATER_MODE),
+	HA_DATA_DESCR_UNASSIGNED(
+		struct ha_ds_caniot_heating_control, power_status, HA_DATA_ONOFF),
 };
 
 static const struct ha_data_descr ha_cmd_caniot_ep_heating_control_descr[] = {

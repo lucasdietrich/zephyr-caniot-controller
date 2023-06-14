@@ -140,7 +140,7 @@ struct ha_device_endpoint_api {
 	/* Endpoint identifier */
 	ha_endpoint_id_t eid : 8u;
 
-	/* Endpoint data size, internal format */
+	/* Structure size of the interpreted data (ha_ds_) */
 	uint32_t data_size : 8u;
 
 	/* Endpoint expected payload size, 0 for unspecified*/

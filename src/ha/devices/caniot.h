@@ -63,6 +63,7 @@ struct ha_cmd_caniot_blc1 {
 
 struct ha_ds_caniot_heating_control {
 	struct ha_heater_mode heaters[4u];
+	struct ha_data_onoff power_status;
 };
 
 struct ha_cmd_caniot_heating_control {

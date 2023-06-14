@@ -820,7 +820,7 @@ static bool send_error_response(http_session_t *sess)
 	return send_headers(sess) && send_buffer(sess);
 }
 
-static bool handle_response(http_session_t *sess)
+static bool send_response(http_session_t *sess)
 {
 	int ret;
 
@@ -866,12 +866,27 @@ static bool handle_response(http_session_t *sess)
 				/* If response handler is called a single time
 				 * and content-length is not set then set it to
 				 * the length of the buffer */
-				if (resp->complete && resp->content_length == 0u) {
-					resp->content_length = resp->buffer.filling;
-					LOG_DBG("(%d) Content-Length not "
-						"configure, forced to %u",
-						sess->sock,
-						resp->content_length);
+				if (resp->complete) {
+					if (resp->content_length == 0u) {
+						resp->content_length =
+							resp->buffer.filling;
+						LOG_DBG("(%d) Content-Length not "
+							"configure, forced to %u",
+							sess->sock, resp->content_length);
+					} else if (resp->content_length !=
+						   resp->buffer.filling) {
+						LOG_ERR("(%d) Content-Length "
+							"mismatch, expected %u (buffer "
+							"filling), "
+							"got %u",
+							sess->sock, resp->content_length,
+							resp->buffer.filling);
+						stats.req_discarded_count++;
+						http_request_discard(
+							sess->req,
+							HTTP_REQUEST_PROCESSING_ERROR);
+						return send_error_response(sess);
+					}
 				}
 			} else {
 				resp->content_length = 0;
@@ -934,7 +949,7 @@ static bool process_request(http_session_t *sess)
 	 */
 	sess->keep_alive.enabled = req.keep_alive;
 
-	const bool success = handle_response(sess);
+	const bool success = send_response(sess);
 	if (!success) {
 		stats.conn_process_failed++;
 		LOG_ERR("(%d) Processing failed", sess->sock);

@@ -46,7 +46,7 @@ typedef enum {
 	/* Special types */
 	HA_DATA_XPS = HA_DATA_SPECIAL_TYPE_OFFSET,
 	HA_DATA_TS,
-	HA_DATA_SS,
+	HA_DATA_ONOFF,
 } ha_data_type_t;
 
 typedef enum {
@@ -114,8 +114,8 @@ struct ha_data_ts {
 	caniot_twostate_cmd_t cmd : 2u;
 };
 
-struct ha_data_ss {
-	caniot_onestate_cmd_t cmd : 1u;
+struct ha_data_onoff {
+	caniot_onestate_cmd_t status : 1u;
 };
 #endif
 
