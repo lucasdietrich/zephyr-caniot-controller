@@ -20,19 +20,14 @@ extern const struct route_descr *const routes_root;
 extern const size_t routes_root_size;
 
 const struct route_descr *route_resolve(enum http_method method,
-					char *url,
-					struct route_parse_result *results,
-					size_t *results_count,
-					char **query_string)
+										char *url,
+										struct route_parse_result *results,
+										size_t *results_count,
+										char **query_string)
 {
-	return route_tree_resolve(routes_root,
-				  routes_root_size,
-				  url,
-				  http_method_to_route_flag(method),
-				  METHODS_MASK,
-				  results,
-				  results_count,
-				  query_string);
+	return route_tree_resolve(routes_root, routes_root_size, url,
+							  http_method_to_route_flag(method), METHODS_MASK, results,
+							  results_count, query_string);
 }
 
 bool route_supports_streaming(const struct route_descr *route)

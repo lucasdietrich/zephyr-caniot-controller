@@ -11,9 +11,9 @@
 
 #include <zephyr/kernel.h>
 
-#define FLASH_CRED_BLOCK_SIZE	      0x1000u
+#define FLASH_CRED_BLOCK_SIZE		  0x1000u
 #define FLASH_CRED_CONTROL_BLOCK_SIZE 16u
-#define FLASH_CRED_MAX_SIZE	      (FLASH_CRED_BLOCK_SIZE - FLASH_CRED_CONTROL_BLOCK_SIZE)
+#define FLASH_CRED_MAX_SIZE			  (FLASH_CRED_BLOCK_SIZE - FLASH_CRED_CONTROL_BLOCK_SIZE)
 
 #define FLASH_CREDS_SLOTS_MAX_COUNT 32u
 
@@ -38,12 +38,12 @@ struct flash_cred_buf {
 };
 
 typedef enum {
-	FLASH_CRED_VALID,	 /* Block contains a credential */
+	FLASH_CRED_VALID,		 /* Block contains a credential */
 	FLASH_CRED_UNALLOCATED,	 /* Block is unallocated */
 	FLASH_CRED_SIZE_BLANK,	 /* Block allocated, but not written */
 	FLASH_CRED_SIZE_INVALID, /* Block allocated, but size is invalid */
 	FLASH_CRED_CRC_MISMATCH, /* Block has a CRC mismatch */
-	FLASH_CRED_REVOKED,	 /* Block has been revoked */
+	FLASH_CRED_REVOKED,		 /* Block has been revoked */
 
 	FLASH_CRED_NULL, /* Invalid credential block given */
 
@@ -56,7 +56,7 @@ int flash_creds_init(void);
 int flash_creds_count(void);
 
 int flash_creds_iterate(bool (*cb)(struct flash_cred_buf *, flash_cred_status_t, void *),
-			void *user_data);
+						void *user_data);
 
 int flash_cred_get_slot_from_addr(struct flash_cred_buf *fc);
 

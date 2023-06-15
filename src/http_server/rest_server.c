@@ -50,24 +50,23 @@ LOG_MODULE_REGISTER(rest_server, LOG_LEVEL_INF);
 #define REST_CANIOT_QUERY_MAX_TIMEOUT_MS (1000u)
 
 #define REST_HA_DEVICES_MAX_COUNT_PER_PAGE 10u
-#define JSON_HA_MAX_DEVICES		   MIN(HA_DEVICES_MAX_COUNT, REST_HA_DEVICES_MAX_COUNT_PER_PAGE)
+#define JSON_HA_MAX_DEVICES				   MIN(HA_DEVICES_MAX_COUNT, REST_HA_DEVICES_MAX_COUNT_PER_PAGE)
 
 #define FIELD_SET(ret, n) (((ret) & (1 << (n))) != 0)
 
 #define route_arg_get_by_index http_req_route_arg_get_number_by_index
-#define route_arg_get	       http_req_route_arg_get
+#define route_arg_get		   http_req_route_arg_get
 
 int rest_encode_response_json(http_response_t *resp,
-			      const void *val,
-			      const struct json_obj_descr *descr,
-			      size_t descr_len)
+							  const void *val,
+							  const struct json_obj_descr *descr,
+							  size_t descr_len)
 {
 	int ret = -EINVAL;
 	ssize_t json_len;
 
 	if (!resp || !resp->buffer.data || !http_code_has_payload(resp->status_code)) {
-		LOG_WRN("unexpected payload for code %d or buffer not set !",
-			resp->status_code);
+		LOG_WRN("unexpected payload for code %d or buffer not set !", resp->status_code);
 		goto exit;
 	}
 
@@ -75,8 +74,8 @@ int rest_encode_response_json(http_response_t *resp,
 	json_len = json_calc_encoded_len(descr, descr_len, val);
 
 	if (json_len <= resp->buffer.size) {
-		ret = json_obj_encode_buf(
-			descr, descr_len, val, resp->buffer.data, resp->buffer.size);
+		ret = json_obj_encode_buf(descr, descr_len, val, resp->buffer.data,
+								  resp->buffer.size);
 		resp->buffer.filling = json_len;
 
 		http_response_set_content_length(resp, json_len);
@@ -87,14 +86,13 @@ exit:
 }
 
 int rest_encode_response_json_array(http_response_t *resp,
-				    const void *val,
-				    const struct json_obj_descr *descr)
+									const void *val,
+									const struct json_obj_descr *descr)
 {
 	int ret = -EINVAL;
 
 	if (!resp || !resp->buffer.data || !http_code_has_payload(resp->status_code)) {
-		LOG_WRN("unexpected payload for code %d or buffer not set !",
-			resp->status_code);
+		LOG_WRN("unexpected payload for code %d or buffer not set !", resp->status_code);
 		goto exit;
 	}
 
@@ -112,7 +110,7 @@ exit:
 
 int rest_index(http_request_t *req, http_response_t *resp)
 {
-	resp->status_code    = 200;
+	resp->status_code	 = 200;
 	resp->buffer.filling = 0;
 
 	return 0;
@@ -124,8 +122,7 @@ struct json_info_controller_status {
 };
 
 static const struct json_obj_descr info_controller_status_descr[] = {
-	JSON_OBJ_DESCR_PRIM(
-		struct json_info_controller_status, has_ipv4_addr, JSON_TOK_TRUE),
+	JSON_OBJ_DESCR_PRIM(struct json_info_controller_status, has_ipv4_addr, JSON_TOK_TRUE),
 	JSON_OBJ_DESCR_PRIM(
 		struct json_info_controller_status, valid_system_time, JSON_TOK_TRUE),
 };
@@ -246,21 +243,21 @@ int rest_info(http_request_t *req, http_response_t *resp)
 	// ///
 
 	/* system status */
-	const controller_status_t status = {
-		.atomic_val = atomic_get(&controller_status.atomic)};
+	const controller_status_t status = {.atomic_val =
+											atomic_get(&controller_status.atomic)};
 
-	data.uptime    = k_uptime_get() / MSEC_PER_SEC;
+	data.uptime	   = k_uptime_get() / MSEC_PER_SEC;
 	data.timestamp = (uint32_t)ts.tv_sec;
 
-	data.status.has_ipv4_addr     = status.has_ipv4_addr;
+	data.status.has_ipv4_addr	  = status.has_ipv4_addr;
 	data.status.valid_system_time = status.valid_system_time;
 
 	/* mbedtls stats */
 #if defined(CONFIG_APP_SYSTEM_MONITORING)
 	mbedtls_memory_buffer_alloc_cur_get(&data.mbedtls_stats.cur_used,
-					    &data.mbedtls_stats.cur_blocks);
+										&data.mbedtls_stats.cur_blocks);
 	mbedtls_memory_buffer_alloc_max_get(&data.mbedtls_stats.max_used,
-					    &data.mbedtls_stats.max_blocks);
+										&data.mbedtls_stats.max_blocks);
 #endif
 
 	/* rencode response */
@@ -284,8 +281,7 @@ struct json_net_interface_config_storage {
 };
 
 static const struct json_obj_descr json_net_interface_config_descr[] = {
-	JSON_OBJ_DESCR_PRIM(
-		struct json_net_interface_config, ethernet_mac, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_net_interface_config, ethernet_mac, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_PRIM(struct json_net_interface_config, unicast, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_PRIM(struct json_net_interface_config, mcast, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_PRIM(struct json_net_interface_config, gateway, JSON_TOK_STRING),
@@ -314,60 +310,45 @@ struct json_info_interfaces {
 
 static const struct json_obj_descr json_info_interfaces_descr[] = {
 	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_info_interfaces,
-				 interfaces,
-				 2u,
-				 if_count,
-				 json_net_interface_descr,
-				 ARRAY_SIZE(json_net_interface_descr)),
+							 interfaces,
+							 2u,
+							 if_count,
+							 json_net_interface_descr,
+							 ARRAY_SIZE(json_net_interface_descr)),
 };
 
 static void json_net_interface_info_fill(struct json_net_interface *ifdata,
-					 struct net_if *iface)
+										 struct net_if *iface)
 {
 	ifdata->status = net_interface_status_get(iface);
 
-	ifdata->config.unicast	    = ifdata->config_storage.unicast_str;
-	ifdata->config.mcast	    = ifdata->config_storage.mcast_str;
-	ifdata->config.gateway	    = ifdata->config_storage.gateway_str;
-	ifdata->config.netmask	    = ifdata->config_storage.netmask_str;
+	ifdata->config.unicast		= ifdata->config_storage.unicast_str;
+	ifdata->config.mcast		= ifdata->config_storage.mcast_str;
+	ifdata->config.gateway		= ifdata->config_storage.gateway_str;
+	ifdata->config.netmask		= ifdata->config_storage.netmask_str;
 	ifdata->config.ethernet_mac = ifdata->config_storage.ethernet_mac_str;
 
 	struct net_if_config *const ifcfg = &iface->config;
 
-	net_addr_ntop(AF_INET,
-		      (const void *)&ifcfg->ip.ipv4->unicast[0].address.in_addr,
-		      ifdata->config.unicast,
-		      sizeof(ifdata->config_storage.unicast_str));
-	net_addr_ntop(AF_INET,
-		      (const void *)&ifcfg->ip.ipv4->mcast[0].address.in_addr,
-		      ifdata->config.mcast,
-		      sizeof(ifdata->config_storage.mcast_str));
-	net_addr_ntop(AF_INET,
-		      (const void *)&ifcfg->ip.ipv4->gw,
-		      ifdata->config.gateway,
-		      sizeof(ifdata->config_storage.gateway_str));
-	net_addr_ntop(AF_INET,
-		      (const void *)&ifcfg->ip.ipv4->netmask,
-		      ifdata->config.netmask,
-		      sizeof(ifdata->config_storage.netmask_str));
+	net_addr_ntop(AF_INET, (const void *)&ifcfg->ip.ipv4->unicast[0].address.in_addr,
+				  ifdata->config.unicast, sizeof(ifdata->config_storage.unicast_str));
+	net_addr_ntop(AF_INET, (const void *)&ifcfg->ip.ipv4->mcast[0].address.in_addr,
+				  ifdata->config.mcast, sizeof(ifdata->config_storage.mcast_str));
+	net_addr_ntop(AF_INET, (const void *)&ifcfg->ip.ipv4->gw, ifdata->config.gateway,
+				  sizeof(ifdata->config_storage.gateway_str));
+	net_addr_ntop(AF_INET, (const void *)&ifcfg->ip.ipv4->netmask, ifdata->config.netmask,
+				  sizeof(ifdata->config_storage.netmask_str));
 
 	struct net_linkaddr *l2_addr = net_if_get_link_addr(iface);
 	if (l2_addr->type == NET_LINK_ETHERNET) {
-		sprintf(ifdata->config.ethernet_mac,
-			"%02X:%02X:%02X:%02X:%02X:%02X",
-			l2_addr->addr[0],
-			l2_addr->addr[1],
-			l2_addr->addr[2],
-			l2_addr->addr[3],
-			l2_addr->addr[4],
-			l2_addr->addr[5]);
+		sprintf(ifdata->config.ethernet_mac, "%02X:%02X:%02X:%02X:%02X:%02X",
+				l2_addr->addr[0], l2_addr->addr[1], l2_addr->addr[2], l2_addr->addr[3],
+				l2_addr->addr[4], l2_addr->addr[5]);
 	}
 
 	/* get network stats */
-	net_mgmt(NET_REQUEST_STATS_GET_ALL,
-		 iface,
-		 &ifdata->net_stats,
-		 sizeof(struct net_stats));
+	net_mgmt(NET_REQUEST_STATS_GET_ALL, iface, &ifdata->net_stats,
+			 sizeof(struct net_stats));
 }
 
 void rest_info_net_iface_cb(struct net_if *iface, void *user_data)
@@ -393,7 +374,7 @@ int rest_interfaces_list(http_request_t *req, http_response_t *resp)
 
 int rest_interface(http_request_t *req, http_response_t *resp)
 {
-	int ret		      = 0;
+	int ret				  = 0;
 	uint32_t iface_number = 0u;
 	route_arg_get(req, "idx", &iface_number);
 	struct net_if *const iface = net_if_get_by_index(iface_number + 1u);
@@ -402,10 +383,8 @@ int rest_interface(http_request_t *req, http_response_t *resp)
 		struct json_net_interface data;
 		json_net_interface_info_fill(&data, iface);
 
-		ret = rest_encode_response_json(resp,
-						&data,
-						json_net_interface_descr,
-						ARRAY_SIZE(json_net_interface_descr));
+		ret = rest_encode_response_json(resp, &data, json_net_interface_descr,
+										ARRAY_SIZE(json_net_interface_descr));
 	} else {
 		http_response_set_status_code(resp, HTTP_STATUS_NOT_FOUND);
 	}
@@ -424,12 +403,10 @@ const struct json_obj_descr json_xiaomi_record_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, bt_mac, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, base.timestamp, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, measures.rssi, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(
-		struct json_xiaomi_record, measures.temperature, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, measures.temperature, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_PRIM(
 		struct json_xiaomi_record, measures.temperature_raw, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(
-		struct json_xiaomi_record, measures.humidity, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_xiaomi_record, measures.humidity, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(
 		struct json_xiaomi_record, measures.battery_level, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(
@@ -438,25 +415,25 @@ const struct json_obj_descr json_xiaomi_record_descr[] = {
 
 const struct json_obj_descr json_xiaomi_record_array_descr[] = {
 	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_xiaomi_record_array,
-				 records,
-				 HA_XIAOMI_MAX_DEVICES,
-				 count,
-				 json_xiaomi_record_descr,
-				 ARRAY_SIZE(json_xiaomi_record_descr))};
+							 records,
+							 HA_XIAOMI_MAX_DEVICES,
+							 count,
+							 json_xiaomi_record_descr,
+							 ARRAY_SIZE(json_xiaomi_record_descr))};
 
 static int ha_json_xiaomi_record_feed_latest(struct json_xiaomi_record *json_data,
-					     struct json_xiaomi_record_buf *buf,
-					     ha_dev_t *dev)
+											 struct json_xiaomi_record_buf *buf,
+											 ha_dev_t *dev)
 {
-	ha_ev_t *ev			      = ha_dev_get_last_event(dev, 0u);
+	ha_ev_t *ev							  = ha_dev_get_last_event(dev, 0u);
 	const struct ha_ds_xiaomi *const data = ev->data;
 
-	json_data->bt_mac		    = buf->addr;
-	json_data->measures.rssi	    = data->rssi.value;
-	json_data->measures.temperature	    = buf->temperature;
+	json_data->bt_mac					= buf->addr;
+	json_data->measures.rssi			= data->rssi.value;
+	json_data->measures.temperature		= buf->temperature;
 	json_data->measures.temperature_raw = data->temperature.value;
-	json_data->measures.humidity	    = data->humidity.value;
-	json_data->measures.battery_level   = data->battery_level.level;
+	json_data->measures.humidity		= data->humidity.value;
+	json_data->measures.battery_level	= data->battery_level.level;
 	json_data->measures.battery_voltage = data->battery_level.voltage;
 
 	json_data->base.timestamp = ev->timestamp;
@@ -472,8 +449,8 @@ static bool xiaomi_device_cb(ha_dev_t *dev, void *user_data)
 {
 	struct json_xiaomi_record_array *const array = user_data;
 
-	ha_json_xiaomi_record_feed_latest(
-		&array->records[array->count], &array->_bufs[array->count], dev);
+	ha_json_xiaomi_record_feed_latest(&array->records[array->count],
+									  &array->_bufs[array->count], dev);
 
 	array->count++;
 
@@ -488,8 +465,7 @@ int rest_xiaomi_records(http_request_t *req, http_response_t *resp)
 
 	ha_dev_xiaomi_iterate_data(xiaomi_device_cb, &array);
 
-	return rest_encode_response_json_array(
-		resp, &array, json_xiaomi_record_array_descr);
+	return rest_encode_response_json_array(resp, &array, json_xiaomi_record_array_descr);
 }
 
 struct json_caniot_temperature_record {
@@ -500,8 +476,7 @@ struct json_caniot_temperature_record {
 
 static const struct json_obj_descr json_caniot_temperature_record_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_temperature_record, repr, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(
-		struct json_caniot_temperature_record, value, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_temperature_record, value, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(
 		struct json_caniot_temperature_record, sens_type, JSON_TOK_NUMBER),
 };
@@ -525,40 +500,37 @@ struct json_caniot_telemetry {
 
 static const struct json_obj_descr json_caniot_telemetry_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_telemetry, did, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM_NAMED(struct json_caniot_telemetry,
-				  "timestamp",
-				  base.timestamp,
-				  JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM_NAMED(
+		struct json_caniot_telemetry, "timestamp", base.timestamp, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_telemetry, dio, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_telemetry, pdio, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_telemetry,
-				 temperatures,
-				 HA_CANIOT_MAX_TEMPERATURES,
-				 temperatures_count,
-				 json_caniot_temperature_record_descr,
-				 ARRAY_SIZE(json_caniot_temperature_record_descr)),
+							 temperatures,
+							 HA_CANIOT_MAX_TEMPERATURES,
+							 temperatures_count,
+							 json_caniot_temperature_record_descr,
+							 ARRAY_SIZE(json_caniot_temperature_record_descr)),
 };
 
 struct json_caniot_telemetry_array {
 	struct json_caniot_telemetry records[REST_HA_DEVICES_MAX_COUNT_PER_PAGE];
 	size_t count;
-	char temp_repr[REST_HA_DEVICES_MAX_COUNT_PER_PAGE][HA_CANIOT_MAX_TEMPERATURES]
-		      [9U];
+	char temp_repr[REST_HA_DEVICES_MAX_COUNT_PER_PAGE][HA_CANIOT_MAX_TEMPERATURES][9U];
 };
 
 const struct json_obj_descr json_caniot_telemetry_array_descr[] = {
 	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_telemetry_array,
-				 records,
-				 REST_HA_DEVICES_MAX_COUNT_PER_PAGE,
-				 count,
-				 json_caniot_telemetry_descr,
-				 ARRAY_SIZE(json_caniot_telemetry_descr))};
+							 records,
+							 REST_HA_DEVICES_MAX_COUNT_PER_PAGE,
+							 count,
+							 json_caniot_telemetry_descr,
+							 ARRAY_SIZE(json_caniot_telemetry_descr))};
 
 static bool caniot_device_cb(ha_dev_t *dev, void *user_data)
 {
 	if (CANIOT_DID_CLS(dev->addr.mac.addr.caniot) != CANIOT_DEVICE_CLASS0) {
 		LOG_WRN("(TODO) Skipping CANIOT non-class0 device (did=%x)",
-			dev->addr.mac.addr.caniot);
+				dev->addr.mac.addr.caniot);
 		return true;
 	}
 
@@ -569,12 +541,12 @@ static bool caniot_device_cb(ha_dev_t *dev, void *user_data)
 	const struct ha_ds_caniot_blc0 *const dt =
 		HA_DEV_EP_0_GET_CAST_LAST_DATA(dev, struct ha_ds_caniot_blc0);
 
-	ha_ev_t *ev		= ha_dev_get_last_event(dev, 0u);
-	rec->base.timestamp	= ev->timestamp;
-	rec->did		= (uint32_t)dev->addr.mac.addr.caniot;
+	ha_ev_t *ev				= ha_dev_get_last_event(dev, 0u);
+	rec->base.timestamp		= ev->timestamp;
+	rec->did				= (uint32_t)dev->addr.mac.addr.caniot;
 	rec->temperatures_count = 0U;
-	rec->dio		= dt->dio.value;
-	rec->pdio		= dt->pdio.value;
+	rec->dio				= dt->dio.value;
+	rec->pdio				= dt->pdio.value;
 
 	/* TODO USE ha_data_get() to get the temperatures */
 
@@ -584,13 +556,12 @@ static bool caniot_device_cb(ha_dev_t *dev, void *user_data)
 		if (dt->temperatures[i].type != HA_DEV_SENSOR_TYPE_NONE) {
 			const size_t j = rec->temperatures_count;
 
-			sprintf(arr->temp_repr[arr->count][j],
-				"%.2f",
-				dt->temperatures[i].value / 100.0);
+			sprintf(arr->temp_repr[arr->count][j], "%.2f",
+					dt->temperatures[i].value / 100.0);
 
-			rec->temperatures[j].repr      = arr->temp_repr[arr->count][j];
+			rec->temperatures[j].repr	   = arr->temp_repr[arr->count][j];
 			rec->temperatures[j].sens_type = dt->temperatures[i].type;
-			rec->temperatures[j].value     = dt->temperatures[i].value;
+			rec->temperatures[j].value	   = dt->temperatures[i].value;
 			rec->temperatures_count++;
 		}
 	}
@@ -603,7 +574,7 @@ static bool caniot_device_cb(ha_dev_t *dev, void *user_data)
 __deprecated int rest_caniot_records(http_request_t *req, http_response_t *resp)
 {
 	/* Parge page */
-	int page_n	     = 0;
+	int page_n			 = 0;
 	char *const page_str = query_args_parse_find(req->query_string, "page");
 	if (page_str) {
 		page_n = atoi(page_str);
@@ -614,12 +585,12 @@ __deprecated int rest_caniot_records(http_request_t *req, http_response_t *resp)
 
 	const ha_dev_filter_t filter = {
 		.flags = HA_DEV_FILTER_DATA_EXIST | HA_DEV_FILTER_DEVICE_TYPE |
-			 HA_DEV_FILTER_FROM_INDEX | HA_DEV_FILTER_TO_INDEX,
+				 HA_DEV_FILTER_FROM_INDEX | HA_DEV_FILTER_TO_INDEX,
 		.device_type = HA_DEV_TYPE_CANIOT,
 		.endpoint_id = HA_DEV_EP_NONE,
-		.from_index  = REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n,
-		.to_index    = REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n +
-			    REST_HA_DEVICES_MAX_COUNT_PER_PAGE,
+		.from_index	 = REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n,
+		.to_index	 = REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n +
+					REST_HA_DEVICES_MAX_COUNT_PER_PAGE,
 	};
 
 	struct json_caniot_telemetry_array arr;
@@ -627,8 +598,7 @@ __deprecated int rest_caniot_records(http_request_t *req, http_response_t *resp)
 
 	ha_dev_iterate(caniot_device_cb, &filter, NULL, &arr);
 
-	return rest_encode_response_json_array(
-		resp, &arr, json_caniot_telemetry_array_descr);
+	return rest_encode_response_json_array(resp, &arr, json_caniot_telemetry_array_descr);
 }
 
 struct json_dev_ep_last_ev {
@@ -701,11 +671,11 @@ static const struct json_obj_descr json_device_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_device, addr_repr, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_PRIM(struct json_device, registered_timestamp, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_device,
-				 endpoints,
-				 HA_DEV_EP_MAX_COUNT,
-				 endpoints_count,
-				 json_device_endpoint_descr,
-				 ARRAY_SIZE(json_device_endpoint_descr)),
+							 endpoints,
+							 HA_DEV_EP_MAX_COUNT,
+							 endpoints_count,
+							 json_device_endpoint_descr,
+							 ARRAY_SIZE(json_device_endpoint_descr)),
 	JSON_OBJ_DESCR_PRIM(struct json_device, rid, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_device, room_name, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_OBJECT(struct json_device, stats, json_device_stats_descr),
@@ -720,29 +690,28 @@ struct json_device_array {
 
 static const struct json_obj_descr json_device_array_descr[] = {
 	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_device_array,
-				 devices,
-				 JSON_HA_MAX_DEVICES,
-				 count,
-				 json_device_descr,
-				 ARRAY_SIZE(json_device_descr))};
+							 devices,
+							 JSON_HA_MAX_DEVICES,
+							 count,
+							 json_device_descr,
+							 ARRAY_SIZE(json_device_descr))};
 
 static bool devices_cb(ha_dev_t *dev, void *user_data)
 {
 	struct json_device_array *const arr = user_data;
-	struct json_device *jd		    = &arr->devices[arr->count];
+	struct json_device *jd				= &arr->devices[arr->count];
 
 	jd->endpoints_count = 0u;
 
 	for (uint32_t i = 0u; i < dev->endpoints_count; i++) {
 		struct ha_device_endpoint *ep = ha_dev_ep_get(dev, i);
 		if (ep) {
-			struct json_device_endpoint *jep =
-				&jd->endpoints[jd->endpoints_count];
-			jep->eid	  = ep->api->eid;
-			jep->data_size	  = ep->api->data_size;
-			jep->in_data_size = ep->api->expected_payload_size;
-			jep->telemetry	  = (uint32_t)ep->api->ingest;
-			jep->command	  = (uint32_t)ep->api->command;
+			struct json_device_endpoint *jep = &jd->endpoints[jd->endpoints_count];
+			jep->eid						 = ep->api->eid;
+			jep->data_size					 = ep->api->data_size;
+			jep->in_data_size				 = ep->api->expected_payload_size;
+			jep->telemetry					 = (uint32_t)ep->api->ingest;
+			jep->command					 = (uint32_t)ep->api->command;
 
 			jd->endpoints_count++;
 
@@ -758,18 +727,18 @@ static bool devices_cb(ha_dev_t *dev, void *user_data)
 		}
 	}
 
-	jd->sdevuid   = dev->sdevuid;
+	jd->sdevuid	  = dev->sdevuid;
 	jd->addr_repr = arr->_bufs[arr->count].addr_repr;
 	ha_dev_addr_to_str(&dev->addr, jd->addr_repr, HA_DEV_ADDR_STR_MAX_LEN);
-	jd->addr_medium		 = ha_dev_medium_to_str(dev->addr.mac.medium);
-	jd->addr_type		 = ha_dev_type_to_str(dev->addr.type);
+	jd->addr_medium			 = ha_dev_medium_to_str(dev->addr.mac.medium);
+	jd->addr_type			 = ha_dev_type_to_str(dev->addr.type);
 	jd->registered_timestamp = dev->registered_timestamp;
 	struct ha_room *room	 = ha_dev_get_room(dev);
 	if (room) {
-		jd->rid	      = room->rid;
+		jd->rid		  = room->rid;
 		jd->room_name = room->name;
 	} else {
-		jd->rid	      = 0;
+		jd->rid		  = 0;
 		jd->room_name = "";
 	}
 
@@ -783,7 +752,7 @@ static bool devices_cb(ha_dev_t *dev, void *user_data)
 int rest_devices_list(http_request_t *req, http_response_t *resp)
 {
 	/* Parge page */
-	int page_n	     = 0;
+	int page_n			 = 0;
 	char *const page_str = query_args_parse_find(req->query_string, "page");
 	if (page_str) {
 		page_n = atoi(page_str);
@@ -797,10 +766,10 @@ int rest_devices_list(http_request_t *req, http_response_t *resp)
 	arr.count = 0u;
 
 	const ha_dev_filter_t filter = {
-		.flags	    = HA_DEV_FILTER_FROM_INDEX | HA_DEV_FILTER_TO_INDEX,
+		.flags		= HA_DEV_FILTER_FROM_INDEX | HA_DEV_FILTER_TO_INDEX,
 		.from_index = REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n,
-		.to_index   = REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n +
-			    REST_HA_DEVICES_MAX_COUNT_PER_PAGE};
+		.to_index	= REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n +
+					REST_HA_DEVICES_MAX_COUNT_PER_PAGE};
 
 	ha_dev_iterate(devices_cb, &filter, &HA_DEV_ITER_OPT_LOCK_ALL(), &arr);
 
@@ -850,8 +819,8 @@ int rest_ha_stats(http_request_t *req, http_response_t *resp)
 	struct ha_stats stats;
 	ha_stats_copy(&stats);
 
-	return rest_encode_response_json(
-		resp, &stats, json_ha_stats_descr, ARRAY_SIZE(json_ha_stats_descr));
+	return rest_encode_response_json(resp, &stats, json_ha_stats_descr,
+									 ARRAY_SIZE(json_ha_stats_descr));
 }
 
 static bool room_devices_cb(ha_dev_t *dev, void *user_data)
@@ -870,8 +839,7 @@ int rest_room_devices_list(http_request_t *req, http_response_t *resp)
 		.rid   = HA_ROOM_MY,
 	};
 
-	ha_dev_iterate(
-		room_devices_cb, &filter, &HA_DEV_ITER_OPT_LOCK_ALL(), &resp->buffer);
+	ha_dev_iterate(room_devices_cb, &filter, &HA_DEV_ITER_OPT_LOCK_ALL(), &resp->buffer);
 
 	return 0;
 }
@@ -897,8 +865,7 @@ int rest_test_caniot_query_telemetry(http_request_t *req, http_response_t *resp)
 
 	uint64_t buf = 1U;
 
-	caniot_build_query_command(
-		&query, CANIOT_ENDPOINT_APP, (uint8_t *)&buf, sizeof(buf));
+	caniot_build_query_command(&query, CANIOT_ENDPOINT_APP, (uint8_t *)&buf, sizeof(buf));
 	const caniot_did_t did = CANIOT_DID(CANIOT_DEVICE_CLASS0, CANIOT_DEVICE_SID4);
 
 	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
@@ -963,23 +930,18 @@ int rest_devices_garage_post(http_request_t *req, http_response_t *resp)
 	int ret;
 	struct json_garage_post post;
 
-	int map = json_obj_parse(req->payload.loc,
-				 req->payload.len,
-				 json_garage_post_descr,
-				 ARRAY_SIZE(json_garage_post_descr),
-				 &post);
+	int map = json_obj_parse(req->payload.loc, req->payload.len, json_garage_post_descr,
+							 ARRAY_SIZE(json_garage_post_descr), &post);
 
 	if (map > 0) {
 		struct ha_dev_garage_cmd cmd;
 		ha_dev_garage_cmd_init(&cmd);
 
-		if (FIELD_SET(map, 0U) &&
-		    ((ret = ha_parse_ss_command(post.left_door)) > 0)) {
+		if (FIELD_SET(map, 0U) && ((ret = ha_parse_ss_command(post.left_door)) > 0)) {
 			cmd.actuate_left = 1U;
 		}
 
-		if (FIELD_SET(map, 1U) &&
-		    ((ret = ha_parse_ss_command(post.right_door)) > 0)) {
+		if (FIELD_SET(map, 1U) && ((ret = ha_parse_ss_command(post.right_door)) > 0)) {
 			cmd.actuate_right = 1U;
 		}
 
@@ -995,19 +957,17 @@ int rest_devices_garage_post(http_request_t *req, http_response_t *resp)
 
 static const struct json_obj_descr json_caniot_query_telemetry_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_telemetry, did, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM_NAMED(struct json_caniot_telemetry,
-				  "timestamp",
-				  base.timestamp,
-				  JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM_NAMED(
+		struct json_caniot_telemetry, "timestamp", base.timestamp, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_telemetry, duration, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_telemetry, dio, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_caniot_telemetry, pdio, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_caniot_telemetry,
-				 temperatures,
-				 HA_CANIOT_MAX_TEMPERATURES,
-				 temperatures_count,
-				 json_caniot_temperature_record_descr,
-				 ARRAY_SIZE(json_caniot_temperature_record_descr)),
+							 temperatures,
+							 HA_CANIOT_MAX_TEMPERATURES,
+							 temperatures_count,
+							 json_caniot_temperature_record_descr,
+							 ARRAY_SIZE(json_caniot_temperature_record_descr)),
 };
 
 /*
@@ -1018,8 +978,8 @@ static const struct json_obj_descr json_caniot_query_telemetry_descr[] = {
 */
 
 static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
-					     http_response_t *resp,
-					     uint32_t timeout)
+											 http_response_t *resp,
+											 uint32_t timeout)
 {
 	if (r->id.cls == CANIOT_DEVICE_CLASS0) {
 		struct ha_ds_caniot_blc0 blt;
@@ -1031,9 +991,9 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 				{
 					.timestamp = net_time_get(),
 				},
-			.duration	    = timeout,
-			.dio		    = blt.dio.value,
-			.pdio		    = blt.dio.value,
+			.duration			= timeout,
+			.dio				= blt.dio.value,
+			.pdio				= blt.dio.value,
 			.temperatures_count = 0U, /* TODO temperatures */
 		};
 
@@ -1047,18 +1007,15 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 
 			sprintf(temp_repr[j], "%.2f", blt.temperatures[i].value / 100.0);
 
-			json.temperatures[j].repr      = temp_repr[j];
+			json.temperatures[j].repr	   = temp_repr[j];
 			json.temperatures[j].sens_type = blt.temperatures[i].type;
-			json.temperatures[j].value     = blt.temperatures[i].value;
+			json.temperatures[j].value	   = blt.temperatures[i].value;
 		}
 
 		resp->status_code = 200U;
 
-		return rest_encode_response_json(
-			resp,
-			&json,
-			json_caniot_query_telemetry_descr,
-			ARRAY_SIZE(json_caniot_query_telemetry_descr));
+		return rest_encode_response_json(resp, &json, json_caniot_query_telemetry_descr,
+										 ARRAY_SIZE(json_caniot_query_telemetry_descr));
 	} else {
 		LOG_WRN("Unsupported CANIOT device class %u", r->id.cls);
 		return 0u;
@@ -1067,9 +1024,9 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 
 /* QUERY CANIOT COMMAND/TELEMETRY and BUILD JSON RESPONSE */
 int caniot_q_ct_to_json_resp(struct caniot_frame *q,
-			     caniot_did_t did,
-			     uint32_t *timeout,
-			     http_response_t *resp)
+							 caniot_did_t did,
+							 uint32_t *timeout,
+							 http_response_t *resp)
 {
 	struct caniot_frame r;
 
@@ -1079,7 +1036,7 @@ int caniot_q_ct_to_json_resp(struct caniot_frame *q,
 	case 1:
 		/* Ok */
 		resp->status_code = 200U;
-		ret		  = json_format_caniot_telemetry_resp(&r, resp, *timeout);
+		ret				  = json_format_caniot_telemetry_resp(&r, resp, *timeout);
 		break;
 	case 0:
 		/* No response expected */
@@ -1119,13 +1076,10 @@ int rest_devices_caniot_telemetry(http_request_t *req, http_response_t *resp)
 
 	/* execute and build appropriate response */
 	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
-	int ret		 = caniot_q_ct_to_json_resp(&q, did, &timeout, resp);
+	int ret			 = caniot_q_ct_to_json_resp(&q, did, &timeout, resp);
 	LOG_INF("GET /devices/caniot/%u/endpoints/%u/telemetry -> %d [in %u "
-		"ms]",
-		did,
-		ep,
-		ret,
-		timeout);
+			"ms]",
+			did, ep, ret, timeout);
 
 	return 0;
 }
@@ -1138,14 +1092,10 @@ struct json_caniot_blc0_cmd_post_descr {
 };
 
 const struct json_obj_descr json_caniot_blc0_cmd_post_descr[] = {
-	JSON_OBJ_DESCR_PRIM(
-		struct json_caniot_blc0_cmd_post_descr, coc1, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(
-		struct json_caniot_blc0_cmd_post_descr, coc2, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(
-		struct json_caniot_blc0_cmd_post_descr, crl1, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(
-		struct json_caniot_blc0_cmd_post_descr, crl2, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_blc0_cmd_post_descr, coc1, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_blc0_cmd_post_descr, coc2, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_blc0_cmd_post_descr, crl1, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct json_caniot_blc0_cmd_post_descr, crl2, JSON_TOK_STRING),
 };
 
 int rest_devices_caniot_blc0_command(http_request_t *req, http_response_t *resp)
@@ -1153,11 +1103,9 @@ int rest_devices_caniot_blc0_command(http_request_t *req, http_response_t *resp)
 	int ret = 0;
 	struct json_caniot_blc0_cmd_post_descr post;
 
-	int map = json_obj_parse(req->payload.loc,
-				 req->payload.len,
-				 json_caniot_blc0_cmd_post_descr,
-				 ARRAY_SIZE(json_caniot_blc0_cmd_post_descr),
-				 &post);
+	int map = json_obj_parse(req->payload.loc, req->payload.len,
+							 json_caniot_blc0_cmd_post_descr,
+							 ARRAY_SIZE(json_caniot_blc0_cmd_post_descr), &post);
 
 	/* if no commands are given, we do nothing */
 	if (map <= 0) {
@@ -1193,17 +1141,15 @@ int rest_devices_caniot_blc0_command(http_request_t *req, http_response_t *resp)
 
 	/* build CANIOT query */
 	struct caniot_frame q;
-	caniot_build_query_command(
-		&q, CANIOT_ENDPOINT_BOARD_CONTROL, (uint8_t *)&cmd, sizeof(cmd));
+	caniot_build_query_command(&q, CANIOT_ENDPOINT_BOARD_CONTROL, (uint8_t *)&cmd,
+							   sizeof(cmd));
 
 	/* execute and build appropriate response */
 	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
-	ret		 = caniot_q_ct_to_json_resp(&q, did, &timeout, resp);
+	ret				 = caniot_q_ct_to_json_resp(&q, did, &timeout, resp);
 
-	LOG_INF("GET /devices/caniot/%u/endpoints/blc/command -> %d [in %u ms]",
-		did,
-		ret,
-		timeout);
+	LOG_INF("GET /devices/caniot/%u/endpoints/blc/command -> %d [in %u ms]", did, ret,
+			timeout);
 
 exit:
 	return ret;
@@ -1220,7 +1166,7 @@ const struct json_obj_descr json_caniot_blc1_cmd_post_descr[] = {JSON_OBJ_DESCR_
 int rest_devices_caniot_blc1_command(http_request_t *req, http_response_t *resp)
 {
 	/* parse did */
-	int ret	     = 0;
+	int ret		 = 0;
 	uint32_t did = 0;
 	route_arg_get(req, "did", &did);
 
@@ -1232,10 +1178,8 @@ int rest_devices_caniot_blc1_command(http_request_t *req, http_response_t *resp)
 
 	/* parse payload */
 	struct json_caniot_blc1_cmd_post post;
-	ret = json_arr_parse(req->payload.loc,
-			     req->payload.len,
-			     json_caniot_blc1_cmd_post_descr,
-			     &post);
+	ret = json_arr_parse(req->payload.loc, req->payload.len,
+						 json_caniot_blc1_cmd_post_descr, &post);
 	if (ret < 0) {
 		ret = 0;
 		goto exit;
@@ -1254,14 +1198,14 @@ int rest_devices_caniot_blc1_command(http_request_t *req, http_response_t *resp)
 
 	/* Convert to CANIOT command */
 	struct caniot_frame q;
-	caniot_build_query_command(
-		&q, CANIOT_ENDPOINT_BOARD_CONTROL, (uint8_t *)&cmd, sizeof(cmd));
+	caniot_build_query_command(&q, CANIOT_ENDPOINT_BOARD_CONTROL, (uint8_t *)&cmd,
+							   sizeof(cmd));
 
 	LOG_HEXDUMP_INF((uint8_t *)&cmd, sizeof(cmd), "BLC1 command: ");
 
 	/* execute and build appropriate response */
 	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
-	ret		 = caniot_q_ct_to_json_resp(&q, did, &timeout, resp);
+	ret				 = caniot_q_ct_to_json_resp(&q, did, &timeout, resp);
 
 	LOG_INF("POST /devices/caniot/%u/endpoints/blc/command -> %d", did, ret);
 
@@ -1302,13 +1246,10 @@ int rest_devices_caniot_command(http_request_t *req, http_response_t *resp)
 
 	/* execute and build appropriate response */
 	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
-	ret		 = caniot_q_ct_to_json_resp(&q, did, &timeout, resp);
+	ret				 = caniot_q_ct_to_json_resp(&q, did, &timeout, resp);
 
-	LOG_INF("POST /devices/caniot/%u/endpoints/%u/command -> %d [in %u ms]",
-		did,
-		ep,
-		ret,
-		timeout);
+	LOG_INF("POST /devices/caniot/%u/endpoints/%u/command -> %d [in %u ms]", did, ep, ret,
+			timeout);
 
 exit:
 	return ret;
@@ -1357,11 +1298,11 @@ const struct json_obj_descr json_caniot_attr_write_value_descr[] = {
 
 int rest_devices_caniot_attr_read_write(http_request_t *req, http_response_t *resp)
 {
-	int ret	     = 0;
+	int ret		 = 0;
 	uint32_t did = 0, key = 0;
 	struct caniot_frame q, r;
 	const struct json_obj_descr *descr = json_caniot_attr_nok_descr;
-	size_t descr_size		   = ARRAY_SIZE(json_caniot_attr_nok_descr);
+	size_t descr_size				   = ARRAY_SIZE(json_caniot_attr_nok_descr);
 
 	/* Parse request*/
 	route_arg_get(req, "did", &did);
@@ -1382,11 +1323,9 @@ int rest_devices_caniot_attr_read_write(http_request_t *req, http_response_t *re
 
 		/* try to parse content */
 		char *value_str;
-		int map = json_obj_parse(req->payload.loc,
-					 req->payload.len,
-					 json_caniot_attr_write_value_descr,
-					 ARRAY_SIZE(json_caniot_attr_write_value_descr),
-					 &value_str);
+		int map = json_obj_parse(
+			req->payload.loc, req->payload.len, json_caniot_attr_write_value_descr,
+			ARRAY_SIZE(json_caniot_attr_write_value_descr), &value_str);
 		if ((map <= 0) || !FIELD_SET(map, 0U)) {
 			goto exit;
 		}
@@ -1416,13 +1355,13 @@ int rest_devices_caniot_attr_read_write(http_request_t *req, http_response_t *re
 	char val_repr[sizeof("0xFFFFFFFF")];
 
 	struct json_caniot_attr json = {
-		.duration     = timeout,
+		.duration	  = timeout,
 		.caniot_error = 0,
 
 		.key   = key,
 		.value = 0,
 
-		.key_repr   = key_repr,
+		.key_repr	= key_repr,
 		.value_repr = val_repr,
 	};
 
@@ -1432,8 +1371,8 @@ int rest_devices_caniot_attr_read_write(http_request_t *req, http_response_t *re
 		resp->status_code = 200U;
 
 		json.status = "OK";
-		json.key    = r.attr.key;
-		json.value  = r.attr.val;
+		json.key	= r.attr.key;
+		json.value	= r.attr.val;
 
 		snprintf(val_repr, sizeof(val_repr), "0x%08X", r.attr.val);
 
@@ -1452,7 +1391,7 @@ int rest_devices_caniot_attr_read_write(http_request_t *req, http_response_t *re
 		/* returned but with CANIOT error */
 		resp->status_code = 200U;
 
-		json.status	  = "ERROR";
+		json.status		  = "ERROR";
 		json.caniot_error = r.err.code;
 		break;
 	case -EAGAIN:
@@ -1504,20 +1443,17 @@ int rest_devices_caniot_blc_action(http_request_t *req, http_response_t *resp)
 		caniot_blc_sys_req_factory_reset(&cmd.sys);
 	}
 
-	ret = caniot_build_query_command(
-		&q, CANIOT_ENDPOINT_BOARD_CONTROL, (uint8_t *)&cmd, sizeof(cmd));
+	ret = caniot_build_query_command(&q, CANIOT_ENDPOINT_BOARD_CONTROL, (uint8_t *)&cmd,
+									 sizeof(cmd));
 	if (ret) {
 		goto exit;
 	}
 
 	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
-	ret		 = caniot_q_ct_to_json_resp(&q, did, &timeout, resp);
+	ret				 = caniot_q_ct_to_json_resp(&q, did, &timeout, resp);
 
-	LOG_INF("POST /devices/caniot/%u/%s -> %d [in %u ms]",
-		did,
-		descr->part.str,
-		ret,
-		timeout);
+	LOG_INF("POST /devices/caniot/%u/%s -> %d [in %u ms]", did, descr->part.str, ret,
+			timeout);
 exit:
 	return ret;
 }
@@ -1541,10 +1477,10 @@ int rest_if_can(http_request_t *req, http_response_t *resp)
 		goto exit;
 	}
 
-	frame.id    = arbitration_id;
+	frame.id	= arbitration_id;
 	frame.flags = (arbitration_id > CAN_STD_ID_MASK) ? CAN_FRAME_IDE : 0u;
-	frame.dlc   = dlc;
-	ret	    = if_can_send(CAN_BUS_CANIOT, &frame);
+	frame.dlc	= dlc;
+	ret			= if_can_send(CAN_BUS_CANIOT, &frame);
 
 	LOG_INF("POST /if/can/%x [dlc=%u] -> %d", frame.id, dlc, ret);
 exit:
@@ -1576,17 +1512,17 @@ static const struct json_obj_descr json_fs_file_entry_descr[] = {
 
 static const struct json_obj_descr json_fs_file_entries_array_descr[] = {
 	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_fs_file_entries_list,
-				 entries,
-				 REST_FS_FILES_LIST_MAX_COUNT,
-				 nb_entries,
-				 json_fs_file_entry_descr,
-				 ARRAY_SIZE(json_fs_file_entry_descr))};
+							 entries,
+							 REST_FS_FILES_LIST_MAX_COUNT,
+							 nb_entries,
+							 json_fs_file_entry_descr,
+							 ARRAY_SIZE(json_fs_file_entry_descr))};
 
 static bool fs_list_lua_scripts_detailled_cb(const char *path,
-					     struct fs_dirent *dirent,
-					     void *user_data)
+											 struct fs_dirent *dirent,
+											 void *user_data)
 {
-	bool ret			       = true;
+	bool ret							   = true;
 	struct json_fs_file_entries_list *data = user_data;
 
 	if (dirent->type == FS_DIR_ENTRY_FILE) {
@@ -1609,11 +1545,9 @@ int rest_fs_list_lua_scripts(http_request_t *req, http_response_t *resp)
 	data.nb_entries = 0;
 
 	app_fs_iterate_dir_files(CONFIG_APP_LUA_FS_SCRIPTS_DIR,
-				 fs_list_lua_scripts_detailled_cb,
-				 (void *)&data);
+							 fs_list_lua_scripts_detailled_cb, (void *)&data);
 
-	return rest_encode_response_json_array(
-		resp, &data, json_fs_file_entries_array_descr);
+	return rest_encode_response_json_array(resp, &data, json_fs_file_entries_array_descr);
 
 	/* TODO return actual path in the reponse header */
 }
@@ -1656,12 +1590,10 @@ int rest_lua_run_script(http_request_t *req, http_response_t *resp)
 	}
 
 	struct json_lua_run_script data;
-	data.name    = path;
+	data.name	 = path;
 	data.lua_ret = lua_ret;
-	ret	     = rest_encode_response_json(resp,
-					 &data,
-					 json_lua_run_script_descr,
-					 ARRAY_SIZE(json_lua_run_script_descr));
+	ret			 = rest_encode_response_json(resp, &data, json_lua_run_script_descr,
+											 ARRAY_SIZE(json_lua_run_script_descr));
 
 exit:
 	return ret;
@@ -1696,27 +1628,27 @@ struct json_flash_creds_list {
 
 static const struct json_obj_descr json_flash_creds_list_descr[] = {
 	JSON_OBJ_DESCR_OBJ_ARRAY(struct json_flash_creds_list,
-				 creds,
-				 FLASH_CREDS_SLOTS_MAX_COUNT,
-				 nb_entries,
-				 json_flash_cred_entry_descr,
-				 ARRAY_SIZE(json_flash_cred_entry_descr))};
+							 creds,
+							 FLASH_CREDS_SLOTS_MAX_COUNT,
+							 nb_entries,
+							 json_flash_cred_entry_descr,
+							 ARRAY_SIZE(json_flash_cred_entry_descr))};
 
 static bool flash_creds_list_cb(struct flash_cred_buf *cred,
-				flash_cred_status_t status,
-				void *user_data)
+								flash_cred_status_t status,
+								void *user_data)
 {
 	struct json_flash_creds_list *arr = user_data;
 
 	if (status != FLASH_CRED_UNALLOCATED) {
 		struct json_flash_cred_entry *entry = &arr->creds[arr->nb_entries++];
 
-		entry->slot	= flash_cred_get_slot_from_addr(cred);
-		entry->id	= cred_id_to_str(cred->header.id);
+		entry->slot		= flash_cred_get_slot_from_addr(cred);
+		entry->id		= cred_id_to_str(cred->header.id);
 		entry->format	= cred_format_to_str(cred->header.format);
 		entry->strength = cred->header.strength;
 		entry->version	= cred->header.version;
-		entry->size	= cred->header.size;
+		entry->size		= cred->header.size;
 	}
 
 	return true;
@@ -1757,11 +1689,11 @@ struct mystruct_arr {
 
 static const struct json_obj_descr descr_mystruct_arr[] = {
 	JSON_OBJ_DESCR_OBJ_ARRAY(struct mystruct_arr,
-				 items,
-				 MY_ARRAY_SIZE,
-				 count,
-				 descr_mystruct_obj,
-				 ARRAY_SIZE(descr_mystruct_obj))};
+							 items,
+							 MY_ARRAY_SIZE,
+							 count,
+							 descr_mystruct_obj,
+							 ARRAY_SIZE(descr_mystruct_obj))};
 
 void test(void)
 {
@@ -1792,8 +1724,8 @@ int rest_demo_json(http_request_t *req, http_response_t *resp)
 		arr.count++;
 	}
 
-	int ret = json_arr_encode_buf(
-		descr_mystruct_arr, &arr, resp->buffer.data, resp->buffer.size);
+	int ret = json_arr_encode_buf(descr_mystruct_arr, &arr, resp->buffer.data,
+								  resp->buffer.size);
 
 	if (ret == 0) {
 		resp->buffer.filling = strlen(resp->buffer.data);
@@ -1838,8 +1770,8 @@ int rest_http_stats(http_request_t *req, http_response_t *resp)
 	struct http_stats stats;
 	http_server_get_stats(&stats);
 
-	ret = rest_encode_response_json(
-		resp, &stats, http_stats_descr, ARRAY_SIZE(http_stats_descr));
+	ret = rest_encode_response_json(resp, &stats, http_stats_descr,
+									ARRAY_SIZE(http_stats_descr));
 
 	return ret;
 }

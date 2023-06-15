@@ -22,7 +22,7 @@ const struct user *user_auth_verify(struct user_auth *auth)
 	for (size_t i = 1u; i < users_count; i++) {
 		user_len = strnlen(users_list[i].name, USER_NAME_MAX);
 		if (strncmp(users_list[i].name, auth->username, user_len) == 0 &&
-		    auth->username[user_len] == '\0') {
+			auth->username[user_len] == '\0') {
 			user = &users_list[i];
 			break;
 		}

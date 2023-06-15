@@ -25,8 +25,7 @@ ssize_t mem_append_strings(void *dst, size_t dst_len, const char **strings, size
 	const char **string;
 
 	for (string = strings; string < strings + count; string++) {
-		appended = mem_append_string(
-			(uint8_t *)dst + total, dst_len - total, *string);
+		appended = mem_append_string((uint8_t *)dst + total, dst_len - total, *string);
 		if (appended < 0) {
 			return appended;
 		}
@@ -66,18 +65,10 @@ void str_tolower(char *str)
 
 int get_repr_can_frame(struct can_frame *frame, char *buf, size_t len)
 {
-	return snprintf(buf,
-			len,
-			"can id: 0x%x, len: %d, data: %02x %02x %02x %02x %02x %02x"
-			" %02x %02x",
-			frame->id,
-			frame->dlc,
-			frame->data[0],
-			frame->data[1],
-			frame->data[2],
-			frame->data[3],
-			frame->data[4],
-			frame->data[5],
-			frame->data[6],
-			frame->data[7]);
+	return snprintf(buf, len,
+					"can id: 0x%x, len: %d, data: %02x %02x %02x %02x %02x %02x"
+					" %02x %02x",
+					frame->id, frame->dlc, frame->data[0], frame->data[1], frame->data[2],
+					frame->data[3], frame->data[4], frame->data[5], frame->data[6],
+					frame->data[7]);
 }

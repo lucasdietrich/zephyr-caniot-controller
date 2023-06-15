@@ -36,19 +36,15 @@ int button_init(void)
 
 	ret = gpio_pin_configure_dt(&button, GPIO_INPUT);
 	if (ret != 0) {
-		LOG_ERR("Error %d: failed to configure %s pin %d",
-			ret,
-			button.port->name,
-			button.pin);
+		LOG_ERR("Error %d: failed to configure %s pin %d", ret, button.port->name,
+				button.pin);
 		goto exit;
 	}
 
 	ret = gpio_pin_interrupt_configure_dt(&button, GPIO_INT_EDGE_TO_ACTIVE);
 	if (ret != 0) {
-		LOG_ERR("Error %d: failed to configure interrupt on %s pin %d",
-			ret,
-			button.port->name,
-			button.pin);
+		LOG_ERR("Error %d: failed to configure interrupt on %s pin %d", ret,
+				button.port->name, button.pin);
 		goto exit;
 	}
 

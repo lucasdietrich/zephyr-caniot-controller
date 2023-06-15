@@ -58,13 +58,13 @@ struct ha_room {
 };
 
 #define HA_ROOM(_rid, _name)                                                             \
-	{                                                                                \
-		.rid = _rid, .name = _name, .devices_count = ATOMIC_INIT(0)              \
+	{                                                                                    \
+		.rid = _rid, .name = _name, .devices_count = ATOMIC_INIT(0)                      \
 	}
 
 #define HA_ROOM_ASSOC(_rid, _addr)                                                       \
-	{                                                                                \
-		.rid = _rid, .addr = _addr                                               \
+	{                                                                                    \
+		.rid = _rid, .addr = _addr                                                       \
 	}
 
 #endif

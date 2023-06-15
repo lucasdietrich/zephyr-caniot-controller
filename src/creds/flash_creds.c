@@ -57,8 +57,7 @@ int flash_creds_init(void)
 
 static struct flash_cred_buf *get_cred_addr(cred_id_t id)
 {
-	return (struct flash_cred_buf *)(CREDS_AREA_OFFSET +
-					 (id * FLASH_CRED_BLOCK_SIZE));
+	return (struct flash_cred_buf *)(CREDS_AREA_OFFSET + (id * FLASH_CRED_BLOCK_SIZE));
 }
 
 static flash_cred_status_t check_cred(struct flash_cred_buf *p, bool assume_checksum)
@@ -94,7 +93,7 @@ static flash_cred_status_t check_cred(struct flash_cred_buf *p, bool assume_chec
 }
 
 int flash_creds_iterate(bool (*cb)(struct flash_cred_buf *, flash_cred_status_t, void *),
-			void *user_data)
+						void *user_data)
 {
 	uint16_t slot = 0u;
 
@@ -199,10 +198,10 @@ int flash_cred_copy_to(cred_id_t id, char *buf, size_t *size)
 		if (*size >= c.len) {
 			memcpy(buf, c.data, c.len);
 			*size = c.len;
-			ret   = c.len;
+			ret	  = c.len;
 		} else {
 			*size = 0;
-			ret   = -ENOMEM;
+			ret	  = -ENOMEM;
 		}
 	}
 	return ret;

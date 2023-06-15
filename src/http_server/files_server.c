@@ -19,7 +19,7 @@ LOG_MODULE_REGISTER(files_server, LOG_LEVEL_DBG);
 
 #define FILES_SERVER_DEBUG_SPEED 0u
 
-#define FILES_SERVER_MOUNT_POINT      CONFIG_APP_FILES_SERVER_MOUNT_POINT
+#define FILES_SERVER_MOUNT_POINT	  CONFIG_APP_FILES_SERVER_MOUNT_POINT
 #define FILES_SERVER_MOUNT_POINT_SIZE (sizeof(FILES_SERVER_MOUNT_POINT) - 1u)
 
 #define FILES_SERVER_CREATE_DIR_IF_NOT_EXISTS 1u
@@ -48,8 +48,8 @@ static uint32_t history_count = 0u;
 
 static int req_get_arg_path_parts(http_request_t *req, char *parts[], size_t size)
 {
-	static const char *route_path_arg_names[] = {
-		"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
+	static const char *route_path_arg_names[] = {"1", "2", "3", "4", "5",
+												 "6", "7", "8", "9", "10"};
 
 	__ASSERT_NO_MSG(req != NULL);
 	__ASSERT_NO_MSG(parts != NULL);
@@ -60,8 +60,7 @@ static int req_get_arg_path_parts(http_request_t *req, char *parts[], size_t siz
 
 	uint32_t i;
 	for (i = 0; i < size; i++) {
-		int ret = http_req_route_arg_get_string(
-			req, route_path_arg_names[i], &parts[i]);
+		int ret = http_req_route_arg_get_string(req, route_path_arg_names[i], &parts[i]);
 		if (ret == -ENOENT) {
 			break;
 		} else if (ret < 0) {
@@ -87,7 +86,7 @@ filepath_build(char *path_parts[], size_t path_parts_size, char filepath[], size
 
 	for (int i = 0; i < path_parts_size; i++) {
 		const uint32_t pp_len = strlen(path_parts[i]);
-		const int remaining   = size - (p - filepath);
+		const int remaining	  = size - (p - filepath);
 		if (pp_len >= remaining - 1) {
 			LOG_ERR("Given filepath too long");
 			return -ENOMEM;
@@ -131,11 +130,11 @@ static int file_open_r(struct file *file, size_t *size, char *filepath)
 
 #if defined(CONFIG_APP_FS_ASYNC_OPERATIONS)
 	struct fs_async_config acfg = {
-		.file_path	= filepath,
-		.opt		= FS_ASYNC_READ | FS_ASYNC_CREATE | FS_ASYNC_READ_SIZE,
+		.file_path		= filepath,
+		.opt			= FS_ASYNC_READ | FS_ASYNC_CREATE | FS_ASYNC_READ_SIZE,
 		.ms_block_count = 2u,
 		.ms_block_size	= 4096u,
-		.ms_buf		= file->afile_buf,
+		.ms_buf			= file->afile_buf,
 	};
 
 	ret = fs_async_open(&file->afile, &acfg);
@@ -186,11 +185,11 @@ static int file_open_w(struct file *file, char *filepath)
 #if defined(CONFIG_APP_FS_ASYNC_OPERATIONS)
 
 	struct fs_async_config acfg = {
-		.file_path	= filepath,
-		.opt		= FS_ASYNC_WRITE | FS_ASYNC_CREATE | FS_ASYNC_TRUNCATE,
+		.file_path		= filepath,
+		.opt			= FS_ASYNC_WRITE | FS_ASYNC_CREATE | FS_ASYNC_TRUNCATE,
 		.ms_block_count = 2u,
 		.ms_block_size	= sizeof(file->afile_buf) / 2u,
-		.ms_buf		= file->afile_buf,
+		.ms_buf			= file->afile_buf,
 	};
 
 	ret = fs_async_open(&file->afile, &acfg);
@@ -288,8 +287,7 @@ int http_file_upload(struct http_request *req, struct http_response *resp)
 		char filepath[FILE_FILEPATH_MAX_LEN];
 
 		/* Parse filepath in URL */
-		int ret =
-			req_get_arg_path_parts(req, pp, FILES_SERVER_FILEPATH_MAX_DEPTH);
+		int ret = req_get_arg_path_parts(req, pp, FILES_SERVER_FILEPATH_MAX_DEPTH);
 		if (ret < 0) {
 			http_request_discard(req, HTTP_REQUEST_BAD);
 			goto exit;
@@ -306,8 +304,7 @@ int http_file_upload(struct http_request *req, struct http_response *resp)
 #if FILES_SERVER_CREATE_DIR_IF_NOT_EXISTS && !FILES_SERVER_DEBUG_SPEED
 		ret = app_fs_mkdir_intermediate(filepath, true);
 		if (ret < 0) {
-			LOG_ERR("Failed to create intermediate directories: %s",
-				filepath);
+			LOG_ERR("Failed to create intermediate directories: %s", filepath);
 			http_request_discard(req, HTTP_REQUEST_PROCESSING_ERROR);
 			goto exit;
 		}
@@ -340,9 +337,7 @@ int http_file_upload(struct http_request *req, struct http_response *resp)
 		ssize_t written = file_write(&file, req->payload.loc, req->payload.len);
 		if (written != req->payload.len) {
 			ret = written;
-			LOG_ERR("Failed to write file %d != %u",
-				written,
-				req->payload.len);
+			LOG_ERR("Failed to write file %d != %u", written, req->payload.len);
 			http_request_discard(req, HTTP_REQUEST_BAD);
 			goto exit;
 		}
@@ -394,8 +389,7 @@ int http_file_download(struct http_request *req, struct http_response *resp)
 		char filepath[FILE_FILEPATH_MAX_LEN];
 
 		/* Parse filepath in URL */
-		int ret =
-			req_get_arg_path_parts(req, pp, FILES_SERVER_FILEPATH_MAX_DEPTH);
+		int ret = req_get_arg_path_parts(req, pp, FILES_SERVER_FILEPATH_MAX_DEPTH);
 		if (ret < 0) {
 			http_request_discard(req, HTTP_REQUEST_BAD);
 			goto exit;
@@ -414,8 +408,7 @@ int http_file_download(struct http_request *req, struct http_response *resp)
 			ret = 0;
 			goto exit;
 		} else if (ret != 0) {
-			http_response_set_status_code(resp,
-						      HTTP_STATUS_INTERNAL_SERVER_ERROR);
+			http_response_set_status_code(resp, HTTP_STATUS_INTERNAL_SERVER_ERROR);
 			ret = 0;
 			goto exit;
 		} else if (FILES_SERVER_DEBUG_SPEED) {
@@ -439,10 +432,8 @@ int http_file_download(struct http_request *req, struct http_response *resp)
 		/* TODO Add cache headers so that big scripts/css are not
 		 * downloaded each time */
 
-		LOG_INF("Download %s [size=%u] content-len=%u",
-			filepath,
-			filesize,
-			resp->content_length);
+		LOG_INF("Download %s [size=%u] content-len=%u", filepath, filesize,
+				resp->content_length);
 	}
 
 	/* Read & close */
@@ -455,8 +446,7 @@ int http_file_download(struct http_request *req, struct http_response *resp)
 			LOG_ERR("file_read(. %u) -> %d", resp->buffer.size, ret);
 
 			file_close(&file);
-			http_response_set_status_code(resp,
-						      HTTP_STATUS_INTERNAL_SERVER_ERROR);
+			http_response_set_status_code(resp, HTTP_STATUS_INTERNAL_SERVER_ERROR);
 			ret = 0;
 			goto exit;
 		} else if (ret == 0) {

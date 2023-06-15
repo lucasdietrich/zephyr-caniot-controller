@@ -11,7 +11,7 @@
 
 static http_session_t sessions[CONFIG_APP_HTTP_MAX_SESSIONS];
 
-static sys_dlist_t sessions_list      = SYS_DLIST_STATIC_INIT(&sessions_list);
+static sys_dlist_t sessions_list	  = SYS_DLIST_STATIC_INIT(&sessions_list);
 static sys_slist_t sessions_free_list = SYS_SLIST_STATIC_INIT(&sessions_free_list);
 
 void http_session_init(void)
@@ -86,7 +86,7 @@ bool http_session_is_closed(http_session_t *sess)
 
 bool http_session_is_outdated(http_session_t *sess)
 {
-	const uint32_t now  = k_uptime_get_32();
+	const uint32_t now	= k_uptime_get_32();
 	const uint32_t diff = now - sess->keep_alive.last_activity;
 
 	return diff > sess->keep_alive.timeout;
@@ -95,14 +95,14 @@ bool http_session_is_outdated(http_session_t *sess)
 int http_session_time_to_next_outdated(void)
 {
 	const uint32_t now = k_uptime_get_32();
-	int timeout	   = SYS_FOREVER_MS;
+	int timeout		   = SYS_FOREVER_MS;
 	sys_dlist_t *node  = NULL;
 
 	SYS_DLIST_ITERATE_FROM_NODE(&sessions_list, node)
 	{
 		http_session_t *const sess = CONTAINER_OF(node, http_session_t, _handle);
-		const uint32_t diff	   = now - sess->keep_alive.last_activity;
-		const bool outdated	   = diff > sess->keep_alive.timeout;
+		const uint32_t diff		   = now - sess->keep_alive.last_activity;
+		const bool outdated		   = diff > sess->keep_alive.timeout;
 		if (outdated) {
 			timeout = 0;
 			break;

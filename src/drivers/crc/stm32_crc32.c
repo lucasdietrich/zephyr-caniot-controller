@@ -31,8 +31,8 @@ static uint32_t
 crc_stm32_calculate(const struct device *dev, const uint32_t *buf, size_t len)
 {
 	const struct crc_stm32_config *cfg = DEV_CFG(dev);
-	struct crc_stm32_data *data	   = DEV_DATA(dev);
-	CRC_TypeDef *crc		   = cfg->crc;
+	struct crc_stm32_data *data		   = DEV_DATA(dev);
+	CRC_TypeDef *crc				   = cfg->crc;
 
 	k_mutex_lock(&data->lock, K_FOREVER);
 
@@ -62,12 +62,12 @@ static struct crc_stm32_data crc1_stm32_data = {
 };
 
 DEVICE_DT_DEFINE(DT_NODELABEL(crc1),
-		 &crc_stm32_init,
-		 NULL,
-		 &crc1_stm32_data,
-		 &crc1_stm32_cfg,
-		 POST_KERNEL,
-		 CONFIG_KERNEL_INIT_PRIORITY_DEFAULT,
-		 &api);
+				 &crc_stm32_init,
+				 NULL,
+				 &crc1_stm32_data,
+				 &crc1_stm32_cfg,
+				 POST_KERNEL,
+				 CONFIG_KERNEL_INIT_PRIORITY_DEFAULT,
+				 &api);
 
 #endif

@@ -35,22 +35,22 @@ static __noinit char buffer[0x20];
 static void thread(void *_a, void *_b, void *_c);
 
 K_THREAD_DEFINE(discovery,
-		CONFIG_APP_DISCOVERY_SERVER_THREAD_STACK_SIZE,
-		thread,
-		NULL,
-		NULL,
-		NULL,
-		K_PRIO_PREEMPT(8),
-		0,
-		0);
+				CONFIG_APP_DISCOVERY_SERVER_THREAD_STACK_SIZE,
+				thread,
+				NULL,
+				NULL,
+				NULL,
+				K_PRIO_PREEMPT(8),
+				0,
+				0);
 
 static int setup_socket(void)
 {
 	int ret;
 	const struct sockaddr_in addr = {
 		.sin_family = AF_INET,
-		.sin_port   = htons(CONFIG_APP_DISCOVERY_SERVER_PORT),
-		.sin_addr   = {.s_addr = 0},
+		.sin_port	= htons(CONFIG_APP_DISCOVERY_SERVER_PORT),
+		.sin_addr	= {.s_addr = 0},
 	};
 
 	fd = zsock_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -116,12 +116,8 @@ static void thread(void *_a, void *_b, void *_c)
 
 	for (;;) {
 		/* recv */
-		rc = zsock_recvfrom(fd,
-				    buffer,
-				    sizeof(buffer),
-				    0,
-				    (struct sockaddr *)&client,
-				    &addrlen);
+		rc = zsock_recvfrom(fd, buffer, sizeof(buffer), 0, (struct sockaddr *)&client,
+							&addrlen);
 		if (rc < 0) {
 			LOG_ERR("failed to recvfrom socket = %d", rc);
 			continue;
@@ -129,12 +125,9 @@ static void thread(void *_a, void *_b, void *_c)
 
 		/* display client ip:port */
 		char ipv4_str[NET_IPV4_ADDR_LEN];
-		if (net_addr_ntop(
-			    AF_INET, &client.sin_addr, ipv4_str, sizeof(ipv4_str)) !=
-		    NULL) {
-			LOG_INF("Processing UDP packet from %s:%d",
-				ipv4_str,
-				htons(client.sin_port));
+		if (net_addr_ntop(AF_INET, &client.sin_addr, ipv4_str, sizeof(ipv4_str)) !=
+			NULL) {
+			LOG_INF("Processing UDP packet from %s:%d", ipv4_str, htons(client.sin_port));
 		}
 
 		LOG_HEXDUMP_DBG(buffer, rc, "UDP query received");
@@ -144,14 +137,14 @@ static void thread(void *_a, void *_b, void *_c)
 			continue;
 		}
 
-		size_t tosend = prepare_reponse((struct discovery_response *)buffer,
-						sizeof(buffer));
+		size_t tosend =
+			prepare_reponse((struct discovery_response *)buffer, sizeof(buffer));
 		if (tosend <= 0) {
 			continue;
 		}
 
-		rc = zsock_sendto(
-			fd, buffer, tosend, 0, (const struct sockaddr *)&client, addrlen);
+		rc = zsock_sendto(fd, buffer, tosend, 0, (const struct sockaddr *)&client,
+						  addrlen);
 		if (rc < 0) {
 			LOG_ERR("failed to sendto = %d", rc);
 			continue;

@@ -6,13 +6,13 @@
 
 #include "core/http_utils.h"
 #include "core/routes.h"
+#include "debug_server.h"
 #include "dfu_server.h"
 #include "files_server.h"
 #include "prometheus_client.h"
 #include "rest_server.h"
 #include "test_server.h"
 #include "web_server.h"
-#include "debug_server.h"
 
 #include <embedc-url/parser.h>
 #include <embedc-url/parser_internal.h>
@@ -23,7 +23,7 @@
 #define FORM	  ROUTE_ATTR_FORM
 #define MULTIPART ROUTE_ATTR_MULTIPART_FORM_DATA
 #define BINARY	  ROUTE_ATTR_BINARY
-#define SEC	  ROUTE_ATTR_SECURE
+#define SEC		  ROUTE_ATTR_SECURE
 
 /*
 Following code is automatically generated
@@ -43,20 +43,20 @@ static const struct route_descr root_api_test_route_args_firstzu_secondzu[] = {
 #if defined(CONFIG_APP_HTTP_TEST_SERVER)
 static const struct route_descr root_api_test_route_args_firstzu[] = {
 	SECTION("second:u",
-		ARG_UINT,
-		root_api_test_route_args_firstzu_secondzu,
-		ARRAY_SIZE(root_api_test_route_args_firstzu_secondzu),
-		0u),
+			ARG_UINT,
+			root_api_test_route_args_firstzu_secondzu,
+			ARRAY_SIZE(root_api_test_route_args_firstzu_secondzu),
+			0u),
 };
 #endif
 
 #if defined(CONFIG_APP_HTTP_TEST_SERVER)
 static const struct route_descr root_api_test_route_args[] = {
 	SECTION("first:u",
-		ARG_UINT,
-		root_api_test_route_args_firstzu,
-		ARRAY_SIZE(root_api_test_route_args_firstzu),
-		0u),
+			ARG_UINT,
+			root_api_test_route_args_firstzu,
+			ARRAY_SIZE(root_api_test_route_args_firstzu),
+			0u),
 };
 #endif
 
@@ -66,10 +66,10 @@ static const struct route_descr root_api_test[] = {
 	LEAF("messaging", POST, http_test_messaging, NULL, 0u),
 	LEAF("streaming", POST, http_test_streaming, http_test_streaming, REST),
 	SECTION("route_args",
-		0u,
-		root_api_test_route_args,
-		ARRAY_SIZE(root_api_test_route_args),
-		0u),
+			0u,
+			root_api_test_route_args,
+			ARRAY_SIZE(root_api_test_route_args),
+			0u),
 	LEAF("big_payload", POST, http_test_big_payload, NULL, BINARY),
 	LEAF("headers", GET, http_test_headers, NULL, 0u),
 	LEAF("payload", GET, http_test_payload, NULL, 0u),
@@ -137,40 +137,40 @@ static const struct route_descr root_api_devices_caniot_didzu_endpoint_blc0[] = 
 #if defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
 static const struct route_descr root_api_devices_caniot_didzu_endpoint[] = {
 	SECTION("blc0",
-		0u,
-		root_api_devices_caniot_didzu_endpoint_blc0,
-		ARRAY_SIZE(root_api_devices_caniot_didzu_endpoint_blc0),
-		0u),
+			0u,
+			root_api_devices_caniot_didzu_endpoint_blc0,
+			ARRAY_SIZE(root_api_devices_caniot_didzu_endpoint_blc0),
+			0u),
 	SECTION("blc1",
-		0u,
-		root_api_devices_caniot_didzu_endpoint_blc1,
-		ARRAY_SIZE(root_api_devices_caniot_didzu_endpoint_blc1),
-		0u),
+			0u,
+			root_api_devices_caniot_didzu_endpoint_blc1,
+			ARRAY_SIZE(root_api_devices_caniot_didzu_endpoint_blc1),
+			0u),
 	SECTION("blc",
-		0u,
-		root_api_devices_caniot_didzu_endpoint_blc,
-		ARRAY_SIZE(root_api_devices_caniot_didzu_endpoint_blc),
-		0u),
+			0u,
+			root_api_devices_caniot_didzu_endpoint_blc,
+			ARRAY_SIZE(root_api_devices_caniot_didzu_endpoint_blc),
+			0u),
 	SECTION("ep:u",
-		ARG_UINT,
-		root_api_devices_caniot_didzu_endpoint_epzu,
-		ARRAY_SIZE(root_api_devices_caniot_didzu_endpoint_epzu),
-		0u),
+			ARG_UINT,
+			root_api_devices_caniot_didzu_endpoint_epzu,
+			ARRAY_SIZE(root_api_devices_caniot_didzu_endpoint_epzu),
+			0u),
 };
 #endif
 
 #if defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
 static const struct route_descr root_api_devices_caniot_didzu[] = {
 	SECTION("endpoint",
-		0u,
-		root_api_devices_caniot_didzu_endpoint,
-		ARRAY_SIZE(root_api_devices_caniot_didzu_endpoint),
-		0u),
+			0u,
+			root_api_devices_caniot_didzu_endpoint,
+			ARRAY_SIZE(root_api_devices_caniot_didzu_endpoint),
+			0u),
 	SECTION("attribute",
-		0u,
-		root_api_devices_caniot_didzu_attribute,
-		ARRAY_SIZE(root_api_devices_caniot_didzu_attribute),
-		0u),
+			0u,
+			root_api_devices_caniot_didzu_attribute,
+			ARRAY_SIZE(root_api_devices_caniot_didzu_attribute),
+			0u),
 	LEAF("reboot", POST, rest_devices_caniot_blc_action, NULL, 0u),
 	LEAF("factory_reset", POST, rest_devices_caniot_blc_action, NULL, 0u),
 };
@@ -182,10 +182,10 @@ static const struct route_descr root_api_devices_caniot[] = {
 	LEAF("", GET, rest_caniot_records, NULL, 0u),
 #endif
 	SECTION("did:u",
-		ARG_UINT,
-		root_api_devices_caniot_didzu,
-		ARRAY_SIZE(root_api_devices_caniot_didzu),
-		0u),
+			ARG_UINT,
+			root_api_devices_caniot_didzu,
+			ARRAY_SIZE(root_api_devices_caniot_didzu),
+			0u),
 };
 #endif
 
@@ -202,11 +202,8 @@ static const struct route_descr root_api_devices[] = {
 	LEAF("garage", POST, rest_devices_garage_post, NULL, 0u),
 #endif
 #if defined(CONFIG_APP_HA_CANIOT_CONTROLLER)
-	SECTION("caniot",
-		0u,
-		root_api_devices_caniot,
-		ARRAY_SIZE(root_api_devices_caniot),
-		0u),
+	SECTION(
+		"caniot", 0u, root_api_devices_caniot, ARRAY_SIZE(root_api_devices_caniot), 0u),
 #endif
 };
 #endif
@@ -255,21 +252,18 @@ static const struct route_descr root_api_files_1zs_2zs_3zs[] = {
 static const struct route_descr root_api_files_1zs_2zs[] = {
 	LEAF("", POST, http_file_upload, http_file_upload, REST),
 	SECTION("3:s",
-		ARG_STR,
-		root_api_files_1zs_2zs_3zs,
-		ARRAY_SIZE(root_api_files_1zs_2zs_3zs),
-		REST),
+			ARG_STR,
+			root_api_files_1zs_2zs_3zs,
+			ARRAY_SIZE(root_api_files_1zs_2zs_3zs),
+			REST),
 	LEAF("", GET, http_file_download, NULL, BINARY),
 	LEAF("", DELETE, http_file_delete, NULL, REST),
 };
 
 static const struct route_descr root_api_files_1zs[] = {
 	LEAF("", POST, http_file_upload, http_file_upload, REST),
-	SECTION("2:s",
-		ARG_STR,
-		root_api_files_1zs_2zs,
-		ARRAY_SIZE(root_api_files_1zs_2zs),
-		REST),
+	SECTION(
+		"2:s", ARG_STR, root_api_files_1zs_2zs, ARRAY_SIZE(root_api_files_1zs_2zs), REST),
 	LEAF("", GET, http_file_download, NULL, BINARY),
 	LEAF("", DELETE, http_file_delete, NULL, REST),
 };
@@ -303,11 +297,8 @@ static const struct route_descr root_api[] = {
 	LEAF("info", GET, rest_info, NULL, 0u),
 	SECTION("interface", 0u, root_api_interface, ARRAY_SIZE(root_api_interface), 0u),
 #if defined(CONFIG_APP_CREDS_FLASH)
-	SECTION("credentials",
-		0u,
-		root_api_credentials,
-		ARRAY_SIZE(root_api_credentials),
-		REST),
+	SECTION(
+		"credentials", 0u, root_api_credentials, ARRAY_SIZE(root_api_credentials), REST),
 #endif
 	LEAF("files_fetch", GET, web_server_files_html, NULL, HTML),
 	SECTION("files", 0u, root_api_files, ARRAY_SIZE(root_api_files), REST),
@@ -353,4 +344,4 @@ static const struct route_descr root[] = {
 /* === ROUTES DEFINITION END === */
 
 const struct route_descr *const routes_root = root;
-const size_t routes_root_size		    = ARRAY_SIZE(root);
+const size_t routes_root_size				= ARRAY_SIZE(root);

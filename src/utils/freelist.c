@@ -1,9 +1,9 @@
 #include "freelist.h"
 
 int free_list_init(sys_slist_t *fl,
-		   void *const mem,
-		   size_t block_size,
-		   size_t block_count)
+				   void *const mem,
+				   size_t block_size,
+				   size_t block_count)
 {
 	/* check if list is aligned */
 	if (!IS_PTR_ALIGNED(mem, sizeof(void *))) {
@@ -54,9 +54,7 @@ void sys_free_lists_init(void)
 {
 	STRUCT_SECTION_FOREACH(_flist_info, finfo)
 	{
-		free_list_init(finfo->free_list,
-			       finfo->mem,
-			       finfo->block_size,
-			       finfo->block_count);
+		free_list_init(finfo->free_list, finfo->mem, finfo->block_size,
+					   finfo->block_count);
 	}
 }

@@ -15,7 +15,7 @@
 LOG_MODULE_REGISTER(lua_mod, LOG_LEVEL_DBG);
 
 /* Default modules */
-#define LUA_GNAME_ENABLED	1
+#define LUA_GNAME_ENABLED		1
 #define LUA_LOADLIBNAME_ENABLED 1
 #define LUA_COLIBNAME_ENABLED	0
 #define LUA_TABLIBNAME_ENABLED	1
@@ -28,7 +28,7 @@ LOG_MODULE_REGISTER(lua_mod, LOG_LEVEL_DBG);
 
 /* Custom modules */
 #define LUA_DUMMYLIB_ENABLED  1
-#define LUA_HA_ENABLED	      1
+#define LUA_HA_ENABLED		  1
 #define LUA_ZEPHYRLIB_ENABLED 0
 #define LUA_CLOUDLIB_ENABLED  0
 
@@ -82,10 +82,8 @@ static int lm_dum_misc(lua_State *L)
 	return lua_gettop(L);
 }
 
-static const struct luaL_Reg lm_dummy_functions[] = {{"hello", lm_dum_hello},
-						     {"add", lm_dum_add},
-						     {"misc", lm_dum_misc},
-						     {NULL, NULL}};
+static const struct luaL_Reg lm_dummy_functions[] = {
+	{"hello", lm_dum_hello}, {"add", lm_dum_add}, {"misc", lm_dum_misc}, {NULL, NULL}};
 
 static int lm_luaopen_dummy(lua_State *L)
 {
@@ -103,12 +101,12 @@ static int lm_ha_list_devices(lua_State *L)
 }
 
 static const struct luaL_Reg lm_ha_functions[] = {{"devices", lm_ha_list_devices},
-						  {"rooms", NULL},
-						  {"subscribe", NULL},
-						  {"pend", NULL},
-						  {"command", NULL},
-						  {"can", NULL},
-						  {NULL, NULL}};
+												  {"rooms", NULL},
+												  {"subscribe", NULL},
+												  {"pend", NULL},
+												  {"command", NULL},
+												  {"can", NULL},
+												  {NULL, NULL}};
 
 static int lm_luaopen_ha(lua_State *L)
 {

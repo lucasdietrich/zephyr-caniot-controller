@@ -14,8 +14,8 @@ void http_response_init(http_response_t *resp)
 	/* TODO optimize the way the request is initialized */
 	memset(resp, 0x00U, sizeof(http_response_t));
 
-	resp->buffer.data    = NULL;
-	resp->buffer.size    = 0u;
+	resp->buffer.data	 = NULL;
+	resp->buffer.size	 = 0u;
 	resp->buffer.filling = 0u;
 
 	/* default response */
@@ -24,8 +24,8 @@ void http_response_init(http_response_t *resp)
 	 * @brief HTTP Content length, header not encoded if negative.
 	 */
 	resp->content_length = 0u;
-	resp->status_code    = HTTP_DEFAULT_RESP_STATUS_CODE;
-	resp->content_type   = HTTP_CONTENT_TYPE_TEXT_PLAIN;
+	resp->status_code	 = HTTP_DEFAULT_RESP_STATUS_CODE;
+	resp->content_type	 = HTTP_CONTENT_TYPE_TEXT_PLAIN;
 
 	resp->chunked  = 0u;
 	resp->complete = 1u;
@@ -39,9 +39,8 @@ void http_response_init(http_response_t *resp)
 static bool set_header_check(http_response_t *resp, const char *hdr_name)
 {
 	if (!http_response_is_first_call(resp)) {
-		LOG_WRN("Cannot set (%s), Headers already sent, calls_count=%u",
-			hdr_name,
-			resp->calls_count);
+		LOG_WRN("Cannot set (%s), Headers already sent, calls_count=%u", hdr_name,
+				resp->calls_count);
 		return false;
 	}
 
@@ -49,7 +48,7 @@ static bool set_header_check(http_response_t *resp, const char *hdr_name)
 }
 
 void http_response_set_content_type(http_response_t *resp,
-				    http_content_type_t content_type)
+									http_content_type_t content_type)
 {
 	if (set_header_check(resp, "Content-Type") == true) {
 		resp->content_type = content_type;
@@ -66,8 +65,7 @@ void http_response_set_status_code(http_response_t *resp, uint16_t status_code)
 void http_response_set_content_length(http_response_t *resp, ssize_t content_length)
 {
 	if (content_length < 0) {
-		LOG_WRN("Cannot set Content-Length to negative value (%d)",
-			content_length);
+		LOG_WRN("Cannot set Content-Length to negative value (%d)", content_length);
 		return;
 	}
 

@@ -94,13 +94,11 @@ int disk_get_info(const char *disk_pdrv, struct appfs_disk_info *dinfo)
 
 	if (dinfo != NULL) {
 		dinfo->memory_size_mb = memory_size_mb;
-		dinfo->block_count    = block_count;
-		dinfo->block_size     = block_size;
+		dinfo->block_count	  = block_count;
+		dinfo->block_size	  = block_size;
 	}
-	LOG_DBG("SD Blocks %u of size %u, total size %uMB",
-		block_count,
-		block_size,
-		memory_size_mb);
+	LOG_DBG("SD Blocks %u of size %u, total size %uMB", block_count, block_size,
+			memory_size_mb);
 exit:
 	return rc;
 }
@@ -204,12 +202,8 @@ int app_fs_stats(const char *abs_path)
 		goto exit;
 	}
 
-	LOG_INF("%s bsize=%lu frsize=%lu  bfree=%lu/%lu (blocks)",
-		abs_path,
-		buf.f_bsize,
-		buf.f_frsize,
-		buf.f_bfree,
-		buf.f_blocks);
+	LOG_INF("%s bsize=%lu frsize=%lu  bfree=%lu/%lu (blocks)", abs_path, buf.f_bsize,
+			buf.f_frsize, buf.f_bfree, buf.f_blocks);
 
 	app_fs_lsdir(abs_path);
 	if (rc < 0) {
@@ -254,8 +248,8 @@ exit:
 }
 
 int app_fs_iterate_dir_files(const char *path,
-			     app_fs_iterate_fs_cb_t callback,
-			     void *user_data)
+							 app_fs_iterate_fs_cb_t callback,
+							 void *user_data)
 {
 	int res = -EINVAL;
 	struct fs_dir_t dirp;
@@ -306,7 +300,7 @@ int app_fs_filepath_normalize(const char *path, char *out_path, size_t out_size)
 	}
 
 	const int add_slash = path[0] == '/' ? 0 : 1;
-	const size_t len    = strlen(path) + add_slash;
+	const size_t len	= strlen(path) + add_slash;
 
 	if (len >= out_size) {
 		return -ENOMEM;
@@ -323,7 +317,7 @@ int app_fs_mkdir_intermediate(const char *path, bool is_filepath)
 	int ret = 0;
 
 	char dirpath[128u] = "";
-	char *d		   = dirpath;
+	char *d			   = dirpath;
 
 	const char *p = path;
 	const char *s;
@@ -351,7 +345,7 @@ int app_fs_mkdir_intermediate(const char *path, bool is_filepath)
 
 			/* Copy directory name*/
 			strncpy(d, p, s - p);
-			d[s - p]     = '/';
+			d[s - p]	 = '/';
 			d[s - p + 1] = '\0';
 
 			/* Update cursors */

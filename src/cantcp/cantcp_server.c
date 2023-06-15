@@ -32,7 +32,7 @@ K_THREAD_DEFINE(cantcp_thread, 0x1000, server, NULL, NULL, NULL, K_PRIO_PREEMPT(
 #define CANTCP_TUNNEL_PORT CANTCP_DEFAULT_PORT
 
 #define CANTCP_SERVER_FD_COUNT 1U
-#define CANTCP_MAX_CLIENTS     1U
+#define CANTCP_MAX_CLIENTS	   1U
 
 #define CANTCP_BASE_FD_COUNT (CANTCP_SERVER_FD_COUNT + 1U)
 
@@ -115,7 +115,7 @@ static uint32_t get_neareset_timeout(void)
 	for (uint32_t i = 0U; i < CANTCP_MAX_CLIENTS; i++) {
 		cantcp_tunnel_t *const tun = tunnels[i];
 		if (tun != NULL) {
-			uint32_t diff		= now - tun->last_keep_alive;
+			uint32_t diff			= now - tun->last_keep_alive;
 			uint32_t tunnel_timeout = tun->keep_alive_timeout;
 
 			if (diff < tunnel_timeout) {
@@ -165,8 +165,8 @@ static int setup_socket(void)
 		return sock;
 	}
 
-	addr.sin_family	     = AF_INET;
-	addr.sin_port	     = htons(CANTCP_TUNNEL_PORT);
+	addr.sin_family		 = AF_INET;
+	addr.sin_port		 = htons(CANTCP_TUNNEL_PORT);
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	ret = zsock_bind(sock, (struct sockaddr *)&addr, sizeof(addr));
@@ -182,7 +182,7 @@ static int setup_socket(void)
 		return ret;
 	}
 
-	fds.srv.fd     = sock;
+	fds.srv.fd	   = sock;
 	fds.srv.events = POLLIN | POLLERR | POLLHUP;
 
 	return 0U;
@@ -208,32 +208,26 @@ int accept_connection(int serv_sock)
 
 	ret = allocate_tunnel(&tunnel);
 	if (ret != 0U) {
-		LOG_WRN("(%d) Connection refused from %s:%d, cli sock = %d",
-			serv_sock,
-			ipv4_str,
-			htons(addr.sin_port),
-			sock);
+		LOG_WRN("(%d) Connection refused from %s:%d, cli sock = %d", serv_sock, ipv4_str,
+				htons(addr.sin_port), sock);
 
 		zsock_close(sock);
 
 		goto exit;
 	}
 
-	LOG_INF("(%d) Connection accepted from %s:%d, cli sock = %d",
-		serv_sock,
-		ipv4_str,
-		htons(addr.sin_port),
-		sock);
+	LOG_INF("(%d) Connection accepted from %s:%d, cli sock = %d", serv_sock, ipv4_str,
+			htons(addr.sin_port), sock);
 
 	// prepare tunnel
-	tunnel->sock		= sock;
+	tunnel->sock			= sock;
 	tunnel->last_keep_alive = k_uptime_get_32();
-	tunnel->rx_msgq		= common_rx_msgq; /* TODO, make it configurable */
+	tunnel->rx_msgq			= common_rx_msgq; /* TODO, make it configurable */
 
 	// prepare next poll
 	fds.cli[connections_count].fd	  = sock;
 	fds.cli[connections_count].events = POLLIN | POLLERR | POLLHUP;
-	tunnels[connections_count]	  = tunnel;
+	tunnels[connections_count]		  = tunnel;
 	connections_count++;
 
 	return 0;
@@ -246,9 +240,8 @@ static void handle_incoming_connection(struct pollfd *pfd)
 	if (pfd->revents & POLLIN) {
 		accept_connection(pfd->fd);
 	} else if (pfd->revents & (POLLERR | POLLHUP)) {
-		LOG_ERR("(%d) server socket error or hangup (revents = %hhx)",
-			pfd->fd,
-			pfd->revents);
+		LOG_ERR("(%d) server socket error or hangup (revents = %hhx)", pfd->fd,
+				pfd->revents);
 	}
 }
 
@@ -296,8 +289,8 @@ static int handle_connection(struct pollfd *pfd, cantcp_tunnel_t *tunnel)
 				ret = k_msgq_put(tunnel->rx_msgq, &msg, K_NO_WAIT);
 				if (ret != 0) {
 					LOG_ERR("Failed to queue msg to "
-						"rx_msgq %x",
-						(uint32_t)tunnel->rx_msgq);
+							"rx_msgq %x",
+							(uint32_t)tunnel->rx_msgq);
 				}
 			} else {
 				LOG_WRN("No msgq to queue msg (%d)", 0);
@@ -338,8 +331,7 @@ static void server(void *_a, void *_b, void *_c)
 
 	for (;;) {
 		const uint32_t timeout = get_neareset_timeout();
-		ret		       = zsock_poll(
-			   fds.array, CANTCP_BASE_FD_COUNT + connections_count, timeout);
+		ret = zsock_poll(fds.array, CANTCP_BASE_FD_COUNT + connections_count, timeout);
 		if (ret > 0) {
 			if (fds.control.revents & POLLIN) {
 				handle_outgoing_msgs();
@@ -362,12 +354,11 @@ static void server(void *_a, void *_b, void *_c)
 #error More than one client is not supported for now ! HERE !!
 #endif
 		if (connections_count > 0U) {
-			uint32_t now	     = k_uptime_get_32();
+			uint32_t now		 = k_uptime_get_32();
 			cantcp_tunnel_t *tun = tunnels[0U];
 			if (now - tun->last_keep_alive >= tun->keep_alive_timeout) {
-				LOG_WRN("(%d) keep-alive timeout for tunnel %x",
-					tun->sock,
-					(uint32_t)tun);
+				LOG_WRN("(%d) keep-alive timeout for tunnel %x", tun->sock,
+						(uint32_t)tun);
 				cantcp_disconnect(tun);
 				free_tunnel(&tun);
 				tunnels[0U] = NULL;

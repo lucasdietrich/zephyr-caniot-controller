@@ -41,8 +41,8 @@ static char mac_usb0_str[NET_ETH_ADDR_STR_LEN] = "00:00:5E:00:53:00";
 
 #define MGMT_ETHERNET_CB_INDEX	0u
 #define MGMT_INTERFACE_CB_INDEX 1u
-#define MGMT_IP_CB_INDEX	2u
-#define MGMT_L4_CB_INDEX	3u
+#define MGMT_IP_CB_INDEX		2u
+#define MGMT_L4_CB_INDEX		3u
 static struct net_mgmt_event_callback mgmt_cb[4u];
 
 /* Forward declarations */
@@ -98,13 +98,11 @@ static void usb_interface_down(void)
 #endif
 
 static void net_event_handler(struct net_mgmt_event_callback *cb,
-			      uint32_t mgmt_event,
-			      struct net_if *iface)
+							  uint32_t mgmt_event,
+							  struct net_if *iface)
 {
-	LOG_DBG("[face: %p] event: %s (%x)",
-		iface,
-		net_mgmt_event_to_str(mgmt_event),
-		mgmt_event);
+	LOG_DBG("[face: %p] event: %s (%x)", iface, net_mgmt_event_to_str(mgmt_event),
+			mgmt_event);
 
 	switch (mgmt_event) {
 
@@ -186,7 +184,7 @@ static struct net_if *net_if_get_by_mac_str(const char *mac_str)
 	struct net_linkaddr_storage ll_addr_storage;
 	struct net_linkaddr ll_addr;
 
-	ll_addr.len  = 6u;
+	ll_addr.len	 = 6u;
 	ll_addr.type = NET_LINK_ETHERNET;
 	ll_addr.addr = ll_addr_storage.addr;
 
@@ -201,15 +199,12 @@ static struct net_if *net_if_get_by_mac_str(const char *mac_str)
 }
 
 __attribute__((unused)) static void reference_iface(uint32_t iface_index,
-						    const char *mac_str)
+													const char *mac_str)
 {
 	ifaces[iface_index] = net_if_get_by_mac_str(mac_str);
 
-	LOG_DBG("[%u] mac: %s iface: %p up: %u",
-		iface_index,
-		mac_str,
-		ifaces[iface_index],
-		(uint32_t)net_if_flag_is_set(ifaces[iface_index], NET_IF_UP));
+	LOG_DBG("[%u] mac: %s iface: %p up: %u", iface_index, mac_str, ifaces[iface_index],
+			(uint32_t)net_if_flag_is_set(ifaces[iface_index], NET_IF_UP));
 }
 
 void net_interface_init(void)
@@ -226,28 +221,23 @@ void net_interface_init(void)
 #endif
 
 	/* One callback per layer */
-	net_mgmt_init_event_callback(&mgmt_cb[MGMT_ETHERNET_CB_INDEX],
-				     net_event_handler,
-				     NET_EVENT_ETHERNET_CARRIER_ON |
-					     NET_EVENT_ETHERNET_CARRIER_OFF);
+	net_mgmt_init_event_callback(&mgmt_cb[MGMT_ETHERNET_CB_INDEX], net_event_handler,
+								 NET_EVENT_ETHERNET_CARRIER_ON |
+									 NET_EVENT_ETHERNET_CARRIER_OFF);
 	net_mgmt_add_event_callback(&mgmt_cb[MGMT_ETHERNET_CB_INDEX]);
 
-	net_mgmt_init_event_callback(&mgmt_cb[MGMT_INTERFACE_CB_INDEX],
-				     net_event_handler,
-				     NET_EVENT_IF_UP | NET_EVENT_IF_DOWN);
+	net_mgmt_init_event_callback(&mgmt_cb[MGMT_INTERFACE_CB_INDEX], net_event_handler,
+								 NET_EVENT_IF_UP | NET_EVENT_IF_DOWN);
 	net_mgmt_add_event_callback(&mgmt_cb[MGMT_INTERFACE_CB_INDEX]);
 
-	net_mgmt_init_event_callback(&mgmt_cb[MGMT_IP_CB_INDEX],
-				     net_event_handler,
-				     NET_EVENT_IPV4_ADDR_ADD | NET_EVENT_IPV4_ADDR_DEL |
-					     NET_EVENT_IPV4_DHCP_START |
-					     NET_EVENT_IPV4_DHCP_BOUND |
-					     NET_EVENT_IPV4_DHCP_STOP);
+	net_mgmt_init_event_callback(
+		&mgmt_cb[MGMT_IP_CB_INDEX], net_event_handler,
+		NET_EVENT_IPV4_ADDR_ADD | NET_EVENT_IPV4_ADDR_DEL | NET_EVENT_IPV4_DHCP_START |
+			NET_EVENT_IPV4_DHCP_BOUND | NET_EVENT_IPV4_DHCP_STOP);
 	net_mgmt_add_event_callback(&mgmt_cb[MGMT_IP_CB_INDEX]);
 
-	net_mgmt_init_event_callback(&mgmt_cb[MGMT_L4_CB_INDEX],
-				     net_event_handler,
-				     NET_EVENT_L4_CONNECTED | NET_EVENT_L4_DISCONNECTED);
+	net_mgmt_init_event_callback(&mgmt_cb[MGMT_L4_CB_INDEX], net_event_handler,
+								 NET_EVENT_L4_CONNECTED | NET_EVENT_L4_DISCONNECTED);
 	net_mgmt_add_event_callback(&mgmt_cb[MGMT_L4_CB_INDEX]);
 
 	net_conn_mgr_resend_status();
@@ -293,23 +283,19 @@ static void show_ipv4(struct net_if *iface)
 		LOG_INF("=== NET interface %p ===", iface);
 
 		LOG_INF("Address: %s [addr type %s]",
-			net_addr_ntop(AF_INET,
-				      &ifcfg->ip.ipv4->unicast[i].address.in_addr,
-				      buf,
-				      sizeof(buf)),
-			addr_type_to_str(ifcfg->ip.ipv4->unicast[i].addr_type));
+				net_addr_ntop(AF_INET, &ifcfg->ip.ipv4->unicast[i].address.in_addr, buf,
+							  sizeof(buf)),
+				addr_type_to_str(ifcfg->ip.ipv4->unicast[i].addr_type));
 
 		LOG_INF("Subnet:  %s",
-			net_addr_ntop(
-				AF_INET, &ifcfg->ip.ipv4->netmask, buf, sizeof(buf)));
+				net_addr_ntop(AF_INET, &ifcfg->ip.ipv4->netmask, buf, sizeof(buf)));
 		LOG_INF("Router:  %s",
-			net_addr_ntop(AF_INET, &ifcfg->ip.ipv4->gw, buf, sizeof(buf)));
+				net_addr_ntop(AF_INET, &ifcfg->ip.ipv4->gw, buf, sizeof(buf)));
 
 #if defined(CONFIG_NET_DHCPV4)
 		if (ifcfg->ip.ipv4->unicast[i].addr_type == NET_ADDR_DHCP) {
-			LOG_INF("DHCPv4 Lease time: %u seconds [state: %s]",
-				ifcfg->dhcpv4.lease_time,
-				net_dhcpv4_state_name(ifcfg->dhcpv4.state));
+			LOG_INF("DHCPv4 Lease time: %u seconds [state: %s]", ifcfg->dhcpv4.lease_time,
+					net_dhcpv4_state_name(ifcfg->dhcpv4.state));
 		}
 #endif
 	}

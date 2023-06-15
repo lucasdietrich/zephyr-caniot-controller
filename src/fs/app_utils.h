@@ -35,8 +35,8 @@ int app_fs_file_add(const char *fpath, const char *data, size_t size);
  * @param user_data is a pointer to the user data to be passed to the callback.
  */
 typedef bool (*app_fs_iterate_fs_cb_t)(const char *path,
-				       struct fs_dirent *dirent,
-				       void *user_data);
+									   struct fs_dirent *dirent,
+									   void *user_data);
 
 /**
  * @brief Iterate over the files in a directory.
@@ -47,8 +47,8 @@ typedef bool (*app_fs_iterate_fs_cb_t)(const char *path,
  * @return int
  */
 int app_fs_iterate_dir_files(const char *path,
-			     app_fs_iterate_fs_cb_t callback,
-			     void *user_data);
+							 app_fs_iterate_fs_cb_t callback,
+							 void *user_data);
 
 /**
  * @brief Append a slash ('/') to the beginning of the path if it doesn't have

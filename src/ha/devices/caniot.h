@@ -12,7 +12,7 @@
 
 #define HA_CANIOT_CLS0_MAX_TEMPERATURES 4u
 #define HA_CANIOT_CLS1_MAX_TEMPERATURES 4u
-#define HA_CANIOT_MAX_TEMPERATURES	4U
+#define HA_CANIOT_MAX_TEMPERATURES		4U
 
 /* blt stands for board level telemetry */
 struct ha_ds_caniot_blc0 {
@@ -79,35 +79,35 @@ struct ha_cmd_caniot_shutters_control {
 };
 
 #define HA_DEV_CANIOT_MAC_INIT(_did)                                                     \
-	(ha_dev_mac_t)                                                                   \
-	{                                                                                \
-		.medium = HA_DEV_MEDIUM_CAN, .addr = {.caniot = _did},                   \
+	(ha_dev_mac_t)                                                                       \
+	{                                                                                    \
+		.medium = HA_DEV_MEDIUM_CAN, .addr = {.caniot = _did},                           \
 	}
 
 #define HA_DEV_CANIOT_ADDR_INIT(_did)                                                    \
-	{                                                                                \
-		.type = HA_DEV_TYPE_CANIOT, .mac = HA_DEV_CANIOT_MAC_INIT(_did)          \
+	{                                                                                    \
+		.type = HA_DEV_TYPE_CANIOT, .mac = HA_DEV_CANIOT_MAC_INIT(_did)                  \
 	}
 
 /* feed a board level telemetry dataset from a received CAN BLT/BCT buffer */
 void ha_dev_caniot_blc_cls0_to_blt(struct ha_ds_caniot_blc0 *blt,
-				   const struct caniot_blc0_telemetry *can_buf);
+								   const struct caniot_blc0_telemetry *can_buf);
 
 void ha_dev_caniot_blc_cls1_to_blt(struct ha_ds_caniot_blc1 *blt,
-				   const struct caniot_blc1_telemetry *can_buf);
+								   const struct caniot_blc1_telemetry *can_buf);
 
 int ha_dev_register_caniot_telemetry(uint32_t timestamp,
-				     caniot_did_t did,
-				     char buf[8u],
-				     caniot_id_t *id);
+									 caniot_did_t did,
+									 char buf[8u],
+									 caniot_id_t *id);
 
 const struct caniot_blc0_telemetry *ha_ev_get_caniot_telemetry(const ha_ev_t *ev);
 
 static inline ssize_t ha_dev_caniot_iterate_data(ha_dev_iterate_cb_t callback,
-						 void *user_data)
+												 void *user_data)
 {
 	const ha_dev_filter_t filter = {
-		.flags	     = HA_DEV_FILTER_DATA_EXIST | HA_DEV_FILTER_DEVICE_TYPE,
+		.flags		 = HA_DEV_FILTER_DATA_EXIST | HA_DEV_FILTER_DEVICE_TYPE,
 		.device_type = HA_DEV_TYPE_CANIOT,
 	};
 

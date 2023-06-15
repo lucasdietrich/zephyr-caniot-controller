@@ -33,8 +33,8 @@ typedef enum {
 
 typedef enum {
 	/* 400 */
-	HTTP_STATUS_OK	       = 200,
-	HTTP_STATUS_CREATED    = 201,
+	HTTP_STATUS_OK		   = 200,
+	HTTP_STATUS_CREATED	   = 201,
 	HTTP_STATUS_ACCEPTED   = 202,
 	HTTP_STATUS_NO_CONTENT = 204,
 
@@ -51,18 +51,18 @@ typedef enum {
 	HTTP_STATUS_LENGTH_REQUIRED = 411,
 	// HTTP_STATUS_PRECONDITION_FAILED = 412,
 	HTTP_STATUS_REQUEST_ENTITY_TOO_LARGE = 413,
-	HTTP_STATUS_REQUEST_URI_TOO_LONG     = 414,
-	HTTP_STATUS_UNSUPPORTED_MEDIA_TYPE   = 415,
+	HTTP_STATUS_REQUEST_URI_TOO_LONG	 = 414,
+	HTTP_STATUS_UNSUPPORTED_MEDIA_TYPE	 = 415,
 	// HTTP_STATUS_RANGE_NOT_SATISFIABLE = 416,
 
 	/* 500 */
-	HTTP_STATUS_INTERNAL_SERVER_ERROR      = 500,
-	HTTP_STATUS_NOT_IMPLEMENTED	       = 501,
-	HTTP_STATUS_BAD_GATEWAY		       = 502,
-	HTTP_STATUS_SERVICE_UNAVAILABLE	       = 503,
-	HTTP_STATUS_GATEWAY_TIMEOUT	       = 504,
+	HTTP_STATUS_INTERNAL_SERVER_ERROR	   = 500,
+	HTTP_STATUS_NOT_IMPLEMENTED			   = 501,
+	HTTP_STATUS_BAD_GATEWAY				   = 502,
+	HTTP_STATUS_SERVICE_UNAVAILABLE		   = 503,
+	HTTP_STATUS_GATEWAY_TIMEOUT			   = 504,
 	HTTP_STATUS_HTTP_VERSION_NOT_SUPPORTED = 505,
-	HTTP_STATUS_INSUFFICIENT_STORAGE       = 507,
+	HTTP_STATUS_INSUFFICIENT_STORAGE	   = 507,
 
 } http_status_code_t;
 
@@ -217,9 +217,9 @@ enum http_test_handler {
 };
 
 http_test_result_t http_test_run(struct http_test_context *ctx,
-				 struct http_request *req,
-				 struct http_response *resp,
-				 enum http_test_handler cur_handler);
+								 struct http_request *req,
+								 struct http_response *resp,
+								 enum http_test_handler cur_handler);
 
 const char *http_test_result_to_str(http_test_result_t result);
 

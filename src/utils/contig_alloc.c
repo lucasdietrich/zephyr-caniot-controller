@@ -17,8 +17,8 @@ int contig_block_init(struct contig *g, uint8_t *buffer, size_t size)
 	}
 
 	g->allocated = 0;
-	g->size	     = size;
-	g->buf	     = buffer;
+	g->size		 = size;
+	g->buf		 = buffer;
 	return 0;
 }
 
@@ -59,8 +59,8 @@ int kcontig_init(struct kcontig *g, uint8_t *buffer, size_t size)
 		return -EINVAL;
 	}
 	g->allocated = 0;
-	g->size	     = size;
-	g->buf	     = buffer;
+	g->size		 = size;
+	g->buf		 = buffer;
 	sys_dlist_init(&g->dlist);
 	return 0;
 }
@@ -111,8 +111,8 @@ void *kcontig_remove(struct kcontig_block *b)
 }
 
 int kcontig_iterate(struct kcontig *g,
-		    bool (*cb)(struct kcontig_block *b, void *),
-		    void *user_data)
+					bool (*cb)(struct kcontig_block *b, void *),
+					void *user_data)
 {
 	if (!g || !cb) {
 		return -EINVAL;

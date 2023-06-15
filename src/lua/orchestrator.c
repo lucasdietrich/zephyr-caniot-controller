@@ -31,11 +31,8 @@ int lua_orch_init(void)
 
 	/* Workqueue should yield between scripts execution (yield by default)
 	 */
-	k_work_queue_start(&lua_work_q,
-			   work_q_stack,
-			   K_THREAD_STACK_SIZEOF(work_q_stack),
-			   CONFIG_LUA_ORCHESTRATOR_WORK_Q_PRIORITY,
-			   NULL);
+	k_work_queue_start(&lua_work_q, work_q_stack, K_THREAD_STACK_SIZEOF(work_q_stack),
+					   CONFIG_LUA_ORCHESTRATOR_WORK_Q_PRIORITY, NULL);
 
 	return 0;
 }
@@ -58,14 +55,13 @@ struct script_context {
 };
 
 K_MEM_SLAB_DEFINE_STATIC(works_pool,
-			 sizeof(struct script_context),
-			 CONFIG_LUA_ORCHESTRATOR_CONTEXTS_COUNT,
-			 4u);
+						 sizeof(struct script_context),
+						 CONFIG_LUA_ORCHESTRATOR_CONTEXTS_COUNT,
+						 4u);
 
 void lua_orch_script_handler(struct k_work *work)
 {
-	struct script_context *const sx =
-		CONTAINER_OF(work, struct script_context, _work);
+	struct script_context *const sx = CONTAINER_OF(work, struct script_context, _work);
 
 	LOG_DBG("(%p) Executing script ...", sx);
 
@@ -92,7 +88,7 @@ int lua_orch_run_script(const char *path, int *lua_ret)
 		/* Context init */
 		k_work_init(&sx->_work, lua_orch_script_handler);
 		k_sem_init(&sx->_sem, 0u, 1u);
-		sx->res	    = LUA_ORCH_RET_OK;
+		sx->res		= LUA_ORCH_RET_OK;
 		sx->lua_ret = 0u;
 
 		/* Init LUA context */
@@ -116,15 +112,11 @@ int lua_orch_run_script(const char *path, int *lua_ret)
 
 		/* Check for script execution error */
 		if (sx->lua_ret >= LUA_ERRRUN) {
-			LOG_WRN("(%p) Script returned error %d (%s)",
-				sx,
-				sx->lua_ret,
-				lua_utils_luaret2str(sx->lua_ret));
+			LOG_WRN("(%p) Script returned error %d (%s)", sx, sx->lua_ret,
+					lua_utils_luaret2str(sx->lua_ret));
 		} else {
-			LOG_INF("(%p) Script returned %d (%s)",
-				sx,
-				sx->lua_ret,
-				lua_utils_luaret2str(sx->lua_ret));
+			LOG_INF("(%p) Script returned %d (%s)", sx, sx->lua_ret,
+					lua_utils_luaret2str(sx->lua_ret));
 		}
 	}
 

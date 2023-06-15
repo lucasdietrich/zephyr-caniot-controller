@@ -2,9 +2,8 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(debug_server, LOG_LEVEL_DBG);
 
-#include "debug_server.h"
-
 #include "core/http_headers.h"
+#include "debug_server.h"
 
 #if defined(CONFIG_APP_HA)
 

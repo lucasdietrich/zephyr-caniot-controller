@@ -85,7 +85,7 @@ int buffer_snprintf(buffer_t *buf, const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 	const size_t remaining = buf->size - buf->filling;
-	ret = vsnprintf(&buf->data[buf->filling], remaining, fmt, args);
+	ret					   = vsnprintf(&buf->data[buf->filling], remaining, fmt, args);
 	if (ret >= 0 && ret <= remaining) {
 		buf->filling += ret;
 	}
@@ -100,7 +100,7 @@ int cursor_buffer_init(cursor_buffer_t *cbuf, char *buffer, size_t size)
 	if ((buffer != NULL) && (size > 0U)) {
 		cbuf->buffer = buffer;
 		cbuf->cursor = buffer;
-		cbuf->size   = size;
+		cbuf->size	 = size;
 
 		ret = 0;
 	}
@@ -141,7 +141,7 @@ int cursor_buffer_snprintf(cursor_buffer_t *cbuf, const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 	const size_t remaining = cursor_buffer_remaining(cbuf);
-	ret		       = vsnprintf(cbuf->cursor, remaining, fmt, args);
+	ret					   = vsnprintf(cbuf->cursor, remaining, fmt, args);
 	if (ret >= 0 && ret <= remaining) {
 		cbuf->cursor += ret;
 	}

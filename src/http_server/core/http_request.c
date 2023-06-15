@@ -39,14 +39,14 @@ extern int http_call_req_handler(http_request_t *req);
 
 /*_____________________________________________________________________________________*/
 const struct http_parser_settings parser_settings = {
-	.on_status	     = NULL, /* no status for requests */
-	.on_url		     = on_url,
-	.on_header_field     = on_header_field,
-	.on_header_value     = on_header_value,
+	.on_status			 = NULL, /* no status for requests */
+	.on_url				 = on_url,
+	.on_header_field	 = on_header_field,
+	.on_header_value	 = on_header_value,
 	.on_headers_complete = on_headers_complete,
-	.on_message_begin    = on_message_begin,
+	.on_message_begin	 = on_message_begin,
 	.on_message_complete = on_message_complete,
-	.on_body	     = on_body,
+	.on_body			 = on_body,
 
 	.on_chunk_header   = on_chunk_header,
 	.on_chunk_complete = on_chunk_complete};
@@ -57,7 +57,7 @@ void http_request_init(http_request_t *req)
 {
 	/* Rest of the request is initialize to 0 */
 	*req = (http_request_t){
-		.content_type		 = HTTP_CONTENT_TYPE_TEXT_PLAIN,
+		.content_type			 = HTTP_CONTENT_TYPE_TEXT_PLAIN,
 		.route_parse_results_len = CONFIG_APP_ROUTE_MAX_DEPTH,
 
 		.url_len   = 0u,
@@ -97,7 +97,7 @@ static const char *discard_reason_to_str(http_request_discard_reason_t reason)
 
 static void mark_discarded(http_request_t *req, http_request_discard_reason_t reason)
 {
-	req->discarded	    = 1u;
+	req->discarded		= 1u;
 	req->discard_reason = reason;
 }
 
@@ -147,26 +147,26 @@ struct http_header_handler {
 	uint16_t len;
 
 	int (*handler)(http_request_t *req,
-		       const struct http_header_handler *hdr,
-		       const char *value,
-		       size_t length);
+				   const struct http_header_handler *hdr,
+				   const char *value,
+				   size_t length);
 };
 
 #define header http_header_handler
 
 typedef int (*header_value_handler_t)(http_request_t *req,
-				      const struct header *hdr,
-				      const char *value);
+									  const struct header *hdr,
+									  const char *value);
 
 #define HEADER(_name, _handler)                                                          \
-	{                                                                                \
-		.name = _name, .len = sizeof(_name) - 1, .handler = _handler,            \
+	{                                                                                    \
+		.name = _name, .len = sizeof(_name) - 1, .handler = _handler,                    \
 	}
 
 static int header_keepalive_handler(http_request_t *req,
-				    const struct header *hdr,
-				    const char *value,
-				    size_t length)
+									const struct header *hdr,
+									const char *value,
+									size_t length)
 {
 #define KEEPALIVE_STR "keep-alive"
 
@@ -179,9 +179,9 @@ static int header_keepalive_handler(http_request_t *req,
 }
 
 static int header_timeout_handler(http_request_t *req,
-				  const struct header *hdr,
-				  const char *value,
-				  size_t length)
+								  const struct header *hdr,
+								  const char *value,
+								  size_t length)
 {
 	uint32_t timeout_ms;
 	if (sscanf(value, "%u", &timeout_ms) == 1) {
@@ -193,14 +193,13 @@ static int header_timeout_handler(http_request_t *req,
 }
 
 static int header_transfer_encoding_handler(http_request_t *req,
-					    const struct header *hdr,
-					    const char *value,
-					    size_t length)
+											const struct header *hdr,
+											const char *value,
+											size_t length)
 {
 #define CHUNKED_TRANSFERT_STR "chunked"
 
-	if ((strncicmp(value, CHUNKED_TRANSFERT_STR, strlen(CHUNKED_TRANSFERT_STR)) ==
-	     0)) {
+	if ((strncicmp(value, CHUNKED_TRANSFERT_STR, strlen(CHUNKED_TRANSFERT_STR)) == 0)) {
 		LOG_INF("(%p) Header Transfer Encoding (= chunked) found !", req);
 		req->chunked_encoding = 1;
 	}
@@ -209,27 +208,25 @@ static int header_transfer_encoding_handler(http_request_t *req,
 }
 
 static int header_content_type_handler(http_request_t *req,
-				       const struct header *hdr,
-				       const char *value,
-				       size_t length)
+									   const struct header *hdr,
+									   const char *value,
+									   size_t length)
 {
 #define CONTENT_TYPE_APPLICATION_OCTET_STREAM_STR "application/octet-stream"
 #define CONTENT_TYPE_MULTIPART_FORM_DATA_STR	  "multipart/form-data"
 
-	if (strncicmp(value,
-		      CONTENT_TYPE_APPLICATION_OCTET_STREAM_STR,
-		      strlen(CONTENT_TYPE_APPLICATION_OCTET_STREAM_STR) == 0)) {
+	if (strncicmp(value, CONTENT_TYPE_APPLICATION_OCTET_STREAM_STR,
+				  strlen(CONTENT_TYPE_APPLICATION_OCTET_STREAM_STR) == 0)) {
 		LOG_INF("(%p) "
-			"Content-"
-			"Type " CONTENT_TYPE_APPLICATION_OCTET_STREAM_STR,
-			req);
+				"Content-"
+				"Type " CONTENT_TYPE_APPLICATION_OCTET_STREAM_STR,
+				req);
 		req->content_type = HTTP_CONTENT_TYPE_APPLICATION_OCTET_STREAM;
-	} else if (strncicmp(value,
-			     CONTENT_TYPE_MULTIPART_FORM_DATA_STR,
-			     strlen(CONTENT_TYPE_MULTIPART_FORM_DATA_STR) == 0)) {
+	} else if (strncicmp(value, CONTENT_TYPE_MULTIPART_FORM_DATA_STR,
+						 strlen(CONTENT_TYPE_MULTIPART_FORM_DATA_STR) == 0)) {
 		LOG_INF("(%p) "
-			"Content-Type " CONTENT_TYPE_MULTIPART_FORM_DATA_STR,
-			req);
+				"Content-Type " CONTENT_TYPE_MULTIPART_FORM_DATA_STR,
+				req);
 		req->content_type = HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA;
 	}
 
@@ -274,9 +271,9 @@ static void reset_header_buffers_cursor(void)
  * @return int
  */
 static int header_keep(http_request_t *req,
-		       const struct header *hdr,
-		       const char *value,
-		       size_t length)
+					   const struct header *hdr,
+					   const char *value,
+					   size_t length)
 {
 	/* We should include EOS in the length */
 	struct http_header *buf = alloc_header_buffer(length + 1U);
@@ -361,13 +358,9 @@ static int on_headers_complete(struct http_parser *parser)
 	const bool content_length_present = parser->flags & F_CONTENTLENGTH;
 	const int content_length = content_length_present ? parser->content_length : -1;
 
-	LOG_INF("(%p) Headers complete %s %s content len=%d [hdr buf %u/%u]",
-		req,
-		http_method_str(method),
-		req->url,
-		content_length,
-		hdr_allocated,
-		CONFIG_APP_HTTP_REQUEST_HEADERS_BUFFER_SIZE);
+	LOG_INF("(%p) Headers complete %s %s content len=%d [hdr buf %u/%u]", req,
+			http_method_str(method), req->url, content_length, hdr_allocated,
+			CONFIG_APP_HTTP_REQUEST_HEADERS_BUFFER_SIZE);
 
 	/* For debug */
 	if (req->_url_copy != NULL) {
@@ -375,18 +368,15 @@ static int on_headers_complete(struct http_parser *parser)
 	}
 
 	/* Resolve route as we have enough information */
-	const struct route_descr *route = route_resolve(method,
-							req->url,
-							req->route_parse_results,
-							&req->route_parse_results_len,
-							&req->query_string);
+	const struct route_descr *route =
+		route_resolve(method, req->url, req->route_parse_results,
+					  &req->route_parse_results_len, &req->query_string);
 
-	req->method	      = method;
-	req->route	      = route;
+	req->method			  = method;
+	req->route			  = route;
 	req->headers_complete = 1U;
-	req->streaming	      = route_supports_streaming(route);
-	req->route_depth =
-		req->route_parse_results[req->route_parse_results_len - 1u].depth;
+	req->streaming		  = route_supports_streaming(route);
+	req->route_depth = req->route_parse_results[req->route_parse_results_len - 1u].depth;
 
 	/* TODO Check whether secure params are compliant with the requested
 	 * route */
@@ -394,16 +384,12 @@ static int on_headers_complete(struct http_parser *parser)
 	/* Checks */
 	if (route == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_UNKNOWN);
-		LOG_WRN("(%p) Route not found %s %s",
-			req,
-			http_method_str(req->method),
-			req->_url_copy);
+		LOG_WRN("(%p) Route not found %s %s", req, http_method_str(req->method),
+				req->_url_copy);
 	} else if (route->resp_handler == NULL) {
 		mark_discarded(req, HTTP_REQUEST_ROUTE_NO_HANDLER);
-		LOG_ERR("(%p) Route has no handler %s %s",
-			req,
-			http_method_str(req->method),
-			req->_url_copy);
+		LOG_ERR("(%p) Route has no handler %s %s", req, http_method_str(req->method),
+				req->_url_copy);
 	}
 
 	/* Check for secure */
@@ -525,17 +511,14 @@ static int on_chunk_complete(struct http_parser *parser)
 	req->chunk.len	   = 0U;
 	req->chunk.loc	   = NULL;
 
-	LOG_DBG("(%p) on_chunk_complete chunk=%u len=%u",
-		req,
-		req->chunk.id,
-		req->chunk.len);
+	LOG_DBG("(%p) on_chunk_complete chunk=%u len=%u", req, req->chunk.id, req->chunk.len);
 
 	return 0;
 }
 
 int http_req_route_arg_get_number_by_index(http_request_t *req,
-					   int32_t rel_index,
-					   uint32_t *value)
+										   int32_t rel_index,
+										   uint32_t *value)
 {
 	__ASSERT_NO_MSG(req != NULL);
 	__ASSERT_NO_MSG(req->route != NULL);
@@ -546,9 +529,8 @@ int http_req_route_arg_get_number_by_index(http_request_t *req,
 	}
 
 	return route_results_get_number_by_index(req->route_parse_results,
-						 req->route_parse_results_len,
-						 (uint32_t)rel_index,
-						 value);
+											 req->route_parse_results_len,
+											 (uint32_t)rel_index, value);
 }
 
 bool http_request_parse_buf(http_request_t *req, char *buf, size_t len)
@@ -556,23 +538,20 @@ bool http_request_parse_buf(http_request_t *req, char *buf, size_t len)
 	__ASSERT_NO_MSG(req != NULL);
 	__ASSERT_NO_MSG(buf != NULL);
 
-	bool success = true;
-	const size_t parsed =
-		http_parser_execute(&req->parser, &parser_settings, buf, len);
+	bool success		= true;
+	const size_t parsed = http_parser_execute(&req->parser, &parser_settings, buf, len);
 
 	if (parsed != len) {
 		const bool paused = HTTP_PARSER_ERRNO(&req->parser) == HPE_PAUSED;
 
 		if (paused && req->complete) {
 			LOG_ERR("(%p) Request malformed, more "
-				"data to parse rem=%u",
-				req,
-				len);
+					"data to parse rem=%u",
+					req, len);
 		} else {
 			LOG_ERR("Unexpected HTTP parser pause parsed/len = "
-				"%u/%u",
-				parsed,
-				len);
+					"%u/%u",
+					parsed, len);
 		}
 
 		success = false;
@@ -585,15 +564,13 @@ void http_request_discard(http_request_t *req, http_request_discard_reason_t rea
 {
 	mark_discarded(req, reason);
 
-	LOG_DBG("(%p) Discarding request, reason: %s (%u)",
-		req,
-		discard_reason_to_str(reason),
-		reason);
+	LOG_DBG("(%p) Discarding request, reason: %s (%u)", req,
+			discard_reason_to_str(reason), reason);
 }
 
 const char *http_header_get_value(http_request_t *req, const char *hdr_name)
 {
-	const char *value	= NULL;
+	const char *value		= NULL;
 	struct http_header *hdr = NULL;
 	SYS_DLIST_FOR_EACH_CONTAINER (&req->headers, hdr, handle) {
 		if (strcmp(hdr->name, hdr_name) == 0) {
@@ -611,11 +588,8 @@ int http_req_route_arg_get(http_request_t *req, const char *name, uint32_t *valu
 	__ASSERT_NO_MSG(req->route != NULL);
 	__ASSERT_NO_MSG(value != NULL);
 
-	return route_results_get(req->route_parse_results,
-				 req->route_parse_results_len,
-				 name,
-				 ROUTE_ARG_UINT | ROUTE_ARG_HEX,
-				 (void **)value);
+	return route_results_get(req->route_parse_results, req->route_parse_results_len, name,
+							 ROUTE_ARG_UINT | ROUTE_ARG_HEX, (void **)value);
 }
 
 int http_req_route_arg_get_string(http_request_t *req, const char *name, char **value)
@@ -624,9 +598,6 @@ int http_req_route_arg_get_string(http_request_t *req, const char *name, char **
 	__ASSERT_NO_MSG(req->route != NULL);
 	__ASSERT_NO_MSG(value != NULL);
 
-	return route_results_get(req->route_parse_results,
-				 req->route_parse_results_len,
-				 name,
-				 ROUTE_ARG_STR,
-				 (void **)value);
+	return route_results_get(req->route_parse_results, req->route_parse_results_len, name,
+							 ROUTE_ARG_STR, (void **)value);
 }

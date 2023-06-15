@@ -13,7 +13,7 @@
  * https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
  */
 
-#define BASE_MS		   (1u * MSEC_PER_SEC)
+#define BASE_MS			   (1u * MSEC_PER_SEC)
 #define RETRY_DELAY_CAP_MS (1800u * MSEC_PER_SEC)
 #define RETRY_MULTIPLIER   3u
 
@@ -39,8 +39,8 @@ int backoff_init(struct backoff *bo, backoff_method_t method)
 		return -EINVAL;
 	}
 
-	bo->delay    = 0u;
-	bo->method   = method;
+	bo->delay	 = 0u;
+	bo->method	 = method;
 	bo->attempts = 0u;
 
 	return 0;
@@ -60,17 +60,15 @@ int backoff_next(struct backoff *bo)
 		break;
 
 	case BACKOFF_METHOD_EXPONENTIAL: {
-		uint32_t exp =
-			(bo->attempts > MAX_EXPONENT) ? MAX_EXPONENT : bo->attempts;
+		uint32_t exp = (bo->attempts > MAX_EXPONENT) ? MAX_EXPONENT : bo->attempts;
 		uint32_t tmp = MIN(RETRY_DELAY_CAP_MS, (BASE_MS << exp));
-		bo->delay    = (tmp >> 1u) + get_random_in_range(0u, tmp >> 1u);
+		bo->delay	 = (tmp >> 1u) + get_random_in_range(0u, tmp >> 1u);
 		break;
 	}
 
 	case BACKOFF_METHOD_DECORR_JITTER:
-		bo->delay =
-			MIN(RETRY_DELAY_CAP_MS,
-			    get_random_in_range(BASE_MS, RETRY_MULTIPLIER * bo->delay));
+		bo->delay = MIN(RETRY_DELAY_CAP_MS,
+						get_random_in_range(BASE_MS, RETRY_MULTIPLIER * bo->delay));
 		break;
 	default:
 		return -ENOTSUP;
@@ -85,7 +83,7 @@ int backoff_reset(struct backoff *bo)
 		return -EINVAL;
 	}
 
-	bo->delay    = 0u;
+	bo->delay	 = 0u;
 	bo->attempts = 0u;
 
 	return 0;

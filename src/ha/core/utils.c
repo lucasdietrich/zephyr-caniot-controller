@@ -15,7 +15,7 @@ int zcan_to_caniot(const struct can_frame *zcan, struct caniot_frame *caniot)
 	}
 
 	caniot_clear_frame(caniot);
-	caniot->id  = caniot_canid_to_id((uint16_t)zcan->id);
+	caniot->id	= caniot_canid_to_id((uint16_t)zcan->id);
 	caniot->len = MIN(zcan->dlc, 8U);
 	memcpy(caniot->buf, zcan->data, caniot->len);
 
@@ -63,15 +63,8 @@ int ha_parse_ss_command(const char *str)
 int ha_parse_xps_command(const char *str)
 {
 	static const char *const cmds[] = {
-		"none",
-		"set_on",
-		"set_off",
-		"toggle",
-		"reset",
-		"pulse_on",
-		"pulse_off",
-		"pulse_cancel",
-		NULL,
+		"none",		"set_on",	 "set_off",		 "toggle", "reset",
+		"pulse_on", "pulse_off", "pulse_cancel", NULL,
 	};
 	return MAX(0, string_get_index_in_list(str, cmds));
 }

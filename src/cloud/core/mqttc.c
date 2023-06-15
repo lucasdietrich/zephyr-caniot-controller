@@ -38,8 +38,8 @@ LOG_MODULE_REGISTER(mqttc, LOG_LEVEL_INF);
 #include "cloud_internal.h"
 
 #define MQTT_PAYLOAD_BUFFER_SIZE 4096u
-#define MQTT_RX_BUFFER_SIZE	 256u
-#define MQTT_TX_BUFFER_SIZE	 256u
+#define MQTT_RX_BUFFER_SIZE		 256u
+#define MQTT_TX_BUFFER_SIZE		 256u
 
 __buf_noinit_section char mqtt_rx_buf[MQTT_RX_BUFFER_SIZE];
 __buf_noinit_section char mqtt_tx_buf[MQTT_TX_BUFFER_SIZE];
@@ -49,7 +49,7 @@ static cursor_buffer_t buffer = CUR_BUFFER_STATIC_INIT(payload_buf, sizeof(paylo
 static mqttc_on_publish_cb_t on_publish_cb;
 static void *on_publish_user_data;
 
-#define MQTTC_BIT_CONNECTED   (0u)
+#define MQTTC_BIT_CONNECTED	  (0u)
 #define MQTTC_BIT_INPROGRESS  (1u)
 #define MQTTC_FLAG_CONNECTED  (1u << MQTTC_BIT_CONNECTED)
 #define MQTTC_FLAG_INPROGRESS (1u << MQTTC_BIT_INPROGRESS)
@@ -88,17 +88,16 @@ static void handle_published_message(const struct mqtt_publish_param *msg)
 
 	const bool discarded = message_size > buffer.size;
 	if (discarded) {
-		LOG_WRN("Published messaged too big %u > %u, discarding ...",
-			message_size,
-			buffer.size);
+		LOG_WRN("Published messaged too big %u > %u, discarding ...", message_size,
+				buffer.size);
 	}
 
 	/* Receive the message */
 	while (received < message_size) {
 		ssize_t ret;
 
-		ret = mqtt_read_publish_payload(
-			&mqtt, buffer.cursor, cursor_buffer_remaining(&buffer));
+		ret = mqtt_read_publish_payload(&mqtt, buffer.cursor,
+										cursor_buffer_remaining(&buffer));
 
 		if (ret < 0) {
 			LOG_ERR("Failed to read payload: %d", ret);
@@ -124,13 +123,11 @@ static void handle_published_message(const struct mqtt_publish_param *msg)
 	if (discarded == false) {
 
 		if (on_publish_cb != NULL) {
-			on_publish_cb(
-				topic, payload_buf, message_size, on_publish_user_data);
+			on_publish_cb(topic, payload_buf, message_size, on_publish_user_data);
 		}
 
-		LOG_HEXDUMP_INF(buffer.buffer,
-				cursor_buffer_filling(&buffer),
-				"Received message");
+		LOG_HEXDUMP_INF(buffer.buffer, cursor_buffer_filling(&buffer),
+						"Received message");
 	}
 }
 
@@ -237,10 +234,7 @@ int mqttc_try_connect(uint32_t max_attempts)
 		if (ret != 0) {
 			const uint32_t delay_ms = backoff_next(&bo);
 
-			LOG_ERR("MQTT %p connect failed ret=%d retry in %u ms",
-				&mqtt,
-				ret,
-				delay_ms);
+			LOG_ERR("MQTT %p connect failed ret=%d retry in %u ms", &mqtt, ret, delay_ms);
 
 			k_sleep(K_MSEC(delay_ms));
 		}
@@ -281,9 +275,9 @@ int mqttc_init(void)
 	/* Generic MQTT client configuration */
 	mqtt.evt_cb = mqtt_event_cb;
 
-	mqtt.rx_buf	 = mqtt_rx_buf;
+	mqtt.rx_buf		 = mqtt_rx_buf;
 	mqtt.rx_buf_size = MQTT_RX_BUFFER_SIZE;
-	mqtt.tx_buf	 = mqtt_tx_buf;
+	mqtt.tx_buf		 = mqtt_tx_buf;
 	mqtt.tx_buf_size = MQTT_TX_BUFFER_SIZE;
 
 	if (p->config.clientid) {
@@ -369,7 +363,7 @@ int mqttc_set_publish_cb(mqttc_on_publish_cb_t cb, void *user_data)
 		return -EINVAL;
 	}
 
-	on_publish_cb	     = cb;
+	on_publish_cb		 = cb;
 	on_publish_user_data = user_data;
 
 	return 0;
@@ -388,10 +382,10 @@ int mqttc_subscribe(const char *topic, uint8_t qos)
 	struct mqtt_topic top;
 	top.topic.utf8 = topic;
 	top.topic.size = strlen(topic);
-	top.qos	       = qos;
+	top.qos		   = qos;
 
 	struct mqtt_subscription_list sub_list = {
-		.list	    = &top,
+		.list		= &top,
 		.list_count = 1u,
 		.message_id = message_id,
 	};
@@ -420,13 +414,13 @@ int mqttc_publish(const char *topic, const char *payload, size_t len, int qos)
 
 	struct mqtt_publish_param msg;
 
-	msg.retain_flag		     = 0u;
-	msg.message.topic.qos	     = qos;
+	msg.retain_flag				 = 0u;
+	msg.message.topic.qos		 = qos;
 	msg.message.topic.topic.utf8 = topic;
 	msg.message.topic.topic.size = strlen(topic);
-	msg.message.payload.data     = (char *)payload;
-	msg.message.payload.len	     = len;
-	msg.message_id		     = message_id;
+	msg.message.payload.data	 = (char *)payload;
+	msg.message.payload.len		 = len;
+	msg.message_id				 = message_id;
 
 	message_id++;
 
@@ -442,7 +436,7 @@ int mqttc_publish(const char *topic, const char *payload, size_t len, int qos)
 
 int mqttc_set_pollfd(struct pollfd *fds)
 {
-	fds->fd	    = mqtt.transport.tls.sock;
+	fds->fd		= mqtt.transport.tls.sock;
 	fds->events = POLLIN | POLLHUP | POLLERR;
 
 	return 0;

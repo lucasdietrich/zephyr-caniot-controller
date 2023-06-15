@@ -28,15 +28,8 @@ LOG_MODULE_REGISTER(cloud, LOG_LEVEL_INF);
 
 static void task(void *_a, void *_b, void *_c);
 
-K_THREAD_DEFINE(cloud_thread,
-		AWS_THREAD_STACK_SIZE,
-		task,
-		NULL,
-		NULL,
-		NULL,
-		K_PRIO_PREEMPT(7),
-		0,
-		0);
+K_THREAD_DEFINE(
+	cloud_thread, AWS_THREAD_STACK_SIZE, task, NULL, NULL, NULL, K_PRIO_PREEMPT(7), 0, 0);
 
 extern int cloud_app_init(void);
 extern int cloud_app_process(atomic_val_t flags);
@@ -96,11 +89,8 @@ enum cloud_state state = STATE_INIT;
 static void set_state(enum cloud_state new_state)
 {
 	if (state != new_state) {
-		LOG_INF("State changed: %s (%d) -> %s (%d)",
-			cloud_state_to_str(state),
-			state,
-			cloud_state_to_str(new_state),
-			new_state);
+		LOG_INF("State changed: %s (%d) -> %s (%d)", cloud_state_to_str(state), state,
+				cloud_state_to_str(new_state), new_state);
 		state = new_state;
 	}
 }
@@ -151,7 +141,7 @@ static bool state_machine(void)
 	case STATE_CONNECTED: {
 		/* Wait for events */
 		int timeout = mqttc_keepalive_time_left();
-		ret	    = poll(fds, 2u, timeout);
+		ret			= poll(fds, 2u, timeout);
 		if (ret >= 0) {
 			if (mqttc_process(&fds[FDS_MQTT]) < 0) {
 				set_state(STATE_DISCONNECTING);
@@ -227,7 +217,7 @@ static void task(void *_a, void *_b, void *_c)
 		goto exit;
 	}
 
-	fds[FDS_APP].fd	    = appfd;
+	fds[FDS_APP].fd		= appfd;
 	fds[FDS_APP].events = POLLIN;
 
 	for (;;) {
