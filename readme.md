@@ -9,7 +9,7 @@ And this project can also be seen of a demonstration of an IoT application handl
 
 Comments, questions, suggestions and contributions are welcome.
 
-Currently supporting **ZephyrRTOS v3.2.0** with following targets:
+Currently supporting **ZephyrRTOS v3.4.0** with following targets:
 - `nucleo_f429zi`
 - `mps2_an385`
 - `qemu_x86`
