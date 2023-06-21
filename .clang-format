@@ -20,7 +20,7 @@ AllowShortIfStatementsOnASingleLine: true
 AlignOperands: Align
 AllowShortLoopsOnASingleLine: true
 AlignTrailingComments: true
-BinPackArguments: false
+BinPackArguments: true
 BinPackParameters: false
 AttributeMacros:
   - __aligned
@@ -31,8 +31,8 @@ AttributeMacros:
   - __subsystem
 BreakBeforeBraces: Linux
 ColumnLimit: 90 # 80 would be ideal, but strict "80" make the code too long
-ConstructorInitializerIndentWidth: 8
-ContinuationIndentWidth: 8
+ConstructorInitializerIndentWidth: 4
+ContinuationIndentWidth: 4
 ForEachMacros:
   - 'FOR_EACH'
   - 'FOR_EACH_FIXED_ARG'
@@ -78,9 +78,10 @@ IncludeCategories:
   - Regex: '.*'
     Priority: 3
 IndentCaseLabels: false
-IndentWidth: 8
-# SpaceBeforeParens: ControlStatementsExceptControlMacros # clang-format >= 13.0
 UseTab: Always
+IndentWidth: 4
+TabWidth: 4
+# SpaceBeforeParens: ControlStatementsExceptControlMacros # clang-format >= 13.0
 WhitespaceSensitiveMacros:
   - STRINGIFY
   - Z_STRINGIFY

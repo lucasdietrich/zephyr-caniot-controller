@@ -15,9 +15,9 @@ struct json_device_base {
 struct json_xiaomi_record_measures {
 	int32_t rssi;
 
-	char *temperature;	  /* °C */
+	char *temperature;		  /* °C */
 	int32_t temperature_raw;  /* 1e-2 °C */
-	uint32_t humidity;	  /* 1e-2 % */
+	uint32_t humidity;		  /* 1e-2 % */
 	uint32_t battery_level;	  /* % */
 	uint32_t battery_voltage; /* mV */
 };

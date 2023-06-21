@@ -27,7 +27,7 @@ void ha_dev_garage_cmd_init(struct ha_dev_garage_cmd *cmd)
 }
 
 static void ha_dev_garage_payload_build(struct caniot_blc0_command *payload,
-					const struct ha_dev_garage_cmd *cmd)
+										const struct ha_dev_garage_cmd *cmd)
 {
 	__ASSERT_NO_MSG(payload != NULL);
 	__ASSERT_NO_MSG(cmd != NULL);
@@ -50,10 +50,8 @@ int ha_dev_garage_cmd_send(const struct ha_dev_garage_cmd *cmd)
 
 	ha_dev_garage_payload_build(&payload, cmd);
 
-	caniot_build_query_command(&frame,
-				   CANIOT_ENDPOINT_BOARD_CONTROL,
-				   (uint8_t *)&payload,
-				   sizeof(payload));
+	caniot_build_query_command(&frame, CANIOT_ENDPOINT_BOARD_CONTROL, (uint8_t *)&payload,
+							   sizeof(payload));
 
 	return ha_caniot_controller_send(&frame, garage_did);
 }

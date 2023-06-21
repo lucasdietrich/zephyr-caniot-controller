@@ -15,9 +15,9 @@
 #define MQTTC_TRY_CONNECT_FOREVER (-1)
 
 typedef void (*mqttc_on_publish_cb_t)(const char *topic,
-				      const char *payload,
-				      size_t payload_len,
-				      void *user_data);
+									  const char *payload,
+									  size_t payload_len,
+									  void *user_data);
 
 int mqttc_init(void);
 

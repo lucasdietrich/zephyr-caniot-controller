@@ -1,10 +1,10 @@
 # GENERATOR=Unix Makefiles
 # GENERATOR=Ninja
-GENERATOR=Ninja
+GENERATOR?=Ninja
 SERIAL_PORT?=/dev/ttyACM0
 BAUDRATE?=115200
-PYOCD = pyocd
-BUILD_TYPE=debug
+PYOCD?= pyocd
+BUILD_TYPE?=debug
 
 ifeq ($(GENERATOR),Unix Makefiles)
 GEN_CMD=make

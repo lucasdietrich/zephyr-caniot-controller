@@ -28,8 +28,8 @@ int if_can_init(void);
  * @return int
  */
 int if_can_attach_rx_msgq(can_bus_id_t canbus,
-			  struct k_msgq *rx_msgq,
-			  struct can_filter *filter);
+						  struct k_msgq *rx_msgq,
+						  struct can_filter *filter);
 
 /**
  * @brief Send a CAN frame on a CAN bus

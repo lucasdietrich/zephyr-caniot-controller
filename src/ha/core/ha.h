@@ -33,17 +33,17 @@ struct ha_event;
 struct ha_device;
 
 /* Defines */
-#define HA_DEV_EP_MAX_COUNT		   2u
+#define HA_DEV_EP_MAX_COUNT				   2u
 #define HA_DEV_EP_TYPE_SEARCH_OPTIMIZATION 1u
 
-#define HA_DEV_ADDR_STR_MAX_LEN	       MAX(BT_ADDR_LE_STR_LEN, sizeof("0x1FFFFFFF"))
+#define HA_DEV_ADDR_STR_MAX_LEN		   MAX(BT_ADDR_LE_STR_LEN, sizeof("0x1FFFFFFF"))
 #define HA_DEV_ADDR_TYPE_STR_MAX_LEN   16u
 #define HA_DEV_ADDR_MEDIUM_STR_MAX_LEN 10u
 
 #define HA_UUID_STR_LEN sizeof("00000000-0000-0000-0000-000000000000")
 
 #define HA_DEVICES_MAX_COUNT	   CONFIG_APP_HA_DEVICES_MAX_COUNT
-#define HA_EVENTS_MAX_COUNT	   CONFIG_APP_HA_EVENTS_MAX_COUNT
+#define HA_EVENTS_MAX_COUNT		   CONFIG_APP_HA_EVENTS_MAX_COUNT
 #define HA_SUBSCRIPTIONS_MAX_COUNT CONFIG_APP_HA_SUBSCRIPTIONS_MAX_COUNT
 
 typedef enum {
@@ -56,16 +56,14 @@ typedef enum {
 typedef enum {
 	HA_DEV_FILTER_MEDIUM	  = BIT(0), /* filter by medium */
 	HA_DEV_FILTER_DEVICE_TYPE = BIT(1), /* filter by device type */
-	HA_DEV_FILTER_DATA_EXIST = BIT(2), /* Filter by existing data on given endpoint */
+	HA_DEV_FILTER_DATA_EXIST  = BIT(2), /* Filter by existing data on given endpoint */
 	// HA_DEV_FILTER_SENSOR_TYPE, /* filter by temperature sensor type */
-	HA_DEV_FILTER_DATA_TIMESTAMP =
-		BIT(3), /* filter devices with recent measurements */
+	HA_DEV_FILTER_DATA_TIMESTAMP = BIT(3), /* filter devices with recent measurements */
 	// HA_DEV_FILTER_REGISTERED_TIMESTAMP, /* filter recent devices */
-	HA_DEV_FILTER_HAS_TEMPERATURE =
-		BIT(4),			   /* filter devices with temperature sensor */
-	HA_DEV_FILTER_ROOM_ID	 = BIT(5), /* filter devices with defined room id */
-	HA_DEV_FILTER_FROM_INDEX = BIT(6), /* filter devices from index (included) */
-	HA_DEV_FILTER_TO_INDEX	 = BIT(7), /* filter devices to index (excluded) */
+	HA_DEV_FILTER_HAS_TEMPERATURE = BIT(4), /* filter devices with temperature sensor */
+	HA_DEV_FILTER_ROOM_ID		  = BIT(5), /* filter devices with defined room id */
+	HA_DEV_FILTER_FROM_INDEX	  = BIT(6), /* filter devices from index (included) */
+	HA_DEV_FILTER_TO_INDEX		  = BIT(7), /* filter devices to index (excluded) */
 
 	/* filter devices until count of valid devices reach the given value
 	 * "to_count" */
@@ -140,7 +138,7 @@ struct ha_device_endpoint_api {
 	/* Endpoint identifier */
 	ha_endpoint_id_t eid : 8u;
 
-	/* Endpoint data size, internal format */
+	/* Structure size of the interpreted data (ha_ds_) */
 	uint32_t data_size : 8u;
 
 	/* Endpoint expected payload size, 0 for unspecified*/
@@ -183,15 +181,15 @@ typedef struct ha_device_endpoint ha_dev_ep_t;
 	((_type *)ha_dev_get_last_event_data(_dev, 0u))
 
 #define HA_DEV_EP_API_INIT(_eid, _data_size, _expected_payload_size, _ingest, _command)  \
-	{                                                                                \
-		.eid = _eid, .data_size = _data_size,                                    \
-		.expected_payload_size = _expected_payload_size, .ingest = _ingest,      \
-		.command = _command,                                                     \
+	{                                                                                    \
+		.eid = _eid, .data_size = _data_size,                                            \
+		.expected_payload_size = _expected_payload_size, .ingest = _ingest,              \
+		.command = _command,                                                             \
 	}
 
 #define HA_DEV_PAYLOAD_INIT(_buf, _len, _ts, _y)                                         \
-	{                                                                                \
-		.timestamp = _ts, .buffer = _buf, .len = _len, .y = _y,                  \
+	{                                                                                    \
+		.timestamp = _ts, .buffer = _buf, .len = _len, .y = _y,                          \
 	}
 
 #define HA_DEV_STATS_ERR_FLAG_MASK 0xFFu
@@ -282,16 +280,15 @@ struct ha_device_api {
 	 * @return true to accept the device, false to refuse the registration
 	 */
 	int (*init_endpoints)(const ha_dev_addr_t *addr,
-			      struct ha_device_endpoint *endpoints,
-			      uint8_t *endpoints_count);
+						  struct ha_device_endpoint *endpoints,
+						  uint8_t *endpoints_count);
 
 	/**
 	 * @brief Choose which endpoint to use for a given payload
 	 *
 	 * If NULL, the first endpoint is used
 	 */
-	int (*select_endpoint)(const ha_dev_addr_t *addr,
-			       const struct ha_device_payload *pl);
+	int (*select_endpoint)(const ha_dev_addr_t *addr, const struct ha_device_payload *pl);
 };
 
 struct ha_event {
@@ -339,7 +336,7 @@ typedef struct ha_event ha_ev_t;
 
 /* Event subscription Control flags */
 #define HA_EV_SUBS_FLAG_SUBSCRIBED_BIT 0u
-#define HA_EV_SUBS_FLAG_SUBSCRIBED     BIT(HA_EV_SUBS_FLAG_SUBSCRIBED_BIT)
+#define HA_EV_SUBS_FLAG_SUBSCRIBED	   BIT(HA_EV_SUBS_FLAG_SUBSCRIBED_BIT)
 
 /**
  * @brief Event filter function for subscription
@@ -377,9 +374,9 @@ typedef struct ha_ev_subs ha_ev_subs_t;
 #define HA_EV_SUBS_CONF_ON_QUEUED_HOOK BIT(0u)
 
 /* Event subscription filter flags */
-#define HA_EV_SUBS_CONF_DEVICE_TYPE	BIT(1u)
-#define HA_EV_SUBS_CONF_DEVICE_ADDR	BIT(2u)
-#define HA_EV_SUBS_CONF_DEVICE_DATA	BIT(3u)
+#define HA_EV_SUBS_CONF_DEVICE_TYPE		BIT(1u)
+#define HA_EV_SUBS_CONF_DEVICE_ADDR		BIT(2u)
+#define HA_EV_SUBS_CONF_DEVICE_DATA		BIT(3u)
 #define HA_EV_SUBS_CONF_DEVICE_COMMAND	BIT(4u)
 #define HA_EV_SUBS_CONF_DEVICE_ERROR	BIT(5u)
 #define HA_EV_SUBS_CONF_FILTER_FUNCTION BIT(6u)
@@ -409,15 +406,15 @@ typedef struct ha_ev_subs_conf ha_ev_subs_conf_t;
 #define HA_DEV_FILTER_DISABLED NULL
 
 #define _HA_DEV_FILTER_BY_DEVICE_MEDIUM(_medium)                                         \
-	(&(ha_dev_filter_t){                                                             \
-		.flags	= HA_DEV_FILTER_MEDIUM,                                          \
-		.medium = _medium,                                                       \
+	(&(ha_dev_filter_t){                                                                 \
+		.flags	= HA_DEV_FILTER_MEDIUM,                                                  \
+		.medium = _medium,                                                               \
 	})
 
 #define _HA_DEV_FILTER_BY_DEVICE_TYPE(_type)                                             \
-	(&(ha_dev_filter_t){                                                             \
-		.flags = HA_DEV_FILTER_DEVICE_TYPE,                                      \
-		.type  = _type,                                                          \
+	(&(ha_dev_filter_t){                                                                 \
+		.flags = HA_DEV_FILTER_DEVICE_TYPE,                                              \
+		.type  = _type,                                                                  \
 	})
 
 struct ha_device_filter {
@@ -439,16 +436,16 @@ typedef struct ha_device_filter ha_dev_filter_t;
  * @brief Lock only the last event of the first endpoint
  */
 #define HA_DEV_ITER_OPT_DEFAULT()                                                        \
-	((const ha_dev_iter_opt_t){                                                      \
-		.ep_lock_last_ev_mask = 1u,                                              \
+	((const ha_dev_iter_opt_t){                                                          \
+		.ep_lock_last_ev_mask = 1u,                                                      \
 	})
 
 /**
  * @brief Lock the last event of all endpoints
  */
 #define HA_DEV_ITER_OPT_LOCK_ALL()                                                       \
-	((const ha_dev_iter_opt_t){                                                      \
-		.ep_lock_last_ev_mask = (uint8_t)-1,                                     \
+	((const ha_dev_iter_opt_t){                                                          \
+		.ep_lock_last_ev_mask = (uint8_t)-1,                                             \
 	})
 
 struct ha_device_iter_opt {
@@ -471,7 +468,7 @@ struct ha_stats {
 	uint32_t dev_no_mem;	 /* No Slot available */
 	uint32_t dev_no_api;	 /* No API found */
 	uint32_t dev_ep_init;	 /* Endpoints initialization failed */
-	uint32_t dev_no_ep;	 /* No endpoints found */
+	uint32_t dev_no_ep;		 /* No endpoints found */
 	uint32_t dev_toomuch_ep; /* Too much endpoints */
 
 	/* Dropped events */
@@ -480,24 +477,24 @@ struct ha_stats {
 	uint32_t ev_cmd_dropped;  /* Number of command events dropped */
 
 	/* Reasons for dropped events */
-	uint32_t ev_no_mem;	  /* No memory available */
-	uint32_t ev_no_ep;	  /* No endpoint found */
-	uint32_t ev_ep;		  /* Invalid endpoint */
+	uint32_t ev_no_mem;		  /* No memory available */
+	uint32_t ev_no_ep;		  /* No endpoint found */
+	uint32_t ev_ep;			  /* Invalid endpoint */
 	uint32_t ev_payload_size; /* Payload size too big */
 	uint32_t ev_no_data_mem;  /* No memory available for data */
-	uint32_t ev_ingest;	  /* DATA Ingestion failed */
+	uint32_t ev_ingest;		  /* DATA Ingestion failed */
 	uint32_t ev_never_ref;	  /* Event never referenced */
 
 	/* Memory, buffers, blocks usage */
-	uint32_t mem_ev_count;	       /* Number of events currently in use (allocated)
-					*/
-	uint32_t mem_ev_remaining;     /* Number of events remaining */
-	uint32_t mem_device_count;     /* Maximum number of events in use
-					  (allocated) */
+	uint32_t mem_ev_count;		   /* Number of events currently in use (allocated)
+									*/
+	uint32_t mem_ev_remaining;	   /* Number of events remaining */
+	uint32_t mem_device_count;	   /* Maximum number of events in use
+			  (allocated) */
 	uint32_t mem_device_remaining; /* Number of events remaining */
-	uint32_t mem_sub_count;	       /* Number of subscriptions currently in use
-					  (allocated) */
-	uint32_t mem_sub_remaining;    /* Number of subscriptions remaining */
+	uint32_t mem_sub_count;		   /* Number of subscriptions currently in use
+				  (allocated) */
+	uint32_t mem_sub_remaining;	   /* Number of subscriptions remaining */
 
 	uint32_t mem_heap_alloc; /* Heap currently allocated */
 	uint32_t mem_heap_total; /* Heap allocated in total */
@@ -505,7 +502,7 @@ struct ha_stats {
 
 struct ha_event_stats {
 	uint8_t notified; /* Number of times the event has been notified */
-			  // uint32_t alive_ms; /* Time the event has been alive (ms) */
+					  // uint32_t alive_ms; /* Time the event has been alive (ms) */
 };
 
 struct ha_room_assoc {
@@ -548,7 +545,7 @@ ha_dev_t *ha_dev_get_by_addr(const ha_dev_addr_t *addr);
  * @return int
  */
 int ha_dev_register_data(const ha_dev_addr_t *addr,
-			 const struct ha_device_payload *payload);
+						 const struct ha_device_payload *payload);
 
 /**
  * @brief Callback for handling a device command response
@@ -660,9 +657,9 @@ typedef bool ha_dev_iterate_cb_t(ha_dev_t *dev, void *user_data);
  * @return ssize_t Number of devices iterated, negative on error
  */
 ssize_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
-		       const ha_dev_filter_t *filter,
-		       const ha_dev_iter_opt_t *options,
-		       void *user_data);
+					   const ha_dev_filter_t *filter,
+					   const ha_dev_iter_opt_t *options,
+					   void *user_data);
 
 /**
  * @brief Reference an event, i.e. incrementing its reference counter
@@ -801,8 +798,8 @@ bool ha_dev_ep_exists(const ha_dev_t *dev, uint8_t endpoint_index);
  * @return false
  */
 bool ha_dev_ep_has_datatype(const ha_dev_t *dev,
-			    uint8_t endpoint_index,
-			    const ha_data_type_t datatype);
+							uint8_t endpoint_index,
+							const ha_data_type_t datatype);
 
 /**
  * @brief Tell whether a device has a endpoint at the given index which supports

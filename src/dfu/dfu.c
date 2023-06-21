@@ -17,14 +17,14 @@ LOG_MODULE_REGISTER(dfu, LOG_LEVEL_DBG);
 #define FLASH_SLOT0_PARTITION slot0_partition
 #define FLASH_SLOT1_PARTITION slot1_partition
 
-#define FLASH_DEVICE	    FIXED_PARTITION_DEVICE(FLASH_SLOT0_PARTITION)
+#define FLASH_DEVICE		FIXED_PARTITION_DEVICE(FLASH_SLOT0_PARTITION)
 #define FLASH_AREA_SLOT0_ID FIXED_PARTITION_ID(FLASH_SLOT0_PARTITION)
 #define FLASH_AREA_SLOT1_ID FIXED_PARTITION_ID(FLASH_SLOT1_PARTITION)
 
 int dfu_image_read_header(struct mcuboot_img_header *header)
 {
-	return boot_read_bank_header(
-		FLASH_AREA_SLOT0_ID, header, sizeof(struct mcuboot_img_header));
+	return boot_read_bank_header(FLASH_AREA_SLOT0_ID, header,
+								 sizeof(struct mcuboot_img_header));
 }
 
 void dfu_image_check(void)
@@ -46,19 +46,14 @@ void dfu_image_check(void)
 	const bool confirmed = boot_is_img_confirmed();
 
 	LOG_INF("MCUBOOT version=%x IMAGE size=0x%x version=%u.%u.%u+%u "
-		"confirmed=%u",
-		header.mcuboot_version,
-		header.h.v1.image_size,
-		header.h.v1.sem_ver.major,
-		header.h.v1.sem_ver.minor,
-		header.h.v1.sem_ver.revision,
-		header.h.v1.sem_ver.build_num,
-		(int)confirmed);
+			"confirmed=%u",
+			header.mcuboot_version, header.h.v1.image_size, header.h.v1.sem_ver.major,
+			header.h.v1.sem_ver.minor, header.h.v1.sem_ver.revision,
+			header.h.v1.sem_ver.build_num, (int)confirmed);
 
 	if ((header.h.v1.sem_ver.major == 0) && (header.h.v1.sem_ver.minor == 0)) {
-		LOG_WRN("Development image (version=0.0.%u+%u)",
-			header.h.v1.sem_ver.revision,
-			header.h.v1.sem_ver.build_num);
+		LOG_WRN("Development image (version=0.0.%u+%u)", header.h.v1.sem_ver.revision,
+				header.h.v1.sem_ver.build_num);
 	}
 
 	/* Mark image as confirmed */

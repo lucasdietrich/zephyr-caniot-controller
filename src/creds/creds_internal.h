@@ -11,12 +11,12 @@ struct creds_api {
 };
 
 #define CRED_API_INIT(_init, _get, _copy_to, _iterate)                                   \
-	{                                                                                \
-		.init = _init, .get = _get, .copy_to = _copy_to, .iterate = _iterate,    \
+	{                                                                                    \
+		.init = _init, .get = _get, .copy_to = _copy_to, .iterate = _iterate,            \
 	}
 
 #define CREDS_API_DEFINE(_name, _init, _get, _copy_to, _iterate)                         \
-	static STRUCT_SECTION_ITERABLE(creds_api, _name) =                               \
+	static STRUCT_SECTION_ITERABLE(creds_api, _name) =                                   \
 		CRED_API_INIT(_init, _get, _copy_to, _iterate)
 
 #endif /* _CREDS_INTERNAL_H */

@@ -14,7 +14,7 @@
 #include <utils/buffers.h>
 
 #define CRED_HTTPS_SERVER_BASE 0x10u
-#define CRED_AWS_BASE	       0x20u
+#define CRED_AWS_BASE		   0x20u
 
 typedef enum {
 	/* HTTPS server */

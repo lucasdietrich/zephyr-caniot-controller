@@ -72,7 +72,7 @@ static ha_subs_ext_lte_t *lt_find(ha_subs_ext_lt_t *lt, ha_ev_t *event)
 static ha_subs_ext_lte_t *
 lt_find_otherwise_allocate(ha_subs_ext_lt_t *lt, ha_ev_t *event, bool *created)
 {
-	bool zcreated	       = false;
+	bool zcreated		   = false;
 	ha_subs_ext_lte_t *lte = lt_find(lt, event);
 
 	if (lte == NULL) {
@@ -165,10 +165,10 @@ static bool lt_filter_subsampling_cb(struct ha_ev_subs *sub, ha_ev_t *event)
 }
 
 int ha_subs_ext_conf_set(struct ha_ev_subs_conf *conf,
-			 struct ha_subs_ext_lookup_table *lookup_table,
-			 ha_subs_ext_lookup_type_t lookup_type,
-			 ha_subs_ext_filtering_type_t filtering_type,
-			 ha_subs_ext_filtering_param_t filtering_param)
+						 struct ha_subs_ext_lookup_table *lookup_table,
+						 ha_subs_ext_lookup_type_t lookup_type,
+						 ha_subs_ext_filtering_type_t filtering_type,
+						 ha_subs_ext_filtering_param_t filtering_param)
 {
 	if (!conf || !lookup_table) return -EINVAL;
 
@@ -217,7 +217,7 @@ int ha_subs_ext_conf_set(struct ha_ev_subs_conf *conf,
 	/* Initialize lookup table */
 	lookup_table->filtering_type  = filtering_type;
 	lookup_table->filtering_param = filtering_param;
-	lookup_table->lookup_type     = lookup_type;
+	lookup_table->lookup_type	  = lookup_type;
 	sys_slist_init(&lookup_table->_list);
 
 	/* Set extended filter context */

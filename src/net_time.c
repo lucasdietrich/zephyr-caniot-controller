@@ -49,9 +49,8 @@ static void sntp_handler(struct k_work *work)
 	k_mutex_lock(&ctx->mutex, K_FOREVER);
 
 	if (ret == 0) {
-		tspec.tv_sec = time.seconds;
-		tspec.tv_nsec =
-			((uint64_t)time.fraction * (1000LU * 1000LU * 1000LU)) >> 32;
+		tspec.tv_sec  = time.seconds;
+		tspec.tv_nsec = ((uint64_t)time.fraction * (1000LU * 1000LU * 1000LU)) >> 32;
 
 		clock_settime(CLOCK_REALTIME, &tspec);
 
@@ -60,10 +59,8 @@ static void sntp_handler(struct k_work *work)
 
 		ret = k_condvar_broadcast(&ctx->condvar);
 
-		LOG_INF("SNTP time from %s:123 = %u, %d thread(s) signaled",
-			ctx->server,
-			(uint32_t)time.seconds,
-			ret);
+		LOG_INF("SNTP time from %s:123 = %u, %d thread(s) signaled", ctx->server,
+				(uint32_t)time.seconds, ret);
 	} else {
 		ctx->failures++;
 
@@ -139,11 +136,7 @@ void net_time_show(void)
 	gmtime_r(&timestamp, &time_infos);
 
 	printk("Local (Europe/Paris) Date and time : %04d/%02d/%02d "
-	       "%02d:%02d:%02d\n",
-	       time_infos.tm_year + 1900,
-	       time_infos.tm_mon + 1,
-	       time_infos.tm_mday,
-	       time_infos.tm_hour,
-	       time_infos.tm_min,
-	       time_infos.tm_sec);
+		   "%02d:%02d:%02d\n",
+		   time_infos.tm_year + 1900, time_infos.tm_mon + 1, time_infos.tm_mday,
+		   time_infos.tm_hour, time_infos.tm_min, time_infos.tm_sec);
 }

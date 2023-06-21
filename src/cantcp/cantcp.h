@@ -27,7 +27,7 @@ typedef enum {
 } cantcp_secure_t;
 
 typedef enum {
-	CANTCP_BLOCKING	     = 0,
+	CANTCP_BLOCKING		 = 0,
 	CANTCP_BLOCKING_MODE = 1,
 } CANTCP_BLOCKING_MODE_t;
 
@@ -75,7 +75,7 @@ struct cantcp_tunnel {
 
 	/* other configuration */
 	uint8_t max_retries;
-	uint32_t retry_delay;	     /* in milliseconds */
+	uint32_t retry_delay;		 /* in milliseconds */
 	uint32_t keep_alive_timeout; /* in milliseconds */
 
 	/* TLS secure parameters */

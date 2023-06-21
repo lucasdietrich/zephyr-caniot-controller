@@ -64,14 +64,14 @@ static const sec_tag_t sec_tag_list[] = {HTTPS_SERVER_SEC_TAG};
 #define KEEP_ALIVE_DEFAULT_TIMEOUT_MS (CONFIG_APP_HTTP_SESSION_TIMEOUT * 1000)
 
 K_THREAD_DEFINE(http_thread,
-		CONFIG_APP_HTTP_THREAD_STACK_SIZE,
-		http_srv_thread,
-		NULL,
-		NULL,
-		NULL,
-		K_PRIO_PREEMPT(5u),
-		0,
-		0);
+				CONFIG_APP_HTTP_THREAD_STACK_SIZE,
+				http_srv_thread,
+				NULL,
+				NULL,
+				NULL,
+				K_PRIO_PREEMPT(5u),
+				0,
+				0);
 
 /* We use the same buffer for all sessions,
  * each HTTP request should be parsed and processed immediately.
@@ -81,9 +81,9 @@ K_THREAD_DEFINE(http_thread,
  * TODO: Find a way to use a single 0x1000 sized buffer
  */
 __buf_noinit_section char buffer[CONFIG_APP_HTTP_BUFFER_SIZE];
-__buf_noinit_section char
-	buffer_internal[CONFIG_APP_HTTP_HEADERS_BUFFER_SIZE]; /* For encoding response
-								 headers */
+__buf_noinit_section char buffer_internal[CONFIG_APP_HTTP_HEADERS_BUFFER_SIZE]; /* For
+									   encoding
+								   response headers */
 
 static struct http_stats stats;
 
@@ -115,8 +115,7 @@ static void show_pfd(void)
 	return;
 
 	LOG_DBG("servers_count=%d clients_count=%d", servers_count, clients_count);
-	for (struct pollfd *pfd = fds.array; pfd < fds.array + ARRAY_SIZE(fds.array);
-	     pfd++) {
+	for (struct pollfd *pfd = fds.array; pfd < fds.array + ARRAY_SIZE(fds.array); pfd++) {
 		LOG_DBG("\tfd=%d ev=%d", pfd->fd, (int)pfd->events);
 	}
 }
@@ -126,9 +125,9 @@ const struct user *handshake_auth_user = NULL;
 #if defined(CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK)
 
 static int tls_verify_callback(void *user_data,
-			       struct mbedtls_x509_crt *crt,
-			       int depth,
-			       uint32_t *flags)
+							   struct mbedtls_x509_crt *crt,
+							   int depth,
+							   uint32_t *flags)
 {
 	if (depth != 0) return 0;
 
@@ -136,10 +135,7 @@ static int tls_verify_callback(void *user_data,
 	struct user_auth auth;
 
 	LOG_INF("tls_verify_callback: user_data: %p, crt: %p, depth: %d, flags: %08x",
-		user_data,
-		crt,
-		depth,
-		*flags);
+			user_data, crt, depth, *flags);
 
 	for (name = &crt->subject; name != NULL; name = name->next) {
 		if (MBEDTLS_OID_CMP(MBEDTLS_OID_AT_CN, &name->oid) == 0) {
@@ -148,9 +144,8 @@ static int tls_verify_callback(void *user_data,
 
 			handshake_auth_user = user_auth_verify(&auth);
 
-			LOG_INF("username: %s role: %s",
-				handshake_auth_user->name,
-				user_role_to_str(handshake_auth_user->role));
+			LOG_INF("username: %s role: %s", handshake_auth_user->name,
+					user_role_to_str(handshake_auth_user->role));
 
 			break;
 		}
@@ -166,8 +161,8 @@ static int setup_socket(struct pollfd *pfd, bool secure)
 	int sock, ret;
 	struct sockaddr_in local = {
 		.sin_family = AF_INET,
-		.sin_port   = htons(secure ? HTTPS_PORT : HTTP_PORT),
-		.sin_addr   = {.s_addr = INADDR_ANY},
+		.sin_port	= htons(secure ? HTTPS_PORT : HTTP_PORT),
+		.sin_addr	= {.s_addr = INADDR_ANY},
 	};
 
 	sock = zsock_socket(AF_INET, SOCK_STREAM, secure ? IPPROTO_TLS_1_2 : IPPROTO_TCP);
@@ -185,11 +180,8 @@ static int setup_socket(struct pollfd *pfd, bool secure)
 
 	/* set secure tag */
 	if (secure) {
-		ret = zsock_setsockopt(sock,
-				       SOL_TLS,
-				       TLS_SEC_TAG_LIST,
-				       sec_tag_list,
-				       sizeof(sec_tag_list));
+		ret = zsock_setsockopt(sock, SOL_TLS, TLS_SEC_TAG_LIST, sec_tag_list,
+							   sizeof(sec_tag_list));
 		if (ret < 0) {
 			LOG_ERR("(%d) Failed to set TLS tag list : %d", sock, ret);
 			goto exit;
@@ -199,36 +191,32 @@ static int setup_socket(struct pollfd *pfd, bool secure)
 		int verify;
 
 		verify = TLS_PEER_VERIFY_OPTIONAL;
-		ret    = zsock_setsockopt(
-			   sock, SOL_TLS, TLS_PEER_VERIFY, &verify, sizeof(int));
+		ret	   = zsock_setsockopt(sock, SOL_TLS, TLS_PEER_VERIFY, &verify, sizeof(int));
 		if (ret < 0) {
 			LOG_ERR("(%d) Failed to set TLS peer verify option : "
-				"%d",
-				sock,
-				ret);
+					"%d",
+					sock, ret);
 			goto exit;
 		}
 
 #if defined(CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK)
 		struct tls_verify_cb verify_cb;
-		verify_cb.callback  = tls_verify_callback;
+		verify_cb.callback	= tls_verify_callback;
 		verify_cb.user_data = (void *)0xAABBCCDD;
 
-		ret = zsock_setsockopt(
-			sock, SOL_TLS, TLS_PEER_VERIFY_CB, &verify_cb, sizeof(verify_cb));
+		ret = zsock_setsockopt(sock, SOL_TLS, TLS_PEER_VERIFY_CB, &verify_cb,
+							   sizeof(verify_cb));
 		if (ret < 0) {
 			LOG_ERR("(%d) Failed to set TLS peer verify callback : "
-				"%d",
-				sock,
-				ret);
+					"%d",
+					sock, ret);
 			goto exit;
 		}
 #endif /* CONFIG_NET_SOCKETS_TLS_PEER_VERIFY_CALLBACK */
 #endif /* CONFIG_APP_HTTP_SERVER_VERIFY_CLIENT */
 	}
 
-	ret = zsock_bind(
-		sock, (const struct sockaddr *)&local, sizeof(struct sockaddr_in));
+	ret = zsock_bind(sock, (const struct sockaddr *)&local, sizeof(struct sockaddr_in));
 	if (ret < 0) {
 		LOG_ERR("(%d) Failed to bind socket = %d", sock, ret);
 		goto exit;
@@ -241,7 +229,7 @@ static int setup_socket(struct pollfd *pfd, bool secure)
 		goto exit;
 	}
 
-	pfd->fd	    = sock;
+	pfd->fd		= sock;
 	pfd->events = POLLIN;
 
 	servers_count++;
@@ -281,16 +269,14 @@ int setup_sockets(void)
 	 * https://github.com/zephyrproject-rtos/zephyr/pull/40255 related issue
 	 * : https://github.com/zephyrproject-rtos/zephyr/issues/40267
 	 */
-	tls_credential_add(HTTPS_SERVER_SEC_TAG,
-			   TLS_CREDENTIAL_SERVER_CERTIFICATE,
-			   cert.data,
-			   cert.len);
-	tls_credential_add(
-		HTTPS_SERVER_SEC_TAG, TLS_CREDENTIAL_PRIVATE_KEY, key.data, key.len);
+	tls_credential_add(HTTPS_SERVER_SEC_TAG, TLS_CREDENTIAL_SERVER_CERTIFICATE, cert.data,
+					   cert.len);
+	tls_credential_add(HTTPS_SERVER_SEC_TAG, TLS_CREDENTIAL_PRIVATE_KEY, key.data,
+					   key.len);
 
 #if defined(CONFIG_APP_HTTP_SERVER_VERIFY_CLIENT)
-	tls_credential_add(
-		HTTPS_SERVER_SEC_TAG, TLS_CREDENTIAL_CA_CERTIFICATE, ca.data, ca.len);
+	tls_credential_add(HTTPS_SERVER_SEC_TAG, TLS_CREDENTIAL_CA_CERTIFICATE, ca.data,
+					   ca.len);
 #endif
 
 	ret = setup_socket(&fds.sec, true);
@@ -300,7 +286,7 @@ int setup_sockets(void)
 #endif
 
 	clients_count = 0;
-	ret	      = 0;
+	ret			  = 0;
 exit:
 	return ret;
 }
@@ -315,9 +301,7 @@ static void remove_pollfd_by_index(uint8_t index)
 
 	int move_count = clients_count - index;
 	if (move_count > 0) {
-		memmove(&fds.cli[index],
-			&fds.cli[index + 1],
-			move_count * sizeof(struct pollfd));
+		memmove(&fds.cli[index], &fds.cli[index + 1], move_count * sizeof(struct pollfd));
 	}
 
 	memset(&fds.cli[clients_count], 0U, sizeof(struct pollfd));
@@ -357,47 +341,40 @@ static int srv_accept(int serv_sock, bool secure)
 	ipv4_to_str(&addr.sin_addr, ipv4_str, sizeof(ipv4_str));
 
 	LOG_DBG("(%d) Accepted session, cli sock = "
-		"(%d)",
-		serv_sock,
-		sock);
+			"(%d)",
+			serv_sock, sock);
 
 	sess = http_session_alloc();
 	if (sess == NULL) {
 		stats.conn_alloc_failed++;
-		LOG_WRN("(%d) Connection refused from %s:%d, cli sock = (%d)",
-			serv_sock,
-			ipv4_str,
-			htons(addr.sin_port),
-			sock);
+		LOG_WRN("(%d) Connection refused from %s:%d, cli sock = (%d)", serv_sock,
+				ipv4_str, htons(addr.sin_port), sock);
 
 		zsock_close(sock);
 
 		ret = -1;
 		goto exit;
 	} else {
-		LOG_INF("(%d) Connection accepted from %s:%d, cli sock = (%d)",
-			serv_sock,
-			ipv4_str,
-			htons(addr.sin_port),
-			sock);
+		LOG_INF("(%d) Connection accepted from %s:%d, cli sock = (%d)", serv_sock,
+				ipv4_str, htons(addr.sin_port), sock);
 
 		__ASSERT_NO_MSG(clients_count < CONFIG_APP_HTTP_MAX_SESSIONS);
 
 		struct pollfd *pfd = &fds.cli[clients_count++];
 
-		pfd->fd	    = sock;
+		pfd->fd		= sock;
 		pfd->events = POLLIN;
 
 		/* reference session socket */
 		sess->sock = sock;
 
 		/* initialize keep-alive context */
-		sess->keep_alive.timeout       = KEEP_ALIVE_DEFAULT_TIMEOUT_MS;
+		sess->keep_alive.timeout	   = KEEP_ALIVE_DEFAULT_TIMEOUT_MS;
 		sess->keep_alive.last_activity = k_uptime_get_32();
 
 		/* Mark session as secure if secure socket */
 		sess->secure = secure;
-		sess->auth   = handshake_auth_user;
+		sess->auth	 = handshake_auth_user;
 	}
 
 	show_pfd();
@@ -441,9 +418,8 @@ static void handle_active_sessions(void)
 			close = true;
 			stats.conn_error_count++;
 			LOG_WRN("(%d) Closing outdated session "
-				"%p",
-				sess->sock,
-				sess);
+					"%p",
+					sess->sock, sess);
 		}
 
 		/* Close the session, remove the socket from the
@@ -494,11 +470,8 @@ static void http_srv_thread(void *_a, void *_b, void *_c)
 
 			handle_active_sessions();
 		} else {
-			LOG_ERR("unexpected poll(%p, %d, %d) return value = %d",
-				&fds,
-				clients_count + servers_count,
-				SYS_FOREVER_MS,
-				errno);
+			LOG_ERR("unexpected poll(%p, %d, %d) return value = %d", &fds,
+					clients_count + servers_count, SYS_FOREVER_MS, errno);
 
 			k_sleep(K_MSEC(5000));
 		}
@@ -613,7 +586,7 @@ static bool handle_request(http_session_t *sess)
 	ssize_t rc;
 	http_request_t *const req = sess->req;
 
-	char *p		  = buffer;
+	char *p			  = buffer;
 	ssize_t remaining = sizeof(buffer);
 
 	while (req->complete == 0U) {
@@ -621,7 +594,7 @@ static bool handle_request(http_session_t *sess)
 			http_request_discard(req, HTTP_REQUEST_PAYLOAD_TOO_LARGE);
 
 			/* Reset buffer */
-			p	  = buffer;
+			p		  = buffer;
 			remaining = sizeof(buffer);
 			LOG_WRN("(%d) Request payload too large, discarding", sess->sock);
 		}
@@ -664,10 +637,8 @@ static bool send_buffer(http_session_t *sess)
 
 		if (resp->payload_sent > resp->content_length) {
 			LOG_ERR("(%d) Payload sent > content_length, %u > %u, "
-				"closing",
-				sess->sock,
-				resp->payload_sent,
-				resp->content_length);
+					"closing",
+					sess->sock, resp->payload_sent, resp->content_length);
 			goto close;
 		}
 	} else {
@@ -693,8 +664,7 @@ static bool send_chunk(http_session_t *sess)
 
 	/* Prepare chunk header */
 	char chunk_header[16];
-	ret = snprintf(
-		chunk_header, sizeof(chunk_header), "%x\r\n", resp->buffer.filling);
+	ret = snprintf(chunk_header, sizeof(chunk_header), "%x\r\n", resp->buffer.filling);
 	if (ret < 0) {
 		goto close;
 	}
@@ -783,7 +753,7 @@ static bool send_error_response(http_session_t *sess)
 	__ASSERT_NO_MSG(sess->req->discarded == 1u);
 
 	resp->content_length = 0;
-	resp->content_type   = HTTP_CONTENT_TYPE_TEXT_PLAIN;
+	resp->content_type	 = HTTP_CONTENT_TYPE_TEXT_PLAIN;
 
 	switch (sess->req->discard_reason) {
 	case HTTP_REQUEST_ROUTE_UNKNOWN:
@@ -820,11 +790,11 @@ static bool send_error_response(http_session_t *sess)
 	return send_headers(sess) && send_buffer(sess);
 }
 
-static bool handle_response(http_session_t *sess)
+static bool send_response(http_session_t *sess)
 {
 	int ret;
 
-	http_request_t *const req   = sess->req;
+	http_request_t *const req	= sess->req;
 	http_response_t *const resp = sess->resp;
 
 	if (req->discarded) {
@@ -866,16 +836,26 @@ static bool handle_response(http_session_t *sess)
 				/* If response handler is called a single time
 				 * and content-length is not set then set it to
 				 * the length of the buffer */
-				if (resp->complete && resp->content_length == 0u) {
-					resp->content_length = resp->buffer.filling;
-					LOG_DBG("(%d) Content-Length not "
-						"configure, forced to %u",
-						sess->sock,
-						resp->content_length);
+				if (resp->complete) {
+					if (resp->content_length == 0u) {
+						resp->content_length = resp->buffer.filling;
+						LOG_DBG("(%d) Content-Length not "
+								"configure, forced to %u",
+								sess->sock, resp->content_length);
+					} else if (resp->content_length != resp->buffer.filling) {
+						LOG_ERR("(%d) Content-Length "
+								"mismatch, expected %u (buffer "
+								"filling), "
+								"got %u",
+								sess->sock, resp->content_length, resp->buffer.filling);
+						stats.req_discarded_count++;
+						http_request_discard(sess->req, HTTP_REQUEST_PROCESSING_ERROR);
+						return send_error_response(sess);
+					}
 				}
 			} else {
 				resp->content_length = 0;
-				resp->complete	     = 1u;
+				resp->complete		 = 1u;
 				resp->buffer.filling = 0u;
 			}
 
@@ -883,8 +863,8 @@ static bool handle_response(http_session_t *sess)
 			if (!send_headers(sess)) goto close;
 		}
 
-		const bool success = http_response_is_chunked(resp) ? send_chunk(sess)
-								    : send_buffer(sess);
+		const bool success =
+			http_response_is_chunked(resp) ? send_chunk(sess) : send_buffer(sess);
 		if (!success) {
 			goto close;
 		}
@@ -934,7 +914,7 @@ static bool process_request(http_session_t *sess)
 	 */
 	sess->keep_alive.enabled = req.keep_alive;
 
-	const bool success = handle_response(sess);
+	const bool success = send_response(sess);
 	if (!success) {
 		stats.conn_process_failed++;
 		LOG_ERR("(%d) Processing failed", sess->sock);
@@ -942,14 +922,9 @@ static bool process_request(http_session_t *sess)
 	}
 
 	LOG_INF("(%d) Req %s %s [%u B] -> Status %d [%u B] "
-		"(keep-alive=%d)",
-		sess->sock,
-		http_method_str(req.method),
-		url_copy,
-		req.payload_len,
-		resp.status_code,
-		resp.payload_sent,
-		sess->keep_alive.enabled);
+			"(keep-alive=%d)",
+			sess->sock, http_method_str(req.method), url_copy, req.payload_len,
+			resp.status_code, resp.payload_sent, sess->keep_alive.enabled);
 
 	/* Update last activity time */
 	if (sess->keep_alive.enabled) {

@@ -26,8 +26,8 @@ typedef struct {
 } buffer_t;
 
 #define BUFFER_STATIC_INIT(_buf, _size)                                                  \
-	{                                                                                \
-		.data = _buf, .size = _size, .filling = 0                                \
+	{                                                                                    \
+		.data = _buf, .size = _size, .filling = 0                                        \
 	}
 
 int buffer_init(buffer_t *buffer, char *data, size_t size);
@@ -59,8 +59,8 @@ typedef struct {
 } cursor_buffer_t;
 
 #define CUR_BUFFER_STATIC_INIT(_buf, _size)                                              \
-	{                                                                                \
-		.buffer = _buf, .size = _size, .cursor = _buf                            \
+	{                                                                                    \
+		.buffer = _buf, .size = _size, .cursor = _buf                                    \
 	}
 
 int cursor_buffer_init(cursor_buffer_t *cbuf, char *buffer, size_t size);

@@ -6,3 +6,5 @@ docs/latex
 /scripts/__pycache__
 
 /build
+
+/.env

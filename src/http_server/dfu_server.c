@@ -20,7 +20,7 @@ LOG_MODULE_REGISTER(http_dfu, LOG_LEVEL_DBG);
 #define FLASH_SLOT0_PARTITION slot0_partition
 #define FLASH_SLOT1_PARTITION slot1_partition
 
-#define FLASH_DEVICE	    FIXED_PARTITION_DEVICE(FLASH_SLOT0_PARTITION)
+#define FLASH_DEVICE		FIXED_PARTITION_DEVICE(FLASH_SLOT0_PARTITION)
 #define FLASH_AREA_SLOT0_ID FIXED_PARTITION_ID(FLASH_SLOT0_PARTITION)
 #define FLASH_AREA_SLOT1_ID FIXED_PARTITION_ID(FLASH_SLOT1_PARTITION)
 
@@ -34,17 +34,13 @@ struct json_mcuboot_img_header {
 };
 
 static const struct json_obj_descr json_mcuboot_img_header_descr[] = {
-	JSON_OBJ_DESCR_PRIM(
-		struct json_mcuboot_img_header, mcuboot_version, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_mcuboot_img_header, mcuboot_version, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct json_mcuboot_img_header, image_size, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(
-		struct json_mcuboot_img_header, version_major, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(
-		struct json_mcuboot_img_header, version_minor, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_mcuboot_img_header, version_major, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_mcuboot_img_header, version_minor, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(
 		struct json_mcuboot_img_header, version_revision, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(
-		struct json_mcuboot_img_header, version_build, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct json_mcuboot_img_header, version_build, JSON_TOK_NUMBER),
 };
 
 int http_dfu_status(struct http_request *req, struct http_response *resp)
@@ -56,18 +52,15 @@ int http_dfu_status(struct http_request *req, struct http_response *resp)
 	if (ret == 0) {
 		struct json_mcuboot_img_header json = {
 			.mcuboot_version  = header.mcuboot_version,
-			.image_size	  = header.h.v1.image_size,
+			.image_size		  = header.h.v1.image_size,
 			.version_major	  = header.h.v1.sem_ver.major,
 			.version_minor	  = header.h.v1.sem_ver.minor,
 			.version_revision = header.h.v1.sem_ver.revision,
 			.version_build	  = header.h.v1.sem_ver.build_num,
 		};
 
-		ret = rest_encode_response_json(
-			resp,
-			&json,
-			json_mcuboot_img_header_descr,
-			ARRAY_SIZE(json_mcuboot_img_header_descr));
+		ret = rest_encode_response_json(resp, &json, json_mcuboot_img_header_descr,
+										ARRAY_SIZE(json_mcuboot_img_header_descr));
 	}
 
 	return ret;
@@ -89,8 +82,7 @@ int http_dfu_image_upload(struct http_request *req, struct http_response *resp)
 	}
 
 	if (http_request_has_chunk_data(req)) {
-		ret = flash_img_buffered_write(
-			&img, req->chunk.loc, req->chunk.len, false);
+		ret = flash_img_buffered_write(&img, req->chunk.loc, req->chunk.len, false);
 		if (ret) {
 			LOG_ERR("flash_img_buffered_write error %d", ret);
 			goto exit;

@@ -292,8 +292,8 @@ static inline bool http_request_is_stream(http_request_t *req)
  * @return int 0 if success, -1 if error
  */
 int http_req_route_arg_get_number_by_index(http_request_t *req,
-					   int32_t rel_index,
-					   uint32_t *value);
+										   int32_t rel_index,
+										   uint32_t *value);
 
 /**
  * @brief Retrieve number argument with given name from the request route
@@ -342,7 +342,7 @@ static inline bool http_request_begins(http_request_t *req)
 static inline bool http_stream_begins(http_request_t *req)
 {
 	return http_request_is_stream(req) && (req->complete == 0U) &&
-	       (req->calls_count == 0);
+		   (req->calls_count == 0);
 }
 
 static inline bool http_request_has_chunk_data(http_request_t *req)

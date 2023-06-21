@@ -45,7 +45,7 @@ struct fs_async_config {
 	const char *file_path;
 	fs_async_option_t opt;
 
-	char *ms_buf;	      /* Must be aligned to 4 bytes */
+	char *ms_buf;		  /* Must be aligned to 4 bytes */
 	size_t ms_block_size; /* Must be multiple of 4 */
 	size_t ms_block_count;
 };

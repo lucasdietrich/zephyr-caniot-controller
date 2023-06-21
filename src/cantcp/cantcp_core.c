@@ -64,14 +64,14 @@ int cantcp_core_tunnel_init(cantcp_tunnel_t *tunnel)
 {
 	memset(tunnel, 0U, sizeof(cantcp_tunnel_t));
 
-	tunnel->sock		    = -1;
-	tunnel->flags.secure	    = CANTCP_UNSECURE;
+	tunnel->sock				= -1;
+	tunnel->flags.secure		= CANTCP_UNSECURE;
 	tunnel->flags.blocking_mode = CANTCP_BLOCKING;
-	tunnel->flags.bus	    = CANTCP_BUS_DEFAULT;
+	tunnel->flags.bus			= CANTCP_BUS_DEFAULT;
 
 	tunnel->keep_alive_timeout = CANTCP_DEFAULT_KEEP_ALIVE_TIMEOUT;
-	tunnel->max_retries	   = CANTCP_DEFAULT_MAX_RETRIES;
-	tunnel->retry_delay	   = CANTCP_DEFAULT_RETRY_DELAY;
+	tunnel->max_retries		   = CANTCP_DEFAULT_MAX_RETRIES;
+	tunnel->retry_delay		   = CANTCP_DEFAULT_RETRY_DELAY;
 
 	tunnel->server.port = CANTCP_DEFAULT_PORT;
 
@@ -131,9 +131,8 @@ int cantcp_core_recv_frame(cantcp_tunnel_t *tunnel, struct can_frame *msg)
 	}
 
 	if (header.length != sizeof(struct can_frame)) {
-		LOG_ERR("invalid frame length = %hu, expected %u",
-			header.length,
-			sizeof(struct can_frame));
+		LOG_ERR("invalid frame length = %hu, expected %u", header.length,
+				sizeof(struct can_frame));
 		ret = -1;
 		goto exit;
 	}
@@ -154,10 +153,10 @@ exit:
 }
 
 typedef enum {
-	DATA_FRAME    = 0,
+	DATA_FRAME	  = 0,
 	FILTER_FRAME  = 1,
 	CONTROL_FRAME = 2,
-	ERROR_FRAME   = 3,
+	ERROR_FRAME	  = 3,
 } cantcp_frame_type_t;
 
 struct cantcp_control_frame {

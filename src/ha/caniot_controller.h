@@ -44,9 +44,9 @@ int ha_caniot_controller_send(struct caniot_frame *__restrict req, caniot_did_t 
  * @retval any other CANIOT error
  */
 int ha_caniot_controller_query(struct caniot_frame *__restrict req,
-			       struct caniot_frame *__restrict resp,
-			       caniot_did_t did,
-			       uint32_t *timeout);
+							   struct caniot_frame *__restrict resp,
+							   caniot_did_t did,
+							   uint32_t *timeout);
 
 /**
  * @brief CANIOT device discovery callback
@@ -56,8 +56,8 @@ int ha_caniot_controller_query(struct caniot_frame *__restrict req,
  * @param user_data User data
  */
 typedef void (*ha_ciot_ctrl_did_cb_t)(caniot_did_t did,
-				      const struct caniot_frame *frame,
-				      void *user_data);
+									  const struct caniot_frame *frame,
+									  void *user_data);
 
 /**
  * @brief Discover all CANIOT devices, call cb for each one
@@ -72,8 +72,8 @@ int ha_controller_caniot_discover(uint32_t timeout, ha_ciot_ctrl_did_cb_t cb);
 IDEAS
 
 int ha_ciot_ctrl_register_did_cb(caniot_did_t did,
-				 ha_ciot_ctrl_did_cb_t cb,
-				 void *user_data);
+		 ha_ciot_ctrl_did_cb_t cb,
+		 void *user_data);
 */
 
 #endif /* _CAN_CANIOT_CONTROLLER_H */

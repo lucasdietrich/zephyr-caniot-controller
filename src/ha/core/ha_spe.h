@@ -42,7 +42,7 @@ typedef enum {
 typedef enum {
 	HA_DEV_TYPE_NONE = 0,
 	HA_DEV_TYPE_XIAOMI_MIJIA, /* Xiaomi Mijia LYWSD03MMC */
-	HA_DEV_TYPE_CANIOT,	  /* CANIOT device addr e.g. 18 */
+	HA_DEV_TYPE_CANIOT,		  /* CANIOT device addr e.g. 18 */
 	HA_DEV_TYPE_NUCLEO_F429ZI,
 } ha_dev_type_t;
 
@@ -62,7 +62,7 @@ typedef union {
 
 typedef enum {
 	HA_DEV_EP_NONE, /* Mean either: UNDEFINED endpoint or ANY endpoint
-			 */
+					 */
 	HA_DEV_EP_XIAOMI_MIJIA,
 	HA_DEV_EP_NUCLEO_F429ZI,
 

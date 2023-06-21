@@ -18,8 +18,8 @@ void cloud_subscribe(const char *topic);
 void cloud_unsubscribe(const char *topic);
 
 void cloud_msg_callback_register(void (*callback)(const char *topic,
-						  const char *data,
-						  size_t len));
+												  const char *data,
+												  size_t len));
 
 void cloud_set_process_cb(void (*callback)(void));
 

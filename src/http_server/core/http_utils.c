@@ -50,8 +50,7 @@ static const struct code_str status[] = {
 
 static const char *get_status_code_str(http_status_code_t status_code)
 {
-	for (const struct code_str *p = status; p <= &status[ARRAY_SIZE(status) - 1];
-	     p++) {
+	for (const struct code_str *p = status; p <= &status[ARRAY_SIZE(status) - 1]; p++) {
 		if (p->code == status_code) {
 			return p->str;
 		}
@@ -87,15 +86,13 @@ int http_encode_header_connection(buffer_t *buf, bool keep_alive)
 {
 	static const char *connection_str[] = {"close", "keep-alive"};
 
-	return buffer_snprintf(buf,
-			       "Connection: %s\r\n",
-			       keep_alive ? connection_str[1] : connection_str[0]);
+	return buffer_snprintf(buf, "Connection: %s\r\n",
+						   keep_alive ? connection_str[1] : connection_str[0]);
 }
 
 int http_encode_header_content_type(buffer_t *buf, http_content_type_t type)
 {
-	return buffer_snprintf(
-		buf, "Content-Type: %s\r\n", http_content_type_to_str(type));
+	return buffer_snprintf(buf, "Content-Type: %s\r\n", http_content_type_to_str(type));
 }
 
 int http_encode_endline(buffer_t *buf)
@@ -111,12 +108,12 @@ bool http_code_has_payload(uint16_t status_code)
 const char *http_content_type_to_str(http_content_type_t content_type)
 {
 	const char *strs[] = {
-		[HTTP_CONTENT_TYPE_TEXT_PLAIN]		     = "text/plain",
-		[HTTP_CONTENT_TYPE_TEXT_HTML]		     = "text/html",
-		[HTTP_CONTENT_TYPE_TEXT_CSS]		     = "text/css",
-		[HTTP_CONTENT_TYPE_TEXT_JAVASCRIPT]	     = "text/javascript",
-		[HTTP_CONTENT_TYPE_APPLICATION_JSON]	     = "application/json",
-		[HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA]	     = "multipart/form-data",
+		[HTTP_CONTENT_TYPE_TEXT_PLAIN]				 = "text/plain",
+		[HTTP_CONTENT_TYPE_TEXT_HTML]				 = "text/html",
+		[HTTP_CONTENT_TYPE_TEXT_CSS]				 = "text/css",
+		[HTTP_CONTENT_TYPE_TEXT_JAVASCRIPT]			 = "text/javascript",
+		[HTTP_CONTENT_TYPE_APPLICATION_JSON]		 = "application/json",
+		[HTTP_CONTENT_TYPE_MULTIPART_FORM_DATA]		 = "multipart/form-data",
 		[HTTP_CONTENT_TYPE_APPLICATION_OCTET_STREAM] = "application/octet-stream",
 	};
 
@@ -205,8 +202,8 @@ static uint32_t checksum_add(uint32_t checksum, const uint8_t *data, size_t len)
 #define HTTP_RESP_BUFFER_MINIMUM_SIZE (512)
 
 static http_test_result_t test_req_handler(struct http_test_context *ctx,
-					   struct http_request *req,
-					   struct http_response *resp)
+										   struct http_request *req,
+										   struct http_response *resp)
 {
 	http_test_result_t result = ctx->result;
 
@@ -336,8 +333,8 @@ exit:
 }
 
 static http_test_result_t test_resp_handler(struct http_test_context *ctx,
-					    struct http_request *req,
-					    struct http_response *resp)
+											struct http_request *req,
+											struct http_response *resp)
 {
 	http_test_result_t result = ctx->result;
 
@@ -456,9 +453,9 @@ exit:
 }
 
 http_test_result_t http_test_run(struct http_test_context *ctx,
-				 struct http_request *req,
-				 struct http_response *resp,
-				 enum http_test_handler cur_handler)
+								 struct http_request *req,
+								 struct http_response *resp,
+								 enum http_test_handler cur_handler)
 {
 	http_test_result_t result = HTTP_TEST_NO_CONTEXT_GIVEN;
 
@@ -509,7 +506,7 @@ http_test_result_t http_test_run(struct http_test_context *ctx,
 	/* Application handler shouldn't be called if HTTP method doesn't
 	 * match what the route expects */
 	if ((req->route->flags & ROUTE_METHODS_MASK) !=
-	    http_method_to_route_flag(req->method)) {
+		http_method_to_route_flag(req->method)) {
 		result = HTTP_TEST_RESULT_METHOD_UNEXPECTED;
 		goto exit;
 	}
@@ -531,11 +528,8 @@ exit:
 	ctx->result = result;
 ret:
 	if (result != HTTP_TEST_RESULT_OK) {
-		LOG_ERR("(%p / %p) Test failed with %s (%d)",
-			req,
-			resp,
-			http_test_result_to_str(result),
-			result);
+		LOG_ERR("(%p / %p) Test failed with %s (%d)", req, resp,
+				http_test_result_to_str(result), result);
 	}
 	return result;
 }

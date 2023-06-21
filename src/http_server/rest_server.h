@@ -17,13 +17,13 @@
 #include <zephyr/net/http/parser.h>
 
 int rest_encode_response_json(http_response_t *resp,
-			      const void *val,
-			      const struct json_obj_descr *descr,
-			      size_t descr_len);
+							  const void *val,
+							  const struct json_obj_descr *descr,
+							  size_t descr_len);
 
 int rest_encode_response_json_array(http_response_t *resp,
-				    const void *val,
-				    const struct json_obj_descr *descr);
+									const void *val,
+									const struct json_obj_descr *descr);
 
 /* That saves time but it's a bad practice for sure :') */
 #define REST_HANDLE_DECL(name) int rest_##name(http_request_t *req, http_response_t *resp)

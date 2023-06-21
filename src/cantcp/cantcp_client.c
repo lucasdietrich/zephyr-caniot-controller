@@ -25,8 +25,8 @@ void cantcp_client_tunnel_init(cantcp_tunnel_t *tunnel)
 static bool host_is_resolved(cantcp_tunnel_t *tunnel)
 {
 	return (tunnel->server.addr4.sin_port != 0U) &&
-	       (tunnel->server.addr4.sin_addr.s_addr != INADDR_ANY) &&
-	       (tunnel->server.addr4.sin_family != AF_UNSPEC);
+		   (tunnel->server.addr4.sin_addr.s_addr != INADDR_ANY) &&
+		   (tunnel->server.addr4.sin_family != AF_UNSPEC);
 }
 
 static bool host_is_resolvable(cantcp_tunnel_t *tunnel)
@@ -36,7 +36,7 @@ static bool host_is_resolvable(cantcp_tunnel_t *tunnel)
 
 static int host_resolve(cantcp_tunnel_t *tunnel)
 {
-	int ret			  = 0U;
+	int ret					  = 0U;
 	struct zsock_addrinfo *ai = NULL;
 
 	if (host_is_resolved(tunnel) == true) {
@@ -51,10 +51,8 @@ static int host_resolve(cantcp_tunnel_t *tunnel)
 	const struct zsock_addrinfo hints = {.ai_family = AF_INET};
 	ret = zsock_getaddrinfo(tunnel->server.hostname, NULL, &hints, &ai);
 	if (ret != 0) {
-		LOG_ERR("(%x) failed to resolve hostname (%s) err = %d",
-			(uint32_t)tunnel,
-			tunnel->server.hostname,
-			ret);
+		LOG_ERR("(%x) failed to resolve hostname (%s) err = %d", (uint32_t)tunnel,
+				tunnel->server.hostname, ret);
 		goto exit;
 	}
 
@@ -84,15 +82,14 @@ int cantcp_connect(cantcp_tunnel_t *tunnel)
 
 	if (tunnel->flags.secure != CANTCP_UNSECURE) {
 		tunnel->flags.secure = CANTCP_SECURE;
-		LOG_WRN("(%x) secure mode is not supported fow now, ignoring",
-			(uint32_t)tunnel);
+		LOG_WRN("(%x) secure mode is not supported fow now, ignoring", (uint32_t)tunnel);
 	}
 
 	if (tunnel->flags.blocking_mode != CANTCP_BLOCKING) {
 		tunnel->flags.blocking_mode = CANTCP_BLOCKING;
 		LOG_WRN("(%x) non blocking mode is not supported fow now, "
-			"ignoring",
-			(uint32_t)tunnel);
+				"ignoring",
+				(uint32_t)tunnel);
 	}
 
 	/* resolve hostname  and prepare addr */
@@ -104,16 +101,14 @@ int cantcp_connect(cantcp_tunnel_t *tunnel)
 
 	if (tunnel->server.port == 0U) {
 		tunnel->server.port = CANTCP_DEFAULT_PORT;
-		LOG_WRN("(%x) port is not set, using default port (%d)",
-			(uint32_t)tunnel,
-			CANTCP_DEFAULT_PORT);
+		LOG_WRN("(%x) port is not set, using default port (%d)", (uint32_t)tunnel,
+				CANTCP_DEFAULT_PORT);
 	}
 
 	tunnel->server.addr4.sin_port = htons(tunnel->server.port);
 
 	/* create socket and connect */
-	int sock =
-		zsock_socket(tunnel->server.addr4.sin_family, SOCK_STREAM, IPPROTO_TCP);
+	int sock = zsock_socket(tunnel->server.addr4.sin_family, SOCK_STREAM, IPPROTO_TCP);
 	if (sock < 0) {
 		LOG_ERR("(%x) Failed to create socket = %d", (uint32_t)tunnel, sock);
 		ret = sock;
@@ -124,9 +119,7 @@ int cantcp_connect(cantcp_tunnel_t *tunnel)
 	if (tunnel->flags.blocking_mode == CANTCP_BLOCKING_MODE) {
 		ret = zsock_fcntl(sock, F_SETFL, O_NONBLOCK);
 		if (ret < 0) {
-			LOG_ERR("(%x) Failed to set socket non-blocking = %d",
-				(uint32_t)tunnel,
-				ret);
+			LOG_ERR("(%x) Failed to set socket non-blocking = %d", (uint32_t)tunnel, ret);
 			goto exit;
 		}
 	}
@@ -136,11 +129,8 @@ int cantcp_connect(cantcp_tunnel_t *tunnel)
 
 	ret = zsock_connect(sock, &tunnel->server.addr, sizeof(tunnel->server.addr));
 	if (ret < 0) {
-		LOG_ERR("(%x) Failed to connect to server %s:%d = %d",
-			(uint32_t)tunnel,
-			ipv4_str,
-			tunnel->server.port,
-			ret);
+		LOG_ERR("(%x) Failed to connect to server %s:%d = %d", (uint32_t)tunnel, ipv4_str,
+				tunnel->server.port, ret);
 
 		/* close file descriptor */
 		zsock_close(sock);
@@ -148,11 +138,8 @@ int cantcp_connect(cantcp_tunnel_t *tunnel)
 		goto exit;
 	}
 
-	LOG_INF("(%x) Tunnel opened with %s [%s:%d]",
-		(uint32_t)tunnel,
-		tunnel->server.hostname,
-		ipv4_str,
-		tunnel->server.port);
+	LOG_INF("(%x) Tunnel opened with %s [%s:%d]", (uint32_t)tunnel,
+			tunnel->server.hostname, ipv4_str, tunnel->server.port);
 
 	/* set socket once connected */
 	tunnel->sock = sock;

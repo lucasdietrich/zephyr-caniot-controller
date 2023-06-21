@@ -133,19 +133,19 @@ struct metric_definition {
 };
 
 #define METRIC_TAG(n)                                                                    \
-	{                                                                                \
-		.name = n                                                                \
+	{                                                                                    \
+		.name = n                                                                        \
 	}
 
 #define METRIC_DEF_TAGS(n, t, tags_list, h)                                              \
-	{                                                                                \
-		.name = n, .type = t, .tags = tags_list,                                 \
-		.tags_count = ARRAY_SIZE(tags_list), .help = h                           \
+	{                                                                                    \
+		.name = n, .type = t, .tags = tags_list, .tags_count = ARRAY_SIZE(tags_list),    \
+		.help = h                                                                        \
 	}
 
 #define METRIC_DEF(n, t, h)                                                              \
-	{                                                                                \
-		.name = n, .type = t, .tags = NULL, .tags_count = 0U, .help = h          \
+	{                                                                                    \
+		.name = n, .type = t, .tags = NULL, .tags_count = 0U, .help = h                  \
 	}
 
 static const struct metric_tag device_measurement_tags[] = {
@@ -171,32 +171,29 @@ static const struct metric_tag device_measurement_tags[] = {
 const struct metric_definition mdef_device_rssi = METRIC_DEF_TAGS(
 	"device_rssi", GAUGE, device_measurement_tags, "Device rssi (in dBm)");
 
-const struct metric_definition mdef_device_temperature =
-	METRIC_DEF_TAGS("device_temperature",
-			GAUGE,
-			device_measurement_tags,
-			"Device temperature (in °C)");
+const struct metric_definition mdef_device_temperature = METRIC_DEF_TAGS(
+	"device_temperature", GAUGE, device_measurement_tags, "Device temperature (in °C)");
 
 const struct metric_definition mdef_device_humidity = METRIC_DEF_TAGS(
 	"device_humidity", GAUGE, device_measurement_tags, "Device humidity (in %)");
 
 const struct metric_definition mdef_device_battery_level =
 	METRIC_DEF_TAGS("device_battery_level",
-			GAUGE,
-			device_measurement_tags,
-			"Device battery level (in %)");
+					GAUGE,
+					device_measurement_tags,
+					"Device battery level (in %)");
 
 const struct metric_definition mdef_device_battery_voltage =
 	METRIC_DEF_TAGS("device_battery_voltage",
-			GAUGE,
-			device_measurement_tags,
-			"Device battery voltage (in V)");
+					GAUGE,
+					device_measurement_tags,
+					"Device battery voltage (in V)");
 
 const struct metric_definition mdef_device_measurements_last_timestamp =
 	METRIC_DEF_TAGS("device_measurements_last_timestamp",
-			GAUGE,
-			device_measurement_tags,
-			"Timestamp of the last device measurement (UTC time)");
+					GAUGE,
+					device_measurement_tags,
+					"Timestamp of the last device measurement (UTC time)");
 
 static bool validate_metric_value(struct metric_value *value)
 {
@@ -235,21 +232,13 @@ static ssize_t encode_value(char *buf, size_t buf_size, struct metric_value *val
 		ret = snprintf(buf, buf_size, "%u", value->uvalue);
 		break;
 	case VALUE_ENCODING_TYPE_FLOAT_DIGITS:
-		ret = snprintf(buf,
-			       buf_size,
-			       "%.*f",
-			       (int)value->encoding.digits,
-			       value->fvalue);
+		ret = snprintf(buf, buf_size, "%.*f", (int)value->encoding.digits, value->fvalue);
 		break;
 	case VALUE_ENCODING_TYPE_EXP:
 		ret = snprintf(buf, buf_size, "%e", value->fvalue);
 		break;
 	case VALUE_ENCODING_TYPE_EXP_DIGITS:
-		ret = snprintf(buf,
-			       buf_size,
-			       "%.*e",
-			       (int)value->encoding.digits,
-			       value->fvalue);
+		ret = snprintf(buf, buf_size, "%.*e", (int)value->encoding.digits, value->fvalue);
 		break;
 	case VALUE_ENCODING_TYPE_FLOAT:
 	default:
@@ -272,12 +261,12 @@ static ssize_t encode_value(char *buf, size_t buf_size, struct metric_value *val
  * @return ssize_t
  */
 static ssize_t encode_metric(buffer_t *buffer,
-			     struct metric_value *value,
-			     const struct metric_definition *metric,
-			     bool meta)
+							 struct metric_value *value,
+							 const struct metric_definition *metric,
+							 bool meta)
 {
 	if ((validate_metric_value(value) == false) ||
-	    (validate_metric_definition(metric) == false)) {
+		(validate_metric_definition(metric) == false)) {
 		return -EINVAL;
 	}
 
@@ -290,11 +279,7 @@ static ssize_t encode_metric(buffer_t *buffer,
 	if (meta) {
 		if (metric->help != NULL) {
 			const char *strings[] = {
-				"# HELP ",
-				metric_name,
-				" ",
-				metric->help,
-				"\n",
+				"# HELP ", metric_name, " ", metric->help, "\n",
 			};
 			ret = buffer_append_strings(buffer, strings, ARRAY_SIZE(strings));
 			if (ret < 0) {
@@ -304,11 +289,7 @@ static ssize_t encode_metric(buffer_t *buffer,
 		}
 
 		const char *strings[] = {
-			"# TYPE ",
-			metric_name,
-			" ",
-			get_metric_type_str(metric->type),
-			"\n",
+			"# TYPE ", metric_name, " ", get_metric_type_str(metric->type), "\n",
 		};
 
 		ret = buffer_append_strings(buffer, strings, ARRAY_SIZE(strings));
@@ -321,7 +302,7 @@ static ssize_t encode_metric(buffer_t *buffer,
 
 	/* check for tags */
 	const uint8_t tags_count = metric->tags_count;
-	const bool has_tags	 = tags_count > 0;
+	const bool has_tags		 = tags_count > 0;
 
 	/* build strings address array */
 	const size_t count = 4U + (has_tags ? 1U + 4U * tags_count : 0U);
@@ -331,13 +312,12 @@ static ssize_t encode_metric(buffer_t *buffer,
 	char value_str[20];
 	ret = encode_value(value_str, sizeof(value_str), value);
 	if (ret < 0) {
-		LOG_ERR("Failed to encode metric value, buffer too small %u",
-			sizeof(value_str));
+		LOG_ERR("Failed to encode metric value, buffer too small %u", sizeof(value_str));
 		return ret;
 	}
 
 	/* prepare strings array */
-	strings[0]	   = metric_name;
+	strings[0]		   = metric_name;
 	strings[count - 3] = " ";
 	strings[count - 2] = value_str;
 	strings[count - 1] = "\n";
@@ -348,8 +328,8 @@ static ssize_t encode_metric(buffer_t *buffer,
 
 		for (uint8_t i = 0U; i < tags_count; i++) {
 			const struct metric_tag *const tag = &metric->tags[i];
-			const char *tag_name		   = tag->name;
-			const char *tag_value		   = NULL;
+			const char *tag_name			   = tag->name;
+			const char *tag_value			   = NULL;
 			if (value->tags_values_count > i) {
 				tag_value = value->tags_values[i];
 			}
@@ -392,26 +372,26 @@ struct prom_metric_descr {
 };
 
 #define Z_ALIGN_SHIFT(type)                                                              \
-	(__alignof__(type) == 1	  ? 0                                                    \
-	 : __alignof__(type) == 2 ? 1                                                    \
-	 : __alignof__(type) == 4 ? 2                                                    \
-				  : 3)
+	(__alignof__(type) == 1	  ? 0                                                        \
+	 : __alignof__(type) == 2 ? 1                                                        \
+	 : __alignof__(type) == 4 ? 2                                                        \
+							  : 3)
 
 #define PROM_METRIC_DESCR(struct_, field_name_, type_, def_)                             \
-	{                                                                                \
-		.def = def_, .metric_name = (#field_name_),                              \
-		.align_shift	 = Z_ALIGN_SHIFT(struct_),                               \
-		.metric_name_len = sizeof(#field_name_) - 1, .type = type_,              \
-		.offset = offsetof(struct_, field_name_),                                \
+	{                                                                                    \
+		.def = def_, .metric_name = (#field_name_),                                      \
+		.align_shift	 = Z_ALIGN_SHIFT(struct_),                                       \
+		.metric_name_len = sizeof(#field_name_) - 1, .type = type_,                      \
+		.offset = offsetof(struct_, field_name_),                                        \
 	}
 
-#define PROM_METRIC_DESCR_NAMED(                                                         \
-	struct_, metric_field_name_, struct_field_name_, type_, def_)                    \
-	{                                                                                \
-		.def = def_, .metric_name = (metric_field_name_),                        \
-		.align_shift	 = Z_ALIGN_SHIFT(struct_),                               \
-		.metric_name_len = sizeof(metric_field_name_) - 1, .type = type_,        \
-		.offset = offsetof(struct_, struct_field_name_),                         \
+#define PROM_METRIC_DESCR_NAMED(struct_, metric_field_name_, struct_field_name_, type_,  \
+								def_)                                                    \
+	{                                                                                    \
+		.def = def_, .metric_name = (metric_field_name_),                                \
+		.align_shift	 = Z_ALIGN_SHIFT(struct_),                                       \
+		.metric_name_len = sizeof(metric_field_name_) - 1, .type = type_,                \
+		.offset = offsetof(struct_, struct_field_name_),                                 \
 	}
 
 struct prom_demo_struct {
@@ -432,36 +412,30 @@ __attribute__((used)) static const struct prom_metric_descr demo_descr[] = {
 int prometheus_metrics_demo(http_request_t *req, http_response_t *resp)
 {
 	const char *tags1[] = {"BLE"
-			       "00:00:00:00:00:00",
-			       "Xioami",
-			       "EMB",
-			       "Lucas' Bedroom",
-			       "f429"};
+						   "00:00:00:00:00:00",
+						   "Xioami", "EMB", "Lucas' Bedroom", "f429"};
 
-	const char *tags2[] = {"BLE",
-			       "11:11:11:11:11:11",
-			       "Xioami"
-			       "EMB",
-			       "Kitchen",
-			       "f429"};
+	const char *tags2[] = {"BLE", "11:11:11:11:11:11",
+						   "Xioami"
+						   "EMB",
+						   "Kitchen", "f429"};
 
 	struct metric_value val1 = {.fvalue = 24.723,
-				    .encoding =
-					    {
-						    .type = VALUE_ENCODING_TYPE_FLOAT,
-					    },
-				    .tags_values       = tags1,
-				    .tags_values_count = ARRAY_SIZE(tags1)};
+								.encoding =
+									{
+										.type = VALUE_ENCODING_TYPE_FLOAT,
+									},
+								.tags_values	   = tags1,
+								.tags_values_count = ARRAY_SIZE(tags1)};
 
-	struct metric_value val2 = {
-		.fvalue = -17.234,
-		.encoding =
-			{
-				.type	= VALUE_ENCODING_TYPE_EXP_DIGITS,
-				.digits = 3,
-			},
-		.tags_values	   = tags2,
-		.tags_values_count = ARRAY_SIZE(tags2)};
+	struct metric_value val2 = {.fvalue = -17.234,
+								.encoding =
+									{
+										.type	= VALUE_ENCODING_TYPE_EXP_DIGITS,
+										.digits = 3,
+									},
+								.tags_values	   = tags2,
+								.tags_values_count = ARRAY_SIZE(tags2)};
 
 	encode_metric(&resp->buffer, &val1, &mdef_device_temperature, true);
 
@@ -529,48 +503,48 @@ union measurements_tags_values {
 };
 
 static void prom_metric_feed_dev_measurement_timestamp(uint32_t timestamp,
-						       struct metric_value *val)
+													   struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
-	val->uvalue	   = timestamp;
+	val->uvalue		   = timestamp;
 }
 
 static void prom_metric_feed_xiaomi_temperature(const struct ha_ds_xiaomi *dt,
-						struct metric_value *val)
+												struct metric_value *val)
 {
-	val->encoding.type   = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
+	val->encoding.type	 = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
 	val->encoding.digits = 2U;
-	val->fvalue	     = dt->temperature.value / 100.0;
+	val->fvalue			 = dt->temperature.value / 100.0;
 }
 
 static void prom_metric_feed_xiaomi_humidity(const struct ha_ds_xiaomi *dt,
-					     struct metric_value *val)
+											 struct metric_value *val)
 {
-	val->encoding.type   = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
+	val->encoding.type	 = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
 	val->encoding.digits = 3U;
-	val->fvalue	     = dt->humidity.value / 100.0;
+	val->fvalue			 = dt->humidity.value / 100.0;
 }
 
 static void prom_metric_feed_xiaomi_battery_level(const struct ha_ds_xiaomi *dt,
-						  struct metric_value *val)
+												  struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
-	val->uvalue	   = dt->battery_level.level;
+	val->uvalue		   = dt->battery_level.level;
 }
 
 static void prom_metric_feed_xiaomi_rssi(const struct ha_ds_xiaomi *dt,
-					 struct metric_value *val)
+										 struct metric_value *val)
 {
 	val->encoding.type = VALUE_ENCODING_TYPE_INT32;
-	val->svalue	   = (float)dt->rssi.value;
+	val->svalue		   = (float)dt->rssi.value;
 }
 
 static void prom_metric_feed_xiaomi_battery_voltage(const struct ha_ds_xiaomi *dt,
-						    struct metric_value *val)
+													struct metric_value *val)
 {
-	val->encoding.type   = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
+	val->encoding.type	 = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
 	val->encoding.digits = 3U;
-	val->fvalue	     = dt->battery_level.voltage / 1000.0;
+	val->fvalue			 = dt->battery_level.voltage / 1000.0;
 }
 
 static bool prom_ha_devs_iterate_cb(ha_dev_t *dev, void *user_data)
@@ -595,9 +569,8 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev, void *user_data)
 			.collector = "f429",
 		};
 
-		struct metric_value val = {.tags_values = tags_values.list,
-					   .tags_values_count =
-						   ARRAY_SIZE(tags_values.list)};
+		struct metric_value val = {.tags_values		  = tags_values.list,
+								   .tags_values_count = ARRAY_SIZE(tags_values.list)};
 
 		prom_metric_feed_xiaomi_rssi(dt, &val);
 		encode_metric(buffer, &val, &mdef_device_rssi, false);
@@ -616,74 +589,58 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev, void *user_data)
 
 		ha_ev_t *last_ev = ha_dev_get_last_event(dev, 0u);
 		prom_metric_feed_dev_measurement_timestamp(last_ev->timestamp, &val);
-		encode_metric(
-			buffer, &val, &mdef_device_measurements_last_timestamp, false);
+		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
 
 	} else if (dev->addr.type == HA_DEV_TYPE_CANIOT) {
 		char caniot_addr_str[CANIOT_ADDR_LEN];
 
-		caniot_encode_deviceid(dev->addr.mac.addr.caniot,
-				       caniot_addr_str,
-				       sizeof(caniot_addr_str));
+		caniot_encode_deviceid(dev->addr.mac.addr.caniot, caniot_addr_str,
+							   sizeof(caniot_addr_str));
 
 		/* prepare temperature sensors metric tags */
 		union measurements_tags_values tags_values = {
-			.medium = prom_myd_medium_to_str(dev->addr.mac.medium),
-			.mac	= caniot_addr_str, /* can device id */
-			.device = prom_myd_device_type_to_str(dev->addr.type),
-			.sensor =
-				prom_myd_sensor_type_to_str(HA_DEV_SENSOR_TYPE_EMBEDDED),
+			.medium	   = prom_myd_medium_to_str(dev->addr.mac.medium),
+			.mac	   = caniot_addr_str, /* can device id */
+			.device	   = prom_myd_device_type_to_str(dev->addr.type),
+			.sensor	   = prom_myd_sensor_type_to_str(HA_DEV_SENSOR_TYPE_EMBEDDED),
 			.room	   = "",
 			.collector = "f429",
 		};
 
 		/* prepare temperature sensors metric value */
-		struct metric_value val = {.tags_values = tags_values.list,
-					   .tags_values_count =
-						   ARRAY_SIZE(tags_values.list),
-					   .encoding = {
-						   .type   = VALUE_ENCODING_TYPE_FLOAT,
-						   .digits = 2,
-					   }};
+		struct metric_value val = {.tags_values		  = tags_values.list,
+								   .tags_values_count = ARRAY_SIZE(tags_values.list),
+								   .encoding		  = {
+												.type	= VALUE_ENCODING_TYPE_FLOAT,
+												.digits = 2,
+									}};
 
 		switch (dev->endpoints[0].api->eid) {
 		case HA_DEV_EP_CANIOT_BLC0: {
 			const struct ha_ds_caniot_blc0 *const dt =
-				HA_DEV_EP_0_GET_CAST_LAST_DATA(
-					dev, const struct ha_ds_caniot_blc0);
+				HA_DEV_EP_0_GET_CAST_LAST_DATA(dev, const struct ha_ds_caniot_blc0);
 
 			/* TODO refactor, because same code for CLS0 and 1 */
 			for (size_t i = 0U; i < ARRAY_SIZE(dt->temperatures); i++) {
-				ha_dev_sensor_type_t sensor_type =
-					dt->temperatures[i].type;
+				ha_dev_sensor_type_t sensor_type = dt->temperatures[i].type;
 				if (sensor_type != HA_DEV_SENSOR_TYPE_NONE) {
-					val.fvalue = dt->temperatures[i].value / 100.0;
-					tags_values.sensor =
-						prom_myd_sensor_type_to_str(sensor_type);
-					encode_metric(buffer,
-						      &val,
-						      &mdef_device_temperature,
-						      false);
+					val.fvalue		   = dt->temperatures[i].value / 100.0;
+					tags_values.sensor = prom_myd_sensor_type_to_str(sensor_type);
+					encode_metric(buffer, &val, &mdef_device_temperature, false);
 				}
 			}
 		} break;
 		case HA_DEV_EP_CANIOT_BLC1: {
 			const struct ha_ds_caniot_blc1 *const dt =
-				HA_DEV_EP_0_GET_CAST_LAST_DATA(
-					dev, const struct ha_ds_caniot_blc1);
+				HA_DEV_EP_0_GET_CAST_LAST_DATA(dev, const struct ha_ds_caniot_blc1);
 
 			/* TODO refactor, because same code for CLS0 and 1 */
 			for (size_t i = 0U; i < ARRAY_SIZE(dt->temperatures); i++) {
-				ha_dev_sensor_type_t sensor_type =
-					dt->temperatures[i].type;
+				ha_dev_sensor_type_t sensor_type = dt->temperatures[i].type;
 				if (sensor_type != HA_DEV_SENSOR_TYPE_NONE) {
-					val.fvalue = dt->temperatures[i].value / 100.0;
-					tags_values.sensor =
-						prom_myd_sensor_type_to_str(sensor_type);
-					encode_metric(buffer,
-						      &val,
-						      &mdef_device_temperature,
-						      false);
+					val.fvalue		   = dt->temperatures[i].value / 100.0;
+					tags_values.sensor = prom_myd_sensor_type_to_str(sensor_type);
+					encode_metric(buffer, &val, &mdef_device_temperature, false);
 				}
 			}
 
@@ -695,19 +652,17 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev, void *user_data)
 
 		ha_ev_t *last_ev = ha_dev_get_last_event(dev, 0u);
 		prom_metric_feed_dev_measurement_timestamp(last_ev->timestamp, &val);
-		encode_metric(
-			buffer, &val, &mdef_device_measurements_last_timestamp, false);
+		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
 
 	} else if (dev->addr.type == HA_DEV_TYPE_NUCLEO_F429ZI) {
 		const struct ha_ds_f429zi *const dt =
 			HA_DEV_EP_0_GET_CAST_LAST_DATA(dev, const struct ha_ds_f429zi);
 
 		union measurements_tags_values tags_values = {
-			.medium = "",
-			.mac	= "",
-			.device = prom_myd_device_type_to_str(dev->addr.type),
-			.sensor =
-				prom_myd_sensor_type_to_str(HA_DEV_SENSOR_TYPE_EMBEDDED),
+			.medium	   = "",
+			.mac	   = "",
+			.device	   = prom_myd_device_type_to_str(dev->addr.type),
+			.sensor	   = prom_myd_sensor_type_to_str(HA_DEV_SENSOR_TYPE_EMBEDDED),
 			.room	   = "",
 			.collector = "f429",
 		};
@@ -715,15 +670,14 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev, void *user_data)
 		struct metric_value val = {
 			.tags_values	   = tags_values.list,
 			.tags_values_count = ARRAY_SIZE(tags_values.list),
-			.fvalue		   = dt->die_temperature.value / 100.0f,
-			.encoding = {.type = VALUE_ENCODING_TYPE_FLOAT, .digits = 1}};
+			.fvalue			   = dt->die_temperature.value / 100.0f,
+			.encoding		   = {.type = VALUE_ENCODING_TYPE_FLOAT, .digits = 1}};
 
 		encode_metric(buffer, &val, &mdef_device_temperature, false);
 
 		ha_ev_t *last_ev = ha_dev_get_last_event(dev, 0u);
 		prom_metric_feed_dev_measurement_timestamp(last_ev->timestamp, &val);
-		encode_metric(
-			buffer, &val, &mdef_device_measurements_last_timestamp, false);
+		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
 	}
 
 	return true;
@@ -744,16 +698,14 @@ int prometheus_metrics(http_request_t *req, http_response_t *resp)
 	}
 
 	const ha_dev_filter_t filter = {
-		.flags = HA_DEV_FILTER_DATA_EXIST | HA_DEV_FILTER_FROM_INDEX |
-			 HA_DEV_FILTER_TO_INDEX,
+		.flags =
+			HA_DEV_FILTER_DATA_EXIST | HA_DEV_FILTER_FROM_INDEX | HA_DEV_FILTER_TO_INDEX,
 		.from_index = next_index,
-		.to_index   = next_index + CONFIG_PROMETHEUS_METRICS_PER_FLUSH,
+		.to_index	= next_index + CONFIG_PROMETHEUS_METRICS_PER_FLUSH,
 	};
 
-	ssize_t count = ha_dev_iterate(prom_ha_devs_iterate_cb,
-				       &filter,
-				       &HA_DEV_ITER_OPT_LOCK_ALL(),
-				       (void *)&resp->buffer);
+	ssize_t count = ha_dev_iterate(prom_ha_devs_iterate_cb, &filter,
+								   &HA_DEV_ITER_OPT_LOCK_ALL(), (void *)&resp->buffer);
 
 	/* Check wether there are more metrics to encode */
 	if (count != -ENOENT) {

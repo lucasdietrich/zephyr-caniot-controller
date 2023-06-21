@@ -35,8 +35,8 @@
 #include <zephyr/kernel.h>
 
 typedef uint32_t (*crc_calculate_t)(const struct device *dev,
-				    const uint32_t *buf,
-				    size_t len);
+									const uint32_t *buf,
+									size_t len);
 
 struct crc_drivers_api {
 	crc_calculate_t calculate;

@@ -29,7 +29,7 @@ static void process_write(struct fs_async *afile);
 #define FS_ASYNC_FLAG_ACTIVE_BIT 0u
 #define FS_ASYNC_FLAG_ACTIVE	 BIT(FS_ASYNC_FLAG_ACTIVE_BIT)
 #define FS_ASYNC_FLAG_ABORT_BIT	 1u
-#define FS_ASYNC_FLAG_ABORT	 BIT(FS_ASYNC_FLAG_ABORT_BIT)
+#define FS_ASYNC_FLAG_ABORT		 BIT(FS_ASYNC_FLAG_ABORT_BIT)
 
 static struct k_spinlock fs_async_lock;
 
@@ -126,13 +126,9 @@ static void process_read(struct fs_async *afile)
 
 		/* Read file chunk  */
 		req_len = buf->len;
-		ret	= fs_read(&afile->_zfp, buf->data, req_len);
+		ret		= fs_read(&afile->_zfp, buf->data, req_len);
 		if (ret < 0) {
-			LOG_ERR("(%p) fs_read(. %p %u) -> %d",
-				afile,
-				buf->data,
-				req_len,
-				ret);
+			LOG_ERR("(%p) fs_read(. %p %u) -> %d", afile, buf->data, req_len, ret);
 			buf->len  = ret; /* Forward error code */
 			zcontinue = false;
 		} else {
@@ -185,8 +181,8 @@ int fs_async_open(struct fs_async *afile, struct fs_async_config *cfg)
 	bool truncate	   = false;
 
 #if FS_ASYNC_ARGS_CHECK
-	if (!afile || !cfg || !cfg->ms_buf || !cfg->ms_block_count ||
-	    !cfg->ms_block_size || !cfg->file_path || !is_aligned_32((uint32_t)afile))
+	if (!afile || !cfg || !cfg->ms_buf || !cfg->ms_block_count || !cfg->ms_block_size ||
+		!cfg->file_path || !is_aligned_32((uint32_t)afile))
 		return -EINVAL;
 #endif
 
@@ -207,8 +203,8 @@ int fs_async_open(struct fs_async *afile, struct fs_async_config *cfg)
 		return -ENOTSUP;
 	}
 
-	ret = k_mem_slab_init(
-		&afile->_ms, cfg->ms_buf, cfg->ms_block_size, cfg->ms_block_count);
+	ret = k_mem_slab_init(&afile->_ms, cfg->ms_buf, cfg->ms_block_size,
+						  cfg->ms_block_count);
 	if (ret != 0) return ret;
 
 	ret = k_sem_init(&afile->_sem, 0u, cfg->ms_block_count);
@@ -219,9 +215,9 @@ int fs_async_open(struct fs_async *afile, struct fs_async_config *cfg)
 	fs_file_t_init(&afile->_zfp);
 	sys_slist_init(&afile->buf_q);
 
-	afile->file_size       = -1;
+	afile->file_size	   = -1;
 	afile->file_final_size = 0u;
-	afile->opt	       = cfg->opt;
+	afile->opt			   = cfg->opt;
 
 	/* Read size of the file prior to open it */
 	if (get_size) {
@@ -244,20 +240,13 @@ int fs_async_open(struct fs_async *afile, struct fs_async_config *cfg)
 		}
 	}
 
-	LOG_INF("(%p) Initialzed opt: %u block size: %u count: %u fsize: %d",
-		afile,
-		cfg->opt,
-		cfg->ms_block_size,
-		cfg->ms_block_count,
-		afile->file_size);
+	LOG_INF("(%p) Initialzed opt: %u block size: %u count: %u fsize: %d", afile, cfg->opt,
+			cfg->ms_block_size, cfg->ms_block_count, afile->file_size);
 
 	ret = fs_open(&afile->_zfp, cfg->file_path, mode);
 	if (ret) {
-		LOG_ERR("(%p) Failed to open %s [mode: %u] ret: %d",
-			afile,
-			cfg->file_path,
-			mode,
-			ret);
+		LOG_ERR("(%p) Failed to open %s [mode: %u] ret: %d", afile, cfg->file_path, mode,
+				ret);
 		goto exit;
 	}
 
@@ -287,8 +276,7 @@ int read_async(struct fs_async *afile, void *data, size_t len, k_timeout_t timeo
 {
 #if FS_ASYNC_ARGS_CHECK
 	if (!afile || !data || !len) return -EINVAL;
-	if (afile->status != FS_ASYNC_STATUS_ACTIVE &&
-	    afile->status != FS_ASYNC_STATUS_EOF)
+	if (afile->status != FS_ASYNC_STATUS_ACTIVE && afile->status != FS_ASYNC_STATUS_EOF)
 		return -EIO;
 #endif
 
@@ -301,24 +289,22 @@ int read_async(struct fs_async *afile, void *data, size_t len, k_timeout_t timeo
 	void *copy_from;
 	size_t copy_len;
 
-	uint32_t last		 = 0u;
-	size_t rcvd_len		 = 0u;
+	uint32_t last			 = 0u;
+	size_t rcvd_len			 = 0u;
 	struct fs_async_buf *buf = NULL;
-	bool timeout_calc	 = false;
+	bool timeout_calc		 = false;
 
 	/* If timeout is an actual timeout, enable timeout calculation */
 	if (!K_TIMEOUT_EQ(timeout, K_FOREVER) && !K_TIMEOUT_EQ(timeout, K_NO_WAIT)) {
-		last	     = k_uptime_get_32();
+		last		 = k_uptime_get_32();
 		timeout_calc = true;
 	}
 
 	do {
 		/* Wait for a buffer to be available */
 		ret = k_sem_take(&afile->_sem, timeout);
-		LOG_DBG("(%p) k_sem_take timeout: %u ret: %d",
-			afile,
-			k_ticks_to_ms_floor32(timeout.ticks),
-			ret);
+		LOG_DBG("(%p) k_sem_take timeout: %u ret: %d", afile,
+				k_ticks_to_ms_floor32(timeout.ticks), ret);
 		if (ret != 0) {
 			goto exit;
 		}
@@ -336,12 +322,8 @@ int read_async(struct fs_async *afile, void *data, size_t len, k_timeout_t timeo
 		/* Check if we have to copy all of the buffer or just a part */
 		copy_len  = len - rcvd_len;
 		copy_from = buf->data + buf->offset;
-		LOG_DBG("(%p) buf (%p) len: %d offset: %u copy_len: %u",
-			afile,
-			buf,
-			buf->len,
-			(uint32_t)buf->offset,
-			copy_len);
+		LOG_DBG("(%p) buf (%p) len: %d offset: %u copy_len: %u", afile, buf, buf->len,
+				(uint32_t)buf->offset, copy_len);
 		if (copy_len < buf->len) {
 
 			/* Keep buffer in the queue */
@@ -369,7 +351,7 @@ int read_async(struct fs_async *afile, void *data, size_t len, k_timeout_t timeo
 
 		/* If buffer is not full, we have reached the end of the file */
 		if (buf_consumed && !buf_is_full(afile, buf)) {
-			ret	      = rcvd_len;
+			ret			  = rcvd_len;
 			afile->status = FS_ASYNC_STATUS_EOF;
 			break;
 		}
@@ -382,12 +364,11 @@ int read_async(struct fs_async *afile, void *data, size_t len, k_timeout_t timeo
 
 		/* Update next timeout */
 		if (timeout_calc) {
-			now	= k_uptime_get_32();
+			now		= k_uptime_get_32();
 			elapsed = now - last;
 			last	= now;
 
-			timeout.ticks -=
-				MIN(timeout.ticks, k_ms_to_ticks_floor32(elapsed));
+			timeout.ticks -= MIN(timeout.ticks, k_ms_to_ticks_floor32(elapsed));
 
 			if (K_TIMEOUT_EQ(timeout, K_NO_WAIT)) {
 				return -EAGAIN;
@@ -442,9 +423,8 @@ int fs_async_get_file_size(struct fs_async *afile)
 {
 #if FS_ASYNC_ARGS_CHECK
 	if (!afile) return -EINVAL;
-	if (afile->status != FS_ASYNC_STATUS_ACTIVE ||
-	    afile->status != FS_ASYNC_STATUS_EOF ||
-	    afile->status != FS_ASYNC_STATUS_CLOSED) {
+	if (afile->status != FS_ASYNC_STATUS_ACTIVE || afile->status != FS_ASYNC_STATUS_EOF ||
+		afile->status != FS_ASYNC_STATUS_CLOSED) {
 		return -EINVAL;
 	}
 #endif

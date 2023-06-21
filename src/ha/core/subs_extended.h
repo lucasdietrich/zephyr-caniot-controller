@@ -77,49 +77,49 @@ typedef enum {
 typedef union {
 	uint32_t any;
 
-	uint32_t max_count;   /* HA_SUBS_EXT_FILTERING_TYPE_COUNT */
-	uint32_t interval;    /* HA_SUBS_EXT_FILTERING_TYPE_INTERVAL */
+	uint32_t max_count;	  /* HA_SUBS_EXT_FILTERING_TYPE_COUNT */
+	uint32_t interval;	  /* HA_SUBS_EXT_FILTERING_TYPE_INTERVAL */
 	uint32_t interval_ms; /* HA_SUBS_EXT_FILTERING_TYPE_INTERVAL_MS */
 	uint32_t subsampling; /* HA_SUBS_EXT_FILTERING_TYPE_SUBSAMPLING */
 } ha_subs_ext_filtering_param_t;
 
 #define HA_SUBS_EXT_FILTERING_PARAM_NONE                                                 \
-	(ha_subs_ext_filtering_param_t)                                                  \
-	{                                                                                \
-		.any = 0u                                                                \
+	(ha_subs_ext_filtering_param_t)                                                      \
+	{                                                                                    \
+		.any = 0u                                                                        \
 	}
 
 #define HA_SUBS_EXT_FILTERING_PARAM_MAX_COUNT(_max_count)                                \
-	(ha_subs_ext_filtering_param_t)                                                  \
-	{                                                                                \
-		.max_count = _max_count                                                  \
+	(ha_subs_ext_filtering_param_t)                                                      \
+	{                                                                                    \
+		.max_count = _max_count                                                          \
 	}
 
 #define HA_SUBS_EXT_FILTERING_PARAM_INTERVAL(_interval)                                  \
-	(ha_subs_ext_filtering_param_t)                                                  \
-	{                                                                                \
-		.interval = _interval                                                    \
+	(ha_subs_ext_filtering_param_t)                                                      \
+	{                                                                                    \
+		.interval = _interval                                                            \
 	}
 
 #define HA_SUBS_EXT_FILTERING_PARAM_INTERVAL_MS(_interval_ms)                            \
-	(ha_subs_ext_filtering_param_t)                                                  \
-	{                                                                                \
-		.interval_ms = _interval_ms                                              \
+	(ha_subs_ext_filtering_param_t)                                                      \
+	{                                                                                    \
+		.interval_ms = _interval_ms                                                      \
 	}
 
 #define HA_SUBS_EXT_FILTERING_PARAM_SUBSAMPLING(_subsampling)                            \
-	(ha_subs_ext_filtering_param_t)                                                  \
-	{                                                                                \
-		.subsampling = _subsampling                                              \
+	(ha_subs_ext_filtering_param_t)                                                      \
+	{                                                                                    \
+		.subsampling = _subsampling                                                      \
 	}
 
 typedef union {
-	uint32_t any;	       /* 0 if uninitialized */
-	uint32_t found;	       /* HA_SUBS_EXT_FILTERING_TYPE_DUPLICATE */
-	uint32_t count;	       /* HA_SUBS_EXT_FILTERING_TYPE_COUNT */
-	uint32_t timestamp;    /* HA_SUBS_EXT_FILTERING_TYPE_INTERVAL */
+	uint32_t any;		   /* 0 if uninitialized */
+	uint32_t found;		   /* HA_SUBS_EXT_FILTERING_TYPE_DUPLICATE */
+	uint32_t count;		   /* HA_SUBS_EXT_FILTERING_TYPE_COUNT */
+	uint32_t timestamp;	   /* HA_SUBS_EXT_FILTERING_TYPE_INTERVAL */
 	uint32_t timestamp_ms; /* HA_SUBS_EXT_FILTERING_TYPE_INTERVAL_MS */
-	uint32_t mod;	       /* HA_SUBS_EXT_FILTERING_TYPE_SUBSAMPLING */
+	uint32_t mod;		   /* HA_SUBS_EXT_FILTERING_TYPE_SUBSAMPLING */
 } ha_subs_ext_lookup_param_value_t;
 
 struct ha_subs_ext_lookup_table_entry {
@@ -179,10 +179,10 @@ typedef struct ha_subs_ext_lookup_table ha_subs_ext_lt_t;
  * @return int
  */
 int ha_subs_ext_conf_set(struct ha_ev_subs_conf *conf,
-			 struct ha_subs_ext_lookup_table *lookup_table,
-			 ha_subs_ext_lookup_type_t lookup_type,
-			 ha_subs_ext_filtering_type_t filtering_type,
-			 ha_subs_ext_filtering_param_t filtering_param);
+						 struct ha_subs_ext_lookup_table *lookup_table,
+						 ha_subs_ext_lookup_type_t lookup_type,
+						 ha_subs_ext_filtering_type_t filtering_type,
+						 ha_subs_ext_filtering_param_t filtering_param);
 
 /**
  * @brief Clear the lookup table and free the memory allocated for it.
@@ -204,8 +204,8 @@ int ha_subs_ext_lt_clear(struct ha_subs_ext_lookup_table *lt);
  * @return int
  */
 int ha_subs_ext_lt_iterate(struct ha_subs_ext_lookup_table *lt,
-			   int (*cb)(struct ha_subs_ext_lookup_table_entry *lte,
-				     void *user_data),
-			   void *user_data);
+						   int (*cb)(struct ha_subs_ext_lookup_table_entry *lte,
+									 void *user_data),
+						   void *user_data);
 
 #endif /* _HA_SUBS_EXTENDED_H_ */

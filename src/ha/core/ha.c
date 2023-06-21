@@ -40,9 +40,9 @@ struct {
 #define __DEV_CONTEXT_UNLOCK() k_mutex_unlock(&devices.mutex)
 
 static struct ha_stats stats = {
-	.mem_ev_remaining     = HA_EVENTS_MAX_COUNT,
+	.mem_ev_remaining	  = HA_EVENTS_MAX_COUNT,
 	.mem_device_remaining = HA_DEVICES_MAX_COUNT,
-	.mem_sub_remaining    = HA_SUBSCRIPTIONS_MAX_COUNT,
+	.mem_sub_remaining	  = HA_SUBSCRIPTIONS_MAX_COUNT,
 };
 
 typedef int (*addr_cmp_func_t)(const ha_dev_mac_addr_t *a, const ha_dev_mac_addr_t *b);
@@ -50,7 +50,7 @@ typedef int (*addr_cmp_func_t)(const ha_dev_mac_addr_t *a, const ha_dev_mac_addr
 typedef int (*addr_str_func_t)(const ha_dev_mac_addr_t *a, char *str, size_t len);
 
 static int internal_caniot_addr_cmp(const ha_dev_mac_addr_t *a,
-				    const ha_dev_mac_addr_t *b)
+									const ha_dev_mac_addr_t *b)
 {
 	return caniot_deviceid_cmp(a->caniot, b->caniot);
 }
@@ -62,10 +62,8 @@ static int internal_ble_addr_cmp(const ha_dev_mac_addr_t *a, const ha_dev_mac_ad
 
 static int internal_can_addr_cmp(const ha_dev_mac_addr_t *a, const ha_dev_mac_addr_t *b)
 {
-	const uint32_t id_a =
-		a->can.id & (a->can.ext ? CAN_EXT_ID_MASK : CAN_STD_ID_MASK);
-	const uint32_t id_b =
-		b->can.id & (b->can.ext ? CAN_EXT_ID_MASK : CAN_STD_ID_MASK);
+	const uint32_t id_a = a->can.id & (a->can.ext ? CAN_EXT_ID_MASK : CAN_STD_ID_MASK);
+	const uint32_t id_b = b->can.id & (b->can.ext ? CAN_EXT_ID_MASK : CAN_STD_ID_MASK);
 
 	/* TODO what to do if ext is different? */
 
@@ -79,12 +77,8 @@ static int internal_ble_addr_str(const ha_dev_mac_addr_t *a, char *str, size_t l
 
 static int internal_caniot_addr_str(const ha_dev_mac_addr_t *a, char *str, size_t len)
 {
-	return snprintf(str,
-			len,
-			"0x%x (cls=%u did=%u)",
-			a->caniot,
-			CANIOT_DID_CLS(a->caniot),
-			CANIOT_DID_SID(a->caniot));
+	return snprintf(str, len, "0x%x (cls=%u did=%u)", a->caniot,
+					CANIOT_DID_CLS(a->caniot), CANIOT_DID_SID(a->caniot));
 }
 
 static int internal_can_addr_str(const ha_dev_mac_addr_t *a, char *str, size_t len)
@@ -103,16 +97,14 @@ struct mac_funcs {
 #define MAC_FUNCS_BLE	 1u
 
 static const struct mac_funcs mac_medium_funcs[] = {
-	[HA_DEV_MEDIUM_CAN] = {.cmp = internal_can_addr_cmp,
-			       .str = internal_can_addr_str},
-	[HA_DEV_MEDIUM_BLE] = {.cmp = internal_ble_addr_cmp,
-			       .str = internal_ble_addr_str},
+	[HA_DEV_MEDIUM_CAN] = {.cmp = internal_can_addr_cmp, .str = internal_can_addr_str},
+	[HA_DEV_MEDIUM_BLE] = {.cmp = internal_ble_addr_cmp, .str = internal_ble_addr_str},
 };
 
 /* Overload the medium mac address functions */
 static const struct mac_funcs mac_type_funcs[] = {
 	[HA_DEV_TYPE_CANIOT] = {.cmp = internal_caniot_addr_cmp,
-				.str = internal_caniot_addr_str},
+							.str = internal_caniot_addr_str},
 };
 
 static addr_cmp_func_t get_mac_medium_cmp_func(ha_dev_medium_type_t medium)
@@ -182,7 +174,7 @@ int ha_dev_addr_to_str(const ha_dev_addr_t *addr, char *buf, size_t buf_len)
 static bool addr_valid(const ha_dev_addr_t *addr)
 {
 	return (addr->type != HA_DEV_TYPE_NONE) &&
-	       (get_addr_cmp_func(addr->type, addr->mac.medium) != NULL);
+		   (get_addr_cmp_func(addr->type, addr->mac.medium) != NULL);
 }
 
 static int addr_cmp(const ha_dev_addr_t *a1, const ha_dev_addr_t *a2)
@@ -204,12 +196,11 @@ static ha_dev_t *get_device_by_addr(const ha_dev_addr_t *addr)
 	addr_cmp_func_t cmp = get_addr_cmp_func(addr->type, addr->mac.medium);
 
 	if (cmp != NULL) {
-		for (ha_dev_t *dev = devices.list; dev < devices.list + devices.count;
-		     dev++) {
+		for (ha_dev_t *dev = devices.list; dev < devices.list + devices.count; dev++) {
 			/* Device medium should match and
 			 * MAC address should match */
 			if ((dev->addr.mac.medium == addr->mac.medium) &&
-			    (cmp(&dev->addr.mac.addr, &addr->mac.addr) == 0)) {
+				(cmp(&dev->addr.mac.addr, &addr->mac.addr) == 0)) {
 				device = dev;
 				break;
 			}
@@ -307,8 +298,8 @@ static ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 
 	ha_dev_clear(dev);
 
-	dev->sdevuid		  = devices.sdevuid;
-	dev->addr		  = *addr;
+	dev->sdevuid			  = devices.sdevuid;
+	dev->addr				  = *addr;
 	dev->registered_timestamp = sys_time_get();
 
 	dev->api = ha_device_get_default_api(addr->type);
@@ -338,8 +329,7 @@ static ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 		stats.dev_dropped++;
 		stats.dev_toomuch_ep++;
 		LOG_ERR("Too many endpoints (%hhu) defined for device addr %p",
-			dev->endpoints_count,
-			addr);
+				dev->endpoints_count, addr);
 		goto exit;
 	}
 
@@ -347,8 +337,7 @@ static ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 	/* Finalize endpoints initialization */
 	for (int i = 0; i < dev->endpoints_count; i++) {
 		dev->endpoints[i]._data_types = ha_data_descr_data_types_mask(
-			dev->endpoints[i].api->data_descr,
-			dev->endpoints[i].api->data_descr_size);
+			dev->endpoints[i].api->data_descr, dev->endpoints[i].api->data_descr_size);
 	}
 #endif /* HA_DEV_EP_TYPE_SEARCH_OPTIMIZATION */
 
@@ -411,7 +400,7 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 	}
 
 	struct ha_device_endpoint *ep = NULL;
-	struct ha_event *ev	      = NULL;
+	struct ha_event *ev			  = NULL;
 
 	if (filter->flags & HA_DEV_FILTER_DATA_EXIST) {
 		if (filter->endpoint_id == HA_DEV_EP_NONE) {
@@ -449,7 +438,7 @@ static bool ha_dev_match_filter(ha_dev_t *dev, const ha_dev_filter_t *filter)
 
 static uint32_t dev_ep_lock_ev_mask(ha_dev_t *dev, uint32_t mask)
 {
-	uint32_t ep_index    = 0u;
+	uint32_t ep_index	 = 0u;
 	uint32_t locked_mask = 0u;
 	while (mask) {
 		if (ep_index < dev->endpoints_count) {
@@ -481,9 +470,9 @@ static void dev_ep_unlock_ev_mask(ha_dev_t *dev, uint32_t locked_mask)
 }
 
 ssize_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
-		       const ha_dev_filter_t *filter,
-		       const ha_dev_iter_opt_t *options,
-		       void *user_data)
+					   const ha_dev_filter_t *filter,
+					   const ha_dev_iter_opt_t *options,
+					   void *user_data)
 {
 	size_t count	 = 0u;
 	size_t max_count = devices.count;
@@ -530,7 +519,7 @@ ssize_t ha_dev_iterate(ha_dev_iterate_cb_t callback,
 				dev_ep_lock_ev_mask(dev, options->ep_lock_last_ev_mask);
 
 			__DEV_CONTEXT_UNLOCK(); /* TODO, evaluate if good idea
-						 */
+									 */
 
 			/* Mutex should not be locked in application callback
 			 * context as it could last a lot of time */
@@ -574,9 +563,9 @@ static inline void ha_dev_inc_stats_tx(ha_dev_t *dev, uint32_t tx_bytes)
 
 static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl)
 {
-	int ret		 = -EINVAL;
+	int ret			 = -EINVAL;
 	uint8_t ep_index = 0u;
-	ha_ev_t *ev	 = NULL;
+	ha_ev_t *ev		 = NULL;
 	ha_ev_t *prev_data_ev;
 	const struct ha_device_endpoint_api *ep_api;
 	struct ha_device_endpoint *ep;
@@ -595,9 +584,9 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 		goto exit;
 	}
 
-	ev->data      = NULL;
-	ev->dev	      = dev;
-	ev->type      = HA_EV_TYPE_DATA;
+	ev->data	  = NULL;
+	ev->dev		  = dev;
+	ev->type	  = HA_EV_TYPE_DATA;
 	ev->timestamp = pl->timestamp ? pl->timestamp : sys_time_get();
 	sys_slist_init(&ev->slist);
 
@@ -621,7 +610,7 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 		goto exit;
 	}
 
-	ep     = &dev->endpoints[ep_index];
+	ep	   = &dev->endpoints[ep_index];
 	ep_api = ep->api;
 
 	if (ep_api->eid == HA_DEV_EP_NONE) {
@@ -637,11 +626,8 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 		stats.ev_payload_size++;
 		ret = -ENOTSUP;
 		LOG_DBG("(%p) Invalid payload size %u, expected %u for "
-			"endpoint %u",
-			dev,
-			pl->len,
-			ep_api->expected_payload_size,
-			ep_index);
+				"endpoint %u",
+				dev, pl->len, ep_api->expected_payload_size, ep_index);
 		goto exit;
 	}
 
@@ -656,9 +642,7 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 			ret = -ENOMEM;
 			dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_NO_DATA_MEM;
 			stats.ev_no_data_mem++;
-			LOG_ERR("(%p) Failed to allocate data req len=%u",
-				dev,
-				ep_api->data_size);
+			LOG_ERR("(%p) Failed to allocate data req len=%u", dev, ep_api->data_size);
 			goto exit;
 		}
 	}
@@ -714,7 +698,7 @@ exit:
 }
 
 int ha_dev_register_data(const ha_dev_addr_t *addr,
-			 const struct ha_device_payload *payload)
+						 const struct ha_device_payload *payload)
 {
 	ha_dev_t *dev;
 	int ret = -ENOMEM;
@@ -885,10 +869,8 @@ void ha_ev_ref(struct ha_event *event)
 	if (event) {
 		atomic_val_t prev_val = atomic_inc(&event->ref_count);
 
-		LOG_DBG("[ ev %p ref_count %u ++> %u ]",
-			event,
-			(uint32_t)prev_val,
-			(uint32_t)(prev_val + 1));
+		LOG_DBG("[ ev %p ref_count %u ++> %u ]", event, (uint32_t)prev_val,
+				(uint32_t)(prev_val + 1));
 	}
 }
 
@@ -903,10 +885,8 @@ void ha_ev_unref(struct ha_event *event)
 			ha_ev_free(event);
 		}
 
-		LOG_DBG("[ ev %p ref_count %u --> %u ]",
-			event,
-			(uint32_t)prev_val,
-			(uint32_t)(prev_val - 1));
+		LOG_DBG("[ ev %p ref_count %u --> %u ]", event, (uint32_t)prev_val,
+				(uint32_t)(prev_val - 1));
 	}
 }
 
@@ -1044,9 +1024,9 @@ static bool subscription_conf_validate(const ha_ev_subs_conf_t *conf)
 		}
 	} else if (conf->on_queued_cb != NULL) {
 		LOG_WRN("on_queued_cb hook set (%p) but "
-			"HA_EV_SUBS_CONF_ON_QUEUED_HOOK "
-			"flag is missing",
-			conf->on_queued_cb);
+				"HA_EV_SUBS_CONF_ON_QUEUED_HOOK "
+				"flag is missing",
+				conf->on_queued_cb);
 	}
 
 	/* TODO check for conflicting flags */
@@ -1133,9 +1113,8 @@ int ha_unsubscribe(struct ha_ev_subs *sub)
 				count++;
 			}
 			LOG_WRN("%u events not consumed because of "
-				"unsubscription of %p",
-				count,
-				sub);
+					"unsubscription of %p",
+					count, sub);
 		}
 
 		LOG_DBG("%p unsubscribed", sub);
@@ -1165,7 +1144,7 @@ void *ha_ev_get_data(const ha_ev_t *event)
 struct ha_room *ha_dev_get_room(ha_dev_t *const dev)
 {
 	struct ha_room_assoc *assoc = NULL;
-	struct ha_room *room	    = NULL;
+	struct ha_room *room		= NULL;
 
 	/* Find the room associated to the device */
 	for (uint32_t i = 0u; i < ha_cfg_rooms_assoc_count; i++) {
@@ -1205,8 +1184,8 @@ bool ha_dev_ep_exists(const ha_dev_t *dev, uint8_t endpoint_index)
 }
 
 bool ha_dev_ep_has_datatype(const ha_dev_t *dev,
-			    uint8_t endpoint_index,
-			    const ha_data_type_t datatype)
+							uint8_t endpoint_index,
+							const ha_data_type_t datatype)
 {
 	if (!ha_dev_ep_exists(dev, endpoint_index)) {
 		return false;
@@ -1217,8 +1196,7 @@ bool ha_dev_ep_has_datatype(const ha_dev_t *dev,
 #if HA_DEV_EP_TYPE_SEARCH_OPTIMIZATION
 	return (bool)(ep->_data_types & (1u << datatype));
 #else
-	return ha_data_descr_data_type_has(
-		ep->data_descr, ep->data_descr_count, datatype);
+	return ha_data_descr_data_type_has(ep->data_descr, ep->data_descr_count, datatype);
 #endif
 }
 

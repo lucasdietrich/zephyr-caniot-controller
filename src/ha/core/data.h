@@ -46,7 +46,7 @@ typedef enum {
 	/* Special types */
 	HA_DATA_XPS = HA_DATA_SPECIAL_TYPE_OFFSET,
 	HA_DATA_TS,
-	HA_DATA_SS,
+	HA_DATA_ONOFF,
 } ha_data_type_t;
 
 typedef enum {
@@ -114,8 +114,8 @@ struct ha_data_ts {
 	caniot_twostate_cmd_t cmd : 2u;
 };
 
-struct ha_data_ss {
-	caniot_onestate_cmd_t cmd : 1u;
+struct ha_data_onoff {
+	caniot_onestate_cmd_t status : 1u;
 };
 #endif
 
@@ -127,9 +127,9 @@ struct ha_data_descr {
 };
 
 #define HA_DATA_DESCR_NAMED(_struct, _name, _member, _type, _meas)                       \
-	{                                                                                \
-		.name = _name, .measure = _meas, .type = _type,                          \
-		.offset = offsetof(_struct, _member),                                    \
+	{                                                                                    \
+		.name = _name, .measure = _meas, .type = _type,                                  \
+		.offset = offsetof(_struct, _member),                                            \
 	}
 
 #define HA_DATA_DESCR(_struct, _member, _type, _meas)                                    \
@@ -152,10 +152,10 @@ struct ha_data_descr {
  * @return void* Pointer to the data value
  */
 void *ha_data_get(void *data,
-		  const struct ha_data_descr *descr,
-		  size_t data_descr_size,
-		  ha_data_type_t type,
-		  uint8_t occurence);
+				  const struct ha_data_descr *descr,
+				  size_t data_descr_size,
+				  ha_data_type_t type,
+				  uint8_t occurence);
 
 /**
  * @brief Tell whether a descriptor contains a given data type.
@@ -167,8 +167,8 @@ void *ha_data_get(void *data,
  * @return false
  */
 bool ha_data_descr_data_type_has(const struct ha_data_descr *descr,
-				 size_t data_descr_size,
-				 ha_data_type_t type);
+								 size_t data_descr_size,
+								 ha_data_type_t type);
 
 /**
  * @brief Calculate a mask of all data types supported in a descriptor.
@@ -178,7 +178,7 @@ bool ha_data_descr_data_type_has(const struct ha_data_descr *descr,
  * @return uint32_t Mask of data types
  */
 uint32_t ha_data_descr_data_types_mask(const struct ha_data_descr *descr,
-				       size_t data_descr_size);
+									   size_t data_descr_size);
 
 /**
  * @brief Extract data at given index from a data structure using a descriptor
@@ -191,9 +191,9 @@ uint32_t ha_data_descr_data_types_mask(const struct ha_data_descr *descr,
  * @return int 0 on success, negative value on error
  */
 int ha_data_descr_extract(const struct ha_data_descr *descr,
-			  size_t data_descr_size,
-			  void *data_structure,
-			  void *data_extract,
-			  size_t index);
+						  size_t data_descr_size,
+						  void *data_structure,
+						  void *data_extract,
+						  size_t index);
 
 #endif /* _HA_DATA_H_ */

@@ -20,25 +20,25 @@ static int ingest(struct ha_event *ev, const struct ha_device_payload *pl)
 
 static const struct ha_data_descr ha_ds_f429zi_descr[] = {
 	HA_DATA_DESCR(struct ha_ds_f429zi,
-		      die_temperature,
-		      HA_DATA_TEMPERATURE,
-		      HA_ASSIGN_SOC_TEMPERATURE),
+				  die_temperature,
+				  HA_DATA_TEMPERATURE,
+				  HA_ASSIGN_SOC_TEMPERATURE),
 };
 
 static struct ha_device_endpoint_api ep = {
-	.eid		       = HA_DEV_EP_NUCLEO_F429ZI,
-	.data_size	       = sizeof(struct ha_ds_f429zi),
+	.eid				   = HA_DEV_EP_NUCLEO_F429ZI,
+	.data_size			   = sizeof(struct ha_ds_f429zi),
 	.expected_payload_size = sizeof(float),
-	.flags		       = HA_DEV_EP_FLAG_DEFAULT,
-	.data_descr_size       = ARRAY_SIZE(ha_ds_f429zi_descr),
-	.data_descr	       = ha_ds_f429zi_descr,
-	.ingest		       = ingest,
-	.command	       = NULL,
+	.flags				   = HA_DEV_EP_FLAG_DEFAULT,
+	.data_descr_size	   = ARRAY_SIZE(ha_ds_f429zi_descr),
+	.data_descr			   = ha_ds_f429zi_descr,
+	.ingest				   = ingest,
+	.command			   = NULL,
 };
 
 static int init_endpoints(const ha_dev_addr_t *addr,
-			  struct ha_device_endpoint *endpoints,
-			  uint8_t *endpoints_count)
+						  struct ha_device_endpoint *endpoints,
+						  uint8_t *endpoints_count)
 {
 	endpoints[0].api = &ep;
 	*endpoints_count = 1U;
@@ -52,14 +52,14 @@ const struct ha_device_api ha_device_api_f429zi = {
 int ha_dev_register_die_temperature(uint32_t timestamp, float die_temperature)
 {
 	const ha_dev_addr_t addr = {.type = HA_DEV_TYPE_NUCLEO_F429ZI,
-				    .mac  = {
-					     .medium = HA_DEV_MEDIUM_NONE,
-				     }};
+								.mac  = {
+									 .medium = HA_DEV_MEDIUM_NONE,
+								 }};
 
 	const struct ha_device_payload pl = {.buffer	= (const char *)&die_temperature,
-					     .len	= sizeof(die_temperature),
-					     .timestamp = timestamp,
-					     .y		= NULL};
+										 .len		= sizeof(die_temperature),
+										 .timestamp = timestamp,
+										 .y			= NULL};
 
 	return ha_dev_register_data(&addr, &pl);
 }

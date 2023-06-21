@@ -79,7 +79,7 @@ static inline bool http_response_is_first_call(http_response_t *resp)
 }
 
 void http_response_set_content_type(http_response_t *resp,
-				    http_content_type_t content_type);
+									http_content_type_t content_type);
 
 void http_response_set_status_code(http_response_t *resp, uint16_t status_code);
 
