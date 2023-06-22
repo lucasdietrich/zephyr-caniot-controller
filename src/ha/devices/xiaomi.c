@@ -38,7 +38,7 @@ static const struct ha_data_descr ha_ds_xiaomi_descr[] = {
 	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_xiaomi, battery_level, HA_DATA_BATTERY_LEVEL),
 };
 
-static struct ha_device_endpoint_api ep = {
+static struct ha_device_endpoint_config ep = {
 	.eid				   = HA_DEV_EP_XIAOMI_MIJIA,
 	.data_size			   = sizeof(struct ha_ds_xiaomi),
 	.expected_payload_size = sizeof(xiaomi_record_t),
@@ -53,7 +53,7 @@ static int init_endpoints(const ha_dev_addr_t *addr,
 						  struct ha_device_endpoint *endpoints,
 						  uint8_t *endpoints_count)
 {
-	endpoints[0].api = &ep;
+	endpoints[0].cfg = &ep;
 	*endpoints_count = 1U;
 
 	return 0;

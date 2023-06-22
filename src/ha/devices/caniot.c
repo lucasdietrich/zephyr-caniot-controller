@@ -195,7 +195,7 @@ static const struct ha_data_descr ha_cmd_caniot_blc0_descr[] = {
 	HA_DATA_DESCR(struct ha_cmd_caniot_blc0, rl2, HA_DATA_XPS, HA_ASSIGN_RELAY),
 };
 
-static const struct ha_device_endpoint_api ep_blc0 = {
+static const struct ha_device_endpoint_config ep_blc0 = {
 	.eid				   = HA_DEV_EP_CANIOT_BLC0,
 	.data_size			   = sizeof(struct ha_ds_caniot_blc0),
 	.expected_payload_size = 8u,
@@ -229,7 +229,7 @@ static const struct ha_data_descr ha_ds_caniot_blc1_descr[] = {
 		struct ha_ds_caniot_blc1, dio, HA_DATA_DIGITAL_INOUT, HA_ASSIGN_DIGITAL_IO),
 };
 
-static const struct ha_device_endpoint_api ep_blc1 = {
+static const struct ha_device_endpoint_config ep_blc1 = {
 	.eid				   = HA_DEV_EP_CANIOT_BLC1,
 	.data_size			   = sizeof(struct ha_ds_caniot_blc1),
 	.expected_payload_size = 8u,
@@ -265,7 +265,7 @@ static const struct ha_data_descr ha_cmd_caniot_ep_heating_control_descr[] = {
 		struct ha_cmd_caniot_heating_control, heaters[3u], HA_DATA_HEATER_MODE),
 };
 
-static const struct ha_device_endpoint_api ep_heating_control = {
+static const struct ha_device_endpoint_config ep_heating_control = {
 	.eid				   = HA_DEV_EP_CANIOT_HEATING,
 	.data_size			   = sizeof(struct ha_ds_caniot_heating_control),
 	.expected_payload_size = 8u,
@@ -300,7 +300,7 @@ static const struct ha_data_descr ha_cmd_caniot_ep_shutters_control_descr[] = {
 		struct ha_cmd_caniot_shutters_control, shutters[3u], HA_DATA_SHUTTER_POSITION),
 };
 
-static const struct ha_device_endpoint_api ep_shutters_control = {
+static const struct ha_device_endpoint_config ep_shutters_control = {
 	.eid				   = HA_DEV_EP_CANIOT_SHUTTERS,
 	.data_size			   = sizeof(struct ha_ds_caniot_shutters_control),
 	.expected_payload_size = 8u,
@@ -320,11 +320,11 @@ static int init_endpoints(const ha_dev_addr_t *addr,
 	/* Get class endpoint */
 	switch (CANIOT_DID_CLS(addr->mac.addr.caniot)) {
 	case CANIOT_DEVICE_CLASS0:
-		endpoints[0u].api = &ep_blc0;
+		endpoints[0u].cfg = &ep_blc0;
 		*endpoints_count  = 1U;
 		break;
 	case CANIOT_DEVICE_CLASS1:
-		endpoints[0u].api = &ep_blc1;
+		endpoints[0u].cfg = &ep_blc1;
 		*endpoints_count  = 1U;
 		break;
 	default:
@@ -334,11 +334,11 @@ static int init_endpoints(const ha_dev_addr_t *addr,
 	/* Get device application endpoint */
 	switch (addr->mac.addr.caniot) {
 	case HEATING_CONTROLLER_DID:
-		endpoints[1u].api = &ep_heating_control;
+		endpoints[1u].cfg = &ep_heating_control;
 		*endpoints_count  = 2u;
 		break;
 	case SHUTTERS_CONTROLLER_DID:
-		endpoints[1u].api = &ep_shutters_control;
+		endpoints[1u].cfg = &ep_shutters_control;
 		*endpoints_count  = 2u;
 		break;
 	default:

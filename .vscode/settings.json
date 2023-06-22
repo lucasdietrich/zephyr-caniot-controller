@@ -52,5 +52,6 @@
 	"editor.rulers": [
 		80
 	],
+	"editor.autoIndent": "full",
 	"python.defaultInterpreterPath": "../.venv/bin/python",
 }

@@ -9,10 +9,10 @@
 #include "userio/leds.h"
 
 #include <zephyr/logging/log.h>
+#include <zephyr/net/conn_mgr.h>
 #include <zephyr/net/ethernet_mgmt.h>
 #include <zephyr/net/net_config.h>
 #include <zephyr/net/net_context.h>
-#include <zephyr/net/conn_mgr.h>
 #include <zephyr/net/net_core.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_mgmt.h>

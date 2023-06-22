@@ -23,13 +23,13 @@ typedef enum {
 	HA_ASSIGN_RELAY,
 
 	HA_ASSIGN_DIGITAL_IO,
-
 } ha_data_assignement_t;
 
+#define HA_DATA_STD_TYPE_OFFSET		0x00u
 #define HA_DATA_SPECIAL_TYPE_OFFSET 0x80u
 
 typedef enum {
-	HA_DATA_UNSPEC = 0u,
+	HA_DATA_UNSPEC = HA_DATA_STD_TYPE_OFFSET,
 
 	/* Standard types */
 	HA_DATA_TEMPERATURE,
@@ -145,7 +145,7 @@ struct ha_data_descr {
  * Note: Pointer needs to be casted to the correct type.
  *
  * @param data Data structure to get the value from
- * @param descr Descriptor of the data structure
+ * @param descr Descriptor of the given data
  * @param data_descr_size Descriptor size
  * @param type Type of the data to get
  * @param occurence Occurence of the data type in the descriptor
@@ -195,5 +195,28 @@ int ha_data_descr_extract(const struct ha_data_descr *descr,
 						  void *data_structure,
 						  void *data_extract,
 						  size_t index);
+
+/**
+ * @brief Convert ha_data_type_t enumeration to a string representation.
+ *
+ * This function is used to provide a human-readable string of each enumeration of
+ * ha_data_type_t. If the type is not recognized, the function will return "Unknown".
+ *
+ * @param type An enumerated value of ha_data_type_t.
+ * @return const char* The string representation of the input type.
+ */
+const char *ha_data_type_to_str(ha_data_type_t type);
+
+/**
+ * @brief Convert ha_dev_sensor_type_t enumeration to a string representation.
+ *
+ * This function is used to provide a human-readable string of each enumeration of
+ * ha_dev_sensor_type_t. If the type is not recognized, the function will return
+ * "Unknown".
+ *
+ * @param assignement An enumerated value of ha_dev_sensor_type_t.
+ * @return const char* The string representation of the input assignment.
+ */
+const char *ha_data_assignement_to_str(ha_data_assignement_t assignement);
 
 #endif /* _HA_DATA_H_ */

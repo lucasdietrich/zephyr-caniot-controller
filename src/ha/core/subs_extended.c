@@ -83,7 +83,7 @@ lt_find_otherwise_allocate(ha_subs_ext_lt_t *lt, ha_ev_t *event, bool *created)
 
 			zcreated = true;
 		} else {
-			LOG_ERR("Failed to allocate memory for new LT %p entry", lt);
+			LOG_ERR("(LT %p) Failed to allocate memory for new LT entry", lt);
 		}
 	}
 

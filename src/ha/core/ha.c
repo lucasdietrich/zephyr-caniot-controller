@@ -337,7 +337,7 @@ static ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 	/* Finalize endpoints initialization */
 	for (int i = 0; i < dev->endpoints_count; i++) {
 		dev->endpoints[i]._data_types = ha_data_descr_data_types_mask(
-			dev->endpoints[i].api->data_descr, dev->endpoints[i].api->data_descr_size);
+			dev->endpoints[i].cfg->data_descr, dev->endpoints[i].cfg->data_descr_size);
 	}
 #endif /* HA_DEV_EP_TYPE_SEARCH_OPTIMIZATION */
 
@@ -567,7 +567,7 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 	uint8_t ep_index = 0u;
 	ha_ev_t *ev		 = NULL;
 	ha_ev_t *prev_data_ev;
-	const struct ha_device_endpoint_api *ep_api;
+	const struct ha_device_endpoint_config *ep_cfg;
 	struct ha_device_endpoint *ep;
 
 	__ASSERT_NO_MSG(dev != NULL);
@@ -611,9 +611,9 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 	}
 
 	ep	   = &dev->endpoints[ep_index];
-	ep_api = ep->api;
+	ep_cfg = ep->cfg;
 
-	if (ep_api->eid == HA_DEV_EP_NONE) {
+	if (ep_cfg->eid == HA_DEV_EP_NONE) {
 		dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_NO_EP;
 		stats.ev_no_ep++;
 		ret = -ENOENT;
@@ -621,34 +621,34 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 		goto exit;
 	}
 
-	if (ep_api->expected_payload_size && (ep_api->expected_payload_size != pl->len)) {
+	if (ep_cfg->expected_payload_size && (ep_cfg->expected_payload_size != pl->len)) {
 		dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_PAYLOAD_SIZE;
 		stats.ev_payload_size++;
 		ret = -ENOTSUP;
 		LOG_DBG("(%p) Invalid payload size %u, expected %u for "
 				"endpoint %u",
-				dev, pl->len, ep_api->expected_payload_size, ep_index);
+				dev, pl->len, ep_cfg->expected_payload_size, ep_index);
 		goto exit;
 	}
 
-	if (ep_api->data_size) {
+	if (ep_cfg->data_size) {
 		/* Allocate buffer to handle data to be converted if not null */
-		ev->data = malloc(ep_api->data_size);
+		ev->data = malloc(ep_cfg->data_size);
 		if (ev->data) {
-			stats.mem_heap_alloc += ep_api->data_size;
-			stats.mem_heap_total += ep_api->data_size;
-			ev->data_size = ep_api->data_size;
+			stats.mem_heap_alloc += ep_cfg->data_size;
+			stats.mem_heap_total += ep_cfg->data_size;
+			ev->data_size = ep_cfg->data_size;
 		} else {
 			ret = -ENOMEM;
 			dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_NO_DATA_MEM;
 			stats.ev_no_data_mem++;
-			LOG_ERR("(%p) Failed to allocate data req len=%u", dev, ep_api->data_size);
+			LOG_ERR("(%p) Failed to allocate data req len=%u", dev, ep_cfg->data_size);
 			goto exit;
 		}
 	}
 
 	/* Convert data to internal format */
-	ret = ep_api->ingest(ev, pl);
+	ret = ep_cfg->ingest(ev, pl);
 	if (ret < 0) {
 		dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_INGEST;
 		stats.ev_ingest++;
@@ -664,11 +664,11 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 	}
 
 	/* Update statistics */
-	ha_dev_inc_stats_rx(dev, ep_api->data_size);
+	ha_dev_inc_stats_rx(dev, ep_cfg->data_size);
 
 	atomic_set(&ev->ref_count, 0u);
 
-	if (ep->api->flags & HA_DEV_EP_FLAG_RETAIN_LAST_EVENT) {
+	if (ep->cfg->flags & HA_DEV_EP_FLAG_RETAIN_LAST_EVENT) {
 		ha_ev_ref(ev);
 		ep->last_data_event = ev;
 	}
@@ -721,13 +721,13 @@ int ha_dev_command(struct ha_cmd_query *query, ha_ev_t **ev)
 	return -ENOTSUP;
 }
 
-struct ha_device_endpoint *ha_dev_ep_get(ha_dev_t *dev, uint32_t ep)
+struct ha_device_endpoint *ha_dev_ep_get(ha_dev_t *dev, uint32_t ep_index)
 {
-	if (!dev || (ep >= dev->endpoints_count)) {
+	if (!dev || (ep_index >= dev->endpoints_count)) {
 		return NULL;
 	}
 
-	return &dev->endpoints[ep];
+	return &dev->endpoints[ep_index];
 }
 
 struct ha_device_endpoint *ha_dev_ep_get_by_id(ha_dev_t *dev, ha_endpoint_id_t eid)
@@ -737,7 +737,7 @@ struct ha_device_endpoint *ha_dev_ep_get_by_id(ha_dev_t *dev, ha_endpoint_id_t e
 	}
 
 	for (uint8_t i = 0; i < dev->endpoints_count; i++) {
-		if (dev->endpoints[i].api->eid == eid) {
+		if (dev->endpoints[i].cfg->eid == eid) {
 			return &dev->endpoints[i];
 		}
 	}
@@ -752,7 +752,7 @@ int ha_dev_ep_get_index_by_id(ha_dev_t *dev, ha_endpoint_id_t eid)
 	}
 
 	for (uint8_t i = 0; i < dev->endpoints_count; i++) {
-		if (dev->endpoints[i].api->eid == eid) {
+		if (dev->endpoints[i].cfg->eid == eid) {
 			return i;
 		}
 	}
@@ -760,14 +760,14 @@ int ha_dev_ep_get_index_by_id(ha_dev_t *dev, ha_endpoint_id_t eid)
 	return -ENOENT;
 }
 
-ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, uint32_t ep)
+ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, uint32_t ep_index)
 {
-	return ha_dev_ep_get(dev, ep)->last_data_event;
+	return ha_dev_ep_get(dev, ep_index)->last_data_event;
 }
 
-const void *ha_dev_get_last_event_data(ha_dev_t *dev, uint32_t ep)
+const void *ha_dev_get_last_event_data(ha_dev_t *dev, uint32_t ep_index)
 {
-	ha_ev_t *ev = ha_dev_get_last_event(dev, ep);
+	ha_ev_t *ev = ha_dev_get_last_event(dev, ep_index);
 
 	if (ev) {
 		return ev->data;
@@ -1205,10 +1205,10 @@ bool ha_dev_ep_check_data_support(const ha_dev_t *dev, uint8_t endpoint_index)
 	bool support = false;
 
 	if (ha_dev_ep_exists(dev, endpoint_index)) {
-		const struct ha_device_endpoint_api *const api =
-			dev->endpoints[endpoint_index].api;
+		const struct ha_device_endpoint_config *const ep_cfg =
+			dev->endpoints[endpoint_index].cfg;
 
-		support = api->ingest && api->data_descr && api->data_descr_size;
+		support = ep_cfg->ingest && ep_cfg->data_descr && ep_cfg->data_descr_size;
 	}
 
 	return support == true;
@@ -1219,10 +1219,10 @@ bool ha_dev_ep_check_cmd_support(const ha_dev_t *dev, uint8_t endpoint_index)
 	bool support = false;
 
 	if (ha_dev_ep_exists(dev, endpoint_index)) {
-		const struct ha_device_endpoint_api *const api =
-			dev->endpoints[endpoint_index].api;
+		const struct ha_device_endpoint_config *const ep_cfg =
+			dev->endpoints[endpoint_index].cfg;
 
-		support = api->command && api->cmd_descr && api->cmd_descr_size;
+		support = ep_cfg->command && ep_cfg->cmd_descr && ep_cfg->cmd_descr_size;
 	}
 
 	return support == true;

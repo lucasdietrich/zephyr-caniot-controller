@@ -25,7 +25,7 @@ static const struct ha_data_descr ha_ds_f429zi_descr[] = {
 				  HA_ASSIGN_SOC_TEMPERATURE),
 };
 
-static struct ha_device_endpoint_api ep = {
+static struct ha_device_endpoint_config ep = {
 	.eid				   = HA_DEV_EP_NUCLEO_F429ZI,
 	.data_size			   = sizeof(struct ha_ds_f429zi),
 	.expected_payload_size = sizeof(float),
@@ -40,7 +40,7 @@ static int init_endpoints(const ha_dev_addr_t *addr,
 						  struct ha_device_endpoint *endpoints,
 						  uint8_t *endpoints_count)
 {
-	endpoints[0].api = &ep;
+	endpoints[0].cfg = &ep;
 	*endpoints_count = 1U;
 
 	return 0;

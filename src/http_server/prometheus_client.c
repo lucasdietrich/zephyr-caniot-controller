@@ -615,7 +615,7 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev, void *user_data)
 												.digits = 2,
 									}};
 
-		switch (dev->endpoints[0].api->eid) {
+		switch (dev->endpoints[0].cfg->eid) {
 		case HA_DEV_EP_CANIOT_BLC0: {
 			const struct ha_ds_caniot_blc0 *const dt =
 				HA_DEV_EP_0_GET_CAST_LAST_DATA(dev, const struct ha_ds_caniot_blc0);

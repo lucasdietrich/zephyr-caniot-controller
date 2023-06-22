@@ -362,7 +362,7 @@ static uint64_t caniot_emu_state = 0ull;
 
 int caniot_emu_telem(struct caniot_device *dev,
 					 caniot_endpoint_t ep,
-					 char *buf,
+					 unsigned char *buf,
 					 uint8_t *len)
 {
 	memcpy(buf, &caniot_emu_state, 8u);
@@ -375,7 +375,7 @@ int caniot_emu_telem(struct caniot_device *dev,
 
 int caniot_emu_cmd(struct caniot_device *dev,
 				   caniot_endpoint_t ep,
-				   const char *buf,
+				   const unsigned char *buf,
 				   uint8_t len)
 {
 	caniot_emu_state += *(uint64_t *)buf;
@@ -401,10 +401,10 @@ void emu_caniot_device_init(struct emu_caniot_device *emu_dev)
 {
 	memcpy(&emu_dev->config, &default_config, sizeof(struct caniot_device_config));
 
-	emu_dev->dev.api					 = &emu_caniot_api;
-	emu_dev->dev.config					 = &emu_dev->config;
-	emu_dev->dev.flags.request_telemetry = 0u;
-	emu_dev->dev.identification			 = &emu_dev->id;
+	emu_dev->dev.api						= &emu_caniot_api;
+	emu_dev->dev.config						= &emu_dev->config;
+	emu_dev->dev.flags.request_telemetry_ep = CANIOT_ENDPOINT_APP;
+	emu_dev->dev.identification				= &emu_dev->id;
 	caniot_device_system_reset(&emu_dev->dev);
 	emu_dev->state = 0ull;
 }

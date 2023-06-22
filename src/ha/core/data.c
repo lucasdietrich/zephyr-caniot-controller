@@ -3,6 +3,10 @@
 
 #include <zephyr/kernel.h>
 
+#define _(_x)                                                                            \
+	case _x:                                                                             \
+		return #_x
+
 size_t get_data_size(ha_data_type_t type)
 {
 	static const uint32_t std_sizes[] = {
@@ -29,6 +33,41 @@ size_t get_data_size(ha_data_type_t type)
 		return sizeof(struct ha_data_onoff);
 	default:
 		return 0;
+	}
+}
+
+const char *ha_data_type_to_str(ha_data_type_t type)
+{
+	switch (type) {
+		_(HA_DATA_UNSPEC);
+		_(HA_DATA_TEMPERATURE);
+		_(HA_DATA_HUMIDITY);
+		_(HA_DATA_BATTERY_LEVEL);
+		_(HA_DATA_RSSI);
+		_(HA_DATA_DIGITAL_INOUT);
+		_(HA_DATA_DIGITAL_IN);
+		_(HA_DATA_DIGITAL_OUT);
+		_(HA_DATA_ANALOG);
+		_(HA_DATA_HEATER_MODE);
+		_(HA_DATA_SHUTTER_POSITION);
+		_(HA_DATA_XPS);
+		_(HA_DATA_TS);
+		_(HA_DATA_ONOFF);
+	default:
+		return "<unknown data type>";
+	}
+}
+
+const char *ha_data_assignement_to_str(ha_data_assignement_t assignement)
+{
+	switch (assignement) {
+		_(HA_DEV_SENSOR_TYPE_NONE);
+		_(HA_DEV_SENSOR_TYPE_EMBEDDED);
+		_(HA_DEV_SENSOR_TYPE_EXTERNAL1);
+		_(HA_DEV_SENSOR_TYPE_EXTERNAL2);
+		_(HA_DEV_SENSOR_TYPE_EXTERNAL3);
+	default:
+		return "<unknown assignment>";
 	}
 }
 

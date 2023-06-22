@@ -707,11 +707,11 @@ static bool devices_cb(ha_dev_t *dev, void *user_data)
 		struct ha_device_endpoint *ep = ha_dev_ep_get(dev, i);
 		if (ep) {
 			struct json_device_endpoint *jep = &jd->endpoints[jd->endpoints_count];
-			jep->eid						 = ep->api->eid;
-			jep->data_size					 = ep->api->data_size;
-			jep->in_data_size				 = ep->api->expected_payload_size;
-			jep->telemetry					 = (uint32_t)ep->api->ingest;
-			jep->command					 = (uint32_t)ep->api->command;
+			jep->eid						 = ep->cfg->eid;
+			jep->data_size					 = ep->cfg->data_size;
+			jep->in_data_size				 = ep->cfg->expected_payload_size;
+			jep->telemetry					 = (uint32_t)ep->cfg->ingest;
+			jep->command					 = (uint32_t)ep->cfg->command;
 
 			jd->endpoints_count++;
 

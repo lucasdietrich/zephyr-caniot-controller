@@ -20,7 +20,7 @@
 
 /* Forward declaration */
 struct ha_device_api;
-struct ha_device_endpoint_api;
+struct ha_device_endpoint_config;
 struct ha_device_endpoint;
 struct ha_device_stats;
 struct ha_device_payload;
@@ -134,7 +134,7 @@ enum {
 
 #define HA_DEV_EP_FLAG_DEFAULT HA_DEV_EP_FLAG_RETAIN_LAST_EVENT
 
-struct ha_device_endpoint_api {
+struct ha_device_endpoint_config {
 	/* Endpoint identifier */
 	ha_endpoint_id_t eid : 8u;
 
@@ -157,9 +157,11 @@ struct ha_device_endpoint_api {
 
 	int (*command)(struct ha_device *dev, const struct ha_device_command *cmd);
 };
+typedef struct ha_device_endpoint_config ha_dev_ep_cfg_t;
 
 struct ha_device_endpoint {
-	const struct ha_device_endpoint_api *api;
+	/* Describe the endpoint */
+	const struct ha_device_endpoint_config *cfg;
 
 	/* Endpoint last data event item */
 	struct ha_event *last_data_event;
@@ -418,17 +420,18 @@ typedef struct ha_ev_subs_conf ha_ev_subs_conf_t;
 	})
 
 struct ha_device_filter {
+	/* Filter rules */
 	ha_dev_filter_flags_t flags;
 
-	/* Filter rules */
-	ha_dev_medium_type_t medium;
-	ha_dev_type_t device_type;
-	uint32_t data_timestamp;
-	ha_room_id_t rid;
-	uint32_t from_index : 8u;
-	uint32_t to_index : 8u;
-	uint32_t to_count : 4u;
-	ha_endpoint_id_t endpoint_id;
+	/* Filter values */
+	ha_dev_medium_type_t medium;  /* Required if HA_DEV_FILTER_MEDIUM is set */
+	ha_dev_type_t device_type;	  /* Required if HA_DEV_FILTER_DEVICE_TYPE is set */
+	uint32_t data_timestamp;	  /* Required if HA_DEV_FILTER_DATA_TIMESTAMP is set */
+	ha_room_id_t rid;			  /* Required if HA_DEV_FILTER_ROOM_ID is set */
+	uint32_t from_index : 8u;	  /* Required if HA_DEV_FILTER_FROM_INDEX is set */
+	uint32_t to_index : 8u;		  /* Required if HA_DEV_FILTER_TO_INDEX is set */
+	uint32_t to_count : 4u;		  /* Required if HA_DEV_FILTER_TO_COUNT is set */
+	ha_endpoint_id_t endpoint_id; /* Required if HA_DEV_FILTER_ENDPOINT_ID is set */
 };
 typedef struct ha_device_filter ha_dev_filter_t;
 
@@ -627,7 +630,7 @@ int ha_dev_command(struct ha_cmd_query *query, ha_ev_t **ev);
  * @param ep Endpoint index
  * @return ha_ev_t* Last event received on the endpoint or NULL if none
  */
-ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, uint32_t ep);
+ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, uint32_t ep_index);
 
 /**
  * @brief Get device endpoint last event data
@@ -636,7 +639,7 @@ ha_ev_t *ha_dev_get_last_event(ha_dev_t *dev, uint32_t ep);
  * @param ep Endpoint index
  * @return const void* Last event data received on the endpoint or NULL if none
  */
-const void *ha_dev_get_last_event_data(ha_dev_t *dev, uint32_t ep);
+const void *ha_dev_get_last_event_data(ha_dev_t *dev, uint32_t ep_index);
 
 /**
  * @brief Callback for iterating over devices
@@ -649,6 +652,8 @@ typedef bool ha_dev_iterate_cb_t(ha_dev_t *dev, void *user_data);
 
 /**
  * @brief Iterate over filtered devices
+ *
+ * @note No event can be added during the call
  *
  * @param callback Callback to call for each device
  * @param filter Filter to apply to the devices to iterate
@@ -758,7 +763,7 @@ struct ha_room *ha_dev_get_room(ha_dev_t *const dev);
  * @param ep Index of the endpoint
  * @return struct ha_device_endpoint*
  */
-struct ha_device_endpoint *ha_dev_ep_get(ha_dev_t *dev, uint32_t ep);
+struct ha_device_endpoint *ha_dev_ep_get(ha_dev_t *dev, uint32_t ep_index);
 
 /**
  * @brief Get device endpoint by its type id
