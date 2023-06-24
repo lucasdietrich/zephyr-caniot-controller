@@ -553,14 +553,14 @@ static bool caniot_device_cb(ha_dev_t *dev, void *user_data)
 	/* encode temperatures */
 	for (size_t i = 0; i < HA_CANIOT_MAX_TEMPERATURES; i++) {
 		/* if temperature is valid */
-		if (dt->temperatures[i].type != HA_DEV_SENSOR_TYPE_NONE) {
+		if (dt->temperatures[i].sens_type != HA_DEV_SENSOR_TYPE_NONE) {
 			const size_t j = rec->temperatures_count;
 
 			sprintf(arr->temp_repr[arr->count][j], "%.2f",
 					dt->temperatures[i].value / 100.0);
 
 			rec->temperatures[j].repr	   = arr->temp_repr[arr->count][j];
-			rec->temperatures[j].sens_type = dt->temperatures[i].type;
+			rec->temperatures[j].sens_type = dt->temperatures[i].sens_type;
 			rec->temperatures[j].value	   = dt->temperatures[i].value;
 			rec->temperatures_count++;
 		}
@@ -999,7 +999,7 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 
 		char temp_repr[HA_CANIOT_MAX_TEMPERATURES][9U];
 		for (size_t i = 0; i < HA_CANIOT_MAX_TEMPERATURES; i++) {
-			if (blt.temperatures[i].type == HA_DEV_SENSOR_TYPE_NONE) {
+			if (blt.temperatures[i].sens_type == HA_DEV_SENSOR_TYPE_NONE) {
 				continue;
 			}
 
@@ -1008,7 +1008,7 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 			sprintf(temp_repr[j], "%.2f", blt.temperatures[i].value / 100.0);
 
 			json.temperatures[j].repr	   = temp_repr[j];
-			json.temperatures[j].sens_type = blt.temperatures[i].type;
+			json.temperatures[j].sens_type = blt.temperatures[i].sens_type;
 			json.temperatures[j].value	   = blt.temperatures[i].value;
 		}
 

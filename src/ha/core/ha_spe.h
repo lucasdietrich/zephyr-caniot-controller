@@ -34,12 +34,6 @@
 	_HA_DEV_FILTER_BY_DEVICE_TYPE(HA_DEV_TYPE_NUCLEO_F429ZI)
 
 typedef enum {
-	HA_DEV_MEDIUM_NONE = 0,
-	HA_DEV_MEDIUM_BLE, /* MAC address e.g. 23:45:67:89:AB:CD */
-	HA_DEV_MEDIUM_CAN, /* CAN ID e.g. 0x123 or extended e.g. 0x12345678 */
-} ha_dev_medium_type_t;
-
-typedef enum {
 	HA_DEV_TYPE_NONE = 0,
 	HA_DEV_TYPE_XIAOMI_MIJIA, /* Xiaomi Mijia LYWSD03MMC */
 	HA_DEV_TYPE_CANIOT,		  /* CANIOT device addr e.g. 18 */

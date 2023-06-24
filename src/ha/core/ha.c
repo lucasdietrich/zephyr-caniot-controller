@@ -588,7 +588,7 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 	ev->dev		  = dev;
 	ev->type	  = HA_EV_TYPE_DATA;
 	ev->timestamp = pl->timestamp ? pl->timestamp : sys_time_get();
-	sys_slist_init(&ev->slist);
+	sys_slist_init(&ev->_data_slist);
 
 	/* Find endpoint */
 	if (dev->api->select_endpoint != NULL) {
@@ -1226,4 +1226,66 @@ bool ha_dev_ep_check_cmd_support(const ha_dev_t *dev, uint8_t endpoint_index)
 	}
 
 	return support == true;
+}
+
+int ha_ev_data_append(ha_ev_t *event, ha_data_t *data)
+{
+	if ((event == NULL) || (data == NULL)) {
+		return -EINVAL;
+	}
+
+	/* Check if event is not already referenced */
+	if (atomic_get(&event->ref_count) != 0) {
+		return -EINVAL;
+	}
+
+	sys_slist_append(&event->_data_slist, &data->_node);
+
+	return 0;
+}
+
+int ha_ev_data_append_array(ha_ev_t *event, ha_data_t **data, size_t count)
+{
+	if ((event == NULL) || (data == NULL) || (count == 0u)) {
+		return -EINVAL;
+	}
+
+	/* Check if event is not already referenced */
+	if (atomic_get(&event->ref_count) != 0) {
+		return -EINVAL;
+	}
+
+	for (size_t i = 0u; i < count; i++) {
+		sys_slist_append(&event->_data_slist, &data[i]->_node);
+	}
+
+	return 0;
+}
+
+int ha_ev_data_alloc_append(ha_ev_t *event, const ha_data_storage_t *storage)
+{
+	if (storage == NULL) {
+		return -EINVAL;
+	}
+
+	int ret;
+	size_t value_size = ha_data_get_size_by_type(storage->type);
+	ha_data_t *data	  = ha_data_alloc(storage->type);
+
+	if (data != NULL) {
+		data->occurence = storage->occurence;
+		data->subsys	= storage->subsys;
+		memcpy(data->value, &storage->value, value_size);
+
+		ret = ha_ev_data_append(event, data);
+
+		ha_data_free(data);
+
+	} else if (value_size == 0u) {
+		ret = -EINVAL;
+	} else {
+		ret = -ENOMEM;
+	}
+
+	return ret;
 }

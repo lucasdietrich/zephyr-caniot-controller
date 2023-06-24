@@ -47,6 +47,12 @@ struct ha_device;
 #define HA_SUBSCRIPTIONS_MAX_COUNT CONFIG_APP_HA_SUBSCRIPTIONS_MAX_COUNT
 
 typedef enum {
+	HA_DEV_MEDIUM_NONE = 0, /* Undefined medium */
+	HA_DEV_MEDIUM_BLE, /* MAC address e.g. 23:45:67:89:AB:CD */
+	HA_DEV_MEDIUM_CAN, /* CAN ID e.g. 0x123 or extended e.g. 0x12345678 */
+} ha_dev_medium_type_t;
+
+typedef enum {
 	HA_EV_TYPE_DATA = 0u,
 	// HA_EV_TYPE_CONTROL = 1,
 	HA_EV_TYPE_COMMAND = 2u,
@@ -129,10 +135,11 @@ typedef struct ha_device_command ha_dev_cmd_t;
 
 enum {
 	/* Tells whether the endpoint should retain the last event */
+	HA_DEV_EP_FLAG_NONE = 0u,
 	HA_DEV_EP_FLAG_RETAIN_LAST_EVENT = BIT(0),
 };
 
-#define HA_DEV_EP_FLAG_DEFAULT HA_DEV_EP_FLAG_RETAIN_LAST_EVENT
+#define HA_DEV_EP_FLAG_DEFAULT 	HA_DEV_EP_FLAG_RETAIN_LAST_EVENT
 
 struct ha_device_endpoint_config {
 	/* Endpoint identifier */
@@ -312,7 +319,7 @@ struct ha_event {
 	atomic_val_t ref_count;
 
 	/* Singly linked list of data item */
-	sys_slist_t slist;
+	sys_slist_t _data_slist;
 
 	/******************/
 	/* Public members */
@@ -321,7 +328,7 @@ struct ha_event {
 	/* Event time */
 	uint32_t timestamp;
 
-	/* Event payload */
+	/* Event payload buffer */
 	void *data;
 
 	/* Device the event is related to */
@@ -836,7 +843,7 @@ bool ha_dev_ep_check_cmd_support(const ha_dev_t *dev, uint8_t endpoint_index);
  * @param assignement
  * @return int
  */
-int ha_dev_count_data_inputs(ha_data_type_t type, ha_data_assignement_t assignement);
+int ha_dev_count_data_inputs(ha_data_type_t type, ha_data_subsystem_t ss);
 
 /** Iterate over all devices/endpoints and count all control outputs matching
  * given "assignement".
@@ -846,7 +853,7 @@ int ha_dev_count_data_inputs(ha_data_type_t type, ha_data_assignement_t assignem
  * @param assignement
  * @return int
  */
-int ha_dev_count_control_outputs(ha_data_type_t type, ha_data_assignement_t assignement);
+int ha_dev_count_control_outputs(ha_data_type_t type, ha_data_subsystem_t ss);
 
 /* Debug functions */
 
@@ -890,5 +897,18 @@ int ha_dev_storage_load(ha_dev_t *dev);
  * @return int
  */
 int ha_dev_storage_delete(ha_dev_t *dev);
+
+/**
+ * @brief Append given data to the event data list
+ * 
+ * @param event 
+ * @param data 
+ * @return int 
+ */
+int ha_ev_data_append(ha_ev_t *event, ha_data_t *data);
+
+int ha_ev_data_append_array(ha_ev_t *event, ha_data_t **data, size_t count);
+
+int ha_ev_data_alloc_append(ha_ev_t *event, const ha_data_storage_t *storage);
 
 #endif /* _HA_H_ */

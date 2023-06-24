@@ -365,6 +365,7 @@ int caniot_emu_telem(struct caniot_device *dev,
 					 unsigned char *buf,
 					 uint8_t *len)
 {
+
 	memcpy(buf, &caniot_emu_state, 8u);
 	*len = 8u;
 
@@ -429,7 +430,7 @@ struct emu_caniot_device caniot_devices[] = {
 	EMU_CANIOT(0, 5, 0x56789012, "Test device 0.5"),
 	EMU_CANIOT(0, 6, 0x67890123, "Test device 0.6"),
 	EMU_CANIOT(0, 7, 0x78901234, "Test device 0.7"),
-	EMU_CANIOT(1, 0, 0x56789012, "Test device 1.0"),
+	EMU_CANIOT(1, 0, 0x56789012, "Heating controller"),
 	EMU_CANIOT(1, 1, 0x67890123, "Test device 1.1"),
 	EMU_CANIOT(1, 2, 0x78901234, "Test device 1.2"),
 	EMU_CANIOT(1, 3, 0x89012345, "Test device 1.3"),

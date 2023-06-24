@@ -24,11 +24,11 @@ static int save_caniot_temperature(struct ha_data_temperature *temp_buf_array,
 
 	if (temp_index < array_size) {
 		if (CANIOT_DT_VALID_T10_TEMP(temperature)) {
-			temp_buf_array[temp_index].type	 = sens_type;
+			temp_buf_array[temp_index].sens_type	 = sens_type;
 			temp_buf_array[temp_index].value = caniot_dt_T10_to_T16(temperature);
 			ret								 = 1U;
 		} else {
-			temp_buf_array[temp_index].type = HA_DEV_SENSOR_TYPE_NONE;
+			temp_buf_array[temp_index].sens_type = HA_DEV_SENSOR_TYPE_NONE;
 			ret								= 0U;
 		}
 		ret = 0;
@@ -133,6 +133,31 @@ static int ep_heating_control_ingest(struct ha_event *ev,
 	return 0;
 }
 
+static int ep_heating_control_ingest_dyn_variant(struct ha_event *ev,
+									 const struct ha_device_payload *pl)
+{
+	struct caniot_heating_control *can_buf	= (struct caniot_heating_control *)pl->buffer;
+	struct ha_ds_caniot_heating_control *ds = ev->data;
+
+	ha_data_storage_t *array[4u];
+	ha_data_alloc_array((ha_data_t **)array, ARRAY_SIZE(array), HA_DATA_HEATER_MODE);
+
+	array[0]->value.heater_mode.mode = can_buf->heater1_cmd;
+	array[1]->value.heater_mode.mode = can_buf->heater2_cmd;
+	array[2]->value.heater_mode.mode = can_buf->heater3_cmd;
+	array[3]->value.heater_mode.mode = can_buf->heater4_cmd;
+
+	ha_data_storage_t power_status = {.type				  = HA_DATA_ONOFF,
+									  .subsys			  = HA_SUBSYS_UNASSIGNED,
+									  .occurence		  = 0u,
+									  .value.onoff.status = can_buf->power_status};
+
+	ha_ev_data_append_array(ev, (ha_data_t **)array, ARRAY_SIZE(array));
+	ha_ev_data_alloc_append(ev, &power_status);
+
+	return 0;
+}
+
 static int ep_shutters_control_ingest(struct ha_event *ev,
 									  const struct ha_device_payload *pl)
 {
@@ -170,29 +195,29 @@ static const struct ha_data_descr ha_ds_caniot_blc0_descr[] = {
 	HA_DATA_DESCR(struct ha_ds_caniot_blc0,
 				  temperatures[0u],
 				  HA_DATA_TEMPERATURE,
-				  HA_ASSIGN_BOARD_TEMPERATURE),
+				  HA_SUBSYS_BOARD_TEMPERATURE),
 	HA_DATA_DESCR(struct ha_ds_caniot_blc0,
 				  temperatures[1u],
 				  HA_DATA_TEMPERATURE,
-				  HA_ASSIGN_EXTERNAL_TEMPERATURE_SENSOR),
+				  HA_SUBSYS_EXTERNAL_TEMPERATURE_SENSOR),
 	HA_DATA_DESCR(struct ha_ds_caniot_blc0,
 				  temperatures[2u],
 				  HA_DATA_TEMPERATURE,
-				  HA_ASSIGN_EXTERNAL_TEMPERATURE_SENSOR),
+				  HA_SUBSYS_EXTERNAL_TEMPERATURE_SENSOR),
 	HA_DATA_DESCR(struct ha_ds_caniot_blc0,
 				  temperatures[3u],
 				  HA_DATA_TEMPERATURE,
-				  HA_ASSIGN_EXTERNAL_TEMPERATURE_SENSOR),
+				  HA_SUBSYS_EXTERNAL_TEMPERATURE_SENSOR),
 	HA_DATA_DESCR(
-		struct ha_ds_caniot_blc0, dio, HA_DATA_DIGITAL_INOUT, HA_ASSIGN_DIGITAL_IO),
+		struct ha_ds_caniot_blc0, dio, HA_DATA_DIGITAL_INOUT, HA_SUBSYS_DIGITAL_IO),
 	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_caniot_blc0, pdio, HA_DATA_DIGITAL_INOUT),
 };
 
 static const struct ha_data_descr ha_cmd_caniot_blc0_descr[] = {
-	HA_DATA_DESCR(struct ha_cmd_caniot_blc0, oc1, HA_DATA_XPS, HA_ASSIGN_OPEN_COLLECTOR),
-	HA_DATA_DESCR(struct ha_cmd_caniot_blc0, oc2, HA_DATA_XPS, HA_ASSIGN_OPEN_COLLECTOR),
-	HA_DATA_DESCR(struct ha_cmd_caniot_blc0, rl1, HA_DATA_XPS, HA_ASSIGN_RELAY),
-	HA_DATA_DESCR(struct ha_cmd_caniot_blc0, rl2, HA_DATA_XPS, HA_ASSIGN_RELAY),
+	HA_DATA_DESCR(struct ha_cmd_caniot_blc0, oc1, HA_DATA_XPS, HA_SUBSYS_OPEN_COLLECTOR),
+	HA_DATA_DESCR(struct ha_cmd_caniot_blc0, oc2, HA_DATA_XPS, HA_SUBSYS_OPEN_COLLECTOR),
+	HA_DATA_DESCR(struct ha_cmd_caniot_blc0, rl1, HA_DATA_XPS, HA_SUBSYS_RELAY),
+	HA_DATA_DESCR(struct ha_cmd_caniot_blc0, rl2, HA_DATA_XPS, HA_SUBSYS_RELAY),
 };
 
 static const struct ha_device_endpoint_config ep_blc0 = {
@@ -212,21 +237,21 @@ static const struct ha_data_descr ha_ds_caniot_blc1_descr[] = {
 	HA_DATA_DESCR(struct ha_ds_caniot_blc1,
 				  temperatures[0u],
 				  HA_DATA_TEMPERATURE,
-				  HA_ASSIGN_BOARD_TEMPERATURE),
+				  HA_SUBSYS_BOARD_TEMPERATURE),
 	HA_DATA_DESCR(struct ha_ds_caniot_blc1,
 				  temperatures[1u],
 				  HA_DATA_TEMPERATURE,
-				  HA_ASSIGN_EXTERNAL_TEMPERATURE_SENSOR),
+				  HA_SUBSYS_EXTERNAL_TEMPERATURE_SENSOR),
 	HA_DATA_DESCR(struct ha_ds_caniot_blc1,
 				  temperatures[2u],
 				  HA_DATA_TEMPERATURE,
-				  HA_ASSIGN_EXTERNAL_TEMPERATURE_SENSOR),
+				  HA_SUBSYS_EXTERNAL_TEMPERATURE_SENSOR),
 	HA_DATA_DESCR(struct ha_ds_caniot_blc1,
 				  temperatures[3u],
 				  HA_DATA_TEMPERATURE,
-				  HA_ASSIGN_EXTERNAL_TEMPERATURE_SENSOR),
+				  HA_SUBSYS_EXTERNAL_TEMPERATURE_SENSOR),
 	HA_DATA_DESCR(
-		struct ha_ds_caniot_blc1, dio, HA_DATA_DIGITAL_INOUT, HA_ASSIGN_DIGITAL_IO),
+		struct ha_ds_caniot_blc1, dio, HA_DATA_DIGITAL_INOUT, HA_SUBSYS_DIGITAL_IO),
 };
 
 static const struct ha_device_endpoint_config ep_blc1 = {

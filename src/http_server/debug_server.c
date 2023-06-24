@@ -11,11 +11,15 @@ LOG_MODULE_REGISTER(debug_server, LOG_LEVEL_DBG);
 
 bool ha_it_cb(ha_dev_t *dev, void *user_data)
 {
-	struct ha_event *ev;
 	struct ha_device_endpoint *ep;
+	struct ha_event *ev;
 
 	for (uint32_t ep_index = 0u; (ep = ha_dev_ep_get(dev, ep_index)); ep_index++) {
 		LOG_DBG("dev: %d ep[%u]", dev->sdevuid, ep_index);
+
+		if (ep->last_data_event != NULL) {
+			// ep->last_data_event->slist
+		}
 	}
 
 	return true;

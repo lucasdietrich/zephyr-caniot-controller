@@ -564,7 +564,7 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev, void *user_data)
 			.medium	   = prom_myd_medium_to_str(dev->addr.mac.medium),
 			.mac	   = mac_addr,
 			.device	   = prom_myd_device_type_to_str(dev->addr.type),
-			.sensor	   = prom_myd_sensor_type_to_str(dt->temperature.type),
+			.sensor	   = prom_myd_sensor_type_to_str(dt->temperature.sens_type),
 			.room	   = "",
 			.collector = "f429",
 		};
@@ -622,7 +622,7 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev, void *user_data)
 
 			/* TODO refactor, because same code for CLS0 and 1 */
 			for (size_t i = 0U; i < ARRAY_SIZE(dt->temperatures); i++) {
-				ha_dev_sensor_type_t sensor_type = dt->temperatures[i].type;
+				ha_dev_sensor_type_t sensor_type = dt->temperatures[i].sens_type;
 				if (sensor_type != HA_DEV_SENSOR_TYPE_NONE) {
 					val.fvalue		   = dt->temperatures[i].value / 100.0;
 					tags_values.sensor = prom_myd_sensor_type_to_str(sensor_type);
@@ -636,7 +636,7 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev, void *user_data)
 
 			/* TODO refactor, because same code for CLS0 and 1 */
 			for (size_t i = 0U; i < ARRAY_SIZE(dt->temperatures); i++) {
-				ha_dev_sensor_type_t sensor_type = dt->temperatures[i].type;
+				ha_dev_sensor_type_t sensor_type = dt->temperatures[i].sens_type;
 				if (sensor_type != HA_DEV_SENSOR_TYPE_NONE) {
 					val.fvalue		   = dt->temperatures[i].value / 100.0;
 					tags_values.sensor = prom_myd_sensor_type_to_str(sensor_type);

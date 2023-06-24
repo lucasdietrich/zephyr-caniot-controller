@@ -22,7 +22,7 @@ static const struct ha_data_descr ha_ds_f429zi_descr[] = {
 	HA_DATA_DESCR(struct ha_ds_f429zi,
 				  die_temperature,
 				  HA_DATA_TEMPERATURE,
-				  HA_ASSIGN_SOC_TEMPERATURE),
+				  HA_SUBSYS_SOC_TEMPERATURE),
 };
 
 static struct ha_device_endpoint_config ep = {
