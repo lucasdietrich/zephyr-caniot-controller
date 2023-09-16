@@ -10,6 +10,8 @@
 #include "ha/core/data.h"
 #include "ha/core/ha.h"
 
+#include <caniot/classes.h>
+
 #define HA_CANIOT_CLS0_MAX_TEMPERATURES 4u
 #define HA_CANIOT_CLS1_MAX_TEMPERATURES 4u
 #define HA_CANIOT_MAX_TEMPERATURES		4U

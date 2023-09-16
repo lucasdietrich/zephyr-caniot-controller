@@ -40,8 +40,7 @@
 #include <zephyr/posix/time.h>
 
 #include <caniot/caniot.h>
-#include <caniot/classes/class0.h>
-#include <caniot/classes/class1.h>
+#include <caniot/classes.h>
 #include <caniot/datatype.h>
 #include <embedc-url/parser.h>
 #include <mbedtls/memory_buffer_alloc.h>
@@ -982,8 +981,11 @@ static int json_format_caniot_telemetry_resp(struct caniot_frame *r,
 											 uint32_t timeout)
 {
 	if (r->id.cls == CANIOT_DEVICE_CLASS0) {
+		struct caniot_blc0_telemetry t = {0};
 		struct ha_ds_caniot_blc0 blt;
-		ha_dev_caniot_blc_cls0_to_blt(&blt, AS_BLC0_TELEMETRY(r->buf));
+		
+		caniot_blc0_telemetry_get(&t, r->buf, r->len);
+		ha_dev_caniot_blc_cls0_to_blt(&blt, &t);
 
 		struct json_caniot_telemetry json = {
 			.did = CANIOT_DID(r->id.cls, r->id.sid),
@@ -1166,8 +1168,10 @@ const struct json_obj_descr json_caniot_blc1_cmd_post_descr[] = {JSON_OBJ_DESCR_
 int rest_devices_caniot_blc1_command(http_request_t *req, http_response_t *resp)
 {
 	/* parse did */
-	int ret		 = 0;
-	uint32_t did = 0;
+	struct caniot_frame q;
+	int ret			= 0;
+	uint32_t did	= 0;
+	uint8_t cmd[8u] = {0};
 	route_arg_get(req, "did", &did);
 
 	resp->status_code = HTTP_STATUS_BAD_REQUEST;
@@ -1188,20 +1192,16 @@ int rest_devices_caniot_blc1_command(http_request_t *req, http_response_t *resp)
 	resp->status_code = HTTP_STATUS_OK;
 
 	/* Build class1 BLC command */
-	struct caniot_blc1_command cmd;
-	caniot_cmd_blc1_init(&cmd);
 	for (uint32_t i = 0; i < post.count; i++) {
 		caniot_complex_digital_cmd_t xps = ha_parse_xps_command(post.xps[i]);
 		LOG_INF("BLC1 XPS[%u] = %s (%u)", i, post.xps[i], xps);
-		caniot_cmd_blc1_set_xps(&cmd, i, xps);
+		caniot_blc1_cmd_set_xps(xps, cmd, sizeof(cmd), i);
 	}
 
 	/* Convert to CANIOT command */
-	struct caniot_frame q;
-	caniot_build_query_command(&q, CANIOT_ENDPOINT_BOARD_CONTROL, (uint8_t *)&cmd,
-							   sizeof(cmd));
+	caniot_build_query_command(&q, CANIOT_ENDPOINT_BOARD_CONTROL, cmd, sizeof(cmd));
 
-	LOG_HEXDUMP_INF((uint8_t *)&cmd, sizeof(cmd), "BLC1 command: ");
+	LOG_HEXDUMP_INF(cmd, sizeof(cmd), "BLC1 command: ");
 
 	/* execute and build appropriate response */
 	uint32_t timeout = MIN(req->timeout_ms, REST_CANIOT_QUERY_MAX_TIMEOUT_MS);
@@ -1422,9 +1422,10 @@ int rest_devices_caniot_blc_action(http_request_t *req, http_response_t *resp)
 {
 	int ret = 0;
 	const struct route_descr *descr;
-	uint32_t did = 0;
-	struct caniot_blc_command cmd;
 	struct caniot_frame q;
+	uint32_t did						  = 0;
+	struct caniot_blc_sys_command cmd_sys = {0};
+	uint8_t cmd[8u]						  = {0};
 
 	/* Check did */
 	route_arg_get(req, "did", &did);
@@ -1435,16 +1436,15 @@ int rest_devices_caniot_blc_action(http_request_t *req, http_response_t *resp)
 
 	descr = req->route_parse_results[req->route_parse_results_len - 1u].descr;
 
-	caniot_blc_command_init(&cmd);
-
 	if (strcmp(descr->part.str, "reboot") == 0) {
-		caniot_blc_sys_req_reboot(&cmd.sys);
+		cmd_sys.reset = 1u;
 	} else if (strcmp(descr->part.str, "factory_reset") == 0) {
-		caniot_blc_sys_req_factory_reset(&cmd.sys);
+		cmd_sys.config_reset = 1u;
 	}
 
-	ret = caniot_build_query_command(&q, CANIOT_ENDPOINT_BOARD_CONTROL, (uint8_t *)&cmd,
-									 sizeof(cmd));
+	cmd[7u] = caniot_caniot_blc_sys_command_to_byte(&cmd_sys);
+
+	ret = caniot_build_query_command(&q, CANIOT_ENDPOINT_BOARD_CONTROL, cmd, sizeof(cmd));
 	if (ret) {
 		goto exit;
 	}

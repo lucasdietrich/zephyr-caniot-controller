@@ -15,6 +15,7 @@
 
 #include <caniot/caniot.h>
 #include <caniot/datatype.h>
+#include <caniot/classes.h>
 
 static const caniot_did_t garage_did =
 	CANIOT_DID(CANIOT_DEVICE_CLASS0, CANIOT_DEVICE_SID4);
