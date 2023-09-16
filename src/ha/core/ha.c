@@ -333,13 +333,20 @@ static ha_dev_t *ha_dev_register(const ha_dev_addr_t *addr)
 		goto exit;
 	}
 
-#if HA_DEV_EP_TYPE_SEARCH_OPTIMIZATION
 	/* Finalize endpoints initialization */
 	for (int i = 0; i < dev->endpoints_count; i++) {
-		dev->endpoints[i]._data_types = ha_data_descr_data_types_mask(
-			dev->endpoints[i].cfg->data_descr, dev->endpoints[i].cfg->data_descr_size);
-	}
+		const ha_data_descr_t *telem_descr = dev->endpoints[i].cfg->telemetry.descr;
+		uint8_t telem_descr_size		   = dev->endpoints[i].cfg->telemetry.descr_size;
+
+		/* Calculate ep->_telemetry_data_size */
+		dev->endpoints[i]._telemetry_data_size =
+			ha_data_descr_calc_data_buf_size(telem_descr, telem_descr_size);
+
+#if HA_DEV_EP_TYPE_SEARCH_OPTIMIZATION
+		dev->endpoints[i]._data_types =
+			ha_data_descr_data_types_mask(telem_descr, telem_descr_size);
 #endif /* HA_DEV_EP_TYPE_SEARCH_OPTIMIZATION */
+	}
 
 	/* Increment device count */
 	devices.count++;
@@ -564,7 +571,7 @@ static inline void ha_dev_inc_stats_tx(ha_dev_t *dev, uint32_t tx_bytes)
 static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl)
 {
 	int ret			 = -EINVAL;
-	uint8_t ep_index = 0u;
+	uint8_t ep_index = 0u; /* Choose endpoint 0 by default */
 	ha_ev_t *ev		 = NULL;
 	ha_ev_t *prev_data_ev;
 	const struct ha_device_endpoint_config *ep_cfg;
@@ -613,6 +620,8 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 	ep	   = &dev->endpoints[ep_index];
 	ep_cfg = ep->cfg;
 
+	ev->ep_cfg = ep_cfg;
+
 	if (ep_cfg->eid == HA_DEV_EP_NONE) {
 		dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_NO_EP;
 		stats.ev_no_ep++;
@@ -631,24 +640,25 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 		goto exit;
 	}
 
-	if (ep_cfg->data_size) {
+	if (ep->_telemetry_data_size) {
 		/* Allocate buffer to handle data to be converted if not null */
-		ev->data = malloc(ep_cfg->data_size);
+		ev->data = malloc(ep->_telemetry_data_size);
 		if (ev->data) {
-			stats.mem_heap_alloc += ep_cfg->data_size;
-			stats.mem_heap_total += ep_cfg->data_size;
-			ev->data_size = ep_cfg->data_size;
+			stats.mem_heap_alloc += ep->_telemetry_data_size;
+			stats.mem_heap_total += ep->_telemetry_data_size;
+			ev->data_size = ep->_telemetry_data_size;
 		} else {
 			ret = -ENOMEM;
 			dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_NO_DATA_MEM;
 			stats.ev_no_data_mem++;
-			LOG_ERR("(%p) Failed to allocate data req len=%u", dev, ep_cfg->data_size);
+			LOG_ERR("(%p) Failed to allocate data req len=%u", dev,
+					ep->_telemetry_data_size);
 			goto exit;
 		}
 	}
 
 	/* Convert data to internal format */
-	ret = ep_cfg->ingest(ev, pl);
+	ret = ep_cfg->telemetry.ingest(ev, pl);
 	if (ret < 0) {
 		dev->stats.err_flags |= HA_DEV_STATS_ERR_FLAG_EV_INGEST;
 		stats.ev_ingest++;
@@ -664,7 +674,7 @@ static int device_process_data(ha_dev_t *dev, const struct ha_device_payload *pl
 	}
 
 	/* Update statistics */
-	ha_dev_inc_stats_rx(dev, ep_cfg->data_size);
+	ha_dev_inc_stats_rx(dev, ep->_telemetry_data_size);
 
 	atomic_set(&ev->ref_count, 0u);
 
@@ -1194,7 +1204,7 @@ bool ha_dev_ep_has_datatype(const ha_dev_t *dev,
 	const struct ha_device_endpoint *const ep = &dev->endpoints[endpoint_index];
 
 #if HA_DEV_EP_TYPE_SEARCH_OPTIMIZATION
-	return (bool)(ep->_data_types & (1u << datatype));
+	return (bool)(ep->_data_types & (1llu << datatype));
 #else
 	return ha_data_descr_data_type_has(ep->data_descr, ep->data_descr_count, datatype);
 #endif
@@ -1208,7 +1218,8 @@ bool ha_dev_ep_check_data_support(const ha_dev_t *dev, uint8_t endpoint_index)
 		const struct ha_device_endpoint_config *const ep_cfg =
 			dev->endpoints[endpoint_index].cfg;
 
-		support = ep_cfg->ingest && ep_cfg->data_descr && ep_cfg->data_descr_size;
+		support = ep_cfg->telemetry.ingest && ep_cfg->telemetry.descr &&
+				  ep_cfg->telemetry.descr_size;
 	}
 
 	return support == true;
@@ -1222,7 +1233,8 @@ bool ha_dev_ep_check_cmd_support(const ha_dev_t *dev, uint8_t endpoint_index)
 		const struct ha_device_endpoint_config *const ep_cfg =
 			dev->endpoints[endpoint_index].cfg;
 
-		support = ep_cfg->command && ep_cfg->cmd_descr && ep_cfg->cmd_descr_size;
+		support =
+			ep_cfg->command.send && ep_cfg->command.descr && ep_cfg->command.descr_size;
 	}
 
 	return support == true;
@@ -1269,7 +1281,7 @@ int ha_ev_data_alloc_append(ha_ev_t *event, const ha_data_storage_t *storage)
 	}
 
 	int ret;
-	size_t value_size = ha_data_get_size_by_type(storage->type);
+	size_t value_size = ha_data_type_get_value_size(storage->type);
 	ha_data_t *data	  = ha_data_alloc(storage->type);
 
 	if (data != NULL) {
@@ -1288,4 +1300,34 @@ int ha_ev_data_alloc_append(ha_ev_t *event, const ha_data_storage_t *storage)
 	}
 
 	return ret;
+}
+
+int ha_ev_data_iterate(ha_ev_t *event, ha_data_iter_cb_t cb, void *user_data)
+{
+	if (!event) return -EINVAL;
+
+	int ret;
+
+	/* Iterate over endpoint defined data */
+	ret = ha_data_iterate_descr(event->data, event->ep_cfg->telemetry.descr,
+								event->ep_cfg->telemetry.descr_size, cb, user_data);
+	if (ret < 0) {
+		goto exit;
+	}
+
+	/* Iterate over extra defined data */
+	ret = ha_data_iterate_slist(&event->_data_slist, cb, user_data);
+	if (ret < 0) {
+		goto exit;
+	}
+
+exit:
+	return ret;
+}
+
+bool ha_ev_has_extra_data(ha_ev_t *event)
+{
+	if (!event) return false;
+
+	return !sys_slist_is_empty(&event->_data_slist);
 }

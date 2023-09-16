@@ -39,9 +39,9 @@ static ha_ciot_ctrl_did_cb_t did_callbacks[CANIOT_DID_MAX_COUNT];
 static void thread(void *_a, void *_b, void *_c);
 
 #if defined(CONFIG_DEBUG)
-#	define HA_CANIOT_CTRL_THREAD_STACK_SIZE 0x800
+#define HA_CANIOT_CTRL_THREAD_STACK_SIZE 0x800
 #else
-#	define HA_CANIOT_CTRL_THREAD_STACK_SIZE 0x400
+#define HA_CANIOT_CTRL_THREAD_STACK_SIZE 0x400
 #endif
 
 K_THREAD_DEFINE(ha_caniot_ctrl_thread,

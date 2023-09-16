@@ -25,8 +25,8 @@ typedef enum {
 	HA_SUBSYS_DIGITAL_IO,
 } ha_data_subsystem_t;
 
-#define HA_DATA_STD_TYPE_OFFSET		0x00u
-#define HA_DATA_SPECIAL_TYPE_OFFSET 0x80u
+#define HA_DATA_STD_TYPE_OFFSET		0u
+#define HA_DATA_SPECIAL_TYPE_OFFSET 32u
 
 typedef enum {
 	HA_DATA_UNSPEC = HA_DATA_STD_TYPE_OFFSET,
@@ -47,7 +47,11 @@ typedef enum {
 	HA_DATA_XPS = HA_DATA_SPECIAL_TYPE_OFFSET,
 	HA_DATA_TS,
 	HA_DATA_ONOFF,
+
+	_HA_DATA_MAX_TYPE,
 } ha_data_type_t;
+
+BUILD_ASSERT(_HA_DATA_MAX_TYPE <= 64u, "HA_DATA_MAX_TYPE must be <= 64");
 
 typedef enum {
 	HA_DEV_SENSOR_TYPE_NONE = 0,
@@ -56,6 +60,8 @@ typedef enum {
 	HA_DEV_SENSOR_TYPE_EXTERNAL1,
 	HA_DEV_SENSOR_TYPE_EXTERNAL2,
 	HA_DEV_SENSOR_TYPE_EXTERNAL3,
+
+	_HA_DEV_SENSOR_TYPE_MAX,
 } ha_dev_sensor_type_t;
 
 struct ha_data_temperature {
@@ -125,10 +131,11 @@ struct ha_data_descr {
 	ha_data_type_t type : 8u;
 	uint32_t offset : 16u;
 };
+typedef struct ha_data_descr ha_data_descr_t;
 
-#define HA_DATA_DESCR_NAMED(_struct, _name, _member, _type, _ss)                       \
+#define HA_DATA_DESCR_NAMED(_struct, _name, _member, _type, _ss)                         \
 	{                                                                                    \
-		.name = _name, .subsys = _ss, .type = _type,                                  \
+		.name = _name, .subsys = _ss, .type = _type,                                     \
 		.offset = offsetof(_struct, _member),                                            \
 	}
 
@@ -152,7 +159,7 @@ struct ha_data_descr {
  * @return void* Pointer to the data value
  */
 void *ha_data_get(void *data,
-				  const struct ha_data_descr *descr,
+				  const ha_data_descr_t *descr,
 				  size_t data_descr_size,
 				  ha_data_type_t type,
 				  uint8_t occurence);
@@ -166,7 +173,7 @@ void *ha_data_get(void *data,
  * @return true
  * @return false
  */
-bool ha_data_descr_data_type_has(const struct ha_data_descr *descr,
+bool ha_data_descr_data_type_has(const ha_data_descr_t *descr,
 								 size_t data_descr_size,
 								 ha_data_type_t type);
 
@@ -177,8 +184,19 @@ bool ha_data_descr_data_type_has(const struct ha_data_descr *descr,
  * @param data_descr_size Descriptor size
  * @return uint32_t Mask of data types
  */
-uint32_t ha_data_descr_data_types_mask(const struct ha_data_descr *descr,
+uint64_t ha_data_descr_data_types_mask(const ha_data_descr_t *descr,
 									   size_t data_descr_size);
+
+/**
+ * @brief Calculate the size of the data buffer needed to store all data
+ * described by a descriptor.
+ *
+ * @param descr
+ * @param data_descr_size
+ * @return size_t
+ */
+size_t ha_data_descr_calc_data_buf_size(const ha_data_descr_t *descr,
+										size_t data_descr_size);
 
 /**
  * @brief Extract data at given index from a data structure using a descriptor
@@ -190,12 +208,11 @@ uint32_t ha_data_descr_data_types_mask(const struct ha_data_descr *descr,
  * @param index
  * @return int 0 on success, negative value on error
  */
-int ha_data_descr_extract(const struct ha_data_descr *descr,
+int ha_data_descr_extract(const ha_data_descr_t *descr,
 						  size_t data_descr_size,
 						  void *data_structure,
 						  void *data_extract,
 						  size_t index);
-
 
 typedef union {
 	struct ha_data_temperature temperature;
@@ -219,41 +236,81 @@ struct ha_data {
 	sys_snode_t _node;			/* Use to link data together */
 	ha_data_type_t type;		/*	Type of the data represented by this structure */
 	ha_data_subsystem_t subsys; /* Subsystem the data belongs to */
-	uint8_t occurence;	/* Subsystem index if multiple data of the same type/subsys */
-	uint8_t value[];	/* Data buffer (size depends on the type) */
+	uint8_t occurence; /* Subsystem index if multiple data of the same type/subsys */
+	uint8_t value[];   /* Data buffer (size depends on the type) */
 };
 typedef struct ha_data ha_data_t;
 
-/* !!! This structure is only used for data interpretation, and should never be allocated directly !!! */
+/* !!! This structure is only used for data interpretation, and should never be allocated
+ * directly !!! */
 struct ha_data_storage {
 	sys_snode_t _node;			/* Use to link data together */
 	ha_data_type_t type;		/*	Type of the data represented by this structure */
 	ha_data_subsystem_t subsys; /* Subsystem the data belongs to */
-	uint8_t occurence;	   		/* Subsystem index if multiple data of the same type/subsys */
-	ha_data_value_storage_t value; 		/* Data buffer (size depends on the type) */
+	uint8_t occurence; /* Subsystem index if multiple data of the same type/subsys */
+	ha_data_value_storage_t value; /* Data buffer (size depends on the type) */
 };
 typedef struct ha_data_storage ha_data_storage_t;
 
-size_t ha_data_get_size_by_type(ha_data_type_t type);
+/**
+ * @brief Get the size of a data type.
+ *
+ * @param type
+ * @return size_t
+ */
+size_t ha_data_type_get_value_size(ha_data_type_t type);
 
 /**
  * @brief Allocate a buffer with the correct size for the given type.
- * 
+ *
  * @param type Type of the data to allocate.
- * @return ha_data_t* 
+ * @return ha_data_t*
  */
 ha_data_t *ha_data_alloc(ha_data_type_t type);
 
 /**
  * @brief Free the memory allocated by ha_data_alloc().
- * 
- * @param data 
+ *
+ * @param data
  */
 void ha_data_free(ha_data_t *data);
 
+/**
+ * @brief Allocate an array of ha_data_t with the correct size for the given type.
+ *
+ * @param array
+ * @param count
+ * @param type
+ * @return int
+ */
 int ha_data_alloc_array(ha_data_t **array, uint8_t count, ha_data_type_t type);
 
+/**
+ * @brief Free the memory allocated by ha_data_alloc_array().
+ *
+ * @param array
+ * @param count
+ * @return int
+ */
 int ha_data_free_array(ha_data_t **array, uint8_t count);
+
+typedef bool (*ha_data_iter_cb_t)(const ha_data_storage_t *data, void *user_data);
+
+int ha_data_iterate_descr(const void *data,
+						  const ha_data_descr_t *descr,
+						  size_t descr_size,
+						  ha_data_iter_cb_t cb,
+						  void *user_data);
+
+/**
+ * @brief
+ *
+ * @param list List of ha_data_t to iterate over.
+ * @param cb
+ * @param user_data
+ * @return int
+ */
+int ha_data_iterate_slist(sys_slist_t *list, ha_data_iter_cb_t cb, void *user_data);
 
 /**
  * @brief Convert ha_data_type_t enumeration to a string representation.
@@ -264,7 +321,7 @@ int ha_data_free_array(ha_data_t **array, uint8_t count);
  * @param type An enumerated value of ha_data_type_t.
  * @return const char* The string representation of the input type.
  */
-const char *ha_data_type_to_str(ha_data_type_t type);
+const char *ha_data_type_to_str_dbg(ha_data_type_t type);
 
 /**
  * @brief Convert ha_dev_sensor_type_t enumeration to a string representation.
@@ -276,6 +333,15 @@ const char *ha_data_type_to_str(ha_data_type_t type);
  * @param assignement An enumerated value of ha_dev_sensor_type_t.
  * @return const char* The string representation of the input assignment.
  */
+const char *ha_data_subsystem_to_str_dbg(ha_data_subsystem_t subsystem);
+
+const char *ha_data_type_to_str(ha_data_type_t type);
+
 const char *ha_data_subsystem_to_str(ha_data_subsystem_t subsystem);
+
+int ha_data_encode_value(char *buf,
+						 size_t buf_len,
+						 ha_data_type_t type,
+						 const ha_data_value_storage_t *value);
 
 #endif /* _HA_DATA_H_ */

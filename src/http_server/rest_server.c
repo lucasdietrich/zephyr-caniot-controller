@@ -708,10 +708,10 @@ static bool devices_cb(ha_dev_t *dev, void *user_data)
 		if (ep) {
 			struct json_device_endpoint *jep = &jd->endpoints[jd->endpoints_count];
 			jep->eid						 = ep->cfg->eid;
-			jep->data_size					 = ep->cfg->data_size;
+			jep->data_size					 = ep->_telemetry_data_size;
 			jep->in_data_size				 = ep->cfg->expected_payload_size;
-			jep->telemetry					 = (uint32_t)ep->cfg->ingest;
-			jep->command					 = (uint32_t)ep->cfg->command;
+			jep->telemetry					 = (uint32_t)ep->cfg->telemetry.ingest;
+			jep->command					 = (uint32_t)ep->cfg->command.send;
 
 			jd->endpoints_count++;
 

@@ -48,8 +48,8 @@ struct ha_device;
 
 typedef enum {
 	HA_DEV_MEDIUM_NONE = 0, /* Undefined medium */
-	HA_DEV_MEDIUM_BLE, /* MAC address e.g. 23:45:67:89:AB:CD */
-	HA_DEV_MEDIUM_CAN, /* CAN ID e.g. 0x123 or extended e.g. 0x12345678 */
+	HA_DEV_MEDIUM_BLE,		/* MAC address e.g. 23:45:67:89:AB:CD */
+	HA_DEV_MEDIUM_CAN,		/* CAN ID e.g. 0x123 or extended e.g. 0x12345678 */
 } ha_dev_medium_type_t;
 
 typedef enum {
@@ -135,18 +135,15 @@ typedef struct ha_device_command ha_dev_cmd_t;
 
 enum {
 	/* Tells whether the endpoint should retain the last event */
-	HA_DEV_EP_FLAG_NONE = 0u,
+	HA_DEV_EP_FLAG_NONE				 = 0u,
 	HA_DEV_EP_FLAG_RETAIN_LAST_EVENT = BIT(0),
 };
 
-#define HA_DEV_EP_FLAG_DEFAULT 	HA_DEV_EP_FLAG_RETAIN_LAST_EVENT
+#define HA_DEV_EP_FLAG_DEFAULT HA_DEV_EP_FLAG_RETAIN_LAST_EVENT
 
 struct ha_device_endpoint_config {
 	/* Endpoint identifier */
 	ha_endpoint_id_t eid : 8u;
-
-	/* Structure size of the interpreted data (ha_ds_) */
-	uint32_t data_size : 8u;
 
 	/* Endpoint expected payload size, 0 for unspecified*/
 	uint32_t expected_payload_size : 8u;
@@ -154,15 +151,17 @@ struct ha_device_endpoint_config {
 	/* Additional flags */
 	uint32_t flags : 8u;
 
-	const struct ha_data_descr *data_descr;
-	const struct ha_data_descr *cmd_descr;
+	struct {
+		const ha_data_descr_t *descr;
+		uint8_t descr_size;
+		int (*ingest)(struct ha_event *ev, const struct ha_device_payload *pl);
+	} telemetry;
 
-	uint8_t data_descr_size;
-	uint8_t cmd_descr_size;
-
-	int (*ingest)(struct ha_event *ev, const struct ha_device_payload *pl);
-
-	int (*command)(struct ha_device *dev, const struct ha_device_command *cmd);
+	struct {
+		const ha_data_descr_t *descr;
+		uint8_t descr_size;
+		int (*send)(struct ha_device *dev, const struct ha_device_command *cmd);
+	} command;
 };
 typedef struct ha_device_endpoint_config ha_dev_ep_cfg_t;
 
@@ -173,11 +172,16 @@ struct ha_device_endpoint {
 	/* Endpoint last data event item */
 	struct ha_event *last_data_event;
 
+	/* Size of the buffer to allocate to contain the telemetry data structure,
+	 * defined by the telemetry data descriptor and size (cfg->telemetry.descr)
+	 */
+	size_t _telemetry_data_size;
+
 #if HA_DEV_EP_TYPE_SEARCH_OPTIMIZATION
 	/* Flags telling what kind of data types can be found in the endpoint
 	 * For optimization purpose
 	 */
-	uint32_t _data_types;
+	uint64_t _data_types;
 #endif /* HA_DEV_EP_TYPE_SEARCH_OPTIMIZATION */
 };
 typedef struct ha_device_endpoint ha_dev_ep_t;
@@ -334,8 +338,8 @@ struct ha_event {
 	/* Device the event is related to */
 	struct ha_device *dev;
 
-	/* Endpoint the event is related to */
-	// struct ha_device_endpoint *ep;
+	/* Endpoint config the event is related to */
+	const ha_dev_ep_cfg_t *ep_cfg;
 
 #if defined(CONFIG_APP_HA_STATS)
 	uint16_t data_size;
@@ -900,15 +904,25 @@ int ha_dev_storage_delete(ha_dev_t *dev);
 
 /**
  * @brief Append given data to the event data list
- * 
- * @param event 
- * @param data 
- * @return int 
+ *
+ * @param event
+ * @param data
+ * @return int
  */
 int ha_ev_data_append(ha_ev_t *event, ha_data_t *data);
 
 int ha_ev_data_append_array(ha_ev_t *event, ha_data_t **data, size_t count);
 
 int ha_ev_data_alloc_append(ha_ev_t *event, const ha_data_storage_t *storage);
+
+int ha_ev_data_iterate(ha_ev_t *event, ha_data_iter_cb_t cb, void *user_data);
+
+/**
+ * @brief Tells whether the event has extra data (contains in _data_slist)
+ *
+ * @param event
+ * @return int
+ */
+bool ha_ev_has_extra_data(ha_ev_t *event);
 
 #endif /* _HA_H_ */

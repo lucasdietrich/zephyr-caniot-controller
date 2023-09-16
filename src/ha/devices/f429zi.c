@@ -18,7 +18,7 @@ static int ingest(struct ha_event *ev, const struct ha_device_payload *pl)
 	return 0;
 }
 
-static const struct ha_data_descr ha_ds_f429zi_descr[] = {
+static const ha_data_descr_t ha_ds_f429zi_descr[] = {
 	HA_DATA_DESCR(struct ha_ds_f429zi,
 				  die_temperature,
 				  HA_DATA_TEMPERATURE,
@@ -27,13 +27,12 @@ static const struct ha_data_descr ha_ds_f429zi_descr[] = {
 
 static struct ha_device_endpoint_config ep = {
 	.eid				   = HA_DEV_EP_NUCLEO_F429ZI,
-	.data_size			   = sizeof(struct ha_ds_f429zi),
 	.expected_payload_size = sizeof(float),
 	.flags				   = HA_DEV_EP_FLAG_DEFAULT,
-	.data_descr_size	   = ARRAY_SIZE(ha_ds_f429zi_descr),
-	.data_descr			   = ha_ds_f429zi_descr,
-	.ingest				   = ingest,
-	.command			   = NULL,
+	.telemetry			   = {.descr	  = ha_ds_f429zi_descr,
+							  .descr_size = ARRAY_SIZE(ha_ds_f429zi_descr),
+							  .ingest	  = ingest},
+	.command			   = {.descr = NULL, .descr_size = 0u, .send = NULL},
 };
 
 static int init_endpoints(const ha_dev_addr_t *addr,

@@ -42,6 +42,7 @@
 #include "ha/devices/xiaomi.h"
 #include "prometheus_client.h"
 #include "utils/buffers.h"
+#include "utils/fmt.h"
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(prom, LOG_LEVEL_INF);
@@ -49,33 +50,9 @@ LOG_MODULE_REGISTER(prom, LOG_LEVEL_INF);
 /* Number of metrics to encode between each HTTP response buffer flush */
 #define CONFIG_PROMETHEUS_METRICS_PER_FLUSH 4u
 
-typedef enum {
-	VALUE_ENCODING_TYPE_INT32,
-	VALUE_ENCODING_TYPE_UINT32,
-	VALUE_ENCODING_TYPE_FLOAT,
-	VALUE_ENCODING_TYPE_FLOAT_DIGITS,
-	VALUE_ENCODING_TYPE_EXP,
-	VALUE_ENCODING_TYPE_EXP_DIGITS,
-} metric_encoding_type_t;
-
 struct metric_value {
-	/* The value of the metric */
-	union {
-		float fvalue;	 /* store value as float */
-		uint32_t uvalue; /* store value as unsigned */
-		int32_t svalue;	 /* store value as signed */
-	};
-
-	/* Encoding type in the case of a float value */
-	struct {
-		/* Float encoding type: float, exp ...*/
-		metric_encoding_type_t type;
-
-		/* additionnal arg, e.g. digits for precision */
-		union {
-			uint8_t digits;
-		};
-	} encoding;
+	fmt_val_t val;	   /* Metric value */
+	fmt_enc_cfg_t enc; /* Metric value encoding config */
 
 	/* Values for tags */
 	const char **tags_values;
@@ -201,8 +178,8 @@ static bool validate_metric_value(struct metric_value *value)
 
 	success &= (value->tags_values_count == 0) || (value->tags_values != NULL);
 
-	// success &= (value->encoding.type >= VALUE_ENCODING_TYPE_UINT32) &&
-	// 	(value->encoding.type <= VALUE_ENCODING_TYPE_EXP);
+	// success &= (value->encoding.type >= FMT_ENC_UINT32) &&
+	// 	(value->encoding.type <= FMT_ENC_EXP);
 
 	return success;
 }
@@ -218,35 +195,6 @@ static bool validate_metric_definition(const struct metric_definition *definitio
 	success &= (definition->tags_count == 0) || (definition->tags != NULL);
 
 	return success;
-}
-
-static ssize_t encode_value(char *buf, size_t buf_size, struct metric_value *value)
-{
-	ssize_t ret = -EINVAL;
-
-	switch (value->encoding.type) {
-	case VALUE_ENCODING_TYPE_INT32:
-		ret = snprintf(buf, buf_size, "%d", value->svalue);
-		break;
-	case VALUE_ENCODING_TYPE_UINT32:
-		ret = snprintf(buf, buf_size, "%u", value->uvalue);
-		break;
-	case VALUE_ENCODING_TYPE_FLOAT_DIGITS:
-		ret = snprintf(buf, buf_size, "%.*f", (int)value->encoding.digits, value->fvalue);
-		break;
-	case VALUE_ENCODING_TYPE_EXP:
-		ret = snprintf(buf, buf_size, "%e", value->fvalue);
-		break;
-	case VALUE_ENCODING_TYPE_EXP_DIGITS:
-		ret = snprintf(buf, buf_size, "%.*e", (int)value->encoding.digits, value->fvalue);
-		break;
-	case VALUE_ENCODING_TYPE_FLOAT:
-	default:
-		ret = snprintf(buf, buf_size, "%f", value->fvalue);
-		break;
-	}
-
-	return ret;
 }
 
 /**
@@ -310,7 +258,7 @@ static ssize_t encode_metric(buffer_t *buffer,
 
 	/* encode value to float string */
 	char value_str[20];
-	ret = encode_value(value_str, sizeof(value_str), value);
+	ret = fmt_encode_value(value_str, sizeof(value_str), &value->val, &value->enc);
 	if (ret < 0) {
 		LOG_ERR("Failed to encode metric value, buffer too small %u", sizeof(value_str));
 		return ret;
@@ -367,7 +315,7 @@ struct prom_metric_descr {
 
 	uint32_t align_shift : 2;
 	uint32_t metric_name_len : 7;
-	metric_encoding_type_t type : 7;
+	fmt_enc_type_t type : 7;
 	uint32_t offset : 16;
 };
 
@@ -403,10 +351,10 @@ struct prom_demo_struct {
 /* iterator for this struct */
 __attribute__((used)) static const struct prom_metric_descr demo_descr[] = {
 	PROM_METRIC_DESCR_NAMED(
-		struct prom_demo_struct, "vara", a, VALUE_ENCODING_TYPE_UINT32, NULL),
+		struct prom_demo_struct, "vara", a, FMT_ENC_UINT32, NULL),
 	PROM_METRIC_DESCR_NAMED(
-		struct prom_demo_struct, "varb", b, VALUE_ENCODING_TYPE_FLOAT, NULL),
-	PROM_METRIC_DESCR(struct prom_demo_struct, c, VALUE_ENCODING_TYPE_INT32, NULL),
+		struct prom_demo_struct, "varb", b, FMT_ENC_FLOAT, NULL),
+	PROM_METRIC_DESCR(struct prom_demo_struct, c, FMT_ENC_INT32, NULL),
 };
 
 int prometheus_metrics_demo(http_request_t *req, http_response_t *resp)
@@ -420,18 +368,18 @@ int prometheus_metrics_demo(http_request_t *req, http_response_t *resp)
 						   "EMB",
 						   "Kitchen", "f429"};
 
-	struct metric_value val1 = {.fvalue = 24.723,
-								.encoding =
+	struct metric_value val1 = {.val.fvalue = 24.723,
+								.enc =
 									{
-										.type = VALUE_ENCODING_TYPE_FLOAT,
+										.type = FMT_ENC_FLOAT,
 									},
 								.tags_values	   = tags1,
 								.tags_values_count = ARRAY_SIZE(tags1)};
 
-	struct metric_value val2 = {.fvalue = -17.234,
-								.encoding =
+	struct metric_value val2 = {.val.fvalue = -17.234,
+								.enc =
 									{
-										.type	= VALUE_ENCODING_TYPE_EXP_DIGITS,
+										.type	= FMT_ENC_EXP_DIGITS,
 										.digits = 3,
 									},
 								.tags_values	   = tags2,
@@ -505,46 +453,46 @@ union measurements_tags_values {
 static void prom_metric_feed_dev_measurement_timestamp(uint32_t timestamp,
 													   struct metric_value *val)
 {
-	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
-	val->uvalue		   = timestamp;
+	val->enc.type	= FMT_ENC_UINT32;
+	val->val.uvalue = timestamp;
 }
 
 static void prom_metric_feed_xiaomi_temperature(const struct ha_ds_xiaomi *dt,
 												struct metric_value *val)
 {
-	val->encoding.type	 = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
-	val->encoding.digits = 2U;
-	val->fvalue			 = dt->temperature.value / 100.0;
+	val->enc.type	= FMT_ENC_FLOAT_DIGITS;
+	val->enc.digits = 2U;
+	val->val.fvalue = dt->temperature.value / 100.0;
 }
 
 static void prom_metric_feed_xiaomi_humidity(const struct ha_ds_xiaomi *dt,
 											 struct metric_value *val)
 {
-	val->encoding.type	 = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
-	val->encoding.digits = 3U;
-	val->fvalue			 = dt->humidity.value / 100.0;
+	val->enc.type	= FMT_ENC_FLOAT_DIGITS;
+	val->enc.digits = 3U;
+	val->val.fvalue = dt->humidity.value / 100.0;
 }
 
 static void prom_metric_feed_xiaomi_battery_level(const struct ha_ds_xiaomi *dt,
 												  struct metric_value *val)
 {
-	val->encoding.type = VALUE_ENCODING_TYPE_UINT32;
-	val->uvalue		   = dt->battery_level.level;
+	val->enc.type	= FMT_ENC_UINT32;
+	val->val.uvalue = dt->battery_level.level;
 }
 
 static void prom_metric_feed_xiaomi_rssi(const struct ha_ds_xiaomi *dt,
 										 struct metric_value *val)
 {
-	val->encoding.type = VALUE_ENCODING_TYPE_INT32;
-	val->svalue		   = (float)dt->rssi.value;
+	val->enc.type	= FMT_ENC_INT32;
+	val->val.svalue = (float)dt->rssi.value;
 }
 
 static void prom_metric_feed_xiaomi_battery_voltage(const struct ha_ds_xiaomi *dt,
 													struct metric_value *val)
 {
-	val->encoding.type	 = VALUE_ENCODING_TYPE_FLOAT_DIGITS;
-	val->encoding.digits = 3U;
-	val->fvalue			 = dt->battery_level.voltage / 1000.0;
+	val->enc.type	= FMT_ENC_FLOAT_DIGITS;
+	val->enc.digits = 3U;
+	val->val.fvalue = dt->battery_level.voltage / 1000.0;
 }
 
 static bool prom_ha_devs_iterate_cb(ha_dev_t *dev, void *user_data)
@@ -610,21 +558,22 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev, void *user_data)
 		/* prepare temperature sensors metric value */
 		struct metric_value val = {.tags_values		  = tags_values.list,
 								   .tags_values_count = ARRAY_SIZE(tags_values.list),
-								   .encoding		  = {
-												.type	= VALUE_ENCODING_TYPE_FLOAT,
-												.digits = 2,
-									}};
+								   .enc				  = {
+													 .type	 = FMT_ENC_FLOAT,
+													 .digits = 2,
+									 }};
 
 		switch (dev->endpoints[0].cfg->eid) {
 		case HA_DEV_EP_CANIOT_BLC0: {
 			const struct ha_ds_caniot_blc0 *const dt =
 				HA_DEV_EP_0_GET_CAST_LAST_DATA(dev, const struct ha_ds_caniot_blc0);
+			if (!dt) goto exit;
 
 			/* TODO refactor, because same code for CLS0 and 1 */
 			for (size_t i = 0U; i < ARRAY_SIZE(dt->temperatures); i++) {
 				ha_dev_sensor_type_t sensor_type = dt->temperatures[i].sens_type;
 				if (sensor_type != HA_DEV_SENSOR_TYPE_NONE) {
-					val.fvalue		   = dt->temperatures[i].value / 100.0;
+					val.val.fvalue	   = dt->temperatures[i].value / 100.0;
 					tags_values.sensor = prom_myd_sensor_type_to_str(sensor_type);
 					encode_metric(buffer, &val, &mdef_device_temperature, false);
 				}
@@ -633,12 +582,13 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev, void *user_data)
 		case HA_DEV_EP_CANIOT_BLC1: {
 			const struct ha_ds_caniot_blc1 *const dt =
 				HA_DEV_EP_0_GET_CAST_LAST_DATA(dev, const struct ha_ds_caniot_blc1);
+			if (!dt) goto exit;
 
 			/* TODO refactor, because same code for CLS0 and 1 */
 			for (size_t i = 0U; i < ARRAY_SIZE(dt->temperatures); i++) {
 				ha_dev_sensor_type_t sensor_type = dt->temperatures[i].sens_type;
 				if (sensor_type != HA_DEV_SENSOR_TYPE_NONE) {
-					val.fvalue		   = dt->temperatures[i].value / 100.0;
+					val.val.fvalue	   = dt->temperatures[i].value / 100.0;
 					tags_values.sensor = prom_myd_sensor_type_to_str(sensor_type);
 					encode_metric(buffer, &val, &mdef_device_temperature, false);
 				}
@@ -670,8 +620,8 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev, void *user_data)
 		struct metric_value val = {
 			.tags_values	   = tags_values.list,
 			.tags_values_count = ARRAY_SIZE(tags_values.list),
-			.fvalue			   = dt->die_temperature.value / 100.0f,
-			.encoding		   = {.type = VALUE_ENCODING_TYPE_FLOAT, .digits = 1}};
+			.val.fvalue		   = dt->die_temperature.value / 100.0f,
+			.enc			   = {.type = FMT_ENC_FLOAT, .digits = 1}};
 
 		encode_metric(buffer, &val, &mdef_device_temperature, false);
 
@@ -680,6 +630,7 @@ static bool prom_ha_devs_iterate_cb(ha_dev_t *dev, void *user_data)
 		encode_metric(buffer, &val, &mdef_device_measurements_last_timestamp, false);
 	}
 
+exit:
 	return true;
 }
 

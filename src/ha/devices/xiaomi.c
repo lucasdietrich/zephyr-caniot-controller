@@ -9,9 +9,9 @@ static void ble_record_to_xiaomi(struct ha_ds_xiaomi *xiaomi,
 								 uint32_t *timestamp)
 {
 	xiaomi->rssi.value			  = rec->measurements.rssi;
-	xiaomi->temperature.sens_type	  = HA_DEV_SENSOR_TYPE_EMBEDDED;
+	xiaomi->temperature.sens_type = HA_DEV_SENSOR_TYPE_EMBEDDED;
 	xiaomi->temperature.value	  = rec->measurements.temperature;
-	xiaomi->humidity.sens_type		  = HA_DEV_SENSOR_TYPE_EMBEDDED;
+	xiaomi->humidity.sens_type	  = HA_DEV_SENSOR_TYPE_EMBEDDED;
 	xiaomi->humidity.value		  = rec->measurements.humidity;
 	xiaomi->battery_level.level	  = rec->measurements.battery_level;
 	xiaomi->battery_level.voltage = rec->measurements.battery_mv;
@@ -29,25 +29,25 @@ static int ingest(struct ha_event *ev, const struct ha_device_payload *pl)
 
 static int ingest_dyn_var(struct ha_event *ev, const struct ha_device_payload *pl)
 {
-	const xiaomi_record_t *rec = (const xiaomi_record_t *) pl->buffer;
+	const xiaomi_record_t *rec = (const xiaomi_record_t *)pl->buffer;
 	ha_data_storage_t data;
-	
-	data.type = HA_DATA_RSSI;
+
+	data.type			  = HA_DATA_RSSI;
 	data.value.rssi.value = rec->measurements.rssi;
 	ha_ev_data_alloc_append(ev, &data);
 
-	data.type = HA_DATA_TEMPERATURE;
-	data.value.temperature.value = rec->measurements.temperature;
+	data.type						 = HA_DATA_TEMPERATURE;
+	data.value.temperature.value	 = rec->measurements.temperature;
 	data.value.temperature.sens_type = HA_DEV_SENSOR_TYPE_EMBEDDED;
 	ha_ev_data_alloc_append(ev, &data);
 
-	data.type = HA_DATA_HUMIDITY;
-	data.value.humidity.value = rec->measurements.humidity;
+	data.type					  = HA_DATA_HUMIDITY;
+	data.value.humidity.value	  = rec->measurements.humidity;
 	data.value.humidity.sens_type = HA_DEV_SENSOR_TYPE_EMBEDDED;
 	ha_ev_data_alloc_append(ev, &data);
 
-	data.type = HA_DATA_BATTERY_LEVEL;
-	data.value.battery_level.level = rec->measurements.battery_level;
+	data.type						 = HA_DATA_BATTERY_LEVEL;
+	data.value.battery_level.level	 = rec->measurements.battery_level;
 	data.value.battery_level.voltage = rec->measurements.battery_mv;
 	ha_ev_data_alloc_append(ev, &data);
 
@@ -56,7 +56,7 @@ static int ingest_dyn_var(struct ha_event *ev, const struct ha_device_payload *p
 	return 0;
 }
 
-static const struct ha_data_descr ha_ds_xiaomi_descr[] = {
+static const ha_data_descr_t ha_ds_xiaomi_descr[] = {
 	HA_DATA_DESCR_UNASSIGNED(struct ha_ds_xiaomi, rssi, HA_DATA_RSSI),
 	HA_DATA_DESCR(
 		struct ha_ds_xiaomi, humidity, HA_DATA_HUMIDITY, HA_SUBSYS_BOARD_HUMIDITY),
@@ -69,13 +69,12 @@ static const struct ha_data_descr ha_ds_xiaomi_descr[] = {
 
 static struct ha_device_endpoint_config ep = {
 	.eid				   = HA_DEV_EP_XIAOMI_MIJIA,
-	.data_size			   = sizeof(struct ha_ds_xiaomi),
 	.expected_payload_size = sizeof(xiaomi_record_t),
 	.flags				   = HA_DEV_EP_FLAG_DEFAULT,
-	.data_descr_size	   = ARRAY_SIZE(ha_ds_xiaomi_descr),
-	.data_descr			   = ha_ds_xiaomi_descr,
-	.ingest				   = ingest,
-	.command			   = NULL,
+	.telemetry			   = {.descr	  = ha_ds_xiaomi_descr,
+							  .descr_size = ARRAY_SIZE(ha_ds_xiaomi_descr),
+							  .ingest	  = ingest},
+	.command			   = {.descr = NULL, .descr_size = 0u, .send = NULL},
 };
 
 static int init_endpoints(const ha_dev_addr_t *addr,
