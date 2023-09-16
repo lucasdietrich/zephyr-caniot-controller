@@ -11,7 +11,6 @@ LOG_MODULE_REGISTER(debug_server, LOG_LEVEL_DBG);
 
 bool ha_it_cb(ha_dev_t *dev, void *user_data)
 {
-	struct ha_event *ev;
 	struct ha_device_endpoint *ep;
 
 	for (uint32_t ep_index = 0u; (ep = ha_dev_ep_get(dev, ep_index)); ep_index++) {

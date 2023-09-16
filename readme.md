@@ -462,8 +462,10 @@ ASSERTION FAIL [atomic_get(&ev->ref_count) == (atomic_val_t)0] @ WEST_TOPDIR/zep
 addr abstraction layers.
 
 ## Troubleshooting
-- TODO
+- For an unkown reason yet, make sure to have docker disabled when using QEMU with networking. To disable it run:
 
+    sudo systemctl disable --now docker.service
+    sudo reboot
 
 ## Ressources:
 - [Zephyr Documentation - West Manifests](https://docs.zephyrproject.org/3.0.0/guides/west/manifest.html)
