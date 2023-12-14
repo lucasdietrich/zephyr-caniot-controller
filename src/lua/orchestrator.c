@@ -126,7 +126,7 @@ exit:
 		LOG_ERR("(%p) Script execution failed", sx);
 	}
 
-	k_mem_slab_free(&works_pool, (void **)&sx);
+	k_mem_slab_free(&works_pool, (void *)sx);
 
 	return res;
 }

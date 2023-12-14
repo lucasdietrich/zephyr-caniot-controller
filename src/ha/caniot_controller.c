@@ -22,12 +22,12 @@
 #include <caniot/caniot.h>
 #include <caniot/controller.h>
 #include <caniot/datatype.h>
-LOG_MODULE_REGISTER(caniot, LOG_LEVEL_WRN);
+LOG_MODULE_REGISTER(caniot, LOG_LEVEL_INF);
 
 #define HA_CIOT_QUERY_TIMEOUT_TOLERANCE_MS 200u
 
 #if defined(CONFIG_APP_CAN_INTERFACE)
-CAN_MSGQ_DEFINE(can_rxq, 4U);
+CAN_MSGQ_DEFINE(can_rxq, 32u);
 #endif
 
 /* initialized with 0 */
@@ -454,7 +454,7 @@ int ha_caniot_controller_query(struct caniot_frame *__restrict req,
 exit:
 	/* cleanup */
 	if (qx != NULL) {
-		k_mem_slab_free(&sq_pool, (void **)&qx);
+		k_mem_slab_free(&sq_pool, (void *)qx);
 	}
 
 	return ret;

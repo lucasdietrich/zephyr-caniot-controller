@@ -424,6 +424,7 @@ format using `Ctrl + K, Ctrl + F`
 ## TODO
 
 ### Immediate
+- Reduce MBEDTLS memory usage by 1/3
 - Remove dependencies on CANIOT_LIB, CANIOT_CONTROLLER, HA, so that the code
 can be compiled without them.
 - Add general diagnostic messages

@@ -150,9 +150,9 @@ static int allocate_tunnel(cantcp_tunnel_t **tunnel)
 	return ret;
 }
 
-static void free_tunnel(cantcp_tunnel_t **tunnel)
+static void free_tunnel(cantcp_tunnel_t *tunnel)
 {
-	k_mem_slab_free(&tunnels_pool, (void **)tunnel);
+	k_mem_slab_free(&tunnels_pool, (void *)tunnel);
 }
 
 static int setup_socket(void)
@@ -261,7 +261,7 @@ static void handle_outgoing_msgs(void)
 			ret = cantcp_send(tun, &msg);
 			if (ret < 0) {
 				cantcp_disconnect(tun);
-				free_tunnel(&tun);
+				free_tunnel(tun);
 				tunnels[0] = NULL;
 				connections_count--;
 			}
@@ -309,7 +309,7 @@ static int handle_connection(struct pollfd *pfd, cantcp_tunnel_t *tunnel)
 
 cleanup:
 	cantcp_disconnect(tunnel);
-	free_tunnel(&tunnel);
+	free_tunnel(tunnel);
 	tunnels[0] = NULL;
 	connections_count--;
 	return rcvd;
@@ -360,7 +360,7 @@ static void server(void *_a, void *_b, void *_c)
 				LOG_WRN("(%d) keep-alive timeout for tunnel %x", tun->sock,
 						(uint32_t)tun);
 				cantcp_disconnect(tun);
-				free_tunnel(&tun);
+				free_tunnel(tun);
 				tunnels[0U] = NULL;
 				connections_count--;
 			}

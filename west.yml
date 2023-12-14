@@ -14,6 +14,6 @@ manifest:
   projects:
     - name: zephyr
       remote: zephyrproject-rtos-fork
-      revision: 38e415435276a3f3f2874ae23fd385c4c86994e1
+      revision: caniot-controller-v3.5.0 # A project revision can be a branch, tag, or SHA.
       import: true
       

@@ -96,11 +96,9 @@ int buf_alloc(struct fs_async *afile, struct fs_async_buf **pbuf)
 	return ret;
 }
 
-void buf_free(struct fs_async *afile, struct fs_async_buf **pbuf)
+void buf_free(struct fs_async *afile, struct fs_async_buf *pbuf)
 {
-	k_mem_slab_free(&afile->_ms, (void **)pbuf);
-
-	*pbuf = NULL;
+	k_mem_slab_free(&afile->_ms, (void *)pbuf);
 }
 
 #if defined(CONFIG_APP_FS_ASYNC_READ)
@@ -357,7 +355,7 @@ int read_async(struct fs_async *afile, void *data, size_t len, k_timeout_t timeo
 		}
 
 		/* Return buffer to the pool */
-		if (buf_consumed) buf_free(afile, &buf);
+		if (buf_consumed) buf_free(afile, buf);
 
 		/* As a the buffer has been released, schedule a new read operation. */
 		schedule_rw(afile);

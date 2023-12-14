@@ -18,7 +18,7 @@
 
 #include <ha/devices/xiaomi.h>
 #include <system.h>
-LOG_MODULE_REGISTER(ble_obv, LOG_LEVEL_WRN);
+LOG_MODULE_REGISTER(ble_obv, LOG_LEVEL_INF);
 
 /*___________________________________________________________________________*/
 
@@ -116,8 +116,11 @@ static void device_found(const bt_addr_le_t *addr,
 	bt_addr_from_str(XIAOMI_MANUFACTURER_ADDR_STR, &mf);
 
 	if (bt_addr_manufacturer_match(&addr->a, &mf) == true) {
-		xiaomi_record_t xc;
+		xiaomi_record_t xc = {0};
+		
+#if defined(CONFIG_APP_HA)
 		ha_dev_xiaomi_record_init(&xc);
+#endif
 
 		bt_data_parse(ad, adv_data_cb, &xc);
 
@@ -132,8 +135,9 @@ static void device_found(const bt_addr_le_t *addr,
 					"°C hum: %u %%",
 					mac_str, (int)rssi, xc.measurements.battery_mv,
 					xc.measurements.temperature / 100, xc.measurements.humidity / 100);
-
+#if defined(CONFIG_APP_HA)
 			ha_dev_xiaomi_register_record(&xc);
+#endif
 		}
 	}
 }

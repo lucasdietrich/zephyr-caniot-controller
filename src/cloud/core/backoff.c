@@ -7,7 +7,7 @@
 #include "backoff.h"
 
 #include <zephyr/kernel.h>
-#include <zephyr/random/rand32.h>
+#include <zephyr/random/random.h>
 
 /* Exponential Backoff And Jitter
  * https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/

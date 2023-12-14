@@ -53,7 +53,7 @@ config APP_HA_EVENTS_MAX_COUNT
 config APP_HA_SUBSCRIPTIONS_MAX_COUNT
         int "Maximum number of HA subscriptions"
         default 8
-        range 1 32
+        range 1 8
         help
                 Maximum number of HA devices.
 

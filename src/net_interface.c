@@ -9,7 +9,7 @@
 #include "userio/leds.h"
 
 #include <zephyr/logging/log.h>
-#include <zephyr/net/conn_mgr.h>
+#include <zephyr/net/conn_mgr_monitor.h>
 #include <zephyr/net/ethernet_mgmt.h>
 #include <zephyr/net/net_config.h>
 #include <zephyr/net/net_context.h>
@@ -240,7 +240,7 @@ void net_interface_init(void)
 								 NET_EVENT_L4_CONNECTED | NET_EVENT_L4_DISCONNECTED);
 	net_mgmt_add_event_callback(&mgmt_cb[MGMT_L4_CB_INDEX]);
 
-	conn_mgr_resend_status();
+	conn_mgr_mon_resend_status();
 
 	/* Manually triggers "IF_UP" events, because not triggered by net_mgmt
 	 * if the interfaces were already up */

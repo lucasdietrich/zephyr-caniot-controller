@@ -799,7 +799,7 @@ static struct ha_ev_subs *sub_alloc(void)
 static void sub_free(struct ha_ev_subs *sub)
 {
 	if (sub != NULL) {
-		k_mem_slab_free(&sub_slab, (void **)&sub);
+		k_mem_slab_free(&sub_slab, (void *)sub);
 		stats.mem_sub_count--;
 		stats.mem_sub_remaining++;
 		LOG_DBG("Sub %p freed", sub);
@@ -853,7 +853,7 @@ static void ha_ev_free(struct ha_event *ev)
 	/* Decrease before freeing */
 	stats.mem_heap_alloc -= ev->data_size;
 
-	k_mem_slab_free(&ev_slab, (void **)&ev);
+	k_mem_slab_free(&ev_slab, (void *)ev);
 
 	stats.mem_ev_count--;
 	stats.mem_ev_remaining++;
