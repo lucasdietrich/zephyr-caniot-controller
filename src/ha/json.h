@@ -29,15 +29,18 @@ struct json_xiaomi_record {
 	struct json_xiaomi_record_measures measures;
 };
 
-struct json_xiaomi_record_buf {
+struct json_xiaomi_record_storage {
 	char addr[BT_ADDR_LE_STR_LEN];
 	char temperature[9u];
 };
 
 struct json_xiaomi_record_array {
-	struct json_xiaomi_record_buf _bufs[HA_XIAOMI_MAX_DEVICES];
 	struct json_xiaomi_record records[HA_XIAOMI_MAX_DEVICES];
 	size_t count;
+};
+
+struct json_xiaomi_record_array_storage {
+	struct json_xiaomi_record_storage records[HA_XIAOMI_MAX_DEVICES];
 };
 
 #endif /* _HA_JSON_H_ */

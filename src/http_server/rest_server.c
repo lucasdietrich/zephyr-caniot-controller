@@ -422,27 +422,27 @@ static const struct json_obj_descr json_info_interfaces_descr[] = {
 
 static void
 json_net_interface_info_fill(struct json_net_interface *ifdata,
-							 struct json_net_interface_config_storage *ifdata_storage,
+							 struct json_net_interface_config_storage *storage,
 							 struct net_if *iface)
 {
 	ifdata->status = net_interface_status_get(iface);
 
-	ifdata->config.unicast		= ifdata_storage->unicast_str;
-	ifdata->config.mcast		= ifdata_storage->mcast_str;
-	ifdata->config.gateway		= ifdata_storage->gateway_str;
-	ifdata->config.netmask		= ifdata_storage->netmask_str;
-	ifdata->config.ethernet_mac = ifdata_storage->ethernet_mac_str;
+	ifdata->config.unicast		= storage->unicast_str;
+	ifdata->config.mcast		= storage->mcast_str;
+	ifdata->config.gateway		= storage->gateway_str;
+	ifdata->config.netmask		= storage->netmask_str;
+	ifdata->config.ethernet_mac = storage->ethernet_mac_str;
 
 	struct net_if_config *const ifcfg = &iface->config;
 
 	net_addr_ntop(AF_INET, (const void *)&ifcfg->ip.ipv4->unicast[0].address.in_addr,
-				  ifdata->config.unicast, sizeof(ifdata_storage->unicast_str));
+				  ifdata->config.unicast, sizeof(storage->unicast_str));
 	net_addr_ntop(AF_INET, (const void *)&ifcfg->ip.ipv4->mcast[0].address.in_addr,
-				  ifdata->config.mcast, sizeof(ifdata_storage->mcast_str));
+				  ifdata->config.mcast, sizeof(storage->mcast_str));
 	net_addr_ntop(AF_INET, (const void *)&ifcfg->ip.ipv4->gw, ifdata->config.gateway,
-				  sizeof(ifdata_storage->gateway_str));
+				  sizeof(storage->gateway_str));
 	net_addr_ntop(AF_INET, (const void *)&ifcfg->ip.ipv4->netmask, ifdata->config.netmask,
-				  sizeof(ifdata_storage->netmask_str));
+				  sizeof(storage->netmask_str));
 
 	struct net_linkaddr *l2_addr = net_if_get_link_addr(iface);
 	if (l2_addr->type == NET_LINK_ETHERNET) {
@@ -460,7 +460,7 @@ json_net_interface_info_fill(struct json_net_interface *ifdata,
 
 struct json_info_interfaces_ud {
 	struct json_info_interfaces data;
-	struct json_net_interface_config_storage ifdata_storage[2u];
+	struct json_net_interface_config_storage storage[2u];
 };
 
 void rest_info_net_iface_cb(struct net_if *iface, void *user_data)
@@ -469,7 +469,7 @@ void rest_info_net_iface_cb(struct net_if *iface, void *user_data)
 
 	if (ud->data.if_count < ARRAY_SIZE(ud->data.interfaces)) {
 		json_net_interface_info_fill(&ud->data.interfaces[ud->data.if_count],
-									 &ud->ifdata_storage[ud->data.if_count], iface);
+									 &ud->storage[ud->data.if_count], iface);
 		ud->data.if_count++;
 	}
 }
@@ -493,8 +493,8 @@ int rest_interface(http_request_t *req, http_response_t *resp)
 
 	if (iface != NULL) {
 		struct json_net_interface data;
-		struct json_net_interface_config_storage ifdata_storage;
-		json_net_interface_info_fill(&data, &ifdata_storage, iface);
+		struct json_net_interface_config_storage storage;
+		json_net_interface_info_fill(&data, &storage, iface);
 
 		ret = rest_encode_response_json(resp, &data, json_net_interface_descr,
 										ARRAY_SIZE(json_net_interface_descr));
@@ -535,15 +535,15 @@ const struct json_obj_descr json_xiaomi_record_array_descr[] = {
 							 ARRAY_SIZE(json_xiaomi_record_descr))};
 
 static int ha_json_xiaomi_record_feed_latest(struct json_xiaomi_record *json_data,
-											 struct json_xiaomi_record_buf *buf,
+											 struct json_xiaomi_record_storage *storage,
 											 ha_dev_t *dev)
 {
 	ha_ev_t *ev							  = ha_dev_get_last_event(dev, 0u);
 	const struct ha_ds_xiaomi *const data = ev->data;
 
-	json_data->bt_mac					= buf->addr;
+	json_data->bt_mac					= storage->addr;
 	json_data->measures.rssi			= data->rssi.value;
-	json_data->measures.temperature		= buf->temperature;
+	json_data->measures.temperature		= storage->temperature;
 	json_data->measures.temperature_raw = data->temperature.value;
 	json_data->measures.humidity		= data->humidity.value;
 	json_data->measures.battery_level	= data->battery_level.level;
@@ -558,27 +558,31 @@ static int ha_json_xiaomi_record_feed_latest(struct json_xiaomi_record *json_dat
 	return 0;
 }
 
+struct json_xiaomi_record_array_ud {
+	struct json_xiaomi_record_array array;
+	struct json_xiaomi_record_array_storage array_storage;
+};
+
 static bool xiaomi_device_cb(ha_dev_t *dev, void *user_data)
 {
-	struct json_xiaomi_record_array *const array = user_data;
+	struct json_xiaomi_record_array_ud *const ud = user_data;
 
-	ha_json_xiaomi_record_feed_latest(&array->records[array->count],
-									  &array->_bufs[array->count], dev);
+	ha_json_xiaomi_record_feed_latest(&ud->array.records[ud->array.count],
+									  &ud->array_storage.records[ud->array.count], dev);
 
-	array->count++;
+	ud->array.count++;
 
 	return true;
 }
 
 int rest_xiaomi_records(http_request_t *req, http_response_t *resp)
 {
-	struct json_xiaomi_record_array array;
+	struct json_xiaomi_record_array_ud ud;
+	ud.array.count = 0;
 
-	array.count = 0;
+	ha_dev_xiaomi_iterate_data(xiaomi_device_cb, &ud);
 
-	ha_dev_xiaomi_iterate_data(xiaomi_device_cb, &array);
-
-	return rest_encode_response_json_array(resp, &array, json_xiaomi_record_array_descr);
+	return rest_encode_response_json_array(resp, &ud.array, json_xiaomi_record_array_descr);
 }
 
 struct json_caniot_temperature_record {
@@ -747,7 +751,7 @@ struct json_device {
 	struct json_device_endpoint endpoints[HA_DEV_EP_MAX_COUNT];
 };
 
-struct json_device_buf {
+struct json_device_storage {
 	char addr_repr[HA_DEV_ADDR_STR_MAX_LEN];
 };
 
@@ -773,6 +777,7 @@ static const struct json_obj_descr json_device_stats_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct ha_device_stats, rx_bytes, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct ha_device_stats, tx, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct ha_device_stats, tx_bytes, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct ha_device_stats, max_inactivity, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct ha_device_stats, err_ev, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct ha_device_stats, err_flags, JSON_TOK_NUMBER),
 };
@@ -796,9 +801,12 @@ static const struct json_obj_descr json_device_descr[] = {
 
 /* ~154 B per device here */
 struct json_device_array {
-	struct json_device_buf _bufs[JSON_HA_MAX_DEVICES];
 	struct json_device devices[JSON_HA_MAX_DEVICES];
 	size_t count;
+};
+
+struct json_device_array_storage {
+	struct json_device_storage devices[JSON_HA_MAX_DEVICES];
 };
 
 static const struct json_obj_descr json_device_array_descr[] = {
@@ -809,10 +817,17 @@ static const struct json_obj_descr json_device_array_descr[] = {
 							 json_device_descr,
 							 ARRAY_SIZE(json_device_descr))};
 
+struct json_device_array_ud {
+	struct json_device_array array;
+	struct json_device_array_storage storage;
+};
+
 static bool devices_cb(ha_dev_t *dev, void *user_data)
 {
-	struct json_device_array *const arr = user_data;
-	struct json_device *jd				= &arr->devices[arr->count];
+	struct json_device_array_ud *const ud	  = user_data;
+	struct json_device_array *const arr		  = &ud->array;
+	struct json_device_storage *const storage = &ud->storage.devices[arr->count];
+	struct json_device *jd					  = &arr->devices[arr->count];
 
 	jd->endpoints_count = 0u;
 
@@ -841,7 +856,7 @@ static bool devices_cb(ha_dev_t *dev, void *user_data)
 	}
 
 	jd->sdevuid	  = dev->sdevuid;
-	jd->addr_repr = arr->_bufs[arr->count].addr_repr;
+	jd->addr_repr = storage->addr_repr;
 	ha_dev_addr_to_str(&dev->addr, jd->addr_repr, HA_DEV_ADDR_STR_MAX_LEN);
 	jd->addr_medium			 = ha_dev_medium_to_str(dev->addr.mac.medium);
 	jd->addr_type			 = ha_dev_type_to_str(dev->addr.type);
@@ -874,9 +889,8 @@ int rest_devices_list(http_request_t *req, http_response_t *resp)
 		page_n = 0;
 	}
 
-	struct json_device_array arr;
-
-	arr.count = 0u;
+	struct json_device_array_ud ud;
+	ud.array.count = 0;
 
 	const ha_dev_filter_t filter = {
 		.flags		= HA_DEV_FILTER_FROM_INDEX | HA_DEV_FILTER_TO_INDEX,
@@ -884,13 +898,13 @@ int rest_devices_list(http_request_t *req, http_response_t *resp)
 		.to_index	= REST_HA_DEVICES_MAX_COUNT_PER_PAGE * page_n +
 					REST_HA_DEVICES_MAX_COUNT_PER_PAGE};
 
-	ha_dev_iterate(devices_cb, &filter, &HA_DEV_ITER_OPT_LOCK_ALL(), &arr);
+	ha_dev_iterate(devices_cb, &filter, &HA_DEV_ITER_OPT_LOCK_ALL(), &ud);
 
 	/* TODO use "json_obj_encode()" to encode incrementally
 	 * all the devices with CHUNKED encoding
 	 */
 
-	return rest_encode_response_json_array(resp, &arr, json_device_array_descr);
+	return rest_encode_response_json_array(resp, &ud.array, json_device_array_descr);
 }
 
 int rest_device_get(http_request_t *req, http_response_t *resp)
