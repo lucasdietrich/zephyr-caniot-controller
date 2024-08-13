@@ -92,7 +92,7 @@ static int prepare_reponse(struct discovery_response *resp, size_t len)
 	}
 
 	struct net_if *iface = net_if_get_default();
-	struct in_addr *addr = &iface->config.ip.ipv4->unicast[0].address.in_addr;
+	struct in_addr *addr = &iface->config.ip.ipv4->unicast[0].ipv4.address.in_addr;
 
 	resp->ip = htonl(addr->s_addr);
 	ipv4_to_str(addr, resp->str_ip, sizeof(resp->str_ip));

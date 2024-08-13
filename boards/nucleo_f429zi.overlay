@@ -7,7 +7,6 @@
         bus-speed = <500000>;
 
         sample-point = <875>; /* recommended value */
-        sjw = <0x1>;
 };
 
 / {
@@ -216,6 +215,7 @@ Sample application : https://github.com/zephyrproject-rtos/zephyr/tree/main/samp
         chosen {
                 zephyr,console = &usart3;
                 zephyr,shell-uart = &usart3;
+                zephyr,bt-hci = &hci_spi;
         };
 };
 
@@ -246,7 +246,7 @@ Sample application : https://github.com/zephyrproject-rtos/zephyr/tree/main/samp
                 &dma2 3 5 0x20480 0x03>;
         dma-names = "tx", "rx";
 
-        hci@0 {
+        hci_spi: hci@0 {
                 compatible = "zephyr,bt-hci-spi";
                 reg = <0>;
                 irq-gpios = <&gpioe 3 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;

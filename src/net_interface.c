@@ -20,22 +20,20 @@
 
 /* Increase Zephyr MGMT task size through CONFIG_NET_MGMT_EVENT_STACK_SIZE to 1024 when
  * increasing log level */
-LOG_MODULE_REGISTER(netif, LOG_LEVEL_WRN);
+LOG_MODULE_REGISTER(netif, LOG_LEVEL_DBG);
 
 #define NET_ETH_ADDR_STR_LEN sizeof("xx:xx:xx:xx:xx:xx")
 
-#define ETH0 0u
-#define USB0 1u
+#define ETH0 "eth0"
+#define USB0 "netusb0"
 
-#define UNDEFINED_IFACE NULL
-
-static struct net_if *ifaces[2u] = {UNDEFINED_IFACE, UNDEFINED_IFACE};
-
+static struct net_if *eth_iface;
 #if defined(CONFIG_ETH_STM32_HAL)
 static char mac_eth0_str[NET_ETH_ADDR_STR_LEN] = "00:80:E1:77:77:77";
 #endif
 
 #if defined(CONFIG_USB_DEVICE_NETWORK_ECM)
+static struct net_if *usb_iface;
 static char mac_usb0_str[NET_ETH_ADDR_STR_LEN] = "00:00:5E:00:53:00";
 #endif
 
@@ -49,24 +47,22 @@ static struct net_mgmt_event_callback mgmt_cb[4u];
 static void show_ipv4(struct net_if *iface);
 static const char *net_mgmt_event_to_str(uint32_t mgmt_event);
 
-static void eth_interface_up(void)
+static void eth_interface_up(struct net_if *iface)
 {
 #if !defined(CONFIG_QEMU_TARGET)
 	leds_set_blinking(LED_NET, 200U * USEC_PER_MSEC);
 #endif
 
 #if defined(CONFIG_NET_DHCPV4)
-	struct net_if *const iface = ifaces[ETH0];
 	net_dhcpv4_start(iface);
 #elif defined(CONFIG_QEMU_TARGET)
 	net_time_sync();
 #endif
 }
 
-static void eth_interface_down(void)
+static void eth_interface_down(struct net_if *iface)
 {
 #if defined(CONFIG_NET_DHCPV4)
-	// struct net_if *const iface = ifaces[ETH0];
 	// net_dhcpv4_stop(iface);
 #endif
 
@@ -76,23 +72,24 @@ static void eth_interface_down(void)
 }
 
 #if defined(CONFIG_USB_DEVICE_NETWORK_ECM)
-static void usb_interface_up(void)
+static void usb_interface_up(struct net_if *iface)
 {
 	struct in_addr gw, my, nm;
-	struct net_if *const iface = ifaces[USB0];
 
-	/* Coinfigure the interface with a static IP address */
-	net_addr_pton(AF_INET, "192.0.3.1", &gw);
+	/* Configure the interface with a static IP address */
 	net_addr_pton(AF_INET, "192.0.3.2", &my);
 	net_addr_pton(AF_INET, "255.255.255.0", &nm);
+	net_addr_pton(AF_INET, "192.0.3.1", &gw);
 
-	net_if_ipv4_set_gw(iface, &gw);
-	net_if_ipv4_set_netmask(iface, &nm);
+
 	net_if_ipv4_addr_add(iface, &my, NET_ADDR_MANUAL, 0);
+	net_if_ipv4_set_netmask_by_addr(iface, &my, &nm);
+	net_if_ipv4_set_gw(iface, &gw);
 }
 
-static void usb_interface_down(void)
+static void usb_interface_down(struct net_if *iface)
 {
+	(void)iface;
 }
 
 #endif
@@ -117,28 +114,28 @@ static void net_event_handler(struct net_mgmt_event_callback *cb,
 	/* https://github.com/zephyrproject-rtos/zephyr/blob/main/include/net/net_event.h
 	 */
 	case NET_EVENT_IF_UP:
-		if (iface == ifaces[ETH0]) {
-			eth_interface_up();
+		if (iface == eth_iface) {
+			eth_interface_up(eth_iface);
 #if defined(CONFIG_USB_DEVICE_NETWORK_ECM)
-		} else if (iface == ifaces[USB0]) {
-			usb_interface_up();
+		} else if (iface == usb_iface) {
+			usb_interface_up(usb_iface);
 #endif
 		}
 		break;
 
 	case NET_EVENT_IF_DOWN:
-		if (iface == ifaces[ETH0]) {
-			eth_interface_down();
+		if (iface == eth_iface) {
+			eth_interface_down(eth_iface);
 #if defined(CONFIG_USB_DEVICE_NETWORK_ECM)
-		} else if (iface == ifaces[USB0]) {
-			usb_interface_down();
+		} else if (iface == usb_iface) {
+			usb_interface_down(usb_iface);
 #endif
 		}
 		break;
 
 	case NET_EVENT_IPV4_ADDR_ADD:
 #ifndef CONFIG_QEMU_TARGET
-		if (iface == ifaces[ETH0]) {
+		if (iface == eth_iface) {
 			leds_set(LED_NET, LED_ON);
 			net_time_sync();
 		}
@@ -178,6 +175,7 @@ static int eth_mac_str_to_addr(struct net_linkaddr *ll_addr, const char *mac_str
 	return 0;
 }
 
+#if defined(CONFIG_ETH_STM32_HAL) || defined(CONFIG_USB_DEVICE_NETWORK_ECM)
 static struct net_if *net_if_get_by_mac_str(const char *mac_str)
 {
 	struct net_if *iface = NULL;
@@ -197,27 +195,43 @@ static struct net_if *net_if_get_by_mac_str(const char *mac_str)
 
 	return iface;
 }
-
-__attribute__((unused)) static void reference_iface(uint32_t iface_index,
-													const char *mac_str)
-{
-	ifaces[iface_index] = net_if_get_by_mac_str(mac_str);
-
-	LOG_DBG("[%u] mac: %s iface: %p up: %u", iface_index, mac_str, ifaces[iface_index],
-			(uint32_t)net_if_flag_is_set(ifaces[iface_index], NET_IF_UP));
-}
+#endif
 
 void net_interface_init(void)
 {
-	/* Match interfaces with eth mac address for quick access */
+	/* eth0 */
+
 #if defined(CONFIG_ETH_STM32_HAL)
-	reference_iface(ETH0, mac_eth0_str);
+	eth_iface = net_if_get_by_mac_str(mac_eth0_str);
+
+	LOG_DBG("[%u] mac: %s iface: %p up: %u", net_if_get_by_iface(eth_iface), mac_eth0_str, eth_iface,
+			(uint32_t)net_if_flag_is_set(eth_iface, NET_IF_UP));
+
+	/* Set default */
+	net_if_set_default(eth_iface);
+
 #elif defined(CONFIG_QEMU_TARGET)
-	ifaces[ETH0] = net_if_get_default();
+	eth_iface = net_if_get_default();
 #endif
 
+	/* Manually triggers "IF_UP" events, because not triggered by net_mgmt
+	 * if the interfaces were already up */
+	if (net_if_flag_is_set(eth_iface, NET_IF_UP)) {
+		eth_interface_up(eth_iface);
+	}
+
+	/* usb */
 #if defined(CONFIG_USB_DEVICE_NETWORK)
-	reference_iface(USB0, mac_usb0_str);
+	usb_iface = net_if_get_by_mac_str(mac_usb0_str);
+
+	LOG_DBG("[%u] mac: %s iface: %p up: %u", net_if_get_by_iface(usb_iface), mac_usb0_str, usb_iface,
+			(uint32_t)net_if_flag_is_set(usb_iface, NET_IF_UP));
+
+	/* Manually triggers "IF_UP" events, because not triggered by net_mgmt
+	 * if the interfaces were already up */
+	if (net_if_flag_is_set(usb_iface, NET_IF_UP)) {
+		usb_interface_up(usb_iface);
+	}
 #endif
 
 	/* One callback per layer */
@@ -241,18 +255,6 @@ void net_interface_init(void)
 	net_mgmt_add_event_callback(&mgmt_cb[MGMT_L4_CB_INDEX]);
 
 	conn_mgr_mon_resend_status();
-
-	/* Manually triggers "IF_UP" events, because not triggered by net_mgmt
-	 * if the interfaces were already up */
-	if (net_if_flag_is_set(ifaces[ETH0], NET_IF_UP)) {
-		eth_interface_up();
-	}
-
-#if defined(CONFIG_USB_DEVICE_NETWORK)
-	if (net_if_flag_is_set(ifaces[USB0], NET_IF_UP)) {
-		usb_interface_up();
-	}
-#endif
 }
 
 static const char *addr_type_to_str(enum net_addr_type addr_type)
@@ -283,17 +285,17 @@ static void show_ipv4(struct net_if *iface)
 		LOG_INF("=== NET interface %p ===", iface);
 
 		LOG_INF("Address: %s [addr type %s]",
-				net_addr_ntop(AF_INET, &ifcfg->ip.ipv4->unicast[i].address.in_addr, buf,
+				net_addr_ntop(AF_INET, &ifcfg->ip.ipv4->unicast[i].ipv4.address.in_addr, buf,
 							  sizeof(buf)),
-				addr_type_to_str(ifcfg->ip.ipv4->unicast[i].addr_type));
+				addr_type_to_str(ifcfg->ip.ipv4->unicast[i].ipv4.addr_type));
 
 		LOG_INF("Subnet:  %s",
-				net_addr_ntop(AF_INET, &ifcfg->ip.ipv4->netmask, buf, sizeof(buf)));
+				net_addr_ntop(AF_INET, &ifcfg->ip.ipv4->unicast->netmask, buf, sizeof(buf)));
 		LOG_INF("Router:  %s",
 				net_addr_ntop(AF_INET, &ifcfg->ip.ipv4->gw, buf, sizeof(buf)));
 
 #if defined(CONFIG_NET_DHCPV4)
-		if (ifcfg->ip.ipv4->unicast[i].addr_type == NET_ADDR_DHCP) {
+		if (ifcfg->ip.ipv4->unicast[i].ipv4.addr_type == NET_ADDR_DHCP) {
 			LOG_INF("DHCPv4 Lease time: %u seconds [state: %s]", ifcfg->dhcpv4.lease_time,
 					net_dhcpv4_state_name(ifcfg->dhcpv4.state));
 		}

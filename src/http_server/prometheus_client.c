@@ -232,17 +232,17 @@ static ssize_t encode_value(char *buf, size_t buf_size, struct metric_value *val
 		ret = snprintf(buf, buf_size, "%u", value->uvalue);
 		break;
 	case VALUE_ENCODING_TYPE_FLOAT_DIGITS:
-		ret = snprintf(buf, buf_size, "%.*f", (int)value->encoding.digits, value->fvalue);
+		ret = snprintf(buf, buf_size, "%.*f", (int)value->encoding.digits, (double)value->fvalue);
 		break;
 	case VALUE_ENCODING_TYPE_EXP:
-		ret = snprintf(buf, buf_size, "%e", value->fvalue);
+		ret = snprintf(buf, buf_size, "%e", (double)value->fvalue);
 		break;
 	case VALUE_ENCODING_TYPE_EXP_DIGITS:
-		ret = snprintf(buf, buf_size, "%.*e", (int)value->encoding.digits, value->fvalue);
+		ret = snprintf(buf, buf_size, "%.*e", (int)value->encoding.digits, (double)value->fvalue);
 		break;
 	case VALUE_ENCODING_TYPE_FLOAT:
 	default:
-		ret = snprintf(buf, buf_size, "%f", value->fvalue);
+		ret = snprintf(buf, buf_size, "%f", (double)value->fvalue);
 		break;
 	}
 

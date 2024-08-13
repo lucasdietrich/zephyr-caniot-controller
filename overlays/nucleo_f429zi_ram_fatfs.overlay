@@ -1,0 +1,8 @@
+/ {
+	ramdisk0 {
+		compatible = "zephyr,ram-disk";
+		disk-name = "RAM";
+		sector-size = <512>;
+		sector-count = <24>; // TODO increase this value to at least 128, disable other features to make it work
+	};
+};

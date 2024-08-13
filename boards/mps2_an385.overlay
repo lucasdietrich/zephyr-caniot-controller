@@ -2,62 +2,11 @@
 	status = "disabled";
 };
 
-/* For later use */
-/*
 / {
-	fstab {
-		compatible = "zephyr,fstab";
-		lfs: lfs {
-			compatible = "zephyr,fstab,littlefs";
-			mount-point = "/lfs";
-			partition = <&lfs_partition>;
-			automount;
-			read-size = <16>;
-			prog-size = <16>;
-			cache-size = <64>;
-			lookahead-size = <32>;
-			block-cycles = <512>;
-		};
+	ramdisk0 {
+		compatible = "zephyr,ram-disk";
+		disk-name = "RAM";
+		sector-size = <512>;
+		sector-count = <4096>;
 	};
 };
-*/
-
-/* 
-&flash0 {
-	compatible = "soc-nv-flash";
-	reg = < 0x0 0x60000 >;
-	// erase-block-size = < 0x400 >;
-	// write-block-size = < 0x4 >;
-	// partitions {
-	// 	compatible = "fixed-partitions";
-	// 	#address-cells = < 0x1 >;
-	// 	#size-cells = < 0x1 >;
-	// 	storage_partition: partition@0 {
-	// 		label = "storage";
-	// 		reg = < 0x0 0x10000 >;
-	// 		phandle = < 0x3 >;
-	// 	};
-	// 	slot0_partition: partition@10000 {
-	// 		label = "image-0";
-	// 		reg = < 0x10000 0x10000 >;
-	// 	};
-	// 	slot1_partition: partition@20000 {
-	// 		label = "image-1";
-	// 		reg = < 0x20000 0x10000 >;
-	// 	};
-	// 	eepromemu_partition: partition@30000 {
-	// 		label = "eeprom-emu";
-	// 		reg = < 0x30000 0x10000 >;
-	// 		phandle = < 0x2 >;
-	// 	};
-	// 	credentials_partition: partition@40000 {
-	// 		label = "credentials";
-	// 		reg = < 0x40000 0x10000 >;
-	// 	};
-	// 	lfs_partition: partition@50000 {
-	// 		label = "littlefs";
-	// 		reg = < 0x50000 0x10000 >;
-	// 	};
-	// };
-};
-*/

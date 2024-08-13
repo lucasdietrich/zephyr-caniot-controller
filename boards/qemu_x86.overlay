@@ -15,6 +15,12 @@
 			block-cycles = <512>;
 		};
 	};
+	ramdisk0 {
+		compatible = "zephyr,ram-disk";
+		disk-name = "RAM";
+		sector-size = <512>;
+		sector-count = <1024>;
+	};
 };
 
 /delete-node/ &storage_partition;

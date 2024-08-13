@@ -435,13 +435,13 @@ json_net_interface_info_fill(struct json_net_interface *ifdata,
 
 	struct net_if_config *const ifcfg = &iface->config;
 
-	net_addr_ntop(AF_INET, (const void *)&ifcfg->ip.ipv4->unicast[0].address.in_addr,
+	net_addr_ntop(AF_INET, (const void *)&ifcfg->ip.ipv4->unicast[0].ipv4.address.in_addr,
 				  ifdata->config.unicast, sizeof(storage->unicast_str));
 	net_addr_ntop(AF_INET, (const void *)&ifcfg->ip.ipv4->mcast[0].address.in_addr,
 				  ifdata->config.mcast, sizeof(storage->mcast_str));
 	net_addr_ntop(AF_INET, (const void *)&ifcfg->ip.ipv4->gw, ifdata->config.gateway,
 				  sizeof(storage->gateway_str));
-	net_addr_ntop(AF_INET, (const void *)&ifcfg->ip.ipv4->netmask, ifdata->config.netmask,
+	net_addr_ntop(AF_INET, (const void *)&ifcfg->ip.ipv4->unicast[0].netmask, ifdata->config.netmask,
 				  sizeof(storage->netmask_str));
 
 	struct net_linkaddr *l2_addr = net_if_get_link_addr(iface);

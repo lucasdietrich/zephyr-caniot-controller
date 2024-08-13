@@ -33,7 +33,7 @@ int app_fs_lsdir(const char *path);
 
 static FATFS fatfs_ram;
 
-static const char *const ramdisk_mount_pt = "/" CONFIG_DISK_RAM_VOLUME_NAME ":";
+static const char *const ramdisk_mount_pt = "/RAM:"; // TODO: retrieve name from devicetree
 
 static struct fs_mount_t mp_ram = {
 	.type	   = FS_FATFS,

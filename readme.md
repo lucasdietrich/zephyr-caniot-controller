@@ -30,6 +30,61 @@ to a local server (REST, prometheus ..) for monitoring and/or control
 
 ![docs/pics/aws_grafana_3.png](./docs/pics/aws_grafana_3.png)
 
+## Expected console output
+
+```
+*** Booting Zephyr OS build zephyr-v3.0.0  ***
+I: Starting bootloader
+I: Primary image: magic=good, swap_type=0x1, copy_done=0x3, image_ok=0x1
+I: Scratch: magic=bad, swap_type=0x1, copy_done=0x2, image_ok=0x2
+I: Boot source: primary slot
+I: Swap type: none
+I: Bootloader chainload address offset: 0x20000
+I: Jumping to the first image slot
+[00:00:00.011,000] <dbg> disk: disk_access_register: disk interface(SD) registered
+*** Booting Zephyr OS build v3.7.0-1-gbdddc83484ad ***
+Starting Zephyr application...
+[00:00:00.011,000] <inf> dfu: MCUBOOT version=1 IMAGE size=0x72a00 version=0.0.0+0 confirmed=1
+[00:00:00.011,000] <wrn> dfu: Development image (version=0.0.0+0)
+[00:00:00.031,000] <inf> sd: Maximum SD clock is under 25MHz, using clock of 24000000Hz
+[00:00:00.036,000] <inf> app_fs: FS mounted /SD:
+[00:00:00.037,000] <inf> creds_manager: Found 11 credentials in FLASH
+[00:00:00.037,000] <dbg> netif: net_interface_init: [1] mac: 00:80:E1:77:77:77 iface: 0x20003910 up: 1
+[00:00:00.037,000] <dbg> netif: net_interface_init: [2] mac: 00:00:5E:00:53:00 iface: 0x20003a30 up: 1
+[00:00:00.330,000] <inf> bt_hci_core: Identity: F2:DF:DA:8E:AB:50 (random)
+[00:00:00.330,000] <inf> bt_hci_core: HCI: version 5.4 (0x0d) revision 0x0000, manufacturer 0x05f1
+[00:00:00.330,000] <inf> bt_hci_core: LMP: version 5.4 (0x0d) subver 0xffff
+[00:00:00.330,000] <inf> ble: Bluetooth initialized 0
+[00:00:01.511,000] <dbg> netif: net_event_handler: [face: 0x20003910] event: NET_EVENT_IF_UP (d0010002)
+[00:00:01.511,000] <dbg> netif: net_event_handler: [face: 0x20003910] event: NET_EVENT_IPV4_DHCP_START (e0040007)
+[00:00:01.513,000] <dbg> netif: net_event_handler: [face: 0x20003910] event: <unknown net event> (f1140007)
+[00:00:01.517,000] <inf> net_dhcpv4: Received: 192.168.10.226
+[00:00:01.517,000] <dbg> netif: net_event_handler: [face: 0x20003910] event: NET_EVENT_IPV4_ADDR_ADD (e0040001)
+[00:00:01.517,000] <inf> netif: === NET interface 0x20003910 ===
+[00:00:01.517,000] <inf> netif: Address: 192.168.10.226 [addr type NET_ADDR_DHCP]
+[00:00:01.517,000] <inf> netif: Subnet:  255.255.255.0
+[00:00:01.517,000] <inf> netif: Router:  192.168.10.1
+[00:00:01.517,000] <inf> netif: DHCPv4 Lease time: 43000 seconds [state: bound]
+[00:00:01.517,000] <dbg> netif: net_event_handler: [face: 0x20003910] event: NET_EVENT_IPV4_DHCP_BOUND (e0040008)
+[00:00:01.631,000] <inf> net_time: SNTP time from fr.pool.ntp.org:123 = 1723568041, 1 thread(s) signaled
+[00:00:01.634,000] <inf> cloud: State changed: STATE_INIT (0) -> STATE_RESOLVE_HOST (1)
+[00:00:01.635,000] <inf> cloud_utils: Resolved a31gokdeokxhl8-ats.iot.eu-west-1.amazonaws.com -> 52.16.249.75
+[00:00:01.635,000] <inf> cloud: State changed: STATE_RESOLVE_HOST (1) -> STATE_CONNECTING (3)
+[00:00:03.265,000] <inf> net_mqtt: Connect completed
+[00:00:03.366,000] <inf> cloud: State changed: STATE_CONNECTING (3) -> STATE_CONNECTED (4)
+[00:00:05.209,000] <inf> ble_obv: [XIAOMI] mac: A4:C1:38:3C:D3:21 rssi: -71 bat: 2466 mV temp: 27 °C hum: 61 %
+Local (Europe/Paris) Date and time : 2024/08/13 16:54:05
+[00:00:09.431,000] <inf> caniot: [ 60d ] 01 C1-D0 Telemetry Response ep : ep-c ff ff 07 2b fe ff
+[00:00:09.436,000] <inf> caniot: [ 64d ] 09 C1-D1 Telemetry Response ep : ep-c ff ff 07 2b fe ff
+[00:00:09.446,000] <inf> caniot: [ 68d ] 17 C1-D2 Telemetry Response ep : ep-c ff ff 07 2b fe ff
+[00:00:09.451,000] <inf> caniot: [ 6cd ] 25 C1-D3 Telemetry Response ep : ep-c ff ff 07 2b fe ff
+[00:00:09.461,000] <inf> caniot: [ 70d ] 33 C1-D4 Telemetry Response ep : ep-c ff ff 07 26 fe ff
+[00:00:09.511,000] <inf> caniot: [ 74d ] 41 C1-D5 Telemetry Response ep : ep-c ff ff 07 2b fe ff
+[00:00:10.205,000] <inf> ble_obv: [XIAOMI] mac: A4:C1:38:3C:D3:21 rssi: -74 bat: 2468 mV temp: 27 °C hum: 61 %
+[00:00:12.700,000] <inf> ble_obv: [XIAOMI] mac: A4:C1:38:3C:D3:21 rssi: -74 bat: 2468 mV temp: 27 °C hum: 61 %
+[00:00:17.698,000] <inf> ble_obv: [XIAOMI] mac: A4:C1:38:3C:D3:21 rssi: -63 bat: 2467 mV temp: 27 °C hum: 61 %
+```
+
 ## Documentation
 
 Documentation is available in the `docs` folder for following topics:

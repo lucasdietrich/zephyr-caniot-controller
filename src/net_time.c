@@ -20,18 +20,18 @@ struct sntp_context {
 	uint32_t count;	   /* Number of times we synced time */
 	time_t last_sync;  /* Last time we synced time */
 
-	struct k_work work; /* Work item to sync time */
+	struct k_work_delayable dwork; /* Work item to sync time */
 
 	struct k_mutex mutex;	  /* Mutex to protect context access from other threads */
 	struct k_condvar condvar; /* Condvar to signal when the time is synced */
 };
 
 struct sntp_context sntp_ctx = {
-	.server	   = "0.fr.pool.ntp.org",
+	.server	   = "fr.pool.ntp.org",
 	.failures  = 0U,
 	.count	   = 0U,
 	.last_sync = 0U,
-	.work	   = Z_WORK_INITIALIZER(sntp_handler),
+	.dwork	   = Z_WORK_DELAYABLE_INITIALIZER(sntp_handler),
 	.mutex	   = Z_MUTEX_INITIALIZER(sntp_ctx.mutex),
 	.condvar   = Z_CONDVAR_INITIALIZER(sntp_ctx.condvar),
 };
@@ -41,7 +41,8 @@ static void sntp_handler(struct k_work *work)
 	int ret;
 	struct sntp_time time;
 	struct timespec tspec;
-	struct sntp_context *ctx = CONTAINER_OF(work, struct sntp_context, work);
+	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
+	struct sntp_context *ctx = CONTAINER_OF(dwork, struct sntp_context, dwork);
 
 	/* https://www.pool.ntp.org/zone/fr */
 	ret = sntp_simple(ctx->server, 10U * MSEC_PER_SEC, &time);
@@ -67,10 +68,8 @@ static void sntp_handler(struct k_work *work)
 		/* todo retry later */
 		LOG_ERR("sntp_simple() failed with error = %d", ret);
 
-		// k_sleep(K_SECONDS(100));
-
 		/* Reschedule the work */
-		net_time_sync();
+		k_work_schedule(dwork, K_SECONDS(5));
 	}
 
 	k_mutex_unlock(&ctx->mutex);
@@ -78,7 +77,11 @@ static void sntp_handler(struct k_work *work)
 
 int net_time_sync(void)
 {
-	return k_work_submit(&sntp_ctx.work);
+	if (!k_work_is_pending(&sntp_ctx.dwork.work)) {
+		return k_work_schedule(&sntp_ctx.dwork, K_NO_WAIT);
+	} else {
+		return -EBUSY;
+	}
 }
 
 uint32_t net_time_get(void)

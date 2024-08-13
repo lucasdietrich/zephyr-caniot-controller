@@ -28,6 +28,7 @@ tmp:
 # add option "--cmake-only" to not build immediately
 build:
 	west build --board=nucleo_f429zi -- \
+	-DDTC_OVERLAY_FILE="boards/nucleo_f429zi.overlay" \
 		-G"$(GENERATOR)"
 
 ninja:
@@ -42,43 +43,48 @@ flash:
 # FIXME: compile but MCUBOOT doesn't recognize the image
 build_debug:
 	west build --board=nucleo_f429zi -- \
+		-DDTC_OVERLAY_FILE="boards/nucleo_f429zi.overlay" \
 		-DOVERLAY_CONFIG="overlays/nucleo_f429zi_shell.conf" \
 		-G"$(GENERATOR)"
 
 build_nucleo_f429zi_loggingfs:
 	west build --board=nucleo_f429zi -- \
+		-DDTC_OVERLAY_FILE="boards/nucleo_f429zi.overlay" \
 		-DOVERLAY_CONFIG="overlays/nucleo_f429zi_logging_fs.conf" \
 		-G"$(GENERATOR)"
 
 build_nucleo_f429zi_ramfatfs:
 	west build --board=nucleo_f429zi -- \
+		-DDTC_OVERLAY_FILE="boards/nucleo_f429zi.overlay overlays/nucleo_f429zi_ram_fatfs.overlay" \
 		-DOVERLAY_CONFIG="overlays/nucleo_f429zi_ram_fatfs.conf" \
 		-G"$(GENERATOR)"
 
 build_nucleo_f429zi_ramfatfs_shell:
 	west build --board=nucleo_f429zi -- \
+	-DDTC_OVERLAY_FILE="boards/nucleo_f429zi.overlay overlays/nucleo_f429zi_ram_fatfs.overlay" \
 	-DOVERLAY_CONFIG="overlays/nucleo_f429zi_ram_fatfs.conf overlays/nucleo_f429zi_shell.conf" \
 	-G"$(GENERATOR)"
 
 build_nucleo_f429zi_shell:
 	west build --board=nucleo_f429zi -- \
+	-DDTC_OVERLAY_FILE="boards/nucleo_f429zi.overlay" \
 	-DOVERLAY_CONFIG="overlays/nucleo_f429zi_shell.conf" -G"$(GENERATOR)"
 
 build_qemu_arm_slip:
 	west build --board=mps2_an385 -- \
 	-DOVERLAY_CONFIG="overlays/mps2_an385_slip.conf" \
-	-DDTC_OVERLAY_FILE="overlays/mps2_an385_slip.overlay" \
+	-DDTC_OVERLAY_FILE="boards/mps2_an385.overlay overlays/mps2_an385_slip.overlay" \
 	-G"$(GENERATOR)"
 
 # Doesn't work yet (TODO)
 build_qemu_arm_lan9220:
 	west build --board=mps2_an385 -- \
 	-DOVERLAY_CONFIG="overlays/mps2_an385_lan9220.conf" \
-	-DDTC_OVERLAY_FILE="overlays/mps2_an385_lan9220.overlay" \
+	-DDTC_OVERLAY_FILE="boards/mps2_an385.overlay overlays/mps2_an385_lan9220.overlay" \
 	-G"$(GENERATOR)"
 
 build_qemu_x86:
-	west build --board=qemu_x86 -- -G"$(GENERATOR)"
+	west build --board=qemu_x86 -- -DDTC_OVERLAY_FILE="boards/qemu_x86.overlay" -G"$(GENERATOR)"
 
 # Ctrl-T Q to quit
 monitor:

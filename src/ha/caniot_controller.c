@@ -261,9 +261,7 @@ static void thread(void *_a, void *_b, void *_c)
 #if defined(CONFIG_APP_CAN_INTERFACE)
 	static struct can_frame zframe;
 
-	struct can_filter filter = {
-		.flags = CAN_FILTER_DATA,
-	};
+	struct can_filter filter = {0};
 
 	ret = if_can_attach_rx_msgq(CAN_BUS_CANIOT, &can_rxq, &filter);
 	if (ret < 0) {
