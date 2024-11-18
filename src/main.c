@@ -128,7 +128,9 @@ int main(void)
 #endif
 	app_fs_init();
 
+#if defined(CONFIG_APP_CREDENTIALS_MANAGER)
 	creds_manager_init();
+#endif
 
 	crypto_mbedtls_heap_init();
 	net_interface_init();

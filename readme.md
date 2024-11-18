@@ -1,15 +1,18 @@
 # Home Automation Controller for CAN/BLE devices - with ZephyrRTOS and stm32f4
 
 ## Introduction
-This project is an attempt to create a home automation controller for CAN/BLE devices.
-It serves my personnal needs but I tried to make it somehow generic with reusable components.
-This project is far from being finished, it's also a mess but it's a start.
-I have a bit more than 1 year of professionnal and personnal experience with Zephyr RTOS. 
-And this project can also be seen of a demonstration of an IoT application handling several IoT protocols using Zephyr RTOS.
 
-Comments, questions, suggestions and contributions are welcome.
+This **personnal** project is an attempt to create a home automation controller 
+for CAN/BLE devices I have at home.
 
-Currently supporting **ZephyrRTOS v3.4.0** with following targets:
+**This project is not longer maintained**, I'm only making periodic updates to keep 
+it up to date with Zephyr RTOS, but this is more a training task (to not get rusty) 
+than actual maintenance. Particularily, I recently found *memory* issues when 
+handling devices events.
+
+Comments, questions, suggestions are welcome.
+
+Currently supporting **ZephyrRTOS v4.0.0** with following targets:
 - `nucleo_f429zi`
 - `mps2_an385`
 - `qemu_x86`
@@ -159,6 +162,15 @@ Then install Zephyr RTOS and application requirements:
     pip install -r zephyr/scripts/requirements.txt
     pip install -r zephyr-caniot-controller/requirements.txt
 
+## Quick build steps for `nucleo_f429zi` for debug
+
+1. Flash debug version of mcuboot with `flash_bootloader`
+2. Prepare credentials (if not already done)
+- Generate HTTP key and certificate with `creds/https_server/gen_rsa_ca.sh`
+- Convert AWS device key and certificate with `creds/AWS/aws-to-der.sh`
+- Update `creds/creds.json` consequently
+3. Build the project with `west build -b nucleo_f429zi`
+4. Flash the project with `west flash --runner=openocd`
 
 ## Configure the project
 

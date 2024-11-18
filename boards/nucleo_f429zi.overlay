@@ -4,7 +4,6 @@
         status = "okay";
         pinctrl-names  = "default";
         pinctrl-0 = <&can1_rx_pd0 &can1_tx_pd1>;
-        bus-speed = <500000>;
 
         sample-point = <875>; /* recommended value */
 };
@@ -105,9 +104,10 @@
                 reg = <0>;
                 status = "okay";
                 spi-max-frequency = <24000000>;  // 24000000, 400000
-		mmc {
+		sdmmc_disk: mmc {
 			compatible = "zephyr,sdmmc-disk";
 			status = "okay";
+                        disk-name = "SD";
 		};
         };
 };
@@ -194,7 +194,9 @@ Sample application : https://github.com/zephyrproject-rtos/zephyr/tree/main/samp
                 compatible = "st,stm32-temp";
                 io-channels = < &adc1 18 >;
                 // ts-voltage-mv = < 3300 >;
-                avgslope = < 25 >;
+                
+                // stm32f429zi datasheet: 2.5 mV/°C
+                avgslope = "2.5";
                 v25 = < 760 >;
                 status = "okay";
         };

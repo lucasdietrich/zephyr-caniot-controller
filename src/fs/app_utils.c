@@ -47,11 +47,14 @@ static struct fs_mount_t mp_ram = {
 
 static FATFS fat_fs_mmc;
 
+// Retrieve disk name from devicetree
+#define DISK_NAME DT_PROP(DT_NODELABEL(sdmmc_disk), disk_name)
+
 /*
  *  Note the fatfs library is able to mount only strings inside _VOLUME_STRS
  *  in ffconf.h
  */
-static const char *const mmcdisk_mount_pt = "/" CONFIG_SDMMC_VOLUME_NAME ":";
+static const char *const mmcdisk_mount_pt = "/" DISK_NAME ":";
 
 /* mounting info */
 static struct fs_mount_t mp_mmc = {

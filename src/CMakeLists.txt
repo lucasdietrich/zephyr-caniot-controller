@@ -25,5 +25,13 @@ add_subdirectory_ifndef(CONFIG_QEMU_TARGET drivers)
 add_subdirectory_ifdef(CONFIG_APP_DFU dfu)
 add_subdirectory(fs)
 
-FILE(GLOB app_sources *.c*)
+set(app_sources
+    main.c
+    net_interface.c
+    net_time.c
+    soc_periph.c
+    system.c
+    crypto.c
+)
+
 target_sources(app PRIVATE ${app_sources})

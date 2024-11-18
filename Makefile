@@ -17,28 +17,30 @@ endif
 # Get ap^plication VERSION
 VERSION := $(shell cat VERSION)
 
-.PHONY: build
+.PHONY: release debug
 
-all: build make
+all: debug
 
 tmp:
 	mkdir -p tmp
 
 # Activate python env variable before building: "source ../.venv/bin/activate "
 # add option "--cmake-only" to not build immediately
-build:
+release:
 	west build --board=nucleo_f429zi -- \
 	-DDTC_OVERLAY_FILE="boards/nucleo_f429zi.overlay" \
+	-DOVERLAY_CONFIG="overlays/nucleo_f429zi_mcuboot.conf" \
 		-G"$(GENERATOR)"
+
+debug:
+	west build -b nucleo_f429zi -- -G"$(GENERATOR)"
 
 ninja:
 	ninja -C build
 
-make: build
-	${GEN_CMD} -C build $(GEN_OPT)
 	
 flash:
-	west flash
+	west flash --runner=openocd
 
 # FIXME: compile but MCUBOOT doesn't recognize the image
 build_debug:

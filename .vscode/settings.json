@@ -54,4 +54,13 @@
 	],
 	"editor.autoIndent": "full",
 	"python.defaultInterpreterPath": "../.venv/bin/python",
+	"files.associations": {
+		"array": "c",
+		"string": "c",
+		"string_view": "c",
+		"ranges": "c",
+		"span": "c",
+		"stm32f4xx_ll_crc.h": "c"
+	},
+	"nrf-connect.toolchain.path": "${nrf-connect.zephyrsdk:0.16.1}",
 }

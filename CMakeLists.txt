@@ -22,8 +22,8 @@ if (BOARD STREQUAL "nucleo_f429zi")
     # This can be useful in order to leave CONF_FILE at its default value, 
     # but “mix in” some additional configuration options.
     set(OVERLAY_CONFIG "overlays/nucleo_f429zi_spi_disk.conf \
-        overlays/nucleo_f429zi_mcuboot.conf \
-        overlays/nucleo_f429zi_usb_net.conf \
+    overlays/nucleo_f429zi_mcuboot.conf \
+    overlays/nucleo_f429zi_usb_net.conf \
         ${OVERLAY_CONFIG}")
     message(STATUS "OVERLAY_CONFIG: ${OVERLAY_CONFIG}")
 
@@ -54,7 +54,7 @@ set(embedded_lua_scripts "")
 if(DEFINED CONFIG_APP_LUA_FS_DEFAULT_SCRIPTS)
     file(GLOB luascripts "${CMAKE_SOURCE_DIR}/scripts/lua/*.lua")
     file(GLOB officialscripts "${CMAKE_SOURCE_DIR}/modules/lua/testes/*.lua")
-    list (APPEND luascripts ${officialscripts})
+        list (APPEND luascripts ${officialscripts})
     foreach(file ${luascripts})
         get_filename_component(filename ${file} NAME)
         get_filename_component(filepath ${file} PATH)
